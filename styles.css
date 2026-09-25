@@ -1345,3 +1345,64 @@ table.tt tbody tr.skipped td {
 @media (max-width: 720px) {
   .law-grid { grid-template-columns: 1fr; }
 }
+
+
+/* ─── FINAL LOCK: no Skip · longer schedule · tick-only COMPLETE ─── */
+.skip-btn,
+.undo-btn { display: none !important; }
+
+.table-wrap {
+  padding: 0.2rem 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+table.tt {
+  width: 100% !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
+}
+/* Give Document columns the stretch Joseph asked for */
+table.tt col.col-day { width: 9% !important; }
+table.tt col.col-pair { width: 14% !important; }
+table.tt col.col-doc1 { width: 36% !important; }
+table.tt col.col-doc2 { width: 36% !important; }
+table.tt col.col-complete { width: 5% !important; }
+
+.complete-cell .actions {
+  flex-direction: row !important;
+  gap: 0 !important;
+}
+.tick-btn {
+  width: 1.35rem !important;
+  height: 1.35rem !important;
+  margin: 0 auto;
+}
+
+@media (max-width: 720px) {
+  .wrap, .card, .table-wrap, table.tt {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  /* Prefer % of card over 100vw (avoids horizontal scrollbar gutters) */
+  .wrap { width: 100% !important; max-width: 100% !important; padding: 0 !important; }
+  .card { width: 100% !important; max-width: 100% !important; }
+  table.tt col.col-day { width: 10% !important; }
+  table.tt col.col-pair { width: 13% !important; }
+  table.tt col.col-doc1 { width: 36% !important; }
+  table.tt col.col-doc2 { width: 36% !important; }
+  table.tt col.col-complete { width: 5% !important; }
+  .cite-exact,
+  .doc-cell a.cite-exact,
+  .cite-text.cite-exact,
+  .doc-cell {
+    font-size: 0.52rem !important;
+    line-height: 1.2 !important;
+  }
+  table.tt tbody td {
+    padding: 0.32rem 0.22rem !important;
+  }
+  .tick-btn { width: 1.2rem !important; height: 1.2rem !important; }
+}

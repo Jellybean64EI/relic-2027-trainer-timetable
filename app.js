@@ -113,7 +113,7 @@
   /**
    * RELIC CALENDAR SYSTEM
    * PREVIEW (before 2027-01-01): browse all months/weeks; practice ticks allowed.
-   * LIVE (from 2027-01-01): browse any month to look ahead; COMPLETE/SKIP only for
+   * LIVE (from 2027-01-01): browse any month to look ahead; COMPLETE only for
    * today and past days. Future calendar days stay LOCKED until that date arrives.
    */
   function canTick(dateKey, parts) {
@@ -335,17 +335,10 @@
         actions = '<span class="lock-badge">LOCKED</span>';
       } else {
         var checked = isComplete ? " checked" : "";
-        var skipActive = isSkipped ? " active" : "";
         actions =
           '<div class="actions">' +
             '<button type="button" class="tick-btn' + checked + '" data-act="complete" data-date="' + day.dateKey + '" aria-label="Mark complete"></button>' +
-            '<button type="button" class="skip-btn' + skipActive + '" data-act="skip" data-date="' + day.dateKey + '">' +
-              (isSkipped ? "SKIPPED" : "SKIP") +
-            "</button>";
-        if (isComplete || isSkipped) {
-          actions += '<button type="button" class="undo-btn" data-act="undo" data-date="' + day.dateKey + '">undo</button>';
-        }
-        actions += "</div>";
+          "</div>";
       }
 
       /* Tick lives ONLY inside .tick-btn — no floating ✓ duplicate */
@@ -407,20 +400,6 @@
       }
       saveStore();
       render();
-    } else if (act === "skip") {
-      if (state.store.skips[dateKey]) {
-        delete state.store.skips[dateKey];
-      } else {
-        state.store.skips[dateKey] = true;
-        delete state.store.completes[dateKey];
-      }
-      saveStore();
-      render();
-    } else if (act === "undo") {
-      delete state.store.completes[dateKey];
-      delete state.store.skips[dateKey];
-      saveStore();
-      render();
     }
   }
 
@@ -461,7 +440,7 @@
   }
 
   function clearAll() {
-    if (!confirm("Clear ALL completes and skips for 2027? This cannot be undone.")) return;
+    if (!confirm("Clear ALL completes for 2027? This cannot be undone.")) return;
     state.store = { completes: {}, skips: {}, version: 1 };
     saveStore();
     render();
