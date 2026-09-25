@@ -338,24 +338,17 @@
         var skipActive = isSkipped ? " active" : "";
         actions =
           '<div class="actions">' +
-            '<div class="tick-wrap">' +
-              '<button type="button" class="tick-btn' + checked + '" data-act="complete" data-date="' + day.dateKey + '" aria-label="Complete"></button>' +
-              '<span class="tick-label">COMPLETE</span>' +
-            "</div>" +
-            '<div class="action-secondary">' +
-              '<button type="button" class="skip-btn' + skipActive + '" data-act="skip" data-date="' + day.dateKey + '">' +
-                (isSkipped ? "SKIPPED" : "SKIP") +
-              "</button>";
+            '<button type="button" class="tick-btn' + checked + '" data-act="complete" data-date="' + day.dateKey + '" aria-label="Mark complete"></button>' +
+            '<button type="button" class="skip-btn' + skipActive + '" data-act="skip" data-date="' + day.dateKey + '">' +
+              (isSkipped ? "SKIPPED" : "SKIP") +
+            "</button>";
         if (isComplete || isSkipped) {
           actions += '<button type="button" class="undo-btn" data-act="undo" data-date="' + day.dateKey + '">undo</button>';
         }
-        actions += "</div></div>";
+        actions += "</div>";
       }
 
-      var mark = "";
-      if (isComplete) mark = '<span class="status-mark done" title="Complete">✓</span>';
-      if (isSkipped) mark = '<span class="status-mark skip">SKIP</span>';
-
+      /* Tick lives ONLY inside .tick-btn — no floating ✓ duplicate */
       var todayPill = isToday ? '<span class="today-pill">TODAY</span>' : "";
       var pairNote = day.note
         ? '<span class="note">' + escapeHtml(day.note) + "</span>"
@@ -368,7 +361,7 @@
         '<td class="pair-cell" data-label="TRAINING PAIR">' + escapeHtml(day.pair) + pairNote + "</td>" +
         '<td class="doc-cell" data-label="DOCUMENT 1">' + doc1 + "</td>" +
         '<td class="doc-cell" data-label="DOCUMENT 2">' + doc2 + "</td>" +
-        '<td class="complete-cell" data-label="COMPLETE">' + mark + actions + "</td>";
+        '<td class="complete-cell" data-label="COMPLETE">' + actions + "</td>";
 
       tbody.appendChild(tr);
     });
