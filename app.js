@@ -350,20 +350,16 @@
           "</div>";
       }
 
-      /* Tick lives ONLY inside .tick-btn — no floating ✓ duplicate */
+      /* Tick lives ONLY inside .tick-btn — no TRAINING PAIR column */
       var todayPill = isToday ? '<span class="today-pill">TODAY</span>' : "";
-      var pairNote = day.note
-        ? '<span class="note">' + escapeHtml(day.note) + "</span>"
-        : "";
 
       tr.innerHTML =
         '<td class="day-cell" data-label="DAY">' +
           '<span class="dname">' + day.dayName + "</span>" + todayPill +
           '<span class="ddate">' + day.dateKey + "</span></td>" +
-        '<td class="pair-cell" data-label="TRAINING PAIR">' + escapeHtml(day.pair) + pairNote + "</td>" +
         '<td class="doc-cell" data-label="DOCUMENT 1">' + doc1 + "</td>" +
         '<td class="doc-cell" data-label="DOCUMENT 2">' + doc2 + "</td>" +
-        '<td class="complete-cell" data-label="COMPLETE">' + actions + "</td>";
+        '<td class="complete-cell" data-label="DONE">' + actions + "</td>";
 
       tbody.appendChild(tr);
     });

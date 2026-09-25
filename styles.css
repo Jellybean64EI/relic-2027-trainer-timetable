@@ -2016,3 +2016,84 @@ a.cite-exact:hover,
 .tick-btn.checked::after {
   color: #fff !important;
 }
+
+
+/* ─── NOPAIR14: DAY · DOC1 · DOC2 · DONE ─── */
+table.tt {
+  width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse !important;
+  background: #150724 !important;
+}
+table.tt col.col-day { width: 18% !important; }
+table.tt col.col-pair { display: none !important; width: 0 !important; }
+table.tt col.col-doc1 { width: 36% !important; }
+table.tt col.col-doc2 { width: 36% !important; }
+table.tt col.col-complete { width: 10% !important; }
+
+table.tt thead th,
+table.tt tbody td {
+  padding: 8px 6px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+}
+/* Day cell needs two lines (name + date) */
+table.tt tbody td.day-cell {
+  white-space: normal !important;
+}
+.day-cell .dname {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.day-cell .ddate {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.65;
+}
+
+.pair-cell { display: none !important; }
+
+.doc-cell {
+  max-width: 0; /* ellipsis with fixed table */
+}
+a.doc-link,
+a.cite-exact,
+.doc-link {
+  color: #d8b4fe !important;
+  -webkit-text-fill-color: #d8b4fe !important;
+  text-decoration: underline !important;
+  font-weight: 700 !important;
+  font-size: 0.72rem !important;
+  display: block !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
+}
+a.doc-link:hover,
+a.cite-exact:hover {
+  color: #ff8c00 !important;
+  -webkit-text-fill-color: #ff8c00 !important;
+}
+
+.complete-cell {
+  text-align: center !important;
+  width: 10% !important;
+}
+.complete-cell .actions {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+.tick-btn {
+  width: 18px !important;
+  height: 18px !important;
+  margin: 0 auto !important;
+  border-color: #ff8c00 !important;
+}
