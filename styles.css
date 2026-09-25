@@ -1488,3 +1488,33 @@ table.tt tbody td {
     padding: 0.35rem 0.45rem !important;
   }
 }
+
+
+/* ─── MOBILE PACK: give weekly rows the vertical room ─── */
+@media (max-width: 720px) {
+  .header { padding: 0.4rem 0.45rem 0.2rem !important; }
+  .header h1 { font-size: 0.95rem !important; margin: 0 !important; }
+  .header .sub, .header .phase-line { font-size: 0.55rem !important; margin: 0.1rem 0 0 !important; }
+  .meta-row, .status-row { gap: 0.2rem !important; margin: 0.2rem 0 !important; }
+  .system-law { margin: 0.15rem 0.35rem !important; }
+  .system-law summary { padding: 0.25rem 0.4rem !important; font-size: 0.55rem !important; }
+  .banner { padding: 0.25rem 0.4rem !important; font-size: 0.52rem !important; }
+  .phase-bar { gap: 2px !important; padding: 0.2rem !important; }
+  .phase { padding: 0.22rem 0.15rem !important; }
+  .ph-label { font-size: 0.48rem !important; }
+  .ph-range { font-size: 0.4rem !important; }
+  .year-wall { padding: 0.15rem 0.25rem !important; }
+  .month-bar { padding: 0.15rem 0.2rem !important; gap: 2px !important; }
+  .mbtn { padding: 0.16rem 0.02rem !important; font-size: 0.4rem !important; }
+  .week-tabs { padding: 0.15rem 0.25rem 0.2rem !important; gap: 2px !important; }
+  .wtab { padding: 0.18rem 0.25rem !important; font-size: 0.5rem !important; }
+  .week-meta { font-size: 0.48rem !important; margin: 0.1rem 0 0 !important; }
+  .table-wrap {
+    flex: 1 1 auto !important;
+    min-height: calc(100dvh - 22rem) !important;
+  }
+  table.tt tbody td {
+    padding-top: 0.55rem !important;
+    padding-bottom: 0.55rem !important;
+  }
+}
