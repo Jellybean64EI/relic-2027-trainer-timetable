@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a0a2e" />
+  <title>2027 TRAINER TIMETABLE CARD — Relic · Joseph Searle</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <article class="card" id="relic-card" data-month="1" data-phase="Base" role="main" aria-label="2027 Trainer Timetable Card">
+
+      <header class="header">
+        <div class="ornament">✦ ⚜ ✦</div>
+        <h1>2027 TRAINER TIMETABLE CARD</h1>
+        <p class="subtitle" id="month-title">JANUARY  ·  WEEK 1 OF 4</p>
+        <p class="subtitle" id="phase-banner">PHASE: BASE • BEGINNER</p>
+        <p class="subtitle">
+          <span id="month-blurb">Month 1 of 12 • Base Foundation Month</span>
+          <span class="deload-hint" id="deload-hint" style="display:none"></span>
+        </p>
+        <div id="card-status" class="card-status-slot"></div>
+        <div class="meta-row">
+          <span id="meta-today">TODAY</span>
+          <span id="meta-mode">MODE</span>
+          <span>JOSEPH SEARLE · EUROPE/LONDON</span>
+        </div>
+      </header>
+
+      <div class="banner preview" id="banner-preview">
+        PREVIEW MODE · Browse every month &amp; week freely · Practice ticks OK · Goes LIVE 1 January 2027
+      </div>
+      <div class="banner live" id="banner-live">
+        LIVE MODE · Calendar-true Europe/London · Browse any month · Ticks only for today &amp; past · Future days LOCKED
+      </div>
+      <div class="system-law" id="system-law" aria-label="Relic calendar system">
+        <div class="law-title">RELIC CALENDAR SYSTEM</div>
+        <div class="law-grid">
+          <div><strong>PREVIEW</strong> (now → 31 Dec 2026)<br/>Look through all 12 months. Nothing is sealed yet.</div>
+          <div><strong>LIVE LOCK</strong> (from 1 Jan 2027)<br/>Real year. Today glows gold. Future ticks locked until that day arrives.</div>
+          <div><strong>YOUR JOB</strong><br/>Open the card. Run Document 1 + 2. Tick COMPLETE. Skip if you must.</div>
+        </div>
+      </div>
+      <div class="banner coach" id="banner-coach" style="display:none"></div>
+
+      <!-- Quarter / phase bar -->
+      <div class="phase-bar" role="list" aria-label="Phase quarters">
+        <div class="phase" data-phase="Base" role="listitem">
+          <div class="ph-label">JAN–MAR BASE</div>
+          <div class="ph-range">BEGINNER</div>
+        </div>
+        <div class="phase" data-phase="Hard" role="listitem">
+          <div class="ph-label">APR–JUN HARD</div>
+          <div class="ph-range">HYPERTROPHY</div>
+        </div>
+        <div class="phase" data-phase="Expert" role="listitem">
+          <div class="ph-label">JUL–SEP EXPERT</div>
+          <div class="ph-range">SKILL</div>
+        </div>
+        <div class="phase" data-phase="Till_Failure" role="listitem">
+          <div class="ph-label">OCT–DEC TILL FAILURE</div>
+          <div class="ph-range">PEAK</div>
+        </div>
+      </div>
+
+      <!-- Year wall — 12 month completion mini-bars -->
+      <div class="year-wall" id="year-wall" aria-label="Year progress"></div>
+
+      <!-- 12 month chips -->
+      <nav class="month-bar" aria-label="Months of 2027">
+        <button type="button" class="mbtn" data-month="1">JAN</button>
+        <button type="button" class="mbtn" data-month="2">FEB</button>
+        <button type="button" class="mbtn" data-month="3">MAR</button>
+        <button type="button" class="mbtn" data-month="4">APR</button>
+        <button type="button" class="mbtn" data-month="5">MAY</button>
+        <button type="button" class="mbtn" data-month="6">JUN</button>
+        <button type="button" class="mbtn" data-month="7">JUL</button>
+        <button type="button" class="mbtn" data-month="8">AUG</button>
+        <button type="button" class="mbtn" data-month="9">SEP</button>
+        <button type="button" class="mbtn" data-month="10">OCT</button>
+        <button type="button" class="mbtn" data-month="11">NOV</button>
+        <button type="button" class="mbtn" data-month="12">DEC</button>
+      </nav>
+
+      <!-- Week of month tabs -->
+      <div class="week-tabs">
+        <button type="button" class="wtab" data-week="1">WEEK 1</button>
+        <button type="button" class="wtab" data-week="2">WEEK 2</button>
+        <button type="button" class="wtab" data-week="3">WEEK 3</button>
+        <button type="button" class="wtab deload" data-week="4">WEEK 4 · DELOAD</button>
+        <span class="week-meta" id="week-meta"></span>
+      </div>
+
+      <!-- Timetable -->
+      <div class="table-wrap">
+        <table class="tt">
+          <thead>
+            <tr>
+              <th scope="col">DAY</th>
+              <th scope="col">TRAINING PAIR</th>
+              <th scope="col">DOCUMENT 1</th>
+              <th scope="col">DOCUMENT 2</th>
+              <th scope="col">COMPLETE</th>
+            </tr>
+          </thead>
+          <tbody id="tt-body">
+            <!-- filled by app.js -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="toolbar">
+        <button type="button" class="tool-btn" id="btn-today">Jump to Today</button>
+        <button type="button" class="tool-btn" id="btn-export">Export JSON</button>
+        <button type="button" class="tool-btn" id="btn-import">Import JSON</button>
+        <button type="button" class="tool-btn danger" id="btn-clear">Clear All</button>
+        <span class="tool-spacer"></span>
+        <span class="storage-note">localStorage · relic_trainer_2027_v1</span>
+      </div>
+
+      <footer class="footer">
+        <p class="motto">PIECE BY PIECE, I TAKE MY LIFE BACK.</p>
+        <p class="ornament">⚜ · RELIC 2027 · ⚜</p>
+        <p class="who">Joseph Searle · NiX coach archive · Europe/London</p>
+      </footer>
+    </article>
+  </div>
+
+  <script src="data/schedule.js"></script>
+  <script src="data/citations.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
