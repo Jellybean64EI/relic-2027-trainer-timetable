@@ -167,40 +167,18 @@
 
 
   function fitScheduleToViewport() {
-    var card = document.getElementById("relic-card");
+    /* Flush lock: natural row height only — no forced viewport stretch */
     var wrap = document.querySelector(".table-wrap");
-    if (!card || !wrap) return;
+    if (!wrap) return;
     var table = wrap.querySelector("table.tt");
-    if (!table) return;
-    var toolbar = card.querySelector(".toolbar");
-    var footer = card.querySelector(".footer");
-    /* Clear prior heights so measurement is honest */
     wrap.style.minHeight = "";
     wrap.style.height = "";
-    table.style.height = "";
-    var rows = table.querySelectorAll("tbody tr");
-    rows.forEach(function (r) { r.style.height = ""; });
-
-    var vv = window.visualViewport;
-    var viewH = Math.floor((vv && vv.height) ? vv.height : window.innerHeight);
-    var top = wrap.getBoundingClientRect().top;
-    if (vv && typeof vv.offsetTop === "number") top = top - vv.offsetTop;
-    var reserve =
-      (toolbar ? toolbar.getBoundingClientRect().height : 0) +
-      (footer ? footer.getBoundingClientRect().height : 0) +
-      4;
-    var avail = Math.floor(viewH - top - reserve);
-    if (avail < 280) avail = 280;
-    wrap.style.minHeight = avail + "px";
-    wrap.style.height = avail + "px";
-    table.style.height = avail + "px";
-    var thead = table.querySelector("thead");
-    var theadH = thead ? Math.ceil(thead.getBoundingClientRect().height) : 28;
-    var n = rows.length || 6;
-    var rowH = Math.max(48, Math.floor((avail - theadH) / n));
-    rows.forEach(function (r) {
-      r.style.height = rowH + "px";
-    });
+    if (table) {
+      table.style.height = "";
+      table.querySelectorAll("tbody tr").forEach(function (r) {
+        r.style.height = "";
+      });
+    }
   }
 
   function render() {

@@ -1518,3 +1518,114 @@ table.tt tbody td {
     padding-bottom: 0.55rem !important;
   }
 }
+
+
+/* ─── FLUSH LOCK: tight rows · bold gothic · tick flush ─── */
+html, body {
+  min-height: 0 !important;
+  height: auto !important;
+}
+body {
+  display: block !important;
+}
+.wrap,
+.card {
+  min-height: 0 !important;
+  height: auto !important;
+  display: block !important;
+  flex: none !important;
+}
+.table-wrap {
+  flex: none !important;
+  display: block !important;
+  min-height: 0 !important;
+  height: auto !important;
+  padding: 0.2rem 0 0.35rem !important;
+}
+table.tt {
+  height: auto !important;
+  min-height: 0 !important;
+  flex: none !important;
+}
+table.tt tbody tr {
+  height: auto !important;
+}
+table.tt thead th {
+  padding: 0.32rem 0.22rem !important;
+  font-weight: 800 !important;
+}
+table.tt tbody td {
+  padding: 0.28rem 0.22rem !important;
+  vertical-align: middle !important;
+  height: auto !important;
+}
+.day-cell .dname {
+  font-weight: 900 !important;
+  font-size: 0.68rem !important;
+}
+.day-cell .ddate {
+  font-weight: 700 !important;
+  font-size: 0.5rem !important;
+}
+.pair-cell {
+  font-weight: 800 !important;
+  font-size: 0.62rem !important;
+  line-height: 1.2 !important;
+}
+.cite-exact,
+.doc-cell a.cite-exact,
+.cite-text.cite-exact,
+.doc-cell {
+  font-weight: 800 !important;
+  font-size: 0.55rem !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0.01em !important;
+}
+.complete-cell {
+  padding: 0.2rem 0.1rem !important;
+}
+.complete-cell .actions {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  min-height: 0 !important;
+}
+.tick-btn {
+  width: 1.05rem !important;
+  height: 1.05rem !important;
+  margin: 0 !important;
+  flex-shrink: 0;
+}
+.tick-btn.checked::after {
+  font-size: 0.72rem !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+}
+
+@media (max-width: 720px) {
+  .table-wrap {
+    min-height: 0 !important;
+    height: auto !important;
+  }
+  table.tt tbody td {
+    padding: 0.26rem 0.18rem !important;
+  }
+  .cite-exact,
+  .doc-cell a.cite-exact,
+  .cite-text.cite-exact,
+  .doc-cell {
+    font-weight: 800 !important;
+    font-size: 0.52rem !important;
+    line-height: 1.18 !important;
+  }
+  .pair-cell {
+    font-weight: 800 !important;
+    font-size: 0.58rem !important;
+  }
+  .tick-btn {
+    width: 1rem !important;
+    height: 1rem !important;
+  }
+}
