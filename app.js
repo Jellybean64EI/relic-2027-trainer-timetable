@@ -100,7 +100,7 @@
     return (
       '<a class="doc-link" href="' + href +
       '" target="_blank" rel="noopener noreferrer" ' +
-      'style="color:#d8b4fe;text-decoration:underline;font-weight:700;font-size:12px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" ' +
+      'style="color:#ffffff;text-decoration:underline;font-weight:700;font-size:13px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.35;" ' +
       'title="' + escapeHtml(plain) + '">' +
       escapeHtml(plain) + "</a>"
     );
@@ -367,7 +367,6 @@
           '" aria-label="Mark complete"></button>';
       }
 
-      /* Citations + tick beside DOC2 link (Joseph: complete next to the link) */
       var todayPill = isToday ? '<span class="today-pill">TODAY</span>' : "";
 
       tr.innerHTML =
@@ -375,11 +374,9 @@
           '<span class="dname">' + day.dayName + "</span>" + todayPill +
           '<span class="ddate">' + day.dateKey + "</span></td>" +
         '<td class="doc-cell" data-label="DOCUMENT 1">' + doc1 + "</td>" +
-        '<td class="doc-cell doc-with-tick" data-label="DOCUMENT 2">' +
-          '<div class="doc-tick-row">' +
-            '<div class="doc-tick-link">' + doc2 + "</div>" +
-            '<div class="doc-tick-done" data-label="DONE">' + tickHtml + "</div>" +
-          "</div></td>";
+        '<td class="doc-cell" data-label="DOCUMENT 2">' + doc2 + "</td>" +
+        '<td class="complete-cell" data-label="DONE">' +
+          '<div class="actions">' + tickHtml + "</div></td>";
 
       tbody.appendChild(tr);
     });

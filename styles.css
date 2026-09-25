@@ -2284,3 +2284,142 @@ a.doc-link:hover {
 }
 .pair-cell,
 .complete-cell { display: none !important; }
+
+
+/* ─── SORTED17: airy · pure white · DONE column ─── */
+table.tt,
+table.timetable-table {
+  width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: separate !important;
+  border-spacing: 0 6px !important;
+  background: transparent !important;
+}
+table.tt col.col-day { width: 18% !important; }
+table.tt col.col-doc1 { width: 34% !important; }
+table.tt col.col-doc2 { width: 34% !important; }
+table.tt col.col-complete { width: 14% !important; }
+table.tt col.col-pair { display: none !important; }
+
+table.tt thead th {
+  background: #210a38 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-size: 0.7rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  padding: 12px 8px !important;
+  border: none !important;
+  white-space: nowrap !important;
+}
+table.tt tbody td {
+  background: #1a0c2e !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-size: 0.78rem !important;
+  padding: 14px 10px !important;
+  vertical-align: middle !important;
+  max-width: none !important;
+  border-top: 1px solid #3c1954 !important;
+  border-bottom: 1px solid #3c1954 !important;
+  line-height: 1.4 !important;
+}
+table.tt tbody tr td:first-child {
+  border-left: 1px solid #3c1954 !important;
+  border-radius: 4px 0 0 4px;
+}
+table.tt tbody tr td:last-child {
+  border-right: 1px solid #3c1954 !important;
+  border-radius: 0 4px 4px 0;
+}
+table.tt tbody tr:nth-child(even) td {
+  background: #150724 !important;
+}
+table.tt tbody tr.today td {
+  background: #2a1448 !important;
+  box-shadow: inset 0 0 0 1px #ff8c00 !important;
+}
+table.tt tbody tr.complete td {
+  background: #1e2830 !important;
+}
+
+.day-cell .dname {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  font-size: 0.85rem !important;
+  font-weight: 900 !important;
+  display: block;
+  margin-bottom: 4px;
+}
+.day-cell .ddate {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 0.75 !important;
+  font-size: 0.62rem !important;
+  display: block;
+}
+
+.doc-cell {
+  max-width: none !important;
+}
+a.doc-link {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-decoration: underline !important;
+  text-underline-offset: 3px !important;
+  font-weight: 700 !important;
+  font-size: 0.78rem !important;
+  line-height: 1.4 !important;
+  display: block !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  padding: 2px 0 !important;
+}
+a.doc-link:hover {
+  color: #ff8c00 !important;
+  -webkit-text-fill-color: #ff8c00 !important;
+}
+.doc-text {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 0.85;
+}
+
+.complete-cell {
+  display: table-cell !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+.complete-cell .actions {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.doc-with-tick,
+.doc-tick-row { display: contents !important; }
+.pair-cell { display: none !important; }
+
+.tick-btn {
+  width: 22px !important;
+  height: 22px !important;
+  border: 2px solid #ff8c00 !important;
+  background: #0b0216 !important;
+  margin: 0 auto !important;
+  border-radius: 4px !important;
+}
+.tick-btn.checked {
+  background: linear-gradient(145deg, #ff8c00, #c45a00) !important;
+}
+.tick-btn.checked::after {
+  color: #ffffff !important;
+  font-size: 0.85rem !important;
+  font-weight: 900 !important;
+}
+
+.table-wrap {
+  padding: 0.45rem 0.4rem 0.6rem !important;
+}
