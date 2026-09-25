@@ -48,9 +48,9 @@ body {
 @import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap");
 
 .wrap {
-  max-width: 980px;
+  max-width: 800px;
   margin: 0 auto;
-  padding: 1rem 0.75rem 2.5rem;
+  padding: 0.85rem 0.65rem 2.25rem;
 }
 
 /* ─── CARD SHELL ─── */
@@ -85,7 +85,7 @@ body {
 /* ─── HEADER ─── */
 .header {
   text-align: center;
-  padding: 1.35rem 2.5rem 0.85rem;
+  padding: 0.95rem 2rem 0.65rem;
   background: linear-gradient(180deg, #3d2463 0%, #2d1b4e 100%);
   border-bottom: 1px solid var(--gold-dim);
   position: relative;
@@ -94,8 +94,8 @@ body {
 .header .ornament {
   color: var(--gold);
   letter-spacing: 0.4em;
-  font-size: 0.75rem;
-  margin-bottom: 0.25rem;
+  font-size: 0.65rem;
+  margin-bottom: 0.15rem;
   opacity: 0.9;
 }
 
@@ -103,20 +103,34 @@ body {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: clamp(1.05rem, 3.2vw, 1.55rem);
+  font-size: clamp(0.98rem, 2.8vw, 1.35rem);
   letter-spacing: 0.12em;
   color: var(--gold-bright);
   text-shadow: 0 0 18px var(--gold-glow), 0 1px 0 #000;
 }
 
-.header .subtitle {
-  margin: 0.4rem 0 0;
-  font-size: 0.78rem;
-  color: var(--parchment-dark);
-  letter-spacing: 0.06em;
+.identity {
+  margin-top: 0.35rem;
 }
 
-.header .subtitle .deload-hint {
+.identity-line {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--parchment);
+  font-weight: 700;
+}
+
+.identity-sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.66rem;
+  color: var(--parchment-dark);
+  letter-spacing: 0.04em;
+  opacity: 0.9;
+}
+
+.identity-sub .deload-hint {
   color: #e8a84a;
   font-weight: 600;
 }
@@ -125,12 +139,22 @@ body {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.5rem 1.1rem;
-  margin-top: 0.65rem;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   color: var(--gold);
-  opacity: 0.95;
+}
+
+.meta-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.5rem;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 999px;
+  background: rgba(26, 10, 46, 0.35);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 .meta-row span strong { color: var(--gold-bright); font-weight: 600; }
@@ -138,9 +162,9 @@ body {
 /* ─── BANNERS ─── */
 .banner {
   text-align: center;
-  padding: 0.55rem 1rem;
+  padding: 0.32rem 0.85rem;
   font-family: var(--font-display);
-  font-size: 0.78rem;
+  font-size: 0.66rem;
   letter-spacing: 0.1em;
   font-weight: 700;
 }
@@ -168,13 +192,13 @@ body {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 2px;
-  padding: 0.55rem 0.55rem 0.35rem;
+  padding: 0.35rem 0.45rem 0.2rem;
   background: #12081e;
 }
 
 .phase {
   text-align: center;
-  padding: 0.45rem 0.25rem;
+  padding: 0.3rem 0.2rem;
   background: var(--purple-mid);
   border: 1px solid #4a3860;
   border-radius: var(--radius);
@@ -207,19 +231,19 @@ body {
 .year-wall {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  gap: 3px;
-  padding: 0.35rem 0.55rem 0.55rem;
+  gap: 2px;
+  padding: 0.2rem 0.45rem 0.3rem;
   background: #12081e;
-  border-bottom: 1px solid #3a2a50;
+  border-bottom: none;
 }
 
 .yw-month {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   cursor: pointer;
-  padding: 0.2rem 0.1rem;
+  padding: 0.12rem 0.05rem;
   border-radius: 3px;
   border: 1px solid transparent;
   transition: border-color 0.2s, background 0.2s;
@@ -264,8 +288,9 @@ body {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
   gap: 2px;
-  padding: 0.5rem 0.55rem;
+  padding: 0.3rem 0.45rem 0.4rem;
   background: #1a0e2c;
+  border-top: 1px solid #3a2a50;
   border-bottom: 1px solid #3a2a50;
 }
 
@@ -278,7 +303,7 @@ body {
   font-size: clamp(0.55rem, 1.6vw, 0.7rem);
   letter-spacing: 0.04em;
   font-weight: 700;
-  padding: 0.45rem 0.1rem;
+  padding: 0.32rem 0.08rem;
   border-radius: var(--radius);
   cursor: pointer;
   position: relative;
@@ -315,8 +340,8 @@ body {
 /* ─── WEEK TABS ─── */
 .week-tabs {
   display: flex;
-  gap: 0.35rem;
-  padding: 0.55rem 0.65rem 0.35rem;
+  gap: 0.3rem;
+  padding: 0.4rem 0.55rem 0.3rem;
   background: #160a24;
   flex-wrap: wrap;
   align-items: center;
@@ -331,7 +356,7 @@ body {
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   font-weight: 700;
-  padding: 0.4rem 0.85rem;
+  padding: 0.32rem 0.7rem;
   border-radius: var(--radius);
   cursor: pointer;
   transition: all 0.2s;
@@ -359,13 +384,14 @@ body {
 
 /* ─── TABLE ─── */
 .table-wrap {
-  padding: 0.35rem 0.55rem 0.75rem;
+  padding: 0.3rem 0.5rem 0.7rem;
   background: #160a24;
-  overflow-x: auto;
+  overflow-x: visible;
 }
 
 table.tt {
   width: 100%;
+  table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
   background: var(--parchment);
@@ -373,29 +399,42 @@ table.tt {
   border: 2px solid var(--gold);
   border-radius: 3px;
   overflow: hidden;
-  min-width: 640px;
+  min-width: 0;
 }
+
+table.tt col.col-day { width: 14%; }
+table.tt col.col-pair { width: 20%; }
+table.tt col.col-doc1 { width: 24%; }
+table.tt col.col-doc2 { width: 24%; }
+table.tt col.col-complete { width: 18%; }
 
 table.tt thead th {
   background: linear-gradient(180deg, #3d2463, #2d1b4e);
   color: var(--gold-bright);
   font-family: var(--font-display);
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   letter-spacing: 0.1em;
   font-weight: 700;
-  padding: 0.55rem 0.45rem;
+  padding: 0.48rem 0.4rem;
   text-align: left;
   border-bottom: 2px solid var(--gold);
   white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 table.tt tbody td {
-  padding: 0.55rem 0.45rem;
+  padding: 0.62rem 0.4rem;
   border-bottom: 1px solid #d4c4a0;
-  vertical-align: middle;
-  font-size: 0.82rem;
+  vertical-align: top;
+  font-size: 0.8rem;
   background: var(--parchment);
   transition: background 0.35s, box-shadow 0.35s;
+}
+
+table.tt tbody tr:nth-child(even):not(.today):not(.complete):not(.skipped):not(.recovery) td {
+  background: #efe6cc;
 }
 
 table.tt tbody tr:last-child td { border-bottom: none; }
@@ -435,17 +474,33 @@ table.tt tbody tr.recovery td {
   font-weight: 700;
   font-size: 0.78rem;
   letter-spacing: 0.04em;
-  white-space: nowrap;
 }
-.day-cell .dname { color: var(--purple-rich); }
+.day-cell .dname {
+  color: var(--purple-rich);
+  display: inline-block;
+  margin-right: 0.3rem;
+}
 .day-cell .ddate {
   display: block;
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   color: #6a5a50;
   font-weight: 400;
   letter-spacing: 0;
-  margin-top: 0.1rem;
+  margin-top: 0.18rem;
+}
+.today-pill {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 0.48rem;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--gold);
+  background: rgba(212, 175, 55, 0.18);
+  color: var(--gold-dim);
+  vertical-align: middle;
 }
 .today .day-cell .dname { color: var(--gold-dim); }
 .today .day-cell .ddate { color: var(--gold-dim); font-weight: 600; }
@@ -464,39 +519,80 @@ table.tt tbody tr.recovery td {
 }
 
 .doc-cell {
-  font-size: 0.72rem;
-  line-height: 1.3;
+  font-size: 0.7rem;
+  line-height: 1.25;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 .doc-cell a {
   color: #5a3a90;
   text-decoration: none;
-  border-bottom: 1px dotted #8a6ab0;
+  display: inline-block;
   font-weight: 600;
 }
 .doc-cell a:hover {
   color: #3d2463;
-  border-bottom-style: solid;
   text-shadow: 0 0 1px rgba(61, 36, 99, 0.3);
+}
+.doc-cell a:hover .cite-cabin {
+  border-bottom: 1px solid #3d2463;
 }
 .doc-cell .cite-text {
   color: var(--ink-soft);
   font-weight: 600;
 }
+.cite-structured {
+  display: block;
+  line-height: 1.3;
+}
+.cite-num {
+  color: var(--gold-dim);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+}
+.cite-cabin {
+  color: var(--ink);
+  font-weight: 700;
+}
+.cite-phase {
+  display: block;
+  color: #7a6a58;
+  font-size: 0.6rem;
+  font-weight: 400;
+  font-family: var(--font-mono);
+  margin-top: 0.08rem;
+  letter-spacing: 0.01em;
+}
 .doc-cell .gate-note {
   display: block;
-  font-size: 0.6rem;
+  font-size: 0.58rem;
   color: var(--amber-muted);
   font-style: italic;
-  margin-top: 0.1rem;
+  margin-top: 0.15rem;
 }
 .doc-cell .empty { color: #9a8a70; font-style: italic; }
 
 /* ─── ACTIONS ─── */
+.complete-cell {
+  white-space: normal;
+}
 .actions {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+}
+.action-secondary {
+  display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.4rem;
   flex-wrap: wrap;
+}
+.complete-cell .status-mark {
+  display: inline-block;
+  margin-bottom: 0.2rem;
 }
 
 /* Sexy COMPLETE tick */
@@ -752,22 +848,96 @@ table.tt tbody tr.recovery td {
   .footer .motto { color: #3d2463; text-shadow: none; }
 }
 
-/* ─── MOBILE ─── */
+/* ─── MOBILE — day cards ─── */
 @media (max-width: 640px) {
-  .wrap { padding: 0.4rem 0.3rem 1.5rem; }
-  .card::before, .card::after { font-size: 0.85rem; }
-  .header { padding: 1.1rem 1.6rem 0.7rem; }
+  .wrap { padding: 0.35rem 0.25rem 1.4rem; max-width: 100%; }
+  .card::before, .card::after { font-size: 0.8rem; top: 0.4rem; }
+  .header { padding: 0.85rem 1.35rem 0.55rem; }
+  .identity-line { font-size: 0.64rem; letter-spacing: 0.06em; }
   .phase .ph-range { display: none; }
   .yw-pct { display: none; }
   .week-meta { width: 100%; margin-left: 0; margin-top: 0.25rem; }
-  table.tt { font-size: 0.78rem; min-width: 560px; }
-  .doc-cell { font-size: 0.65rem; }
-  .tick-label { display: none; }
+  .week-tabs { gap: 0.25rem; }
+  .wtab { padding: 0.28rem 0.5rem; font-size: 0.64rem; }
+
+  .table-wrap {
+    padding: 0.25rem 0.35rem 0.55rem;
+    overflow-x: visible;
+  }
+
+  table.tt {
+    min-width: 0;
+    border: none;
+    background: transparent;
+    border-radius: 0;
+  }
+  table.tt col.col-day,
+  table.tt col.col-pair,
+  table.tt col.col-doc1,
+  table.tt col.col-doc2,
+  table.tt col.col-complete { width: auto; }
+
+  table.tt thead { display: none; }
+
+  table.tt tbody {
+    display: block;
+  }
+  table.tt tbody tr {
+    display: block;
+    margin-bottom: 0.65rem;
+    border: 2px solid var(--gold);
+    border-radius: 5px;
+    background: var(--parchment);
+    overflow: hidden;
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.12);
+  }
+  table.tt tbody tr:last-child { margin-bottom: 0; }
+  table.tt tbody tr.today {
+    box-shadow: 0 0 0 2px var(--gold), 0 0 18px var(--gold-glow);
+  }
+  table.tt tbody td {
+    display: block;
+    width: 100%;
+    padding: 0.45rem 0.65rem;
+    border-bottom: 1px solid #d4c4a0;
+    vertical-align: top;
+  }
+  table.tt tbody td:last-child { border-bottom: none; }
+  table.tt tbody td::before {
+    content: attr(data-label);
+    display: block;
+    font-family: var(--font-display);
+    font-size: 0.55rem;
+    letter-spacing: 0.12em;
+    color: var(--gold-dim);
+    margin-bottom: 0.2rem;
+    font-weight: 700;
+  }
+  table.tt tbody tr.complete td:first-child,
+  table.tt tbody tr.skipped td:first-child {
+    box-shadow: none;
+  }
+  table.tt tbody tr.complete {
+    box-shadow: inset 4px 0 0 var(--gold);
+  }
+  table.tt tbody tr.skipped {
+    box-shadow: inset 4px 0 0 var(--amber);
+  }
+  .day-cell .dname { font-size: 0.9rem; }
+  .doc-cell { font-size: 0.72rem; }
+  .actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+  }
+  .tick-label { display: inline; }
 }
 
 @media (max-width: 400px) {
   .month-bar { gap: 1px; }
-  .mbtn { padding: 0.35rem 0.05rem; font-size: 0.5rem; }
+  .mbtn { padding: 0.28rem 0.04rem; font-size: 0.48rem; }
+  .meta-chip { font-size: 0.55rem; padding: 0.14rem 0.38rem; }
 }
 
 /* === UNIQUE MONTH GOTHIC BACKGROUNDS (table stays simple) === */
@@ -916,15 +1086,15 @@ body[data-month="12"] {
 .card-status-slot {
   min-height: 0;
   text-align: center;
-  margin-top: 0.35rem;
+  margin-top: 0.28rem;
 }
 .card-badge {
   display: inline-block;
   font-family: var(--font-display);
-  font-size: 0.58rem;
+  font-size: 0.52rem;
   letter-spacing: 0.1em;
   font-weight: 700;
-  padding: 0.22rem 0.55rem;
+  padding: 0.16rem 0.45rem;
   border-radius: 3px;
   border: 1px solid;
 }
@@ -969,44 +1139,62 @@ table.tt tbody tr.skipped td {
 }
 
 
-/* Relic Calendar System panel */
+/* Relic Calendar System panel — compact collapsible */
 .system-law {
   margin: 0;
-  padding: 0.65rem 0.85rem 0.75rem;
+  padding: 0;
   background: linear-gradient(180deg, rgba(20,10,36,0.95), rgba(12,6,22,0.98));
   border-bottom: 1px solid var(--gold-dim);
   color: var(--parchment-dark);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   line-height: 1.35;
 }
-.system-law.collapsed-live .law-grid { display: none; }
-.system-law.collapsed-live {
-  padding: 0.35rem 0.85rem;
-}
-.system-law.collapsed-live .law-title::after {
-  content: " · LIVE — browse any month · ticks lock to calendar";
-  font-weight: 400;
-  color: #b8e8b0;
-  letter-spacing: 0.04em;
-}
-.law-title {
+.system-law > .law-title {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem 0.65rem;
+  padding: 0.35rem 0.75rem;
   font-family: var(--font-display);
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
   color: var(--gold-bright);
-  margin-bottom: 0.45rem;
   text-align: center;
+  user-select: none;
 }
+.system-law > .law-title::-webkit-details-marker { display: none; }
+.system-law > .law-title::before {
+  content: "▸";
+  color: var(--gold-dim);
+  font-size: 0.7rem;
+  transition: transform 0.15s;
+}
+.system-law[open] > .law-title::before { transform: rotate(90deg); }
+.law-title-text { font-weight: 700; }
+.law-summary {
+  font-weight: 400;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  letter-spacing: 0.04em;
+  color: #a090b0;
+  text-transform: none;
+}
+.system-law[open] .law-summary { display: none; }
 .law-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.55rem;
+  gap: 0.4rem;
+  padding: 0 0.65rem 0.55rem;
 }
 .law-grid div {
   background: rgba(74, 44, 122, 0.25);
   border: 1px solid rgba(212, 175, 55, 0.25);
   border-radius: 4px;
-  padding: 0.45rem 0.5rem;
+  padding: 0.35rem 0.45rem;
+  font-size: 0.66rem;
 }
 .law-grid strong { color: var(--gold); }
 .mbtn.browseable { cursor: pointer; opacity: 1; }

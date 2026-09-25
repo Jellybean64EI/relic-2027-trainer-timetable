@@ -14,34 +14,38 @@
       <header class="header">
         <div class="ornament">✦ ⚜ ✦</div>
         <h1>2027 TRAINER TIMETABLE CARD</h1>
-        <p class="subtitle" id="month-title">JANUARY  ·  WEEK 1 OF 4</p>
-        <p class="subtitle" id="phase-banner">PHASE: BASE • BEGINNER</p>
-        <p class="subtitle">
-          <span id="month-blurb">Month 1 of 12 • Base Foundation Month</span>
-          <span class="deload-hint" id="deload-hint" style="display:none"></span>
-        </p>
+        <div class="identity">
+          <p class="identity-line" id="identity-line">JANUARY · WEEK 1 OF 4 · BASE · BEGINNER</p>
+          <p class="identity-sub" id="identity-sub">
+            <span id="month-blurb">Month 1 of 12 • Base Foundation Month</span>
+            <span class="deload-hint" id="deload-hint" style="display:none"></span>
+          </p>
+        </div>
         <div id="card-status" class="card-status-slot"></div>
         <div class="meta-row">
-          <span id="meta-today">TODAY</span>
-          <span id="meta-mode">MODE</span>
-          <span>JOSEPH SEARLE · EUROPE/LONDON</span>
+          <span class="meta-chip" id="meta-today">TODAY</span>
+          <span class="meta-chip" id="meta-mode">MODE</span>
+          <span class="meta-chip">JOSEPH · LONDON</span>
         </div>
       </header>
 
       <div class="banner preview" id="banner-preview">
-        PREVIEW MODE · Browse every month &amp; week freely · Practice ticks OK · Goes LIVE 1 January 2027
+        PREVIEW · Browse freely · Practice ticks OK · LIVE 1 Jan 2027
       </div>
       <div class="banner live" id="banner-live">
-        LIVE MODE · Calendar-true Europe/London · Browse any month · Ticks only for today &amp; past · Future days LOCKED
+        LIVE · Calendar-true London · Ticks today &amp; past · Future LOCKED
       </div>
-      <div class="system-law" id="system-law" aria-label="Relic calendar system">
-        <div class="law-title">RELIC CALENDAR SYSTEM</div>
+      <details class="system-law" id="system-law" aria-label="Relic calendar system">
+        <summary class="law-title">
+          <span class="law-title-text">RELIC CALENDAR SYSTEM</span>
+          <span class="law-summary" id="law-summary">PREVIEW · browse all months · seals LIVE 1 Jan 2027</span>
+        </summary>
         <div class="law-grid">
           <div><strong>PREVIEW</strong> (now → 31 Dec 2026)<br/>Look through all 12 months. Nothing is sealed yet.</div>
           <div><strong>LIVE LOCK</strong> (from 1 Jan 2027)<br/>Real year. Today glows gold. Future ticks locked until that day arrives.</div>
           <div><strong>YOUR JOB</strong><br/>Open the card. Run Document 1 + 2. Tick COMPLETE. Skip if you must.</div>
         </div>
-      </div>
+      </details>
       <div class="banner coach" id="banner-coach" style="display:none"></div>
 
       <!-- Quarter / phase bar -->
@@ -95,6 +99,13 @@
       <!-- Timetable -->
       <div class="table-wrap">
         <table class="tt">
+          <colgroup>
+            <col class="col-day" />
+            <col class="col-pair" />
+            <col class="col-doc1" />
+            <col class="col-doc2" />
+            <col class="col-complete" />
+          </colgroup>
           <thead>
             <tr>
               <th scope="col">DAY</th>

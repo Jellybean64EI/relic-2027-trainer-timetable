@@ -69,18 +69,33 @@
     return { url: entry && entry.url ? entry.url : null, gate: gate, folder: cabin.folder || null };
   }
 
-  function docCellHtml(label, cabinKey, phase, isRecovery) {
+  /* Split N. Cabin_Trainer_Phase for display only — citation string & URL unchanged */
+  function citeDisplayHtml(label, docNum) {
+    var m = /^(\d+)\.\s+(.+)_Trainer_(.+)$/.exec(label);
+    if (!m) return '<span class="cite-text">' + escapeHtml(label) + "</span>";
+    var num = docNum != null ? String(docNum) : m[1];
+    var cabin = m[2].replace(/_/g, " ");
+    var phaseBit = m[3];
+    return '<span class="cite-structured">' +
+      '<span class="cite-num">' + escapeHtml(num) + ".</span> " +
+      '<span class="cite-cabin">' + escapeHtml(cabin) + "</span>" +
+      '<span class="cite-phase">_Trainer_' + escapeHtml(phaseBit) + "</span>" +
+      "</span>";
+  }
+
+  function docCellHtml(label, cabinKey, phase, isRecovery, docNum) {
     if (!label) return '<span class="empty">—</span>';
     if (isRecovery || !cabinKey) {
       return '<span class="cite-text">' + escapeHtml(label) + "</span>";
     }
     var r = resolveUrl(cabinKey, phase);
+    var inner = citeDisplayHtml(label, docNum);
     var html;
     if (r.url) {
-      html = '<a href="' + r.url + '" target="_blank" rel="noopener noreferrer">' +
-        escapeHtml(label) + "</a>";
+      html = '<a href="' + r.url + '" target="_blank" rel="noopener noreferrer" title="' +
+        escapeHtml(label) + '">' + inner + "</a>";
     } else {
-      html = '<span class="cite-text">' + escapeHtml(label) + "</span>";
+      html = inner;
     }
     if (r.gate) html += '<span class="gate-note">' + escapeHtml(r.gate) + "</span>";
     return html;
@@ -208,26 +223,29 @@
       coachEl.style.display = "none";
     }
 
-    document.getElementById("month-title").textContent =
-      S.MONTH_NAMES[state.viewMonth] + "  ·  WEEK " + state.viewWeek + " OF 4";
-    document.getElementById("phase-banner").textContent = meta.phaseLine;
+    var phaseShort = (meta.phaseLine || "").replace(/^PHASE:\s*/i, "");
+    document.getElementById("identity-line").textContent =
+      S.MONTH_NAMES[state.viewMonth] + " · WEEK " + state.viewWeek + " OF 4 · " + phaseShort;
     document.getElementById("month-blurb").textContent = meta.blurb;
     document.getElementById("card-status").innerHTML = statusBadge(cardStatus);
 
     var deloadEl = document.getElementById("deload-hint");
     if (state.viewWeek === 4) {
       deloadEl.style.display = "inline";
-      deloadEl.textContent = " · DELOAD week — cut MAIN ~40–50%, Base soft, no TF";
+      deloadEl.textContent = " · DELOAD — cut MAIN ~40–50%";
     } else {
       deloadEl.style.display = "none";
     }
 
     document.getElementById("meta-today").innerHTML =
-      "TODAY <strong>" + parts.dateKey + "</strong> · " + parts.weekday +
-      " · " + S.pad2(parts.hour) + ":" + S.pad2(parts.minute) + " London";
+      "TODAY <strong>" + parts.dateKey + "</strong> · " + parts.weekday;
     document.getElementById("meta-mode").textContent = modeLabel(parts);
-    var law = document.getElementById("system-law");
-    if (law) law.classList.toggle("collapsed-live", !state.isPreview);
+    var lawSum = document.getElementById("law-summary");
+    if (lawSum) {
+      lawSum.textContent = state.isPreview
+        ? "PREVIEW · browse all months · seals LIVE 1 Jan 2027"
+        : "LIVE · browse any month · ticks lock to calendar";
+    }
 
     document.querySelectorAll(".phase").forEach(function (el) {
       el.classList.toggle("active", el.dataset.phase === phase.suffix);
@@ -307,8 +325,8 @@
       if (day.isRecovery) tr.classList.add("recovery");
       if (isFutureDay) tr.classList.add("future-locked");
 
-      var doc1 = docCellHtml(day.doc1, day.cabins[0], day.phase, day.isRecovery);
-      var doc2 = docCellHtml(day.doc2, day.cabins[1], day.phase, day.isRecovery);
+      var doc1 = docCellHtml(day.doc1, day.cabins[0], day.phase, day.isRecovery, 1);
+      var doc2 = docCellHtml(day.doc2, day.cabins[1], day.phase, day.isRecovery, 2);
 
       var actions = "";
       if (!tickable) {
@@ -322,26 +340,33 @@
               '<button type="button" class="tick-btn' + checked + '" data-act="complete" data-date="' + day.dateKey + '" aria-label="Complete"></button>' +
               '<span class="tick-label">COMPLETE</span>' +
             "</div>" +
-            '<button type="button" class="skip-btn' + skipActive + '" data-act="skip" data-date="' + day.dateKey + '">' +
-              (isSkipped ? "SKIPPED" : "SKIP") +
-            "</button>";
+            '<div class="action-secondary">' +
+              '<button type="button" class="skip-btn' + skipActive + '" data-act="skip" data-date="' + day.dateKey + '">' +
+                (isSkipped ? "SKIPPED" : "SKIP") +
+              "</button>";
         if (isComplete || isSkipped) {
           actions += '<button type="button" class="undo-btn" data-act="undo" data-date="' + day.dateKey + '">undo</button>';
         }
-        actions += "</div>";
+        actions += "</div></div>";
       }
 
       var mark = "";
-      if (isComplete) mark = '<span class="status-mark done" title="Complete">✓</span> ';
-      if (isSkipped) mark = '<span class="status-mark skip">SKIP</span> ';
+      if (isComplete) mark = '<span class="status-mark done" title="Complete">✓</span>';
+      if (isSkipped) mark = '<span class="status-mark skip">SKIP</span>';
+
+      var todayPill = isToday ? '<span class="today-pill">TODAY</span>' : "";
+      var pairNote = day.note
+        ? '<span class="note">' + escapeHtml(day.note) + "</span>"
+        : "";
 
       tr.innerHTML =
-        '<td class="day-cell"><span class="dname">' + day.dayName + '</span>' +
-          '<span class="ddate">' + day.dateKey + (isToday ? " · TODAY" : "") + "</span></td>" +
-        '<td class="pair-cell">' + escapeHtml(day.pair) + "</td>" +
-        '<td class="doc-cell">' + doc1 + "</td>" +
-        '<td class="doc-cell">' + doc2 + "</td>" +
-        '<td class="complete-cell">' + mark + actions + "</td>";
+        '<td class="day-cell" data-label="DAY">' +
+          '<span class="dname">' + day.dayName + "</span>" + todayPill +
+          '<span class="ddate">' + day.dateKey + "</span></td>" +
+        '<td class="pair-cell" data-label="TRAINING PAIR">' + escapeHtml(day.pair) + pairNote + "</td>" +
+        '<td class="doc-cell" data-label="DOCUMENT 1">' + doc1 + "</td>" +
+        '<td class="doc-cell" data-label="DOCUMENT 2">' + doc2 + "</td>" +
+        '<td class="complete-cell" data-label="COMPLETE">' + mark + actions + "</td>";
 
       tbody.appendChild(tr);
     });
@@ -474,8 +499,7 @@
         render();
       } else {
         document.getElementById("meta-today").innerHTML =
-          "TODAY <strong>" + lp.dateKey + "</strong> · " + lp.weekday + " · " +
-          S.pad2(lp.hour) + ":" + S.pad2(lp.minute) + " London";
+          "TODAY <strong>" + lp.dateKey + "</strong> · " + lp.weekday;
       }
     }, 30000);
   }
