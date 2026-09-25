@@ -1844,3 +1844,175 @@ table.tt tbody td {
     padding: 0.18rem 0.12rem !important;
   }
 }
+
+
+/* ─── CLEAN13: Drive links · no dup months · gothic purple table ─── */
+.year-wall {
+  display: none !important;
+}
+
+/* Unified gothic body/card blend */
+body {
+  background-color: #0b0216 !important;
+  color: #e2d4f7 !important;
+}
+.card {
+  background: linear-gradient(180deg, #1b0a2a 0%, #12051d 100%) !important;
+  border-color: #4a216b !important;
+}
+
+/* One clear status strip — soften stacked law banner */
+.system-law {
+  margin: 0.25rem 0.45rem !important;
+}
+.system-law[open] .law-grid {
+  font-size: 0.62rem;
+}
+
+/* Month grid stays 6×2 on phone, 44px taps */
+.month-bar {
+  display: grid !important;
+  grid-template-columns: repeat(6, 1fr) !important;
+  gap: 6px !important;
+  margin: 0.35rem 0 !important;
+  padding: 0.5rem 0.55rem !important;
+  background: #150724 !important;
+  border-color: #3c1954 !important;
+}
+@media (min-width: 720px) {
+  .month-bar {
+    grid-template-columns: repeat(12, 1fr) !important;
+  }
+}
+.mbtn {
+  background: #250e3a !important;
+  border: 1px solid #5c2b83 !important;
+  color: #d1b3f7 !important;
+  min-height: 44px !important;
+  height: 44px !important;
+  font-weight: 700 !important;
+}
+.mbtn.selected,
+.mbtn.active {
+  background: #3e1100 !important;
+  border-color: #ff8c00 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 12px rgba(255, 140, 0, 0.35) !important;
+}
+
+/* Timetable — seamless dark purple (no flat black / no white panel) */
+.table-wrap {
+  background: transparent !important;
+  padding: 0.25rem 0.35rem 0.4rem !important;
+}
+table.tt {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  background: #150724 !important;
+  color: #ffffff !important;
+  border: 1px solid #3c1954 !important;
+  box-shadow: none !important;
+  color-scheme: only dark !important;
+}
+table.tt col.col-day { width: 18% !important; }
+table.tt col.col-pair { width: 28% !important; }
+table.tt col.col-doc1 { width: 22% !important; }
+table.tt col.col-doc2 { width: 22% !important; }
+table.tt col.col-complete { width: 10% !important; }
+
+table.tt thead th {
+  background: #210a38 !important;
+  color: #b892e8 !important;
+  font-size: 0.65rem !important;
+  text-transform: uppercase !important;
+  padding: 8px 4px !important;
+  border-bottom: 1px solid #3c1954 !important;
+  -webkit-text-fill-color: #b892e8 !important;
+}
+table.tt tbody td {
+  background: #150724 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  padding: 6px 4px !important;
+  font-size: 0.7rem !important;
+  border-bottom: 1px solid #230d35 !important;
+  vertical-align: middle !important;
+}
+table.tt tbody tr:nth-child(even):not(.today):not(.complete):not(.skipped):not(.recovery) td {
+  background: #1a0c2e !important;
+}
+table.tt tbody tr.today td {
+  background: #2a1448 !important;
+  box-shadow: inset 0 0 0 1px #ff8c00 !important;
+}
+table.tt tbody tr.complete td {
+  background: #1e1830 !important;
+}
+
+.day-cell .dname {
+  color: #d1b3f7 !important;
+  -webkit-text-fill-color: #d1b3f7 !important;
+  font-weight: 900 !important;
+}
+.day-cell .ddate {
+  color: #a890c0 !important;
+  -webkit-text-fill-color: #a890c0 !important;
+}
+.pair-cell {
+  color: #f0e6ff !important;
+  -webkit-text-fill-color: #f0e6ff !important;
+  font-weight: 800 !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Drive document links — visible + gold hover */
+.doc-cell {
+  max-width: 0;
+  overflow: hidden !important;
+}
+a.doc-link,
+a.cite-exact,
+.doc-link {
+  color: #c084fc !important;
+  -webkit-text-fill-color: #c084fc !important;
+  text-decoration: none !important;
+  font-weight: 700 !important;
+  font-size: 0.68rem !important;
+  display: block !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  cursor: pointer !important;
+  border-bottom: none !important;
+  pointer-events: auto !important;
+}
+a.doc-link:hover,
+a.cite-exact:hover,
+.doc-link:hover {
+  color: #ff8c00 !important;
+  -webkit-text-fill-color: #ff8c00 !important;
+  text-decoration: underline !important;
+}
+.doc-text {
+  color: #b0a0c0 !important;
+  font-size: 0.68rem !important;
+  font-style: italic;
+}
+.gate-note {
+  display: none !important; /* keep cells flush; URL still correct */
+}
+
+.tick-btn {
+  border-color: #ff8c00 !important;
+  background: #1a0c2e !important;
+}
+.tick-btn.checked {
+  background: linear-gradient(145deg, #ff8c00, #c45a00) !important;
+  border-color: #ffb347 !important;
+}
+.tick-btn.checked::after {
+  color: #fff !important;
+}

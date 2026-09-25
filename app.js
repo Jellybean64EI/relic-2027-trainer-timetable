@@ -57,32 +57,36 @@
 
   /* Resolve Drive URL; visible label always = card citation string (day.doc1/doc2) */
   function resolveUrl(cabinKey, phase) {
+    var root = (C && C.rootFolder) || "https://drive.google.com/drive/folders/1321NsxqCbzqarZFSZeg1moq7PFohasx4";
     var cabins = (C && C.cabins) || {};
     var cabin = cabins[cabinKey];
-    if (!cabin) return { url: null, gate: null };
+    if (!cabin) return { url: root, gate: null, folder: root };
     var entry = cabin[phase];
     var gate = null;
     if (!entry) {
       entry = cabin.Base;
       gate = cabin.gate || ("No " + phase + " Docx yet — Base linked");
     }
-    return { url: entry && entry.url ? entry.url : null, gate: gate, folder: cabin.folder || null };
+    var url = entry && entry.url ? entry.url : (cabin.folder || root);
+    return { url: url, gate: gate, folder: cabin.folder || root };
   }
 
-  /* Exact card citation string — never rewrite numbering or cabin spelling */
+  /* Exact card citation: 1. {CabinKey}_Trainer_{Phase} — Drive link always when training */
   function docCellHtml(label, cabinKey, phase, isRecovery) {
     if (!label) return '<span class="empty">—</span>';
-    if (isRecovery || !cabinKey) {
-      return '<span class="cite-text">' + escapeHtml(label) + "</span>";
+    var plain = String(label);
+    var isRest = isRecovery || !cabinKey ||
+      /Rest\s*\/\s*Light Mobility/i.test(plain) ||
+      /Weekly Reset/i.test(plain);
+    if (isRest) {
+      return '<span class="doc-text">' + escapeHtml(plain) + "</span>";
     }
     var r = resolveUrl(cabinKey, phase);
-    var html;
-    if (r.url) {
-      html = '<a class="cite-exact" href="' + r.url + '" target="_blank" rel="noopener noreferrer">' +
-        escapeHtml(label) + "</a>";
-    } else {
-      html = '<span class="cite-text cite-exact">' + escapeHtml(label) + "</span>";
-    }
+    var href = r.url || ((C && C.rootFolder) || "#");
+    var html =
+      '<a class="doc-link cite-exact" href="' + href +
+      '" target="_blank" rel="noopener noreferrer" title="' + escapeHtml(plain) + '">' +
+      escapeHtml(plain) + "</a>";
     if (r.gate) html += '<span class="gate-note">' + escapeHtml(r.gate) + "</span>";
     return html;
   }
@@ -270,25 +274,9 @@
       el.classList.toggle("active", el.dataset.phase === phase.suffix);
     });
 
-    /* Year wall */
+    /* Year wall removed — duplicate of month-bar (Joseph clean layout) */
     var yw = document.getElementById("year-wall");
-    yw.innerHTML = "";
-    for (var m = 1; m <= 12; m++) {
-      var mc = monthCompletion(m);
-      var cell = document.createElement("div");
-      cell.className = "yw-month";
-      if (m === state.viewMonth) cell.classList.add("selected");
-      if (!state.isPreview && parts.year === 2027 && m === parts.month) cell.classList.add("current");
-      cell.dataset.month = m;
-      cell.innerHTML =
-        '<span class="yw-label">' + S.MONTH_SHORT[m] + "</span>" +
-        '<div class="yw-bar"><div class="yw-fill" style="width:' + mc.pct + '%"></div></div>' +
-        '<span class="yw-pct">' + mc.pct + "%</span>";
-      cell.addEventListener("click", (function (mm) {
-        return function () { pickMonth(mm); };
-      })(m));
-      yw.appendChild(cell);
-    }
+    if (yw) { yw.innerHTML = ""; yw.hidden = true; }
 
     document.querySelectorAll(".mbtn").forEach(function (btn) {
       var mm = +btn.dataset.month;
