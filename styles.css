@@ -2097,3 +2097,94 @@ a.cite-exact:hover {
   margin: 0 auto !important;
   border-color: #ff8c00 !important;
 }
+
+
+/* ─── LINKS15: 20/35/35/10 + unmistakable Drive anchors ─── */
+table.tt,
+table.timetable-table {
+  width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse !important;
+  background: #150724 !important;
+}
+table.tt col.col-day,
+table.timetable-table col.col-day { width: 20% !important; }
+table.tt col.col-doc1,
+table.timetable-table col.col-doc1 { width: 35% !important; }
+table.tt col.col-doc2,
+table.timetable-table col.col-doc2 { width: 35% !important; }
+table.tt col.col-complete,
+table.timetable-table col.col-complete { width: 10% !important; }
+table.tt col.col-pair { display: none !important; width: 0 !important; }
+
+table.tt th,
+table.tt td,
+table.timetable-table th,
+table.timetable-table td {
+  padding: 8px 6px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+  color: #e2d4f7 !important;
+  font-size: 0.72rem !important;
+  -webkit-text-fill-color: #e2d4f7 !important;
+  background: #150724 !important;
+}
+table.tt thead th,
+table.timetable-table thead th {
+  background: #210a38 !important;
+  color: #b892e8 !important;
+  -webkit-text-fill-color: #b892e8 !important;
+}
+table.tt tbody td.day-cell {
+  white-space: normal !important;
+}
+.pair-cell { display: none !important; }
+
+.doc-cell {
+  max-width: 0;
+  position: relative;
+  z-index: 2;
+}
+a.doc-link {
+  color: #d8b4fe !important;
+  -webkit-text-fill-color: #d8b4fe !important;
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+  font-weight: 700 !important;
+  font-size: 0.72rem !important;
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  position: relative;
+  z-index: 3;
+  border: none !important;
+  padding: 0.15rem 0 !important;
+  -webkit-tap-highlight-color: rgba(255, 140, 0, 0.35);
+}
+a.doc-link:hover,
+a.doc-link:focus {
+  color: #ff8c00 !important;
+  -webkit-text-fill-color: #ff8c00 !important;
+}
+.doc-text {
+  color: #a890c0 !important;
+  -webkit-text-fill-color: #a890c0 !important;
+  font-style: italic;
+}
+.complete-cell {
+  text-align: center !important;
+}
+.tick-btn {
+  width: 18px !important;
+  height: 18px !important;
+  border-color: #ff8c00 !important;
+  margin: 0 auto !important;
+  display: block !important;
+}

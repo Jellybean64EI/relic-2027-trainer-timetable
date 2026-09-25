@@ -56,22 +56,26 @@
   }
 
   /* Resolve Drive URL; visible label always = card citation string (day.doc1/doc2) */
+  var DRIVE_ROOT = "https://drive.google.com/drive/folders/1321NsxqCbzqarZFSZeg1moq7PFohasx4";
+
   function resolveUrl(cabinKey, phase) {
-    var root = (C && C.rootFolder) || "https://drive.google.com/drive/folders/1321NsxqCbzqarZFSZeg1moq7PFohasx4";
+    var root = (C && C.rootFolder) || DRIVE_ROOT;
     var cabins = (C && C.cabins) || {};
     var cabin = cabins[cabinKey];
     if (!cabin) return { url: root, gate: null, folder: root };
     var entry = cabin[phase];
     var gate = null;
-    if (!entry) {
+    if (!entry || entry === null) {
       entry = cabin.Base;
-      gate = cabin.gate || ("No " + phase + " Docx yet — Base linked");
+      if (cabin.gate) gate = cabin.gate;
+      else if (!cabin[phase]) gate = "No " + phase + " Docx yet — Base linked";
     }
-    var url = entry && entry.url ? entry.url : (cabin.folder || root);
+    var url = (entry && entry.url) ? entry.url : (cabin.folder || root);
+    if (!url) url = root;
     return { url: url, gate: gate, folder: cabin.folder || root };
   }
 
-  /* Exact card citation: 1. {CabinKey}_Trainer_{Phase} — Drive link always when training */
+  /* Exact: 1. {CabinKey}_Trainer_{Phase} — always <a> for training days */
   function docCellHtml(label, cabinKey, phase, isRecovery) {
     if (!label) return '<span class="empty">—</span>';
     var plain = String(label);
@@ -81,14 +85,17 @@
     if (isRest) {
       return '<span class="doc-text">' + escapeHtml(plain) + "</span>";
     }
+    /* Prefer schedule label; if missing, build law string */
+    if (!/^1\.\s/.test(plain) && cabinKey && phase) {
+      plain = "1. " + cabinKey + "_Trainer_" + phase;
+    }
     var r = resolveUrl(cabinKey, phase);
-    var href = r.url || ((C && C.rootFolder) || "#");
-    var html =
-      '<a class="doc-link cite-exact" href="' + href +
-      '" target="_blank" rel="noopener noreferrer" title="' + escapeHtml(plain) + '">' +
-      escapeHtml(plain) + "</a>";
-    if (r.gate) html += '<span class="gate-note">' + escapeHtml(r.gate) + "</span>";
-    return html;
+    var href = r.url || DRIVE_ROOT;
+    return (
+      '<a class="doc-link" href="' + href +
+      '" target="_blank" rel="noopener noreferrer" title="' + escapeHtml(plain) + ' · open Drive">' +
+      escapeHtml(plain) + "</a>"
+    );
   }
 
   function escapeHtml(s) {
