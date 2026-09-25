@@ -302,7 +302,8 @@
       .sort(function (a, b) { return a.dayIndex - b.dayIndex; });
     var rangeLabel = "";
     if (weekDays.length) {
-      rangeLabel = weekDays[0].dateKey + " → " + weekDays[weekDays.length - 1].dateKey + " · MON–SAT";
+      var keys = weekDays.map(function (d) { return d.dateKey; }).sort();
+      rangeLabel = keys[0] + " → " + keys[keys.length - 1] + " · MON–SAT";
     }
     var stubNote = "";
     if (cardStatus === "partial" && state.viewWeek >= 3) stubNote = " · W" + state.viewWeek + " provisional";
