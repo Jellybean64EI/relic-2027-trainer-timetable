@@ -180,6 +180,18 @@
   }
 
   function render() {
+    try {
+      _renderInner();
+    } catch (err) {
+      console.error("Relic render failed", err);
+      var tw = document.querySelector(".table-wrap");
+      if (tw) {
+        tw.innerHTML = '<div class="relic-render-error" style="padding:1rem;color:#ffe9a8;background:#4a2010;border:1px solid #c9842a;font-family:monospace;font-size:0.75rem;">Schedule render error — hard refresh. ' + String(err && err.message ? err.message : err) + "</div>";
+      }
+    }
+  }
+
+  function _renderInner() {
     state.now = getNow();
     var parts = londonParts(state.now);
     state.isPreview = !isLive(parts);

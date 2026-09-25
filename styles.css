@@ -1,4 +1,6 @@
 /* Relic 2027 Trainer Timetable Card — gothic cathedral aesthetic */
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap");
+
 :root {
   --purple-deep: #1a0a2e;
   --purple-mid: #2d1b4e;
@@ -44,8 +46,6 @@ body {
   line-height: 1.35;
 }
 
-/* Google fonts fallback via system if offline — Cinzel/Crimson optional */
-@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap");
 
 .wrap {
   max-width: 800px;
@@ -848,11 +848,11 @@ table.tt tbody tr.recovery td {
   .footer .motto { color: #3d2463; text-shadow: none; }
 }
 
-/* ─── MOBILE — day cards ─── */
-@media (max-width: 640px) {
-  .wrap { padding: 0.35rem 0.25rem 1.4rem; max-width: 100%; }
+/* ─── MOBILE — full-width day cards (fix collapsed table-as-card) ─── */
+@media (max-width: 720px) {
+  .wrap { padding: 0.35rem 0.4rem 1.4rem; max-width: 100%; }
   .card::before, .card::after { font-size: 0.8rem; top: 0.4rem; }
-  .header { padding: 0.85rem 1.35rem 0.55rem; }
+  .header { padding: 0.85rem 1.2rem 0.55rem; }
   .identity-line { font-size: 0.64rem; letter-spacing: 0.06em; }
   .phase .ph-range { display: none; }
   .yw-pct { display: none; }
@@ -861,46 +861,66 @@ table.tt tbody tr.recovery td {
   .wtab { padding: 0.28rem 0.5rem; font-size: 0.64rem; }
 
   .table-wrap {
-    padding: 0.25rem 0.35rem 0.55rem;
+    padding: 0.35rem 0.4rem 0.65rem;
     overflow-x: visible;
   }
 
+  /* Force every table piece into a stacked block so cards fill the phone width */
+  table.tt,
+  table.tt > colgroup,
+  table.tt > thead,
+  table.tt > tbody,
+  table.tt > tbody > tr,
+  table.tt > thead > tr,
+  table.tt > tbody > tr > td,
+  table.tt > thead > tr > th {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+  table.tt > colgroup { display: none !important; }
+
   table.tt {
-    min-width: 0;
+    table-layout: auto !important;
     border: none;
     background: transparent;
     border-radius: 0;
+    overflow: visible;
+    min-width: 0 !important;
   }
-  table.tt col.col-day,
-  table.tt col.col-pair,
-  table.tt col.col-doc1,
-  table.tt col.col-doc2,
-  table.tt col.col-complete { width: auto; }
 
-  table.tt thead { display: none; }
+  table.tt thead { display: none !important; }
 
-  table.tt tbody {
-    display: block;
-  }
   table.tt tbody tr {
-    display: block;
-    margin-bottom: 0.65rem;
+    margin: 0 0 0.75rem 0;
     border: 2px solid var(--gold);
-    border-radius: 5px;
+    border-radius: 6px;
     background: var(--parchment);
+    color: var(--ink);
     overflow: hidden;
-    box-shadow: 0 0 12px rgba(212, 175, 55, 0.12);
+    box-shadow: 0 0 14px rgba(212, 175, 55, 0.14);
   }
   table.tt tbody tr:last-child { margin-bottom: 0; }
   table.tt tbody tr.today {
     box-shadow: 0 0 0 2px var(--gold), 0 0 18px var(--gold-glow);
   }
+  table.tt tbody tr.complete {
+    box-shadow: inset 4px 0 0 var(--gold);
+  }
+  table.tt tbody tr.skipped {
+    box-shadow: inset 4px 0 0 var(--amber);
+  }
+  table.tt tbody tr.complete td:first-child,
+  table.tt tbody tr.skipped td:first-child {
+    box-shadow: none;
+  }
+
   table.tt tbody td {
-    display: block;
-    width: 100%;
-    padding: 0.45rem 0.65rem;
+    padding: 0.5rem 0.75rem;
     border-bottom: 1px solid #d4c4a0;
     vertical-align: top;
+    background: transparent;
   }
   table.tt tbody td:last-child { border-bottom: none; }
   table.tt tbody td::before {
@@ -913,18 +933,8 @@ table.tt tbody tr.recovery td {
     margin-bottom: 0.2rem;
     font-weight: 700;
   }
-  table.tt tbody tr.complete td:first-child,
-  table.tt tbody tr.skipped td:first-child {
-    box-shadow: none;
-  }
-  table.tt tbody tr.complete {
-    box-shadow: inset 4px 0 0 var(--gold);
-  }
-  table.tt tbody tr.skipped {
-    box-shadow: inset 4px 0 0 var(--amber);
-  }
-  .day-cell .dname { font-size: 0.9rem; }
-  .doc-cell { font-size: 0.72rem; }
+  .day-cell .dname { font-size: 0.95rem; }
+  .doc-cell { font-size: 0.78rem; }
   .actions {
     flex-direction: row;
     flex-wrap: wrap;
@@ -932,12 +942,14 @@ table.tt tbody tr.recovery td {
     gap: 0.45rem;
   }
   .tick-label { display: inline; }
+  .phase-bar { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 400px) {
   .month-bar { gap: 1px; }
   .mbtn { padding: 0.28rem 0.04rem; font-size: 0.48rem; }
-  .meta-chip { font-size: 0.55rem; padding: 0.14rem 0.38rem; }
+  .meta-row { gap: 0.3rem; }
+  .meta-chip { font-size: 0.58rem; }
 }
 
 /* === UNIQUE MONTH GOTHIC BACKGROUNDS (table stays simple) === */
