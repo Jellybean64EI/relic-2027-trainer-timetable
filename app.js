@@ -165,9 +165,39 @@
     return "";
   }
 
+
+  function fitScheduleToViewport() {
+    var card = document.getElementById("relic-card");
+    var wrap = document.querySelector(".table-wrap");
+    if (!card || !wrap) return;
+    var table = wrap.querySelector("table.tt");
+    if (!table) return;
+    var toolbar = card.querySelector(".toolbar");
+    var footer = card.querySelector(".footer");
+    var top = wrap.getBoundingClientRect().top;
+    var reserve =
+      (toolbar ? toolbar.getBoundingClientRect().height : 0) +
+      (footer ? footer.getBoundingClientRect().height : 0) +
+      6;
+    var avail = Math.floor(window.innerHeight - top - reserve);
+    if (avail < 240) avail = 240;
+    wrap.style.minHeight = avail + "px";
+    wrap.style.height = avail + "px";
+    table.style.height = avail + "px";
+    var thead = table.querySelector("thead");
+    var theadH = thead ? thead.getBoundingClientRect().height : 28;
+    var rows = table.querySelectorAll("tbody tr");
+    var n = rows.length || 6;
+    var rowH = Math.max(36, Math.floor((avail - theadH) / n));
+    rows.forEach(function (r) {
+      r.style.height = rowH + "px";
+    });
+  }
+
   function render() {
     try {
       _renderInner();
+      fitScheduleToViewport();
     } catch (err) {
       console.error("Relic render failed", err);
       var tw = document.querySelector(".table-wrap");
@@ -483,4 +513,6 @@
   } else {
     boot();
   }
+  window.addEventListener("resize", fitScheduleToViewport);
+  window.addEventListener("orientationchange", function () { setTimeout(fitScheduleToViewport, 120); });
 })();

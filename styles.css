@@ -1406,3 +1406,85 @@ table.tt col.col-complete { width: 5% !important; }
   }
   .tick-btn { width: 1.2rem !important; height: 1.2rem !important; }
 }
+
+
+/* ─── VERTICAL FILL LOCK: schedule rows eat bottom gap ─── */
+html, body {
+  height: 100%;
+  min-height: 100dvh;
+}
+body {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.wrap {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  box-sizing: border-box;
+  padding-bottom: 0 !important;
+}
+.card {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  box-sizing: border-box;
+}
+/* chrome above/below schedule stays natural height */
+.card > .header,
+.card > .system-law,
+.card > .banner,
+.card > .phase-bar,
+.card > .year-wall,
+.card > .month-bar,
+.card > .week-tabs,
+.card > .card-status-slot,
+.card > .toolbar,
+.card > .footer {
+  flex: 0 0 auto;
+}
+.table-wrap {
+  flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+  padding: 0.15rem 0 0 !important;
+}
+table.tt {
+  flex: 1 1 auto !important;
+  height: 100% !important;
+  min-height: 100% !important;
+}
+table.tt thead th {
+  height: auto;
+}
+table.tt tbody tr {
+  height: calc((100% - 2.4rem) / 6);
+}
+table.tt tbody td {
+  vertical-align: middle !important;
+}
+
+@media (max-width: 720px) {
+  .wrap, .card {
+    min-height: 100dvh !important;
+  }
+  .footer {
+    padding: 0.55rem 0.75rem 0.65rem !important;
+  }
+  .footer .motto {
+    font-size: 0.62rem !important;
+    letter-spacing: 0.12em !important;
+  }
+  .footer .ornament,
+  .footer .who {
+    font-size: 0.52rem !important;
+    margin-top: 0.15rem !important;
+  }
+  .toolbar {
+    padding: 0.35rem 0.45rem !important;
+  }
+}
