@@ -1747,7 +1747,7 @@ table.tt tbody td {
   text-overflow: ellipsis;
 }
 .doc-cell {
-  max-width: 0; /* force table ellipsis with fixed layout */
+  max-width: none; /* cite16: was 0 — broke iOS */ /* force table ellipsis with fixed layout */
   overflow: hidden !important;
 }
 .cite-exact,
@@ -1969,7 +1969,7 @@ table.tt tbody tr.complete td {
 
 /* Drive document links — visible + gold hover */
 .doc-cell {
-  max-width: 0;
+  max-width: none; /* cite16: was 0 — broke iOS */
   overflow: hidden !important;
 }
 a.doc-link,
@@ -2060,7 +2060,7 @@ table.tt tbody td.day-cell {
 .pair-cell { display: none !important; }
 
 .doc-cell {
-  max-width: 0; /* ellipsis with fixed table */
+  max-width: none; /* cite16: was 0 — broke iOS */ /* ellipsis with fixed table */
 }
 a.doc-link,
 a.cite-exact,
@@ -2143,7 +2143,7 @@ table.tt tbody td.day-cell {
 .pair-cell { display: none !important; }
 
 .doc-cell {
-  max-width: 0;
+  max-width: none; /* cite16: was 0 — broke iOS */
   position: relative;
   z-index: 2;
 }
@@ -2188,3 +2188,99 @@ a.doc-link:focus {
   margin: 0 auto !important;
   display: block !important;
 }
+
+
+/* ─── CITE16: restore citations · tick beside DOC2 ─── */
+table.tt,
+table.timetable-table {
+  width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse !important;
+  background: #150724 !important;
+}
+table.tt col.col-day { width: 18% !important; }
+table.tt col.col-doc1 { width: 41% !important; }
+table.tt col.col-doc2 { width: 41% !important; }
+table.tt col.col-complete,
+table.tt col.col-pair { display: none !important; width: 0 !important; }
+
+table.tt th,
+table.tt td {
+  padding: 8px 6px !important;
+  vertical-align: middle !important;
+  color: #e2d4f7 !important;
+  -webkit-text-fill-color: #e2d4f7 !important;
+  background: #150724 !important;
+  font-size: 0.72rem !important;
+  /* CRITICAL: never max-width:0 — iOS collapses text to a dash */
+  max-width: none !important;
+  overflow: hidden !important;
+}
+table.tt tbody td.day-cell {
+  white-space: normal !important;
+}
+table.tt thead th {
+  background: #210a38 !important;
+  color: #b892e8 !important;
+  -webkit-text-fill-color: #b892e8 !important;
+  white-space: nowrap !important;
+}
+
+.doc-cell {
+  max-width: none !important;
+  min-width: 0 !important;
+}
+a.doc-link {
+  color: #d8b4fe !important;
+  -webkit-text-fill-color: #d8b4fe !important;
+  text-decoration: underline !important;
+  font-weight: 700 !important;
+  font-size: 0.72rem !important;
+  line-height: 1.25 !important;
+  display: block !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 5 !important;
+}
+a.doc-link:hover {
+  color: #ff8c00 !important;
+  -webkit-text-fill-color: #ff8c00 !important;
+}
+.doc-text {
+  color: #a890c0 !important;
+  -webkit-text-fill-color: #a890c0 !important;
+  font-style: italic;
+}
+.doc-with-tick .doc-tick-row {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 0.45rem !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+.doc-tick-link {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+.doc-tick-done {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.tick-btn {
+  width: 18px !important;
+  height: 18px !important;
+  border-color: #ff8c00 !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+}
+.pair-cell,
+.complete-cell { display: none !important; }

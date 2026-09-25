@@ -75,25 +75,33 @@
     return { url: url, gate: gate, folder: cabin.folder || root };
   }
 
-  /* Exact: 1. {CabinKey}_Trainer_{Phase} — always <a> for training days */
+  /* Exact: 1. {CabinKey}_Trainer_{Phase} — always visible <a> for training days */
+  function citationLaw(cabinKey, phase) {
+    return "1. " + cabinKey + "_Trainer_" + phase;
+  }
+
   function docCellHtml(label, cabinKey, phase, isRecovery) {
-    if (!label) return '<span class="empty">—</span>';
-    var plain = String(label);
-    var isRest = isRecovery || !cabinKey ||
+    var plain = label ? String(label) : "";
+    var isRest = isRecovery ||
       /Rest\s*\/\s*Light Mobility/i.test(plain) ||
-      /Weekly Reset/i.test(plain);
-    if (isRest) {
+      /Weekly Reset/i.test(plain) ||
+      ((!cabinKey) && (!plain || plain === "—"));
+    if (isRest && (!cabinKey || isRecovery)) {
+      if (!plain) plain = "Rest / Light Mobility";
       return '<span class="doc-text">' + escapeHtml(plain) + "</span>";
     }
-    /* Prefer schedule label; if missing, build law string */
-    if (!/^1\.\s/.test(plain) && cabinKey && phase) {
-      plain = "1. " + cabinKey + "_Trainer_" + phase;
+    if (!cabinKey) {
+      return '<span class="doc-text">' + escapeHtml(plain || "—") + "</span>";
     }
-    var r = resolveUrl(cabinKey, phase);
+    /* Always rebuild from cabin+phase so we never show blank/dash */
+    plain = citationLaw(cabinKey, phase || "Base");
+    var r = resolveUrl(cabinKey, phase || "Base");
     var href = r.url || DRIVE_ROOT;
     return (
       '<a class="doc-link" href="' + href +
-      '" target="_blank" rel="noopener noreferrer" title="' + escapeHtml(plain) + ' · open Drive">' +
+      '" target="_blank" rel="noopener noreferrer" ' +
+      'style="color:#d8b4fe;text-decoration:underline;font-weight:700;font-size:12px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" ' +
+      'title="' + escapeHtml(plain) + '">' +
       escapeHtml(plain) + "</a>"
     );
   }
@@ -343,21 +351,23 @@
       if (day.isRecovery) tr.classList.add("recovery");
       if (isFutureDay) tr.classList.add("future-locked");
 
-      var doc1 = docCellHtml(day.doc1, day.cabins[0], day.phase, day.isRecovery);
-      var doc2 = docCellHtml(day.doc2, day.cabins[1], day.phase, day.isRecovery);
+      var c0 = (day.cabins && day.cabins[0]) || null;
+      var c1 = (day.cabins && day.cabins[1]) || null;
+      var doc1 = docCellHtml(day.doc1, c0, day.phase, day.isRecovery);
+      var doc2 = docCellHtml(day.doc2, c1, day.phase, day.isRecovery);
 
-      var actions = "";
+      var tickHtml = "";
       if (!tickable) {
-        actions = '<span class="lock-badge">LOCKED</span>';
+        tickHtml = '<span class="lock-badge">LOCKED</span>';
       } else {
         var checked = isComplete ? " checked" : "";
-        actions =
-          '<div class="actions">' +
-            '<button type="button" class="tick-btn' + checked + '" data-act="complete" data-date="' + day.dateKey + '" aria-label="Mark complete"></button>' +
-          "</div>";
+        tickHtml =
+          '<button type="button" class="tick-btn' + checked +
+          '" data-act="complete" data-date="' + day.dateKey +
+          '" aria-label="Mark complete"></button>';
       }
 
-      /* Tick lives ONLY inside .tick-btn — no TRAINING PAIR column */
+      /* Citations + tick beside DOC2 link (Joseph: complete next to the link) */
       var todayPill = isToday ? '<span class="today-pill">TODAY</span>' : "";
 
       tr.innerHTML =
@@ -365,8 +375,11 @@
           '<span class="dname">' + day.dayName + "</span>" + todayPill +
           '<span class="ddate">' + day.dateKey + "</span></td>" +
         '<td class="doc-cell" data-label="DOCUMENT 1">' + doc1 + "</td>" +
-        '<td class="doc-cell" data-label="DOCUMENT 2">' + doc2 + "</td>" +
-        '<td class="complete-cell" data-label="DONE">' + actions + "</td>";
+        '<td class="doc-cell doc-with-tick" data-label="DOCUMENT 2">' +
+          '<div class="doc-tick-row">' +
+            '<div class="doc-tick-link">' + doc2 + "</div>" +
+            '<div class="doc-tick-done" data-label="DONE">' + tickHtml + "</div>" +
+          "</div></td>";
 
       tbody.appendChild(tr);
     });
