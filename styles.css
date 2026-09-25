@@ -412,7 +412,7 @@ table.tt thead th {
   background: linear-gradient(180deg, #3d2463, #2d1b4e);
   color: var(--gold-bright);
   font-family: var(--font-display);
-  font-size: 0.64rem;
+  font-size: 0.6rem;
   letter-spacing: 0.1em;
   font-weight: 700;
   padding: 0.48rem 0.4rem;
@@ -425,7 +425,7 @@ table.tt thead th {
 }
 
 table.tt tbody td {
-  padding: 0.62rem 0.4rem;
+  padding: 0.38rem 0.35rem;
   border-bottom: 1px solid #d4c4a0;
   vertical-align: top;
   font-size: 0.8rem;
@@ -848,108 +848,84 @@ table.tt tbody tr.recovery td {
   .footer .motto { color: #3d2463; text-shadow: none; }
 }
 
-/* ─── MOBILE — full-width day cards (fix collapsed table-as-card) ─── */
+/* ─── MOBILE / NARROW — dense forensic table (no tall day-cards) ─── */
 @media (max-width: 720px) {
-  .wrap { padding: 0.35rem 0.4rem 1.4rem; max-width: 100%; }
-  .card::before, .card::after { font-size: 0.8rem; top: 0.4rem; }
-  .header { padding: 0.85rem 1.2rem 0.55rem; }
-  .identity-line { font-size: 0.64rem; letter-spacing: 0.06em; }
+  .wrap { padding: 0.35rem 0.3rem 1.4rem; max-width: 100%; }
+  .card::before, .card::after { font-size: 0.75rem; top: 0.35rem; }
+  .header { padding: 0.7rem 1rem 0.45rem; }
+  .identity-line { font-size: 0.62rem; letter-spacing: 0.05em; }
+  .phase-bar { grid-template-columns: 1fr 1fr; gap: 2px; padding: 0.35rem; }
   .phase .ph-range { display: none; }
   .yw-pct { display: none; }
-  .week-meta { width: 100%; margin-left: 0; margin-top: 0.25rem; }
-  .week-tabs { gap: 0.25rem; }
-  .wtab { padding: 0.28rem 0.5rem; font-size: 0.64rem; }
+  .week-meta { width: 100%; margin-left: 0; margin-top: 0.2rem; font-size: 0.62rem; }
+  .week-tabs { gap: 0.2rem; padding: 0.4rem 0.45rem 0.25rem; }
+  .wtab { padding: 0.26rem 0.45rem; font-size: 0.6rem; }
+  .phase-bar { grid-template-columns: 1fr 1fr; }
 
   .table-wrap {
-    padding: 0.35rem 0.4rem 0.65rem;
-    overflow-x: visible;
+    padding: 0.25rem 0.3rem 0.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
-
-  /* Force every table piece into a stacked block so cards fill the phone width */
-  table.tt,
-  table.tt > colgroup,
-  table.tt > thead,
-  table.tt > tbody,
-  table.tt > tbody > tr,
-  table.tt > thead > tr,
-  table.tt > tbody > tr > td,
-  table.tt > thead > tr > th {
-    display: block !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box;
-  }
-  table.tt > colgroup { display: none !important; }
 
   table.tt {
-    table-layout: auto !important;
-    border: none;
-    background: transparent;
-    border-radius: 0;
-    overflow: visible;
-    min-width: 0 !important;
+    table-layout: auto;
+    min-width: 620px;
+    width: 100%;
+    border-collapse: collapse;
   }
+  table.tt col.col-day { width: 72px; }
+  table.tt col.col-pair { width: 110px; }
+  table.tt col.col-doc1,
+  table.tt col.col-doc2 { width: auto; }
+  table.tt col.col-complete { width: 88px; }
 
-  table.tt thead { display: none !important; }
-
-  table.tt tbody tr {
-    margin: 0 0 0.75rem 0;
-    border: 2px solid var(--gold);
-    border-radius: 6px;
-    background: var(--parchment);
-    color: var(--ink);
-    overflow: hidden;
-    box-shadow: 0 0 14px rgba(212, 175, 55, 0.14);
+  table.tt thead { display: table-header-group; }
+  table.tt thead th {
+    font-size: 0.52rem;
+    padding: 0.32rem 0.28rem;
+    position: sticky;
+    top: 0;
   }
-  table.tt tbody tr:last-child { margin-bottom: 0; }
-  table.tt tbody tr.today {
-    box-shadow: 0 0 0 2px var(--gold), 0 0 18px var(--gold-glow);
-  }
-  table.tt tbody tr.complete {
-    box-shadow: inset 4px 0 0 var(--gold);
-  }
-  table.tt tbody tr.skipped {
-    box-shadow: inset 4px 0 0 var(--amber);
-  }
-  table.tt tbody tr.complete td:first-child,
-  table.tt tbody tr.skipped td:first-child {
-    box-shadow: none;
-  }
-
   table.tt tbody td {
-    padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid #d4c4a0;
-    vertical-align: top;
+    display: table-cell;
+    width: auto;
+    padding: 0.32rem 0.28rem;
+    font-size: 0.68rem;
+    vertical-align: middle;
+  }
+  table.tt tbody td::before { content: none !important; display: none !important; }
+  table.tt tbody tr {
+    display: table-row;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
     background: transparent;
   }
-  table.tt tbody td:last-child { border-bottom: none; }
-  table.tt tbody td::before {
-    content: attr(data-label);
-    display: block;
-    font-family: var(--font-display);
-    font-size: 0.55rem;
-    letter-spacing: 0.12em;
-    color: var(--gold-dim);
-    margin-bottom: 0.2rem;
-    font-weight: 700;
+  .day-cell .dname { font-size: 0.68rem; }
+  .day-cell .ddate { font-size: 0.55rem; margin-top: 0; }
+  .today-pill { font-size: 0.45rem; padding: 0.05rem 0.25rem; }
+  .doc-cell, .cite-exact {
+    font-size: 0.62rem;
+    line-height: 1.25;
+    word-break: break-word;
   }
-  .day-cell .dname { font-size: 0.95rem; }
-  .doc-cell { font-size: 0.78rem; }
   .actions {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.45rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
   }
-  .tick-label { display: inline; }
-  .phase-bar { grid-template-columns: 1fr 1fr; }
+  .tick-btn { width: 1.35rem; height: 1.35rem; }
+  .tick-label { font-size: 0.48rem; }
+  .skip-btn { font-size: 0.5rem; padding: 0.18rem 0.32rem; }
+  .status-mark { display: none; }
 }
 
 @media (max-width: 400px) {
   .month-bar { gap: 1px; }
-  .mbtn { padding: 0.28rem 0.04rem; font-size: 0.48rem; }
-  .meta-row { gap: 0.3rem; }
-  .meta-chip { font-size: 0.58rem; }
+  .mbtn { padding: 0.26rem 0.04rem; font-size: 0.46rem; }
+  .meta-chip { font-size: 0.55rem; }
 }
 
 /* === UNIQUE MONTH GOTHIC BACKGROUNDS (table stays simple) === */

@@ -69,33 +69,19 @@
     return { url: entry && entry.url ? entry.url : null, gate: gate, folder: cabin.folder || null };
   }
 
-  /* Split N. Cabin_Trainer_Phase for display only — citation string & URL unchanged */
-  function citeDisplayHtml(label, docNum) {
-    var m = /^(\d+)\.\s+(.+)_Trainer_(.+)$/.exec(label);
-    if (!m) return '<span class="cite-text">' + escapeHtml(label) + "</span>";
-    var num = docNum != null ? String(docNum) : m[1];
-    var cabin = m[2].replace(/_/g, " ");
-    var phaseBit = m[3];
-    return '<span class="cite-structured">' +
-      '<span class="cite-num">' + escapeHtml(num) + ".</span> " +
-      '<span class="cite-cabin">' + escapeHtml(cabin) + "</span>" +
-      '<span class="cite-phase">_Trainer_' + escapeHtml(phaseBit) + "</span>" +
-      "</span>";
-  }
-
-  function docCellHtml(label, cabinKey, phase, isRecovery, docNum) {
+  /* Exact card citation string — never rewrite numbering or cabin spelling */
+  function docCellHtml(label, cabinKey, phase, isRecovery) {
     if (!label) return '<span class="empty">—</span>';
     if (isRecovery || !cabinKey) {
       return '<span class="cite-text">' + escapeHtml(label) + "</span>";
     }
     var r = resolveUrl(cabinKey, phase);
-    var inner = citeDisplayHtml(label, docNum);
     var html;
     if (r.url) {
-      html = '<a href="' + r.url + '" target="_blank" rel="noopener noreferrer" title="' +
-        escapeHtml(label) + '">' + inner + "</a>";
+      html = '<a class="cite-exact" href="' + r.url + '" target="_blank" rel="noopener noreferrer">' +
+        escapeHtml(label) + "</a>";
     } else {
-      html = inner;
+      html = '<span class="cite-text cite-exact">' + escapeHtml(label) + "</span>";
     }
     if (r.gate) html += '<span class="gate-note">' + escapeHtml(r.gate) + "</span>";
     return html;
@@ -310,10 +296,13 @@
       btn.classList.toggle("stub", stub && w === state.viewWeek);
     });
 
-    var weekDays = S.daysInWeekOfMonth(2027, state.viewMonth, state.viewWeek);
+    /* Training week: Mon→Sat forensic order. Sunday recovery hidden (Joseph knows). */
+    var weekDays = S.daysInWeekOfMonth(2027, state.viewMonth, state.viewWeek)
+      .filter(function (d) { return !d.isRecovery && d.dayIndex < 6; })
+      .sort(function (a, b) { return a.dayIndex - b.dayIndex; });
     var rangeLabel = "";
     if (weekDays.length) {
-      rangeLabel = weekDays[0].dateKey + " → " + weekDays[weekDays.length - 1].dateKey;
+      rangeLabel = weekDays[0].dateKey + " → " + weekDays[weekDays.length - 1].dateKey + " · MON–SAT";
     }
     var stubNote = "";
     if (cardStatus === "partial" && state.viewWeek >= 3) stubNote = " · W" + state.viewWeek + " provisional";
@@ -337,8 +326,8 @@
       if (day.isRecovery) tr.classList.add("recovery");
       if (isFutureDay) tr.classList.add("future-locked");
 
-      var doc1 = docCellHtml(day.doc1, day.cabins[0], day.phase, day.isRecovery, 1);
-      var doc2 = docCellHtml(day.doc2, day.cabins[1], day.phase, day.isRecovery, 2);
+      var doc1 = docCellHtml(day.doc1, day.cabins[0], day.phase, day.isRecovery);
+      var doc2 = docCellHtml(day.doc2, day.cabins[1], day.phase, day.isRecovery);
 
       var actions = "";
       if (!tickable) {
