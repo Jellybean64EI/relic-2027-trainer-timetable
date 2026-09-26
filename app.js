@@ -80,7 +80,7 @@
     return "1. " + cabinKey + "_Trainer_" + phase;
   }
 
-  function docCellHtml(label, cabinKey, phase, isRecovery) {
+  function relicLinkHtml(label, cabinKey, phase, isRecovery) {
     var plain = label ? String(label) : "";
     var isRest = isRecovery ||
       /Rest\s*\/\s*Light Mobility/i.test(plain) ||
@@ -95,14 +95,35 @@
     }
     /* Always rebuild from cabin+phase so we never show blank/dash */
     plain = citationLaw(cabinKey, phase || "Base");
-    var r = resolveUrl(cabinKey, phase || "Base");
-    var href = r.url || DRIVE_ROOT;
+    var ph = phase || "Base";
     return (
-      '<a class="doc-link" href="' + href +
-      '" target="_blank" rel="noopener noreferrer" ' +
-      'style="color:#ffffff;text-decoration:underline;font-weight:700;font-size:13px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.35;" ' +
-      'title="' + escapeHtml(plain) + '">' +
-      escapeHtml(plain) + "</a>"
+      '<button type="button" class="doc-link" data-cabin="' + escapeHtml(cabinKey) +
+      '" data-phase="' + escapeHtml(ph) +
+      '" title="' + escapeHtml(plain) + '">' +
+      escapeHtml(plain) + "</button>"
+    );
+  }
+
+  function relicsCellHtml(day) {
+    var c0 = (day.cabins && day.cabins[0]) || null;
+    var c1 = (day.cabins && day.cabins[1]) || null;
+    var links = [];
+    if (day.isRecovery) {
+      links.push(relicLinkHtml(day.doc1 || "Rest / Light Mobility", null, day.phase, true));
+      if (day.doc2) links.push(relicLinkHtml(day.doc2, null, day.phase, true));
+    } else {
+      if (c0 || day.doc1) links.push(relicLinkHtml(day.doc1, c0, day.phase, false));
+      if (c1 || (day.doc2 && day.doc2 !== "—" && day.doc2 !== day.doc1)) {
+        links.push(relicLinkHtml(day.doc2, c1, day.phase, false));
+      }
+    }
+    if (!links.length) {
+      links.push('<span class="doc-text">—</span>');
+    }
+    return (
+      '<td class="doc-cell relics-cell" data-label="TRAINING RELICS">' +
+        '<div class="relic-links-container">' + links.join("") + "</div>" +
+      "</td>"
     );
   }
 
@@ -351,11 +372,6 @@
       if (day.isRecovery) tr.classList.add("recovery");
       if (isFutureDay) tr.classList.add("future-locked");
 
-      var c0 = (day.cabins && day.cabins[0]) || null;
-      var c1 = (day.cabins && day.cabins[1]) || null;
-      var doc1 = docCellHtml(day.doc1, c0, day.phase, day.isRecovery);
-      var doc2 = docCellHtml(day.doc2, c1, day.phase, day.isRecovery);
-
       var tickHtml = "";
       if (!tickable) {
         tickHtml = '<span class="lock-badge">LOCKED</span>';
@@ -373,8 +389,7 @@
         '<td class="day-cell" data-label="DAY">' +
           '<span class="dname">' + day.dayName + "</span>" + todayPill +
           '<span class="ddate">' + day.dateKey + "</span></td>" +
-        '<td class="doc-cell" data-label="DOCUMENT 1">' + doc1 + "</td>" +
-        '<td class="doc-cell" data-label="DOCUMENT 2">' + doc2 + "</td>" +
+        relicsCellHtml(day) +
         '<td class="complete-cell" data-label="DONE">' +
           '<div class="actions">' + tickHtml + "</div></td>";
 
@@ -473,6 +488,209 @@
     render();
   }
 
+
+  /* ——— Relic video player modal ——— */
+  var player = {
+    activeTimer: null,
+    secondsRemaining: 180,
+    timerPaused: false,
+    playlist: [],
+    playlistIndex: 0,
+    currentCabin: null,
+    currentPhase: null,
+    setDuration: 180
+  };
+
+  function archiveCabin(cabinKey) {
+    var A = window.RELIC_VIDEO_ARCHIVE || {};
+    var cabins = A.cabins || {};
+    return cabins[cabinKey] || null;
+  }
+
+  function folderEmbedUrl(folderId) {
+    return "https://drive.google.com/embeddedfolderview?id=" + folderId + "#grid";
+  }
+
+  function filePreviewUrl(fileId) {
+    return "https://drive.google.com/file/d/" + fileId + "/preview";
+  }
+
+  function formatTimer(sec) {
+    var s = Math.max(0, sec | 0);
+    var m = Math.floor(s / 60);
+    var r = s % 60;
+    return (m < 10 ? "0" : "") + m + ":" + (r < 10 ? "0" : "") + r;
+  }
+
+  function updateTimerDisplay() {
+    var el = document.getElementById("player-timer");
+    if (!el) return;
+    if (player.secondsRemaining <= 0) {
+      el.textContent = "DONE";
+      el.classList.add("timer-done");
+    } else {
+      el.textContent = formatTimer(player.secondsRemaining);
+      el.classList.remove("timer-done");
+    }
+  }
+
+  function clearSetTimer() {
+    if (player.activeTimer) {
+      clearInterval(player.activeTimer);
+      player.activeTimer = null;
+    }
+  }
+
+  function startSetTimer(duration) {
+    clearSetTimer();
+    player.setDuration = duration || 180;
+    player.secondsRemaining = player.setDuration;
+    player.timerPaused = false;
+    updateTimerDisplay();
+    var toggle = document.getElementById("timer-toggle-btn");
+    if (toggle) toggle.textContent = "Pause Timer";
+    player.activeTimer = setInterval(function () {
+      if (player.timerPaused) return;
+      player.secondsRemaining -= 1;
+      if (player.secondsRemaining <= 0) {
+        player.secondsRemaining = 0;
+        updateTimerDisplay();
+        clearSetTimer();
+        try {
+          if (navigator.vibrate) navigator.vibrate(40);
+        } catch (e) { /* ignore */ }
+        return;
+      }
+      updateTimerDisplay();
+    }, 1000);
+  }
+
+  function toggleTimer() {
+    if (player.secondsRemaining <= 0) return;
+    player.timerPaused = !player.timerPaused;
+    var toggle = document.getElementById("timer-toggle-btn");
+    if (toggle) toggle.textContent = player.timerPaused ? "Resume Timer" : "Pause Timer";
+  }
+
+  function resetTimer() {
+    startSetTimer(player.setDuration || 180);
+  }
+
+  function loadPlaylistFrame() {
+    var frame = document.getElementById("relic-video-frame");
+    var clipLabel = document.getElementById("player-clip-label");
+    var cabin = archiveCabin(player.currentCabin);
+    if (!frame) return;
+    if (player.playlist && player.playlist.length) {
+      var clip = player.playlist[player.playlistIndex];
+      frame.src = filePreviewUrl(clip.id);
+      if (clipLabel) {
+        clipLabel.textContent =
+          (player.playlistIndex + 1) + " / " + player.playlist.length + " · " + clip.title;
+      }
+    } else if (cabin && cabin.folderId) {
+      frame.src = folderEmbedUrl(cabin.folderId);
+      if (clipLabel) {
+        clipLabel.textContent = "Folder view · " + (cabin.label || player.currentCabin);
+      }
+    } else {
+      var A = window.RELIC_VIDEO_ARCHIVE || {};
+      frame.src = folderEmbedUrl(A.rootFolderId || "");
+      if (clipLabel) clipLabel.textContent = "Master archive folder";
+    }
+  }
+
+  function openRelicVideo(cabinKey, phase) {
+    player.currentCabin = cabinKey;
+    player.currentPhase = phase || "Base";
+    var cabin = archiveCabin(cabinKey);
+    player.playlist = (cabin && cabin.playlist && cabin.playlist.length)
+      ? cabin.playlist.slice()
+      : [];
+    player.playlistIndex = 0;
+
+    var modal = document.getElementById("video-modal");
+    var title = document.getElementById("player-title");
+    var folderLink = document.getElementById("open-folder-link");
+    if (title) title.textContent = citationLaw(cabinKey, player.currentPhase);
+    if (folderLink) {
+      var A = window.RELIC_VIDEO_ARCHIVE || {};
+      folderLink.href = (cabin && (cabin.folderUrl || ("https://drive.google.com/drive/folders/" + cabin.folderId)))
+        || A.rootFolderUrl
+        || "#";
+    }
+    if (modal) {
+      modal.hidden = false;
+      modal.classList.add("is-open");
+      document.body.classList.add("modal-open");
+    }
+    loadPlaylistFrame();
+    startSetTimer(180);
+  }
+
+  function closeVideoPlayer() {
+    clearSetTimer();
+    var frame = document.getElementById("relic-video-frame");
+    if (frame) frame.src = "";
+    var modal = document.getElementById("video-modal");
+    if (modal) {
+      modal.hidden = true;
+      modal.classList.remove("is-open");
+    }
+    document.body.classList.remove("modal-open");
+    player.playlist = [];
+    player.playlistIndex = 0;
+    player.currentCabin = null;
+  }
+
+  function previousExercise() {
+    if (!player.playlist.length) return;
+    player.playlistIndex = (player.playlistIndex - 1 + player.playlist.length) % player.playlist.length;
+    loadPlaylistFrame();
+  }
+
+  function nextExercise() {
+    if (!player.playlist.length) return;
+    player.playlistIndex = (player.playlistIndex + 1) % player.playlist.length;
+    loadPlaylistFrame();
+  }
+
+  function wireVideoPlayer() {
+    var modal = document.getElementById("video-modal");
+    var closeBtn = document.getElementById("modal-close");
+    if (closeBtn) closeBtn.addEventListener("click", closeVideoPlayer);
+    if (modal) {
+      modal.addEventListener("click", function (ev) {
+        if (ev.target === modal) closeVideoPlayer();
+      });
+    }
+    var prev = document.getElementById("btn-prev-ex");
+    var next = document.getElementById("btn-next-ex");
+    var toggle = document.getElementById("timer-toggle-btn");
+    var reset = document.getElementById("btn-reset-timer");
+    if (prev) prev.addEventListener("click", previousExercise);
+    if (next) next.addEventListener("click", nextExercise);
+    if (toggle) toggle.addEventListener("click", toggleTimer);
+    if (reset) reset.addEventListener("click", resetTimer);
+
+    var tbody = document.getElementById("tt-body");
+    if (tbody) {
+      tbody.addEventListener("click", function (ev) {
+        var btn = ev.target.closest(".doc-link[data-cabin]");
+        if (!btn) return;
+        ev.preventDefault();
+        openRelicVideo(btn.getAttribute("data-cabin"), btn.getAttribute("data-phase") || "Base");
+      });
+    }
+
+    document.addEventListener("keydown", function (ev) {
+      if (ev.key === "Escape") {
+        var m = document.getElementById("video-modal");
+        if (m && !m.hidden) closeVideoPlayer();
+      }
+    });
+  }
+
   function boot() {
     state.store = loadStore();
     document.querySelectorAll(".mbtn").forEach(function (btn) {
@@ -485,6 +703,7 @@
     document.getElementById("btn-import").addEventListener("click", importJson);
     document.getElementById("btn-clear").addEventListener("click", clearAll);
     document.getElementById("btn-today").addEventListener("click", jumpToday);
+    wireVideoPlayer();
     render();
     setInterval(function () {
       var prev = state.now && londonParts(state.now).dateKey;

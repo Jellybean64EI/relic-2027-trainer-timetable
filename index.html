@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#1a0a2e" />
   <title>2027 TRAINER TIMETABLE CARD — Relic · Joseph Searle</title>
-  <link rel="stylesheet" href="styles.css?v=sorted17" />
+  <link rel="stylesheet" href="styles.css?v=relics18" />
 </head>
 <body>
   <div class="wrap">
@@ -45,7 +45,7 @@
         <div class="law-grid">
           <div><strong>PREVIEW</strong> (now → 31 Dec 2026)<br/>Look through all 12 months. Nothing is sealed yet.</div>
           <div><strong>LIVE LOCK</strong> (from 1 Jan 2027)<br/>Real year. Today glows gold. Future ticks locked until that day arrives.</div>
-          <div><strong>YOUR JOB</strong><br/>Open the card. Run Document 1 + 2. Tick COMPLETE.</div>
+          <div><strong>YOUR JOB</strong><br/>Open the card. Run TRAINING RELICS. Tick COMPLETE.</div>
         </div>
       </details>
       <div class="banner coach" id="banner-coach" style="display:none"></div>
@@ -104,15 +104,13 @@
         <table class="tt timetable-table" id="timetable-table">
           <colgroup>
             <col class="col-day" />
-            <col class="col-doc1" />
-            <col class="col-doc2" />
+            <col class="col-relics" />
             <col class="col-complete" />
           </colgroup>
           <thead>
             <tr>
               <th scope="col">DAY</th>
-              <th scope="col">DOCUMENT 1</th>
-              <th scope="col">DOCUMENT 2</th>
+              <th scope="col">TRAINING RELICS</th>
               <th scope="col">DONE</th>
             </tr>
           </thead>
@@ -140,8 +138,30 @@
     </article>
   </div>
 
-  <script src="data/schedule.js?v=sorted17"></script>
-  <script src="data/citations.js?v=sorted17"></script>
-  <script src="app.js?v=sorted17"></script>
+
+  <div id="video-modal" class="relic-modal-overlay" hidden>
+    <div class="relic-modal-content" role="dialog" aria-modal="true" aria-labelledby="player-title">
+      <button type="button" class="modal-close-btn" id="modal-close" aria-label="Close">&times;</button>
+      <h2 id="player-title" class="player-title">Relic Player</h2>
+      <p id="player-clip-label" class="player-clip-label"></p>
+      <div class="video-container">
+        <div id="player-timer" class="timer-overlay">03:00</div>
+        <iframe id="relic-video-frame" title="Relic video" src="" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+      </div>
+      <div class="modal-controls">
+        <button type="button" id="btn-prev-ex" class="control-btn">‹ Previous</button>
+        <button type="button" id="timer-toggle-btn" class="control-btn primary">Pause Timer</button>
+        <button type="button" id="btn-reset-timer" class="control-btn">Reset</button>
+        <button type="button" id="btn-next-ex" class="control-btn">Next ›</button>
+      </div>
+      <p class="player-hint">Set timer loops the Drive preview until the countdown ends. Open full folder if embed is restricted.</p>
+      <a id="open-folder-link" class="open-folder-link" href="#" target="_blank" rel="noopener">Open cabin video folder ↗</a>
+    </div>
+  </div>
+
+  <script src="data/schedule.js?v=relics18"></script>
+  <script src="data/citations.js?v=relics18"></script>
+  <script src="data/videoArchive.js?v=relics18"></script>
+  <script src="app.js?v=relics18"></script>
 </body>
 </html>
