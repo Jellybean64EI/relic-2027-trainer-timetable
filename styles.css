@@ -2476,6 +2476,8 @@ body.modal-open {
 }
 
 /* ===== relics19: FULLSCREEN video player (100vw × 100vh, no letterbox) ===== */
+/* ===== relics25: confirm fullscreen 100vw×100vh + #ff8c00 timer (physical save) ===== */
+/* relics25 law: .relic-fs-player = 100vw × 100vh; #video-inside-timer color #ff8c00 */
 .relic-fs-player {
   position: fixed;
   inset: 0;
@@ -2765,7 +2767,7 @@ table.timetable-table tbody td {
 }
 
 /* Player timer: top-right 18px/18px, rgba(0,0,0,0.8), #ff8c00 monospace */
-/* relics24: Joseph timer badge numbers — top/right 18px */
+/* relics25: Joseph timer badge numbers — top/right 18px */
 .relic-fs-timer,
 #video-inside-timer {
   top: 18px !important;

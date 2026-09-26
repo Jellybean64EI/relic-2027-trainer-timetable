@@ -565,17 +565,17 @@
   }
 
 
-  /* ——— Relic FULLSCREEN trainer player (relics24) ———
-   * NEVER embed Drive folder URLs / embeddedfolderview — only file/d/{id}/preview.
-   * Drive iframe preview does NOT reliably loop or expose ended events.
-   * Soft-remount the same preview URL every min(clipEstimate, 45s) while the
-   * six-minute timer runs on the same playlist index (forces short clips to
-   * re-play). On timer 00:00 → playNextVideo() without closing the player.
-   * Direct HTML5 mp4 / uc?export=download need auth for these assets — not used.
+  /* ——— Relic FULLSCREEN trainer player (relics25) ———
+   * LAW: iframe src is ONLY https://drive.google.com/file/d/{FILE_ID}/preview
+   * or about:blank. folderEmbedUrl / folderUrl / embeddedfolderview / drive/folders
+   * are NEVER written into the iframe. Empty playlist → empty overlay (no grid).
+   * Timer: strict 360s set; at 00:00 auto-advance playlist; soft remount 45s.
    */
+  var RELIC_BUILD = "relics25";
   var SET_DURATION_SEC = 360; /* STRICT 6-minute set — never 180 */
   var CONTROLS_FADE_MS = 2500;
   var SOFT_REEMBED_MAX_SEC = 45;
+  var FILE_PREVIEW_RE = /^https:\/\/drive\.google\.com\/file\/d\/[^/]+\/preview$/i;
 
   var player = {
     activeTimer: null,
@@ -599,11 +599,21 @@
     return cabins[cabinKey] || null;
   }
 
-  function filePreviewUrl(fileId) {
-    if (!fileId || /folders\//i.test(String(fileId)) || /embeddedfolderview/i.test(String(fileId))) {
-      return "";
+  function isBareFileId(fileId) {
+    if (!fileId) return false;
+    var id = String(fileId).trim();
+    if (!id) return false;
+    if (/folders\//i.test(id) || /embeddedfolderview/i.test(id) || /folderEmbedUrl/i.test(id)) {
+      return false;
     }
-    return "https://drive.google.com/file/d/" + fileId + "/preview";
+    if (/^https?:\/\//i.test(id)) return false;
+    if (id.indexOf("/") !== -1) return false;
+    return true;
+  }
+
+  function filePreviewUrl(fileId) {
+    if (!isBareFileId(fileId)) return "";
+    return "https://drive.google.com/file/d/" + String(fileId).trim() + "/preview";
   }
 
   function formatTimer(sec) {
@@ -682,13 +692,11 @@
     var frame = fsEl("relic-video-frame");
     if (!frame) return;
     /* Hard block: never load Drive folder grids into the player */
-    if (src && (/\/drive\/folders\//i.test(src) || /embeddedfolderview/i.test(src))) {
+    if (src && (/\/drive\/folders\//i.test(src) || /embeddedfolderview/i.test(src) || /folderEmbedUrl/i.test(src))) {
       src = "";
     }
-    /* iframe src MUST ONLY be file/d/{id}/preview or about:blank — never folder URLs */
     var safe = src || "about:blank";
-    if (!/^https:\/\/drive\.google\.com\/file\/d\/[^/]+\/preview$/i.test(safe) &&
-        safe !== "about:blank") {
+    if (!FILE_PREVIEW_RE.test(safe) && safe !== "about:blank") {
       safe = "about:blank";
     }
     frame.src = "about:blank";
@@ -732,17 +740,16 @@
       var clip = player.playlist[player.playlistIndex];
       var title = (clip && clip.title) ? clip.title : ("Clip " + (player.playlistIndex + 1));
       clipLabel.textContent =
-        (player.playlistIndex + 1) + " / " + player.playlist.length + " · " + title;
+        RELIC_BUILD + " · " + (player.playlistIndex + 1) + " / " + player.playlist.length + " · " + title;
     } else {
-      clipLabel.textContent = "";
+      clipLabel.textContent = RELIC_BUILD;
     }
   }
 
   function startSoftReembed() {
     clearReembed();
     if (!player.videoQueue.length) return;
-    /* Soft iframe re-embed every 45s while timer runs (forces Drive preview loop). */
-    var intervalSec = SOFT_REEMBED_MAX_SEC; /* strict 45s */
+    var intervalSec = SOFT_REEMBED_MAX_SEC;
     player.reembedInterval = setInterval(function () {
       if (player.timerPaused || player.visuallyPaused) return;
       if (player.secondsRemaining <= 0) return;
@@ -775,7 +782,6 @@
         try {
           if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
         } catch (e) { /* ignore */ }
-        /* STRICT: auto-advance — do not require tap */
         playNextVideo();
         return;
       }
@@ -813,7 +819,6 @@
   }
 
   function togglePlayPause() {
-    /* Drive iframe: pause TIMER + visual veil; resume remounts preview. */
     if (player.visuallyPaused) {
       player.visuallyPaused = false;
       player.timerPaused = false;
@@ -866,22 +871,26 @@
     closeFullscreenPlayer();
   }
 
-  function startRelicTrainerSession(cabinKey, phase) {
+  function openRelicVideo(cabinKey, phase) {
+    /* relics25 physical law: FILE_ID → file/d/{FILE_ID}/preview only. No folderEmbedUrl. */
     player.currentCabin = cabinKey;
     player.currentPhase = phase || "Base";
     var cabin = archiveCabin(cabinKey);
-    /* Resolve FILE ids only — never open drive/folders/... in the iframe.
-     * ZERO FOLDER GRID: never folder grids / embeddedfolderview / drive/folders fallback. */
-    player.playlist = (cabin && cabin.playlist && cabin.playlist.length)
-      ? cabin.playlist.filter(function (clip) { return clip && clip.id; }).slice()
-      : [];
+    var raw = (cabin && cabin.playlist && cabin.playlist.length) ? cabin.playlist : [];
+    player.playlist = [];
     player.videoQueue = [];
-    player.playlist = player.playlist.filter(function (clip) {
+    for (var i = 0; i < raw.length; i++) {
+      var clip = raw[i];
+      if (!clip || !clip.id) continue;
+      /* Never use cabin.folderUrl / cabin.folderId / folderEmbedUrl as iframe src */
       var url = filePreviewUrl(clip.id);
-      if (!url) return false;
+      if (!url) continue;
+      player.playlist.push({
+        id: String(clip.id).trim(),
+        title: clip.title || ("Clip " + (player.playlist.length + 1))
+      });
       player.videoQueue.push(url);
-      return true;
-    });
+    }
     player.playlistIndex = 0;
     setEmptyOverlay(false);
 
@@ -889,6 +898,7 @@
     if (root) {
       root.hidden = false;
       root.setAttribute("aria-hidden", "false");
+      root.setAttribute("data-relic-build", RELIC_BUILD);
     }
     document.documentElement.classList.add("relic-fs-open");
     document.body.classList.add("relic-fs-open", "modal-open");
@@ -912,9 +922,10 @@
     showControlsTemporarily();
   }
 
-  function openRelicVideo(cabinKey, phase) {
-    startRelicTrainerSession(cabinKey, phase);
+  function startRelicTrainerSession(cabinKey, phase) {
+    openRelicVideo(cabinKey, phase);
   }
+
 
   function wireVideoPlayer() {
     var viewport = fsEl("relic-fs-viewport");
