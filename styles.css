@@ -2799,3 +2799,19 @@ table.timetable-table tbody td {
   pointer-events: none;
 }
 .relic-fs-empty-overlay[hidden] { display: none !important; }
+
+
+/* relics25b: impossible-to-miss build stamp */
+.relic-build-stamp {
+  margin: 0.35rem auto 0;
+  padding: 0.35rem 0.85rem;
+  width: fit-content;
+  border: 2px solid #ff8c00;
+  border-radius: 999px;
+  background: rgba(21, 7, 36, 0.92);
+  color: #ff8c00 !important;
+  font-weight: 900;
+  font-size: 0.85rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}

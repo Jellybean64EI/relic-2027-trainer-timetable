@@ -571,7 +571,7 @@
    * are NEVER written into the iframe. Empty playlist → empty overlay (no grid).
    * Timer: strict 360s set; at 00:00 auto-advance playlist; soft remount 45s.
    */
-  var RELIC_BUILD = "relics25";
+  var RELIC_BUILD = "relics25b";
   var SET_DURATION_SEC = 360; /* STRICT 6-minute set — never 180 */
   var CONTROLS_FADE_MS = 2500;
   var SOFT_REEMBED_MAX_SEC = 45;
