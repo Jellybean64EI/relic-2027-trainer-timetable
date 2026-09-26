@@ -212,11 +212,19 @@ h1 {
   border-radius: 999px;
   background: #0b0216;
   color: #ff8c00;
-  font-size: 0.56rem;
+  font-size: 0.52rem;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   line-height: 1.2;
-  white-space: nowrap;
+  text-align: center;
+  text-wrap: balance;
+  white-space: normal;
+}
+
+.wtab.is-selected .golden-lock,
+.wtab.is-golden .golden-lock {
+  background: #0b0216;
+  color: #ff8c00;
 }
 
 .golden-lock[hidden] { display: none !important; }
@@ -401,7 +409,7 @@ tr.today td {
   content: "✓";
 }
 
-/* Golden Week lock: rich gold field, deep black mark. Normal ticks stay as-is. */
+/* Viewed week complete: rich gold field, deep black mark. Normal ticks stay as-is. */
 .tick-hit.is-golden input:checked + .tick-box {
   background: #ff8c00;
   border-color: #ff8c00;
