@@ -331,17 +331,6 @@ body {
   box-shadow: 0 0 10px var(--gold-glow);
   border-color: var(--gold);
 }
-.mbtn.future::after {
-  content: "peek";
-  position: absolute;
-  top: 1px;
-  right: 1px;
-  font-size: 0.38rem;
-  letter-spacing: 0;
-  opacity: 0.65;
-  color: var(--gold-dim);
-  text-transform: uppercase;
-}
 .mbtn.future {
   opacity: 0.88;
   cursor: pointer;
@@ -1669,11 +1658,6 @@ table.tt tbody td {
   border-color: var(--gold) !important;
   box-shadow: 0 0 8px var(--gold-glow) !important;
 }
-.mbtn.future::after {
-  font-size: 0.42rem !important;
-  top: 3px !important;
-  right: 3px !important;
-}
 
 /* Week tabs — slightly larger for balance with months */
 .week-tabs {
@@ -1798,7 +1782,6 @@ table.tt tbody td {
     height: 44px !important;
     font-size: 0.68rem !important;
   }
-  .mbtn.future::after { display: none !important; }
   .week-tabs {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 6px !important;
@@ -2688,3 +2671,55 @@ body.modal-open {
   .relic-fs-play { width: 4rem; height: 4rem; }
   .relic-fs-timer, #video-inside-timer { font-size: 0.98rem; }
 }
+
+/* ===== relics20: forensic month progress badges (no peek) ===== */
+.mbtn {
+  padding-top: 0.55rem !important;
+  overflow: visible;
+}
+.mbtn .m-name {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+.m-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 0.4rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  font-family: var(--font-mono);
+  line-height: 1;
+  pointer-events: none;
+  text-transform: uppercase;
+  z-index: 2;
+  opacity: 0.92;
+  white-space: nowrap;
+  max-width: calc(100% - 4px);
+  overflow: hidden;
+  text-overflow: clip;
+}
+@media (max-width: 600px) {
+  .m-badge { font-size: 0.38rem; top: 1px; right: 1px; }
+}
+
+/* Phase color accents */
+.m-badge.phase-base { color: #c4b5fd; }
+.m-badge.phase-hard { color: #fbbf24; }
+.m-badge.phase-expert { color: #e9d5ff; }
+.m-badge.phase-till { color: #ff8c00; }
+
+/* Progress rank states */
+.mbtn.rank-empty .m-badge { opacity: 0.55; }
+.mbtn.rank-warm .m-badge { opacity: 0.78; }
+.mbtn.rank-rise .m-badge { opacity: 0.88; text-shadow: 0 0 4px rgba(196, 181, 253, 0.35); }
+.mbtn.rank-half .m-badge { opacity: 0.95; text-shadow: 0 0 5px rgba(251, 191, 36, 0.4); }
+.mbtn.rank-hot .m-badge { opacity: 1; text-shadow: 0 0 6px rgba(255, 140, 0, 0.55); font-weight: 900; }
+.mbtn.rank-clear .m-badge {
+  color: #f0d060 !important;
+  opacity: 1;
+  text-shadow: 0 0 8px rgba(240, 208, 96, 0.75), 0 0 2px rgba(240, 208, 96, 0.9);
+  font-weight: 900;
+}
+.mbtn.selected .m-badge { opacity: 1; }

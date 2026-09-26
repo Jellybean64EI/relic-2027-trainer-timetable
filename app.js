@@ -168,6 +168,72 @@
     return "MODE PREVIEW";
   }
 
+
+  var MONTH_RANKS = {
+    1:  { lv: "LV01", code: "SEED",  phase: "BASE",         phaseClass: "phase-base" },
+    2:  { lv: "LV02", code: "ROOT",  phase: "BASE",         phaseClass: "phase-base" },
+    3:  { lv: "LV03", code: "STEM",  phase: "BASE",         phaseClass: "phase-base" },
+    4:  { lv: "LV04", code: "FORGE", phase: "HARD",         phaseClass: "phase-hard" },
+    5:  { lv: "LV05", code: "IRON",  phase: "HARD",         phaseClass: "phase-hard" },
+    6:  { lv: "LV06", code: "STEEL", phase: "HARD",         phaseClass: "phase-hard" },
+    7:  { lv: "LV07", code: "EDGE",  phase: "EXPERT",       phaseClass: "phase-expert" },
+    8:  { lv: "LV08", code: "CRAFT", phase: "EXPERT",       phaseClass: "phase-expert" },
+    9:  { lv: "LV09", code: "MARK",  phase: "EXPERT",       phaseClass: "phase-expert" },
+    10: { lv: "LV10", code: "PEAK",  phase: "TILL FAILURE", phaseClass: "phase-till" },
+    11: { lv: "LV11", code: "APEX",  phase: "TILL FAILURE", phaseClass: "phase-till" },
+    12: { lv: "LV12", code: "SEAL",  phase: "TILL FAILURE", phaseClass: "phase-till" }
+  };
+
+  function rankClassForPct(pct) {
+    if (pct >= 100) return "rank-clear";
+    if (pct >= 75) return "rank-hot";
+    if (pct >= 50) return "rank-half";
+    if (pct >= 25) return "rank-rise";
+    if (pct >= 1) return "rank-warm";
+    return "rank-empty";
+  }
+
+  function ensureMonthBadge(btn) {
+    var nameEl = btn.querySelector(".m-name");
+    if (!nameEl) {
+      var label = "";
+      Array.prototype.forEach.call(btn.childNodes, function (n) {
+        if (n.nodeType === 3) label += n.textContent;
+      });
+      label = label.trim() || (btn.textContent || "").trim();
+      while (btn.firstChild) btn.removeChild(btn.firstChild);
+      nameEl = document.createElement("span");
+      nameEl.className = "m-name";
+      nameEl.textContent = label;
+      btn.appendChild(nameEl);
+    }
+    var badge = btn.querySelector(".m-badge");
+    if (!badge) {
+      badge = document.createElement("span");
+      badge.className = "m-badge";
+      btn.appendChild(badge);
+    }
+    return badge;
+  }
+
+  function updateMonthBadge(btn, mm) {
+    var badge = ensureMonthBadge(btn);
+    var rank = MONTH_RANKS[mm] || MONTH_RANKS[1];
+    var comp = monthCompletion(mm);
+    var pct = comp.pct || 0;
+    var rankCls = rankClassForPct(pct);
+    var text;
+    if (pct >= 100) text = "MAX";
+    else if (pct >= 1) text = pct + "%";
+    else text = rank.lv;
+    badge.textContent = text;
+    badge.title = rank.lv + " · " + rank.code + " · " + rank.phase;
+    badge.className = "m-badge " + rankCls + " " + rank.phaseClass;
+    ["rank-empty", "rank-warm", "rank-rise", "rank-half", "rank-hot", "rank-clear"].forEach(function (c) {
+      btn.classList.toggle(c, c === rankCls);
+    });
+  }
+
   function monthCompletion(month) {
     var days = S.buildMonthDays(2027, month);
     var total = days.length;
@@ -329,6 +395,7 @@
         /* LIVE: can still browse future months to look ahead; only ticks lock */
         btn.classList.toggle("browseable", true);
       }
+      updateMonthBadge(btn, mm);
     });
 
     document.querySelectorAll(".wtab").forEach(function (btn) {
