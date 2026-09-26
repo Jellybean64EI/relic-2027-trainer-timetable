@@ -410,15 +410,17 @@ tr.today td {
 
 .tick-hit.is-golden input:checked + .tick-box::after {
   content: "";
+  box-sizing: content-box;
   display: block;
-  width: 12px;
-  height: 6px;
+  width: 11px;
+  height: 20px;
   margin-top: -4px;
   border: solid #000;
-  border-width: 0 0 3px 3px;
-  transform: rotate(-45deg);
+  border-width: 0 5px 5px 0;
+  transform: rotate(45deg);
   color: #000;
   -webkit-text-fill-color: #000;
+  background: transparent;
 }
 
 .lock-badge {
