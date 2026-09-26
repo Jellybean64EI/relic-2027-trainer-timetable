@@ -409,13 +409,22 @@
     });
 
     /* Training week: Mon→Sat forensic order. Sunday recovery hidden (Joseph knows). */
+    /* Calendar-true order: sort by dateKey, never by weekday index.
+       Day-of-month weeks (1–7/8–14/15–21/22–end) can mix Fri–Sat before Mon;
+       weekday sort was scrambling Jan 01–02 after Jan 04–07. */
     var weekDays = S.daysInWeekOfMonth(2027, state.viewMonth, state.viewWeek)
       .filter(function (d) { return !d.isRecovery && d.dayIndex < 6; })
-      .sort(function (a, b) { return a.dayIndex - b.dayIndex; });
+      .sort(function (a, b) {
+        if (a.dateKey < b.dateKey) return -1;
+        if (a.dateKey > b.dateKey) return 1;
+        return 0;
+      });
     var rangeLabel = "";
     if (weekDays.length) {
-      var keys = weekDays.map(function (d) { return d.dateKey; }).sort();
-      rangeLabel = keys[0] + " → " + keys[keys.length - 1] + " · MON–SAT";
+      var first = weekDays[0];
+      var last = weekDays[weekDays.length - 1];
+      var span = first.dayName + "–" + last.dayName;
+      rangeLabel = first.dateKey + " → " + last.dateKey + " · " + span + " · calendar order";
     }
     var stubNote = "";
     if (cardStatus === "partial" && state.viewWeek >= 3) stubNote = " · W" + state.viewWeek + " provisional";
