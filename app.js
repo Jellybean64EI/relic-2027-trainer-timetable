@@ -565,24 +565,22 @@
   }
 
 
-  /* ——— Relic FULLSCREEN trainer player (relics26) ———
-   * LAW: iframe src ONLY https://drive.google.com/file/d/{FILE_ID}/preview or about:blank.
-   * Drive preview does NOT autoplay/loop. We:
-   *  1) require one TAP TO START SET (user gesture for Samsung),
-   *  2) destroy+recreate the iframe every LOOP_REMOUNT_SEC while the 360s timer runs,
-   *  3) at 00:00 auto-advance to next clip and restart the 360s set.
+  /* ——— Relic FULLSCREEN trainer player (relics27) ———
+   * STRIPPED: no gold set-timer. Each clip runs CLIP_HOLD_SEC (10 min) via
+   * destroy+recreate remount every LOOP_REMOUNT_SEC, then auto-advances.
+   * iframe src ONLY file/d/{FILE_ID}/preview. TAP TO START unlocks Samsung.
    */
-  var RELIC_BUILD = "relics26";
-  var SET_DURATION_SEC = 360;
+  var RELIC_BUILD = "relics27";
+  var CLIP_HOLD_SEC = 600; /* 10 minutes per video */
   var CONTROLS_FADE_MS = 2500;
-  var LOOP_REMOUNT_SEC = 20; /* force Drive preview to restart ~3x/min during the set */
+  var LOOP_REMOUNT_SEC = 25; /* remount so Drive preview keeps repeating */
   var FILE_PREVIEW_RE = /^https:\/\/drive\.google\.com\/file\/d\/[^/]+\/preview$/i;
 
   var player = {
-    activeTimer: null,
+    holdTimer: null,
     controlsTimeout: null,
     reembedInterval: null,
-    secondsRemaining: SET_DURATION_SEC,
+    holdRemaining: CLIP_HOLD_SEC,
     timerPaused: false,
     visuallyPaused: false,
     setArmed: false,
@@ -591,7 +589,6 @@
     playlistIndex: 0,
     currentCabin: null,
     currentPhase: null,
-    setDuration: SET_DURATION_SEC,
     historyPushed: false,
     wakeLock: null
   };
@@ -625,20 +622,15 @@
 
   function fsEl(id) { return document.getElementById(id); }
 
-  function updateTimerDisplay() {
+  function updateHoldDisplay() {
     var el = fsEl("video-inside-timer");
     if (!el) return;
-    if (player.secondsRemaining <= 0) {
-      el.textContent = "00:00";
-      el.classList.add("timer-done");
-    } else {
-      el.textContent = formatTimer(player.secondsRemaining);
-      el.classList.remove("timer-done");
-    }
+    el.textContent = formatTimer(player.holdRemaining);
+    el.classList.toggle("timer-done", player.holdRemaining <= 0);
   }
 
-  function clearSixMinuteTimer() {
-    if (player.activeTimer) { clearInterval(player.activeTimer); player.activeTimer = null; }
+  function clearHoldTimer() {
+    if (player.holdTimer) { clearInterval(player.holdTimer); player.holdTimer = null; }
   }
   function clearReembed() {
     if (player.reembedInterval) { clearInterval(player.reembedInterval); player.reembedInterval = null; }
@@ -652,14 +644,14 @@
       if (navigator.wakeLock && navigator.wakeLock.request) {
         navigator.wakeLock.request("screen").then(function (lock) {
           player.wakeLock = lock;
-        }).catch(function () { /* ignore */ });
+        }).catch(function () {});
       }
-    } catch (e) { /* ignore */ }
+    } catch (e) {}
   }
   function releaseWakeLock() {
     try {
       if (player.wakeLock) { player.wakeLock.release(); player.wakeLock = null; }
-    } catch (e) { /* ignore */ }
+    } catch (e) {}
   }
 
   function setPlayPauseVisual(paused) {
@@ -714,7 +706,6 @@
     return "";
   }
 
-  /* Destroy + recreate iframe — Samsung often ignores src-only remounts */
   function remountFrame(src) {
     var viewport = fsEl("relic-fs-viewport");
     var old = fsEl("relic-video-frame");
@@ -724,7 +715,6 @@
     }
     var safe = src || "about:blank";
     if (!FILE_PREVIEW_RE.test(safe) && safe !== "about:blank") safe = "about:blank";
-
     if (old && old.parentNode) old.parentNode.removeChild(old);
     var frame = document.createElement("iframe");
     frame.id = "relic-video-frame";
@@ -733,7 +723,6 @@
     frame.setAttribute("allow", "autoplay; encrypted-media; fullscreen; picture-in-picture");
     frame.setAttribute("allowfullscreen", "true");
     frame.setAttribute("referrerpolicy", "no-referrer-when-downgrade");
-    /* Insert behind overlays (first child of viewport) */
     if (viewport.firstChild) viewport.insertBefore(frame, viewport.firstChild);
     else viewport.appendChild(frame);
     frame.src = safe;
@@ -746,7 +735,7 @@
       var clip = player.playlist[player.playlistIndex];
       var title = (clip && clip.title) ? clip.title : ("Clip " + (player.playlistIndex + 1));
       clipLabel.textContent =
-        RELIC_BUILD + " · SET " + formatTimer(player.secondsRemaining) + " · " +
+        RELIC_BUILD + " · 10MIN · " +
         (player.playlistIndex + 1) + "/" + player.playlist.length + " · " + title;
     } else {
       clipLabel.textContent = RELIC_BUILD;
@@ -759,7 +748,7 @@
     player.reembedInterval = setInterval(function () {
       if (!player.setArmed) return;
       if (player.timerPaused || player.visuallyPaused) return;
-      if (player.secondsRemaining <= 0) return;
+      if (player.holdRemaining <= 0) return;
       var src = currentPreviewSrc();
       if (src) remountFrame(src);
     }, LOOP_REMOUNT_SEC * 1000);
@@ -773,62 +762,52 @@
     setPlayPauseVisual(false);
   }
 
-  function startSixMinuteTimer() {
-    clearSixMinuteTimer();
-    player.setDuration = SET_DURATION_SEC;
-    player.secondsRemaining = SET_DURATION_SEC;
+  function startClipHold() {
+    clearHoldTimer();
+    player.holdRemaining = CLIP_HOLD_SEC;
     player.timerPaused = false;
-    updateTimerDisplay();
+    updateHoldDisplay();
     updateClipLabel();
-    player.activeTimer = setInterval(function () {
+    player.holdTimer = setInterval(function () {
       if (!player.setArmed) return;
       if (player.timerPaused || player.visuallyPaused) return;
-      player.secondsRemaining -= 1;
-      if (player.secondsRemaining <= 0) {
-        player.secondsRemaining = 0;
-        updateTimerDisplay();
-        clearSixMinuteTimer();
+      player.holdRemaining -= 1;
+      if (player.holdRemaining <= 0) {
+        player.holdRemaining = 0;
+        updateHoldDisplay();
+        clearHoldTimer();
         try { if (navigator.vibrate) navigator.vibrate([40, 30, 40]); } catch (e) {}
-        /* Auto-advance to next document clip and restart 6-min set */
         playNextVideo();
         return;
       }
-      updateTimerDisplay();
-      if (player.secondsRemaining % 5 === 0) updateClipLabel();
+      updateHoldDisplay();
     }, 1000);
   }
 
   function playNextVideo() {
     if (!player.videoQueue.length) {
-      startSixMinuteTimer();
       showNoClipsMessage(player.currentCabin);
-      setPlayPauseVisual(false);
-      showControlsTemporarily();
       return;
     }
     player.playlistIndex = (player.playlistIndex + 1) % player.videoQueue.length;
     loadCurrentVideo();
-    startSixMinuteTimer();
+    startClipHold();
     showControlsTemporarily();
   }
 
   function playPreviousVideo() {
     if (!player.videoQueue.length) {
-      startSixMinuteTimer();
       showNoClipsMessage(player.currentCabin);
-      setPlayPauseVisual(false);
-      showControlsTemporarily();
       return;
     }
     player.playlistIndex =
       (player.playlistIndex - 1 + player.videoQueue.length) % player.videoQueue.length;
     loadCurrentVideo();
-    startSixMinuteTimer();
+    startClipHold();
     showControlsTemporarily();
   }
 
   function armAndStartSet() {
-    /* Called from TAP TO START — user gesture unlocks Drive autoplay on remounts */
     if (!player.videoQueue.length) {
       setStartGate(false);
       showNoClipsMessage(player.currentCabin);
@@ -841,7 +820,7 @@
     setPlayPauseVisual(false);
     requestWakeLock();
     loadCurrentVideo();
-    startSixMinuteTimer();
+    startClipHold();
     showControlsTemporarily();
   }
 
@@ -876,7 +855,7 @@
   }
 
   function closeFullscreenPlayer() {
-    clearSixMinuteTimer();
+    clearHoldTimer();
     clearReembed();
     clearControlsTimeout();
     releaseWakeLock();
@@ -948,15 +927,13 @@
       return;
     }
 
-    /* Preload first preview under the start gate; timer/loop wait for TAP */
     remountFrame(currentPreviewSrc());
+    player.holdRemaining = CLIP_HOLD_SEC;
+    updateHoldDisplay();
     updateClipLabel();
-    updateTimerDisplay();
     setStartGate(true);
-    clearSixMinuteTimer();
+    clearHoldTimer();
     clearReembed();
-    player.secondsRemaining = SET_DURATION_SEC;
-    updateTimerDisplay();
     showControlsTemporarily();
   }
 
