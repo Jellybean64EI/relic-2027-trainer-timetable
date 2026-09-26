@@ -6,9 +6,9 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v2_1" />
+  <meta name="relic-build" content="v2_2" />
   <title>2027 TRAINER TIMETABLE CARD — Relic Architect V2.0</title>
-  <link rel="stylesheet" href="styles.css?v=v2_1" />
+  <link rel="stylesheet" href="styles.css?v=v2_2" />
 </head>
 <body>
   <div class="wrap">
@@ -106,15 +106,29 @@
 
   <div id="relic-player" class="player" hidden aria-hidden="true">
     <div class="player-stage" role="dialog" aria-modal="true" aria-label="Relic trainer player">
-      <video id="relic-active-video" autoplay loop playsinline></video>
+      <video id="relic-active-video" autoplay loop playsinline tabindex="-1"></video>
       <p id="relic-media-note" class="media-note" hidden>This clip is not in relic-videos yet. The set timer still runs.</p>
       <div class="timer-dock" id="relic-timer-dock">
-        <button type="button" id="relic-set-timer" class="set-timer" data-seconds="1200" data-remaining="1200" aria-expanded="false" aria-controls="relic-timer-mods" aria-haspopup="true" aria-label="Set timer 20:00. Change interval.">20:00</button>
-        <div id="relic-timer-mods" class="timer-mods" role="group" aria-label="Add time to this set" hidden>
-          <button type="button" class="timer-mod" data-add-min="2" aria-pressed="false">2 min</button>
-          <button type="button" class="timer-mod" data-add-min="5" aria-pressed="false">5 min</button>
-          <button type="button" class="timer-mod" data-add-min="10" aria-pressed="false">10 min</button>
-          <button type="button" class="timer-mod is-selected" data-add-min="20" aria-pressed="true">20 min</button>
+        <button type="button" id="relic-set-timer" class="set-timer" data-seconds="1200" data-remaining="1200" aria-expanded="false" aria-controls="relic-timer-mods" aria-haspopup="true" aria-label="Set timer 20:00. Open timer controls.">20:00</button>
+        <div id="relic-timer-mods" class="timer-mods" role="group" aria-label="Timer control" hidden>
+          <section class="timer-module" aria-labelledby="timer-duration-label">
+            <p id="timer-duration-label" class="timer-module-label">Duration</p>
+            <div class="timer-module-row" role="group" aria-label="Duration master override">
+              <button type="button" class="timer-mod" data-duration-min="2" aria-pressed="false">2m</button>
+              <button type="button" class="timer-mod" data-duration-min="5" aria-pressed="false">5m</button>
+              <button type="button" class="timer-mod" data-duration-min="10" aria-pressed="false">10m</button>
+              <button type="button" class="timer-mod is-selected" data-duration-min="20" aria-pressed="true">20m</button>
+            </div>
+          </section>
+          <section class="timer-module" aria-labelledby="timer-add-label">
+            <p id="timer-add-label" class="timer-module-label">Add More Time</p>
+            <div class="timer-module-row" role="group" aria-label="Add more time">
+              <button type="button" class="timer-mod timer-mod-add" data-add-min="2">+2m</button>
+              <button type="button" class="timer-mod timer-mod-add" data-add-min="5">+5m</button>
+              <button type="button" class="timer-mod timer-mod-add" data-add-min="10">+10m</button>
+              <button type="button" class="timer-mod timer-mod-add" data-add-min="20">+20m</button>
+            </div>
+          </section>
         </div>
       </div>
       <p id="relic-empty-overlay" class="empty-overlay" hidden>No video file IDs mapped for this cabin.</p>
@@ -133,10 +147,10 @@
     </section>
   </div>
 
-  <script src="data/schedule.js?v=v2_1"></script>
-  <script src="data/citations.js?v=v2_1"></script>
-  <script src="data/videoArchive.js?v=v2_1"></script>
-  <script src="data/supabaseConfig.js?v=v2_1"></script>
-  <script src="app.js?v=v2_1"></script>
+  <script src="data/schedule.js?v=v2_2"></script>
+  <script src="data/citations.js?v=v2_2"></script>
+  <script src="data/videoArchive.js?v=v2_2"></script>
+  <script src="data/supabaseConfig.js?v=v2_2"></script>
+  <script src="app.js?v=v2_2"></script>
 </body>
 </html>

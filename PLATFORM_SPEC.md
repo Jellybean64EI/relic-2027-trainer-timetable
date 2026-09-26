@@ -5,7 +5,7 @@
 **Coach archive:** NiX  
 **Timezone:** Europe/London (always)  
 **Runtime:** static HTML / CSS / JS. No build step. No npm.  
-**Cache bust:** `?v=v2_1` on every stylesheet and script in `index.html`
+**Cache bust:** `?v=v2_2` on every stylesheet and script in `index.html`
 
 Footer motto (exact):
 
@@ -109,10 +109,11 @@ Element:
 - Public object URL: `{SUPABASE_URL}/storage/v1/object/public/relic-videos/{cabinKey}/{filename.mp4}`
 - Resolve the filename from `clip.src` or `clip.path` when that value is already a non-Drive URL or a storage path. Otherwise use `clip.title`, appending `.mp4` when needed.
 - Ignore legacy Drive `id` values for playback.
-- Default set length `SET_DURATION_SEC`: **1200 seconds** (20:00) per clip. The file loops while the timer decrements. Modifiers never reload `<video id="relic-active-video">` and never touch its `src`.
-- Timer badge: gold `#ff8c00`, monospace, a button inside the video overlay at `top: 18px; right: 18px; z-index: 999`. Minimum touch target 44px. Click or tap toggles a compact bar: **2 min, 5 min, 10 min, 20 min**. Click the badge again, click outside, or press Escape to close the bar.
-- Choosing an interval **adds** that many seconds to the current remaining countdown and sets `SET_DURATION_SEC` to the chosen interval. Example: 9:00 left + 5 min → 14:00 left, and the next set baseline becomes 300 seconds.
-- At `00:00`, call `playNextVideo()` and load the next cabin clip without closing the player. The next clip starts at the current `SET_DURATION_SEC`.
+- Default set length `SET_DURATION_SEC`: **1200 seconds** (20:00) per clip. The file loops while the timer decrements. Timer controls never reload `<video id="relic-active-video">` and never touch its `src`.
+- Timer badge: gold `#ff8c00`, monospace, a button inside the video overlay at `top: 18px; right: 18px; z-index: 999`. Minimum touch target 44px. Tap opens a dual-module popover. Tap the badge again, tap outside, or press Escape to close it without changing the clock. Choosing any duration or add-time button closes the popover immediately and returns focus to the video.
+- **Duration** (master override): buttons **2m, 5m, 10m, 20m**. A tap overwrites the remaining countdown to that interval (`02:00`, `05:00`, `10:00`, or `20:00`) and sets `SET_DURATION_SEC` to that many seconds. The current clip keeps looping.
+- **Add More Time** (stacking): buttons **+2m, +5m, +10m, +20m**. A tap adds that many seconds to the remaining countdown only. `SET_DURATION_SEC` stays unchanged. Example: `09:00` left + 5 min → `14:00` left, and the next set still uses the locked duration. The current clip keeps looping.
+- At `00:00`, call `playNextVideo()` and load the next cabin clip without closing the player. The next clip starts at the current `SET_DURATION_SEC` (the last Duration override, or 1200 seconds when only stacking was used).
 - Empty playlist: set the frame to `about:blank` and show `No video file IDs mapped for this cabin.`
 - Under the video, show the **Left-Lead Rule** and **3-Second Negative** tempo prompts.
 
@@ -138,7 +139,7 @@ Table: `relic_completions`
 
 ## 7. Cache
 
-`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v2_1`.
+`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v2_2`.
 
 ---
 
@@ -171,10 +172,10 @@ index.html?date=2026-09-25   → PREVIEW, January Week 1, practice ticks allowed
 ## 10. Success criteria
 
 1. No Drive iframes, preview URLs, or `embeddedfolderview` in the player.
-2. Clips stream from Supabase public URLs. The set timer calls `playNextVideo()` at `00:00`. Badge modifiers add 2/5/10/20 minutes to the remaining time and update `SET_DURATION_SEC` for the next clip.
+2. Clips stream from Supabase public URLs. The set timer calls `playNextVideo()` at `00:00`. Duration overwrites remaining time and `SET_DURATION_SEC`. Add More Time only stacks onto remaining time. The next clip starts at the locked `SET_DURATION_SEC`.
 3. The table is exactly DAY / TRAINING RELICS / DONE at 20% / 70% / 10%.
 4. Ticks upsert `relic_completions`.
-5. `vercel.json` no-cache plus `?v=v2_1` on assets.
+5. `vercel.json` no-cache plus `?v=v2_2` on assets.
 6. `schedule.js`, `citations.js`, `videoArchive.js`, and `supabaseConfig.js` keep their data.
 
 ---
