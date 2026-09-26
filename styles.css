@@ -193,6 +193,34 @@ h1 {
   padding: 6px 4px;
 }
 
+.wtab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  line-height: 1.15;
+}
+
+.wtab-label { display: block; }
+
+.golden-lock {
+  display: inline-block;
+  max-width: 100%;
+  margin: 0;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #0b0216;
+  color: #ff8c00;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.golden-lock[hidden] { display: none !important; }
+
 .mbtn.is-selected, .wtab.is-selected, .tool-btn {
   background: var(--gold);
   color: var(--bg);
@@ -371,6 +399,26 @@ tr.today td {
 
 .tick-hit input:checked + .tick-box::after {
   content: "✓";
+}
+
+/* Golden Week lock: rich gold field, deep black mark. Normal ticks stay as-is. */
+.tick-hit.is-golden input:checked + .tick-box {
+  background: #ff8c00;
+  border-color: #ff8c00;
+  color: #000;
+}
+
+.tick-hit.is-golden input:checked + .tick-box::after {
+  content: "";
+  display: block;
+  width: 12px;
+  height: 6px;
+  margin-top: -4px;
+  border: solid #000;
+  border-width: 0 0 3px 3px;
+  transform: rotate(-45deg);
+  color: #000;
+  -webkit-text-fill-color: #000;
 }
 
 .lock-badge {
