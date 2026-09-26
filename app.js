@@ -412,7 +412,7 @@
     el.textContent = formatTimer(remaining);
     el.setAttribute("data-seconds", String(SET_DURATION_SEC));
     el.setAttribute("data-remaining", String(remaining));
-    el.setAttribute("aria-label", "Set timer " + formatTimer(remaining) + ". Change interval.");
+    el.setAttribute("aria-label", "Set timer " + formatTimer(remaining) + ". Open timer controls.");
     paintGateLabel();
     paintModifierSelection();
   }
@@ -424,9 +424,9 @@
   }
 
   function paintModifierSelection() {
-    var mods = document.querySelectorAll(".timer-mod");
+    var mods = document.querySelectorAll(".timer-mod[data-duration-min]");
     for (var i = 0; i < mods.length; i++) {
-      var selected = ((+mods[i].getAttribute("data-add-min") * 60) === SET_DURATION_SEC);
+      var selected = ((+mods[i].getAttribute("data-duration-min") * 60) === SET_DURATION_SEC);
       mods[i].classList.toggle("is-selected", selected);
       mods[i].setAttribute("aria-pressed", selected ? "true" : "false");
     }
@@ -445,14 +445,38 @@
     setTimerModsOpen(!(panel && !panel.hidden));
   }
 
-  function applySetModifier(minutes) {
+  function dismissTimerMods() {
+    setTimerModsOpen(false);
+    var video = activeVideo();
+    if (!video) return;
+    try { video.focus({ preventScroll: true }); } catch (err) { /* viewport focus is optional */ }
+  }
+
+  function resumeCountdownIfLive() {
+    if (!player.armed || player.empty || player.paused) return;
+    if ((player.remaining | 0) <= 0) return;
+    if (player.timerId) return;
+    player.timerId = setInterval(tickCountdown, 1000);
+  }
+
+  function applyDurationOverride(minutes) {
     var mins = minutes | 0;
     if (SET_MODIFIER_MINUTES.indexOf(mins) === -1) return;
-    var addSec = mins * 60;
-    SET_DURATION_SEC = addSec;
-    player.remaining = Math.max(0, player.remaining | 0) + addSec;
+    var next = mins * 60;
+    SET_DURATION_SEC = next;
+    player.remaining = next;
     paintTimer();
-    setTimerModsOpen(false);
+    resumeCountdownIfLive();
+    dismissTimerMods();
+  }
+
+  function applyAddMoreTime(minutes) {
+    var mins = minutes | 0;
+    if (SET_MODIFIER_MINUTES.indexOf(mins) === -1) return;
+    player.remaining = Math.max(0, player.remaining | 0) + (mins * 60);
+    paintTimer();
+    resumeCountdownIfLive();
+    dismissTimerMods();
   }
 
   function stopCountdown() {
@@ -569,23 +593,25 @@
     }
   }
 
+  function tickCountdown() {
+    if (!player.armed || player.paused || player.empty) return;
+    player.remaining -= 1;
+    if (player.remaining <= 0) {
+      player.remaining = 0;
+      paintTimer();
+      stopCountdown();
+      setTimeout(playNextVideo, 0);
+      return;
+    }
+    paintTimer();
+  }
+
   function startCountdown() {
     stopCountdown();
     player.remaining = SET_DURATION_SEC;
     player.armed = true;
     paintTimer();
-    player.timerId = setInterval(function () {
-      if (!player.armed || player.paused || player.empty) return;
-      player.remaining -= 1;
-      if (player.remaining <= 0) {
-        player.remaining = 0;
-        paintTimer();
-        stopCountdown();
-        setTimeout(playNextVideo, 0);
-        return;
-      }
-      paintTimer();
-    }, 1000);
+    player.timerId = setInterval(tickCountdown, 1000);
   }
 
   function playNextVideo() {
@@ -646,6 +672,7 @@
   }
 
   function closePlayer() {
+    setTimerModsOpen(false);
     stopCountdown();
     setTimerModsOpen(false);
     player.armed = false;
@@ -765,9 +792,14 @@
     if (timerMods) {
       timerMods.addEventListener("click", function (event) {
         event.stopPropagation();
-        var btn = event.target.closest(".timer-mod");
-        if (!btn) return;
-        applySetModifier(+btn.getAttribute("data-add-min"));
+        var durationBtn = event.target.closest("[data-duration-min]");
+        if (durationBtn) {
+          applyDurationOverride(+durationBtn.getAttribute("data-duration-min"));
+          return;
+        }
+        var addBtn = event.target.closest("[data-add-min]");
+        if (!addBtn) return;
+        applyAddMoreTime(+addBtn.getAttribute("data-add-min"));
       });
     }
     document.addEventListener("click", function (event) {
@@ -853,7 +885,8 @@
     resolveClipSrc: resolveClipSrc,
     openCabin: openCabin,
     playNextVideo: playNextVideo,
-    applySetModifier: applySetModifier
+    applyDurationOverride: applyDurationOverride,
+    applyAddMoreTime: applyAddMoreTime
   };
 
   if (document.readyState === "loading") {

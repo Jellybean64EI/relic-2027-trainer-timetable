@@ -434,6 +434,7 @@ tr.is-done td { background: #1c0c2e; }
   height: 100%;
   object-fit: contain;
   background: #000;
+  outline: none;
 }
 
 .timer-dock {
@@ -486,13 +487,13 @@ tr.is-done td { background: #1c0c2e; }
 
 .timer-mods {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 6px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
   width: max-content;
   max-width: 100%;
   margin: 0;
-  padding: 6px;
+  padding: 8px;
   border: 1px solid rgba(255, 140, 0, 0.45);
   border-radius: 8px;
   background: #0b0216;
@@ -501,8 +502,39 @@ tr.is-done td { background: #1c0c2e; }
 
 .timer-mods[hidden] { display: none; }
 
+.timer-module {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.timer-module + .timer-module {
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 140, 0, 0.28);
+}
+
+.timer-module-label {
+  margin: 0;
+  color: #ff8c00;
+  font-family: var(--font);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.timer-module-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .timer-mod {
-  min-width: 64px;
+  min-width: var(--touch);
   min-height: var(--touch);
   margin: 0;
   padding: 0 10px;
