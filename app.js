@@ -565,7 +565,7 @@
   }
 
 
-  /* ——— Relic FULLSCREEN trainer player (relics23) ———
+  /* ——— Relic FULLSCREEN trainer player (relics24) ———
    * NEVER embed Drive folder URLs / embeddedfolderview — only file/d/{id}/preview.
    * Drive iframe preview does NOT reliably loop or expose ended events.
    * Soft-remount the same preview URL every min(clipEstimate, 45s) while the
@@ -685,10 +685,16 @@
     if (src && (/\/drive\/folders\//i.test(src) || /embeddedfolderview/i.test(src))) {
       src = "";
     }
+    /* iframe src MUST ONLY be file/d/{id}/preview or about:blank — never folder URLs */
+    var safe = src || "about:blank";
+    if (!/^https:\/\/drive\.google\.com\/file\/d\/[^/]+\/preview$/i.test(safe) &&
+        safe !== "about:blank") {
+      safe = "about:blank";
+    }
     frame.src = "about:blank";
     setTimeout(function () {
       var f = fsEl("relic-video-frame");
-      if (f) f.src = src || "";
+      if (f) f.src = safe;
     }, 30);
   }
 
@@ -699,14 +705,23 @@
     return "";
   }
 
+  function setEmptyOverlay(visible) {
+    var overlay = fsEl("relic-fs-empty-overlay");
+    if (!overlay) return;
+    overlay.hidden = !visible;
+    overlay.setAttribute("aria-hidden", visible ? "false" : "true");
+    if (visible) {
+      overlay.textContent = "No video file IDs mapped for this cabin — folder grids are blocked.";
+    }
+  }
+
   function showNoClipsMessage(cabinKey) {
     var frame = fsEl("relic-video-frame");
     var clipLabel = fsEl("player-clip-label");
-    var cabin = archiveCabin(cabinKey);
-    var label = (cabin && cabin.label) ? cabin.label : (cabinKey || "this cabin");
     if (frame) frame.src = "about:blank";
+    setEmptyOverlay(true);
     if (clipLabel) {
-      clipLabel.textContent = "No video file IDs mapped for " + label + " — folder grids are blocked.";
+      clipLabel.textContent = "No video file IDs mapped for this cabin — folder grids are blocked.";
     }
   }
 
@@ -726,9 +741,8 @@
   function startSoftReembed() {
     clearReembed();
     if (!player.videoQueue.length) return;
-    /* Soft re-embed interval: min(clipEstimate, 45s) while sixMinuteTimer
-     * active for same index — crude but forces short Drive previews to re-play. */
-    var intervalSec = Math.min(SOFT_REEMBED_MAX_SEC, 45);
+    /* Soft iframe re-embed every 45s while timer runs (forces Drive preview loop). */
+    var intervalSec = SOFT_REEMBED_MAX_SEC; /* strict 45s */
     player.reembedInterval = setInterval(function () {
       if (player.timerPaused || player.visuallyPaused) return;
       if (player.secondsRemaining <= 0) return;
@@ -738,6 +752,7 @@
   }
 
   function loadCurrentVideo() {
+    setEmptyOverlay(false);
     updateClipLabel();
     remountFrame(currentPreviewSrc());
     startSoftReembed();
@@ -819,7 +834,8 @@
     clearReembed();
     clearControlsTimeout();
     var frame = fsEl("relic-video-frame");
-    if (frame) frame.src = "";
+    if (frame) frame.src = "about:blank";
+    setEmptyOverlay(false);
     var root = fsEl("relic-fullscreen-player");
     if (root) {
       root.hidden = true;
@@ -854,14 +870,20 @@
     player.currentCabin = cabinKey;
     player.currentPhase = phase || "Base";
     var cabin = archiveCabin(cabinKey);
-    /* Resolve FILE ids only — never open drive/folders/... in the iframe */
+    /* Resolve FILE ids only — never open drive/folders/... in the iframe.
+     * ZERO FOLDER GRID: never folder grids / embeddedfolderview / drive/folders fallback. */
     player.playlist = (cabin && cabin.playlist && cabin.playlist.length)
       ? cabin.playlist.filter(function (clip) { return clip && clip.id; }).slice()
       : [];
-    player.videoQueue = player.playlist.map(function (clip) {
-      return filePreviewUrl(clip.id);
+    player.videoQueue = [];
+    player.playlist = player.playlist.filter(function (clip) {
+      var url = filePreviewUrl(clip.id);
+      if (!url) return false;
+      player.videoQueue.push(url);
+      return true;
     });
     player.playlistIndex = 0;
+    setEmptyOverlay(false);
 
     var root = fsEl("relic-fullscreen-player");
     if (root) {

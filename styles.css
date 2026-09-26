@@ -2553,12 +2553,12 @@ body.modal-open {
   outline: none;
 }
 
-/* Timer INSIDE video viewport — Joseph: top:16px right:16px z-index:999 */
+/* Timer INSIDE video viewport — Joseph: top:18px right:18px z-index:999 */
 .relic-fs-timer,
 #video-inside-timer {
   position: absolute;
-  top: max(16px, env(safe-area-inset-top, 0px));
-  right: max(16px, env(safe-area-inset-right, 0px));
+  top: max(18px, env(safe-area-inset-top, 0px));
+  right: max(18px, env(safe-area-inset-right, 0px));
   z-index: 999;
   min-width: 4.6rem;
   text-align: center;
@@ -2765,13 +2765,35 @@ table.timetable-table tbody td {
 }
 
 /* Player timer: top-right 18px/18px, rgba(0,0,0,0.8), #ff8c00 monospace */
-/* relics23: Joseph timer badge numbers */
+/* relics24: Joseph timer badge numbers — top/right 18px */
 .relic-fs-timer,
 #video-inside-timer {
-  top: 16px !important;
-  right: 16px !important;
+  top: 18px !important;
+  right: 18px !important;
   z-index: 999 !important;
   background: rgba(0, 0, 0, 0.8) !important;
   color: #ff8c00 !important;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
 }
+
+
+/* ===== relics24: high-contrast empty-cabin overlay (zero folder grids) ===== */
+.relic-fs-empty-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.92);
+  color: #ffcc33;
+  font-size: clamp(0.95rem, 3.6vw, 1.25rem);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-align: center;
+  line-height: 1.45;
+  text-shadow: 0 1px 0 #000, 0 0 12px rgba(255, 140, 0, 0.45);
+  pointer-events: none;
+}
+.relic-fs-empty-overlay[hidden] { display: none !important; }
