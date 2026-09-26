@@ -2723,3 +2723,53 @@ body.modal-open {
   font-weight: 900;
 }
 .mbtn.selected .m-badge { opacity: 1; }
+
+/* ===== relics22: forensic architecture harden (gaps only) ===== */
+/* Grid law: DAY 20% / TRAINING RELICS 70% / DONE 10% */
+table.tt col.col-day,
+table.timetable-table col.col-day { width: 20% !important; }
+table.tt col.col-relics,
+table.timetable-table col.col-relics { width: 70% !important; }
+table.tt col.col-complete,
+table.timetable-table col.col-complete { width: 10% !important; }
+
+/* Never reintroduce max-width:0 on .doc-cell */
+.doc-cell,
+.relics-cell {
+  max-width: none !important;
+}
+
+/* Cells #150724 */
+table.tt,
+table.tt tbody td,
+table.timetable-table,
+table.timetable-table tbody td {
+  background: #150724 !important;
+}
+
+/* Month/week chips + DONE controls ≥ 44px */
+.mbtn {
+  min-height: 44px !important;
+}
+.wtab {
+  min-height: 44px !important;
+}
+.complete-cell .actions {
+  min-height: 44px !important;
+}
+.tick-btn {
+  min-width: 44px !important;
+  min-height: 44px !important;
+  width: 44px !important;
+  height: 44px !important;
+}
+
+/* Player timer: top-right 18px/18px, rgba(0,0,0,0.8), #ff8c00 monospace */
+.relic-fs-timer,
+#video-inside-timer {
+  top: 18px !important;
+  right: 18px !important;
+  background: rgba(0, 0, 0, 0.8) !important;
+  color: #ff8c00 !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+}
