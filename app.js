@@ -204,6 +204,51 @@
     return '<td class="relics-cell"><div class="relic-stack">' + blocks.join("") + "</div></td>";
   }
 
+  function activeDaysForView() {
+    return S.daysInWeekOfMonth(2027, state.viewMonth, state.viewWeek)
+      .filter(function (day) { return !day.isRecovery && day.dayIndex < 6; })
+      .sort(function (a, b) {
+        if (a.dateKey < b.dateKey) return -1;
+        if (a.dateKey > b.dateKey) return 1;
+        return 0;
+      });
+  }
+
+  /* Every Mon–Sat row in the selected bucket. Weeks 1–3 are six days.
+     Week 4 runs through month end, so it locks only when those extra days are done too.
+     Sunday stays out. Completions come from the relic_completions mirror, never localStorage. */
+  function weekIsGolden(days) {
+    if (!days || days.length < 6) return false;
+    for (var i = 0; i < days.length; i++) {
+      if (!state.completes[days[i].dateKey]) return false;
+    }
+    return true;
+  }
+
+  function applyGoldenLock(days) {
+    var golden = weekIsGolden(days);
+    var card = $("relic-card");
+    if (card) {
+      card.classList.toggle("is-golden-week", golden);
+      card.setAttribute("data-golden-week", golden ? "true" : "false");
+    }
+    document.querySelectorAll(".wtab").forEach(function (btn) {
+      var show = golden && +btn.getAttribute("data-week") === state.viewWeek;
+      btn.classList.toggle("is-golden", show);
+      var badge = btn.querySelector(".golden-lock");
+      if (badge) badge.hidden = !show;
+    });
+    document.querySelectorAll("#tt-body .tick-hit").forEach(function (hit) {
+      hit.classList.toggle("is-golden", golden);
+      var input = hit.querySelector("input.tick");
+      if (!input) return;
+      var dateKey = input.getAttribute("data-date") || "";
+      input.setAttribute("aria-label", golden
+        ? "Completed " + dateKey + ", Golden Week Locked"
+        : "Completed " + dateKey);
+    });
+  }
+
   function doneHtml(day, parts) {
     if (!canTick(day.dateKey, parts)) {
       return '<td class="done-cell"><span class="lock-badge">LOCKED</span></td>';
@@ -277,13 +322,7 @@
       btn.classList.toggle("is-selected", +btn.getAttribute("data-week") === state.viewWeek);
     });
 
-    var weekDays = S.daysInWeekOfMonth(2027, state.viewMonth, state.viewWeek)
-      .filter(function (day) { return !day.isRecovery && day.dayIndex < 6; })
-      .sort(function (a, b) {
-        if (a.dateKey < b.dateKey) return -1;
-        if (a.dateKey > b.dateKey) return 1;
-        return 0;
-      });
+    var weekDays = activeDaysForView();
 
     var metaLine = "";
     if (weekDays.length) {
@@ -310,6 +349,7 @@
       "</tr>";
     });
     tbody.innerHTML = html;
+    applyGoldenLock(weekDays);
   }
 
   function onTick(input) {
@@ -324,6 +364,7 @@
     else delete state.completes[dateKey];
     var row = input.closest("tr");
     if (row) row.classList.toggle("is-done", completed);
+    applyGoldenLock(activeDaysForView());
 
     var gen = (state.saveGen[dateKey] || 0) + 1;
     state.saveGen[dateKey] = gen;
@@ -338,6 +379,7 @@
         return;
       }
       setSync("Synced · relic_completions", false);
+      applyGoldenLock(activeDaysForView());
     });
   }
 

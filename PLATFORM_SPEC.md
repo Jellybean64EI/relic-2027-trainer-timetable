@@ -5,7 +5,7 @@
 **Coach archive:** NiX  
 **Timezone:** Europe/London (always)  
 **Runtime:** static HTML / CSS / JS. No build step. No npm.  
-**Cache bust:** `?v=v2_2` on every stylesheet and script in `index.html`
+**Cache bust:** `?v=v2_3` on every stylesheet and script in `index.html`
 
 Footer motto (exact):
 
@@ -135,11 +135,24 @@ Table: `relic_completions`
 - Toggle upserts on `date_key` (`Prefer: resolution=merge-duplicates`).
 - In-memory state is only a mirror of Supabase. Do not persist ticks in `localStorage`.
 
+### Golden Week lock
+
+Active days in the selected week bucket are Monday–Saturday (`dayIndex` 0–5). Sunday (Rest / Weekly Reset) stays off the main list and out of the evaluation.
+
+The week locks when every active day in that bucket has `completed=true` in the `relic_completions` mirror. Weeks 1–3 are six days. Week 4 includes every Mon–Sat date from the 22nd through month end, so those extra days must be complete too.
+
+While locked:
+
+- Each DONE checkbox in that view uses border and background `#ff8c00` and a deep black checkmark.
+- The active week chip shows a **Golden Week Locked** badge.
+
+Evaluate on each timetable render and whenever a completion tick is upserted. Do not store the lock in `localStorage`. An incomplete week keeps the normal checkbox style and hides the badge.
+
 ---
 
 ## 7. Cache
 
-`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v2_2`.
+`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v2_3`. The `relic-build` meta is `v2_3`.
 
 ---
 
@@ -175,8 +188,9 @@ index.html?date=2026-09-25   → PREVIEW, January Week 1, practice ticks allowed
 2. Clips stream from Supabase public URLs. The set timer calls `playNextVideo()` at `00:00`. Duration overwrites remaining time and `SET_DURATION_SEC`. Add More Time only stacks onto remaining time. The next clip starts at the locked `SET_DURATION_SEC`.
 3. The table is exactly DAY / TRAINING RELICS / DONE at 20% / 70% / 10%.
 4. Ticks upsert `relic_completions`.
-5. `vercel.json` no-cache plus `?v=v2_2` on assets.
+5. `vercel.json` no-cache plus `?v=v2_3` on assets.
 6. `schedule.js`, `citations.js`, `videoArchive.js`, and `supabaseConfig.js` keep their data.
+7. A week whose Mon–Sat days are all `completed=true` shows gold `#ff8c00` checkboxes, black ticks, and a Golden Week Locked badge on the active week chip. An incomplete week does not.
 
 ---
 
