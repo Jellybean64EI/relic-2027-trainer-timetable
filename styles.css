@@ -2815,3 +2815,28 @@ table.timetable-table tbody td {
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
+
+
+/* relics25c: build stamp INSIDE fullscreen player */
+.relic-fs-build {
+  position: absolute;
+  top: max(18px, env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  padding: 0.35rem 0.75rem;
+  border: 2px solid #ff8c00;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.88);
+  color: #ff8c00;
+  font-weight: 900;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.relic-build-stamp {
+  font-size: 0.95rem !important;
+  padding: 0.5rem 1rem !important;
+  border-width: 3px !important;
+}
