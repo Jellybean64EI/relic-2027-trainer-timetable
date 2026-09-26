@@ -2,82 +2,54 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#1a0a2e" />
-  <meta name="relic-build" content="relics28" />
-  <!-- relics28-20min -->
-  <title>2027 TRAINER TIMETABLE CARD — Relic · Joseph Searle</title>
-  <link rel="stylesheet" href="styles.css?v=relics28" />
+  <meta name="theme-color" content="#0b0216" />
+  <meta name="relic-build" content="v2_0" />
+  <title>2027 TRAINER TIMETABLE CARD — Relic Architect V2.0</title>
+  <link rel="stylesheet" href="styles.css?v=v2_0" />
 </head>
 <body>
   <div class="wrap">
-    <article class="card" id="relic-card" data-month="1" data-phase="Base" role="main" aria-label="2027 Trainer Timetable Card">
-
+    <article class="card" id="relic-card" data-month="1" data-phase="Base">
       <header class="header">
-        <div class="ornament">✦ ⚜ ✦</div>
-                <p id="relic-build-stamp" class="relic-build-stamp" aria-label="Build" style="display:block!important;visibility:visible!important;opacity:1!important;margin:0.5rem auto;padding:0.55rem 1rem;width:fit-content;border:3px solid #ff8c00;border-radius:999px;background:#150724;color:#ff8c00;font-weight:900;font-size:1rem;letter-spacing:0.14em;text-transform:uppercase;z-index:99999;position:relative;">⚠ EDGE · RELICS28 · NOT GITHUB PAGES</p>
+        <p class="version">RELIC ARCHITECT V2.0</p>
         <h1>2027 TRAINER TIMETABLE CARD</h1>
-        <div class="identity">
-          <p class="identity-line" id="identity-line">JANUARY · WEEK 1 OF 4 · BASE · BEGINNER</p>
-          <p class="identity-sub" id="identity-sub">
-            <span id="month-blurb">Month 1 of 12 • Base Foundation Month</span>
-            <span class="deload-hint" id="deload-hint" style="display:none"></span>
-          </p>
-        </div>
-        <div id="card-status" class="card-status-slot"></div>
+        <p class="identity" id="identity-line">JANUARY · WEEK 1 OF 4 · BASE</p>
+        <p class="blurb" id="month-blurb"></p>
+        <p class="deload" id="deload-hint" hidden>DELOAD — cut MAIN ~40–50%. No till-failure sets.</p>
         <div class="meta-row">
-          <span class="meta-chip" id="meta-today">TODAY</span>
-          <span class="meta-chip" id="meta-mode">MODE</span>
-          <span class="meta-chip">JOSEPH · LONDON</span>
+          <span class="chip" id="meta-today">TODAY</span>
+          <span class="chip" id="meta-mode">MODE</span>
+          <span class="chip">JOSEPH · LONDON</span>
         </div>
       </header>
 
-      <div class="banner preview" id="banner-preview">
-        PREVIEW · Browse freely · Practice ticks OK · LIVE 1 Jan 2027
-      </div>
-      <div class="banner live" id="banner-live">
-        LIVE · Calendar-true London · Ticks today &amp; past · Future LOCKED
-      </div>
-      <details class="system-law" id="system-law" aria-label="Relic calendar system">
-        <summary class="law-title">
-          <span class="law-title-text">RELIC CALENDAR SYSTEM</span>
-          <span class="law-summary" id="law-summary">PREVIEW · browse all months · seals LIVE 1 Jan 2027</span>
-        </summary>
-        <div class="law-grid">
-          <div><strong>PREVIEW</strong> (now → 31 Dec 2026)<br/>Look through all 12 months. Nothing is sealed yet.</div>
-          <div><strong>LIVE LOCK</strong> (from 1 Jan 2027)<br/>Real year. Today glows gold. Future ticks locked until that day arrives.</div>
-          <div><strong>YOUR JOB</strong><br/>Open the card. Run TRAINING RELICS. Tick COMPLETE.</div>
-        </div>
-      </details>
-      <div class="banner coach" id="banner-coach" style="display:none"></div>
+      <p class="banner" id="banner-preview">PREVIEW · Practice ticks allowed · Live tracking starts 1 January 2027</p>
+      <p class="banner" id="banner-live" hidden>LIVE · Europe/London · Today and past can tick · Future days locked</p>
+      <p class="banner coach" id="banner-coach" hidden></p>
+      <p class="banner warn" id="sync-status" role="status">Loading completions from Supabase…</p>
 
-      <!-- Quarter / phase bar -->
       <div class="phase-bar" role="list" aria-label="Phase quarters">
         <div class="phase" data-phase="Base" role="listitem">
-          <div class="ph-label">JAN–MAR BASE</div>
-          <div class="ph-range">BEGINNER</div>
+          <span class="ph-label">JAN–MAR BASE</span>
+          <span class="ph-range">Q1</span>
         </div>
         <div class="phase" data-phase="Hard" role="listitem">
-          <div class="ph-label">APR–JUN HARD</div>
-          <div class="ph-range">HYPERTROPHY</div>
+          <span class="ph-label">APR–JUN HARD</span>
+          <span class="ph-range">Q2</span>
         </div>
         <div class="phase" data-phase="Expert" role="listitem">
-          <div class="ph-label">JUL–SEP EXPERT</div>
-          <div class="ph-range">SKILL</div>
+          <span class="ph-label">JUL–SEP EXPERT</span>
+          <span class="ph-range">Q3</span>
         </div>
         <div class="phase" data-phase="Till_Failure" role="listitem">
-          <div class="ph-label">OCT–DEC TILL FAILURE</div>
-          <div class="ph-range">PEAK</div>
+          <span class="ph-label">OCT–DEC TILL FAILURE</span>
+          <span class="ph-range">Q4</span>
         </div>
       </div>
 
-      <!-- year-wall removed (duplicate month strip) -->
-      <div class="year-wall" id="year-wall" hidden aria-hidden="true"></div>
-
-      <div class="nav-schedule-stack">
-      <!-- 12 month chips -->
       <nav class="month-bar" aria-label="Months of 2027">
         <button type="button" class="mbtn" data-month="1">JAN</button>
         <button type="button" class="mbtn" data-month="2">FEB</button>
@@ -93,22 +65,21 @@
         <button type="button" class="mbtn" data-month="12">DEC</button>
       </nav>
 
-      <!-- Week of month tabs -->
-      <div class="week-tabs">
+      <div class="week-tabs" role="tablist" aria-label="Week of month">
         <button type="button" class="wtab" data-week="1">WEEK 1</button>
         <button type="button" class="wtab" data-week="2">WEEK 2</button>
         <button type="button" class="wtab" data-week="3">WEEK 3</button>
-        <button type="button" class="wtab deload" data-week="4">WEEK 4 · DELOAD</button>
-        <span class="week-meta" id="week-meta"></span>
+        <button type="button" class="wtab" data-week="4">WEEK 4 · DELOAD</button>
       </div>
+      <p class="week-meta" id="week-meta"></p>
 
-      <!-- Timetable -->
       <div class="table-wrap">
-        <table class="tt timetable-table" id="timetable-table">
+        <table class="timetable" id="timetable">
+          <caption class="sr-only">Monday to Saturday training relics for the selected week. Sunday rest stays off this list.</caption>
           <colgroup>
             <col class="col-day" />
             <col class="col-relics" />
-            <col class="col-complete" />
+            <col class="col-done" />
           </colgroup>
           <thead>
             <tr>
@@ -117,57 +88,46 @@
               <th scope="col">DONE</th>
             </tr>
           </thead>
-          <tbody id="tt-body">
-            <!-- filled by app.js -->
-          </tbody>
+          <tbody id="tt-body"></tbody>
         </table>
       </div>
-      </div><!-- /.nav-schedule-stack -->
 
       <div class="toolbar">
         <button type="button" class="tool-btn" id="btn-today">Jump to Today</button>
-        <button type="button" class="tool-btn" id="btn-export">Export JSON</button>
-        <button type="button" class="tool-btn" id="btn-import">Import JSON</button>
-        <button type="button" class="tool-btn danger" id="btn-clear">Clear All</button>
-        <span class="tool-spacer"></span>
-        <span class="storage-note">localStorage · relic_trainer_2027_v1</span>
       </div>
 
       <footer class="footer">
         <p class="motto">PIECE BY PIECE, I TAKE MY LIFE BACK.</p>
-        <p class="ornament">⚜ · RELIC 2027 · ⚜</p>
         <p class="who">Joseph Searle · NiX coach archive · Europe/London</p>
+        <p class="storage-note">Supabase · relic_completions</p>
       </footer>
     </article>
   </div>
 
-
-  <!-- relics28: FULLSCREEN HTML5 trainer player (Samsung S24 Ultra) -->
-  <div id="relic-fullscreen-player" class="relic-fs-player" hidden aria-hidden="true">
-    <div class="relic-fs-viewport" id="relic-fs-viewport" role="dialog" aria-modal="true" aria-label="Relic fullscreen trainer">
-      <video id="relic-active-video" class="relic-fs-video" playsinline webkit-playsinline></video>
-      <div id="relic-fs-pause-veil" class="relic-fs-pause-veil" hidden aria-hidden="true">PAUSED</div>
-      <button type="button" id="relic-fs-start-gate" class="relic-fs-start-gate" hidden aria-hidden="true">
-        <span class="relic-fs-start-title">TAP TO START · 20 MIN SET</span>
-        <span class="relic-fs-start-sub">Clip loops for 20:00 · then next exercise</span>
-      </button>
-      <div id="relic-fs-empty-overlay" class="relic-fs-empty-overlay" hidden aria-hidden="true">No MP4 in relic-videos for this cabin yet — upload clips to Supabase Storage.</div>
-      <button type="button" id="relic-fs-close" class="relic-fs-close" aria-label="Close player">&times;</button>
-      <div id="relic-fs-build" class="relic-fs-build">EDGE · RELICS28</div>
-      <div id="video-inside-timer" class="relic-fs-timer">20:00</div>
-      <p id="player-clip-label" class="relic-fs-clip-label"></p>
-      <div id="relic-fs-controls" class="relic-fs-controls" aria-label="Playback controls">
-        <button type="button" id="btn-prev-ex" class="relic-fs-ctrl relic-fs-prev" aria-label="Previous">‹</button>
-        <button type="button" id="btn-play-pause" class="relic-fs-ctrl relic-fs-play" aria-label="Play or pause">❚❚</button>
-        <button type="button" id="btn-next-ex" class="relic-fs-ctrl relic-fs-next" aria-label="Next">›</button>
+  <div id="relic-player" class="player" hidden aria-hidden="true">
+    <div class="player-stage" role="dialog" aria-modal="true" aria-label="Relic trainer player">
+      <video id="relic-active-video" src="about:blank" autoplay loop playsinline></video>
+      <div id="relic-set-timer" class="set-timer" data-seconds="1200">20:00</div>
+      <p id="relic-empty-overlay" class="empty-overlay" hidden>No video file IDs mapped for this cabin.</p>
+      <button type="button" id="relic-start-gate" class="start-gate" hidden>TAP TO START · 20 MIN SET</button>
+      <button type="button" id="relic-player-close" class="player-close" aria-label="Close player">×</button>
+      <p id="relic-clip-label" class="clip-label"></p>
+      <div class="player-controls" aria-label="Playback">
+        <button type="button" id="btn-prev-clip" class="player-ctrl" aria-label="Previous clip">‹</button>
+        <button type="button" id="btn-play-pause" class="player-ctrl" aria-label="Pause">❚❚</button>
+        <button type="button" id="btn-next-clip" class="player-ctrl" aria-label="Next clip">›</button>
       </div>
     </div>
+    <section class="protocols" aria-label="Tempo protocols">
+      <p><span class="protocol-name">Left-Lead Rule</span> Start each bilateral exercise on the left side, then match it on the right.</p>
+      <p><span class="protocol-name">3-Second Negative</span> Lower under control for three seconds on every rep.</p>
+    </section>
   </div>
 
-  <script src="data/schedule.js?v=relics28"></script>
-  <script src="data/citations.js?v=relics28"></script>
-  <script src="data/videoArchive.js?v=relics28"></script>
-  <script src="data/supabaseConfig.js?v=relics28"></script>
-  <script src="app.js?v=relics28"></script>
+  <script src="data/schedule.js?v=v2_0"></script>
+  <script src="data/citations.js?v=v2_0"></script>
+  <script src="data/videoArchive.js?v=v2_0"></script>
+  <script src="data/supabaseConfig.js?v=v2_0"></script>
+  <script src="app.js?v=v2_0"></script>
 </body>
 </html>
