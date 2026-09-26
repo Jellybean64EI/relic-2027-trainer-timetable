@@ -1,6 +1,8 @@
-/* Relic 2027 — Trainer Videos archive map (Drive folder IDs + PRE/MAIN/POST file-ID playlists)
-   relics23: resolved via Drive list_folder / search — NEVER embed folder URLs in player.
-   Embed: https://drive.google.com/file/d/{FILE_ID}/preview
+/* Relic 2027 — Trainer Videos archive map (cabin playlists for Supabase Storage)
+   relics28: player resolves PUBLIC URLs — NEVER Drive preview/iframe embeds.
+   Path: {SUPABASE_URL}/storage/v1/object/public/relic-videos/{cabinKey}/{filename.mp4}
+   Prefer clip.src / clip.path when present; else filename from clip.title (+ .mp4 if needed).
+   Legacy `id` fields are Drive metadata only — player IGNORES them for playback.
 */
 window.RELIC_VIDEO_ARCHIVE = {
   rootFolderId: "1u7LqzIpUbkoGJyYW6D4S19KFKY8vyUac",

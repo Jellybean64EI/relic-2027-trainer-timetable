@@ -2504,7 +2504,9 @@ body.modal-open {
   overflow: hidden;
 }
 
-.relic-fs-frame {
+.relic-fs-frame,
+#relic-active-video,
+.relic-fs-video {
   position: absolute;
   inset: 0;
   width: 100%;

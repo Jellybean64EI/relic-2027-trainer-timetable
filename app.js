@@ -512,6 +512,7 @@
         delete state.store.completes[dateKey];
       }
       saveStore();
+      upsertCompletion(dateKey, !!turningOn);
       render();
     }
   }
@@ -565,22 +566,20 @@
   }
 
 
-  /* ——— Relic FULLSCREEN trainer player (relics27) ———
-   * STRIPPED: no gold set-timer. Each clip runs CLIP_HOLD_SEC (10 min) via
-   * destroy+recreate remount every LOOP_REMOUNT_SEC, then auto-advances.
-   * iframe src ONLY file/d/{FILE_ID}/preview. TAP TO START unlocks Samsung.
+  /* ——— Relic FULLSCREEN trainer player (relics28) ———
+   * HTML5 <video> engine. Strict 20-min (1200s) master countdown per clip.
+   * Clip loops natively via HTML5 loop attribute — NO iframe remount.
+   * Sources: Supabase Storage public URLs under relic-videos/{cabinKey}/{file}.
    */
-  var RELIC_BUILD = "relics27";
-  var CLIP_HOLD_SEC = 600; /* 10 minutes per video */
+  var RELIC_BUILD = "relics28";
+  var SET_DURATION_SEC = 1200; /* strict 20 minutes per exercise clip */
   var CONTROLS_FADE_MS = 2500;
-  var LOOP_REMOUNT_SEC = 25; /* remount so Drive preview keeps repeating */
-  var FILE_PREVIEW_RE = /^https:\/\/drive\.google\.com\/file\/d\/[^/]+\/preview$/i;
+  var EMPTY_MSG = "No MP4 in relic-videos for this cabin yet — upload clips to Supabase Storage.";
 
   var player = {
     holdTimer: null,
     controlsTimeout: null,
-    reembedInterval: null,
-    holdRemaining: CLIP_HOLD_SEC,
+    holdRemaining: SET_DURATION_SEC,
     timerPaused: false,
     visuallyPaused: false,
     setArmed: false,
@@ -598,19 +597,85 @@
     return (A.cabins || {})[cabinKey] || null;
   }
 
-  function isBareFileId(fileId) {
-    if (!fileId) return false;
-    var id = String(fileId).trim();
-    if (!id) return false;
-    if (/folders\//i.test(id) || /embeddedfolderview/i.test(id) || /folderEmbedUrl/i.test(id)) return false;
-    if (/^https?:\/\//i.test(id)) return false;
-    if (id.indexOf("/") !== -1) return false;
-    return true;
+  function supabaseCfg() {
+    return window.RELIC_SUPABASE || {};
   }
 
-  function filePreviewUrl(fileId) {
-    if (!isBareFileId(fileId)) return "";
-    return "https://drive.google.com/file/d/" + String(fileId).trim() + "/preview";
+  function upsertCompletion(dateKey, completed) {
+    try {
+      var cfg = supabaseCfg();
+      if (!cfg.url || !cfg.anonKey || !dateKey) return;
+      fetch(String(cfg.url).replace(/\/$/, "") + "/rest/v1/relic_completions", {
+        method: "POST",
+        headers: {
+          "apikey": cfg.anonKey,
+          "Authorization": "Bearer " + cfg.anonKey,
+          "Content-Type": "application/json",
+          "Prefer": "resolution=merge-duplicates"
+        },
+        body: JSON.stringify({
+          date_key: dateKey,
+          completed: !!completed,
+          updated_at: new Date().toISOString()
+        })
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
+  function pullCompletions(done) {
+    var finish = typeof done === "function" ? done : function () {};
+    try {
+      var cfg = supabaseCfg();
+      if (!cfg.url || !cfg.anonKey) { finish(); return; }
+      fetch(String(cfg.url).replace(/\/$/, "") + "/rest/v1/relic_completions?select=date_key,completed", {
+        headers: {
+          "apikey": cfg.anonKey,
+          "Authorization": "Bearer " + cfg.anonKey
+        }
+      }).then(function (r) {
+        return r.ok ? r.json() : [];
+      }).then(function (rows) {
+        if (Array.isArray(rows)) {
+          rows.forEach(function (row) {
+            if (!row || !row.date_key) return;
+            if (row.completed) state.store.completes[row.date_key] = true;
+            else delete state.store.completes[row.date_key];
+          });
+          saveStore();
+        }
+        finish();
+      }).catch(function () { finish(); });
+    } catch (e) {
+      finish();
+    }
+  }
+
+  function encodePathSegments(parts) {
+    return parts.map(function (p) {
+      return encodeURIComponent(String(p));
+    }).join("/");
+  }
+
+  /* Build public Supabase Storage URL for a playlist clip. Ignores legacy Drive id. */
+  function resolveClipSrc(cabinKey, clip) {
+    if (!clip) return "";
+    if (clip.src && String(clip.src).trim()) return String(clip.src).trim();
+    var cfg = supabaseCfg();
+    var base = String(cfg.url || "").replace(/\/$/, "");
+    var bucket = cfg.bucket || "relic-videos";
+    if (!base) return "";
+    if (clip.path && String(clip.path).trim()) {
+      var p = String(clip.path).trim().replace(/^\/+/, "");
+      if (/^https?:\/\//i.test(p)) return p;
+      return base + "/storage/v1/object/public/" + encodePathSegments(p.split("/"));
+    }
+    var title = clip.title ? String(clip.title).trim() : "";
+    if (!title) return "";
+    var filename = title;
+    if (!/\.(mp4|webm|mov)$/i.test(filename)) filename = filename + ".mp4";
+    return base + "/storage/v1/object/public/" +
+      encodeURIComponent(bucket) + "/" +
+      encodePathSegments([cabinKey, filename]);
   }
 
   function formatTimer(sec) {
@@ -622,6 +687,10 @@
 
   function fsEl(id) { return document.getElementById(id); }
 
+  function activeVideo() {
+    return fsEl("relic-active-video");
+  }
+
   function updateHoldDisplay() {
     var el = fsEl("video-inside-timer");
     if (!el) return;
@@ -631,9 +700,6 @@
 
   function clearHoldTimer() {
     if (player.holdTimer) { clearInterval(player.holdTimer); player.holdTimer = null; }
-  }
-  function clearReembed() {
-    if (player.reembedInterval) { clearInterval(player.reembedInterval); player.reembedInterval = null; }
   }
   function clearControlsTimeout() {
     if (player.controlsTimeout) { clearTimeout(player.controlsTimeout); player.controlsTimeout = null; }
@@ -687,9 +753,7 @@
     if (!overlay) return;
     overlay.hidden = !visible;
     overlay.setAttribute("aria-hidden", visible ? "false" : "true");
-    if (visible) {
-      overlay.textContent = "No video file IDs mapped for this cabin — folder grids are blocked.";
-    }
+    if (visible) overlay.textContent = EMPTY_MSG;
   }
 
   function setStartGate(visible) {
@@ -699,33 +763,42 @@
     gate.setAttribute("aria-hidden", visible ? "false" : "true");
   }
 
-  function currentPreviewSrc() {
+  function currentVideoSrc() {
     if (player.videoQueue && player.videoQueue.length) {
       return player.videoQueue[player.playlistIndex] || "";
     }
     return "";
   }
 
-  function remountFrame(src) {
-    var viewport = fsEl("relic-fs-viewport");
-    var old = fsEl("relic-video-frame");
-    if (!viewport) return;
-    if (src && (/\/drive\/folders\//i.test(src) || /embeddedfolderview/i.test(src) || /folderEmbedUrl/i.test(src))) {
-      src = "";
+  function armVideoElement(src, shouldPlay) {
+    var video = activeVideo();
+    if (!video) return;
+    var safe = src || "";
+    video.setAttribute("playsinline", "");
+    video.setAttribute("webkit-playsinline", "");
+    video.playsInline = true;
+    video.loop = true;
+    video.autoplay = !!shouldPlay;
+    if (video.getAttribute("src") !== safe) {
+      video.src = safe;
+      try { video.load(); } catch (e) {}
     }
-    var safe = src || "about:blank";
-    if (!FILE_PREVIEW_RE.test(safe) && safe !== "about:blank") safe = "about:blank";
-    if (old && old.parentNode) old.parentNode.removeChild(old);
-    var frame = document.createElement("iframe");
-    frame.id = "relic-video-frame";
-    frame.className = "relic-fs-frame";
-    frame.title = "Relic video";
-    frame.setAttribute("allow", "autoplay; encrypted-media; fullscreen; picture-in-picture");
-    frame.setAttribute("allowfullscreen", "true");
-    frame.setAttribute("referrerpolicy", "no-referrer-when-downgrade");
-    if (viewport.firstChild) viewport.insertBefore(frame, viewport.firstChild);
-    else viewport.appendChild(frame);
-    frame.src = safe;
+    if (shouldPlay && safe) {
+      var p = video.play();
+      if (p && typeof p.catch === "function") p.catch(function () {});
+    } else {
+      try { video.pause(); } catch (e2) {}
+    }
+  }
+
+  function clearVideoElement() {
+    var video = activeVideo();
+    if (!video) return;
+    try { video.pause(); } catch (e) {}
+    video.removeAttribute("src");
+    video.loop = false;
+    video.autoplay = false;
+    try { video.load(); } catch (e2) {}
   }
 
   function updateClipLabel() {
@@ -735,36 +808,23 @@
       var clip = player.playlist[player.playlistIndex];
       var title = (clip && clip.title) ? clip.title : ("Clip " + (player.playlistIndex + 1));
       clipLabel.textContent =
-        RELIC_BUILD + " · 10MIN · " +
+        RELIC_BUILD + " · 20MIN · " +
         (player.playlistIndex + 1) + "/" + player.playlist.length + " · " + title;
     } else {
       clipLabel.textContent = RELIC_BUILD;
     }
   }
 
-  function startSoftReembed() {
-    clearReembed();
-    if (!player.videoQueue.length || !player.setArmed) return;
-    player.reembedInterval = setInterval(function () {
-      if (!player.setArmed) return;
-      if (player.timerPaused || player.visuallyPaused) return;
-      if (player.holdRemaining <= 0) return;
-      var src = currentPreviewSrc();
-      if (src) remountFrame(src);
-    }, LOOP_REMOUNT_SEC * 1000);
-  }
-
-  function loadCurrentVideo() {
+  function loadCurrentVideo(shouldPlay) {
     setEmptyOverlay(false);
     updateClipLabel();
-    remountFrame(currentPreviewSrc());
-    if (player.setArmed) startSoftReembed();
-    setPlayPauseVisual(false);
+    armVideoElement(currentVideoSrc(), !!shouldPlay);
+    if (shouldPlay) setPlayPauseVisual(false);
   }
 
-  function startClipHold() {
+  function startSetCountdown() {
     clearHoldTimer();
-    player.holdRemaining = CLIP_HOLD_SEC;
+    player.holdRemaining = SET_DURATION_SEC;
     player.timerPaused = false;
     updateHoldDisplay();
     updateClipLabel();
@@ -790,8 +850,8 @@
       return;
     }
     player.playlistIndex = (player.playlistIndex + 1) % player.videoQueue.length;
-    loadCurrentVideo();
-    startClipHold();
+    loadCurrentVideo(!!player.setArmed);
+    if (player.setArmed) startSetCountdown();
     showControlsTemporarily();
   }
 
@@ -802,8 +862,8 @@
     }
     player.playlistIndex =
       (player.playlistIndex - 1 + player.videoQueue.length) % player.videoQueue.length;
-    loadCurrentVideo();
-    startClipHold();
+    loadCurrentVideo(!!player.setArmed);
+    if (player.setArmed) startSetCountdown();
     showControlsTemporarily();
   }
 
@@ -819,8 +879,8 @@
     setStartGate(false);
     setPlayPauseVisual(false);
     requestWakeLock();
-    loadCurrentVideo();
-    startClipHold();
+    loadCurrentVideo(true);
+    startSetCountdown();
     showControlsTemporarily();
   }
 
@@ -829,38 +889,40 @@
       armAndStartSet();
       return;
     }
+    var video = activeVideo();
     if (player.visuallyPaused) {
       player.visuallyPaused = false;
       player.timerPaused = false;
       setPlayPauseVisual(false);
-      remountFrame(currentPreviewSrc());
-      startSoftReembed();
+      if (video) {
+        var p = video.play();
+        if (p && typeof p.catch === "function") p.catch(function () {});
+      }
     } else {
       player.visuallyPaused = true;
       player.timerPaused = true;
       setPlayPauseVisual(true);
-      clearReembed();
+      if (video) {
+        try { video.pause(); } catch (e) {}
+      }
     }
     showControlsTemporarily();
   }
 
   function showNoClipsMessage(cabinKey) {
-    remountFrame("");
+    clearVideoElement();
     setEmptyOverlay(true);
     setStartGate(false);
     var clipLabel = fsEl("player-clip-label");
-    if (clipLabel) {
-      clipLabel.textContent = "No video file IDs mapped for this cabin — folder grids are blocked.";
-    }
+    if (clipLabel) clipLabel.textContent = EMPTY_MSG;
   }
 
   function closeFullscreenPlayer() {
     clearHoldTimer();
-    clearReembed();
     clearControlsTimeout();
     releaseWakeLock();
     player.setArmed = false;
-    remountFrame("");
+    clearVideoElement();
     setEmptyOverlay(false);
     setStartGate(false);
     var root = fsEl("relic-fullscreen-player");
@@ -899,10 +961,13 @@
     player.videoQueue = [];
     for (var i = 0; i < raw.length; i++) {
       var clip = raw[i];
-      if (!clip || !clip.id) continue;
-      var url = filePreviewUrl(clip.id);
+      if (!clip) continue;
+      var url = resolveClipSrc(cabinKey, clip);
       if (!url) continue;
-      player.playlist.push({ id: String(clip.id).trim(), title: clip.title || ("Clip " + (player.playlist.length + 1)) });
+      player.playlist.push({
+        title: clip.title || ("Clip " + (player.playlist.length + 1)),
+        src: url
+      });
       player.videoQueue.push(url);
     }
     player.playlistIndex = 0;
@@ -927,13 +992,12 @@
       return;
     }
 
-    remountFrame(currentPreviewSrc());
-    player.holdRemaining = CLIP_HOLD_SEC;
+    armVideoElement(currentVideoSrc(), false);
+    player.holdRemaining = SET_DURATION_SEC;
     updateHoldDisplay();
     updateClipLabel();
     setStartGate(true);
     clearHoldTimer();
-    clearReembed();
     showControlsTemporarily();
   }
 
@@ -1036,7 +1100,7 @@
     document.getElementById("btn-clear").addEventListener("click", clearAll);
     document.getElementById("btn-today").addEventListener("click", jumpToday);
     wireVideoPlayer();
-    render();
+    pullCompletions(function () { render(); });
     setInterval(function () {
       var prev = state.now && londonParts(state.now).dateKey;
       state.now = getNow();
