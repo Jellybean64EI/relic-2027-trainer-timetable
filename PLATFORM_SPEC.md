@@ -5,7 +5,7 @@
 **Coach archive:** NiX  
 **Timezone:** Europe/London (always)  
 **Runtime:** static HTML / CSS / JS. No build step. No npm.  
-**Cache bust:** `?v=v2_3` on every stylesheet and script in `index.html`
+**Cache bust:** `?v=v2_4` on every stylesheet and script in `index.html`
 
 Footer motto (exact):
 
@@ -87,7 +87,7 @@ Document URLs stay in `data/citations.js`. A primary click starts the cabin vide
 | Week of month | Days **1–7 = W1**, **8–14 = W2**, **15–21 = W3**, **22–end = W4** |
 | Row order | Sort the visible week by `dateKey`. Never by weekday name |
 | Sunday | Present in `schedule.js`. Omitted from the main Mon–Sat list |
-| Deload | Week 4 — amber/gold hint. Base soft, cut MAIN ~40–50%, no till-failure |
+| Deload | Week 4 training hint only. Chips, headers, and week meta read `WEEK 4` with no DELOAD suffix. Amber hint: Base soft, cut MAIN ~40–50%, no till-failure |
 | Auto-advance | When the London date changes, the UI snaps to that month and week unless the user picked a month |
 | Coach override | `?date=YYYY-MM-DD` forces London “today” |
 
@@ -135,24 +135,24 @@ Table: `relic_completions`
 - Toggle upserts on `date_key` (`Prefer: resolution=merge-duplicates`).
 - In-memory state is only a mirror of Supabase. Do not persist ticks in `localStorage`.
 
-### Golden Week lock
+### Gold Week Complete Badge
 
-Active days in the selected week bucket are Monday–Saturday (`dayIndex` 0–5). Sunday (Rest / Weekly Reset) stays off the main list and out of the evaluation.
+Active days in each week bucket are Monday–Saturday (`dayIndex` 0–5). Sunday (Rest / Weekly Reset) stays off the main list and out of the evaluation.
 
-The week locks when every active day in that bucket has `completed=true` in the `relic_completions` mirror. Weeks 1–3 are six days. Week 4 includes every Mon–Sat date from the 22nd through month end, so those extra days must be complete too.
+Each week of the viewed month is scored on its own from the in-memory `relic_completions` mirror. A week is complete when every active day in that bucket has `completed=true`. Weeks 1–3 are six days. Week 4 includes every Mon–Sat date from the 22nd through month end, so those extra days must be complete too.
 
-While locked:
+While a week is complete:
 
-- Each DONE checkbox in that view uses border and background `#ff8c00` and a deep black checkmark.
-- The active week chip shows a **Golden Week Locked** badge.
+- That week’s chip shows a **Gold Week Complete Badge**, including while another week is on screen. The badge `aria-label` is `Gold Week Complete Badge`. An incomplete week hides the badge.
+- Gold `#ff8c00` checkboxes with a deep black checkmark apply only to the week currently being viewed, and only when that viewed week is complete. Those checkboxes use `aria-label` `Completed {date_key}, Gold Week Complete Badge`.
 
-Evaluate on each timetable render and whenever a completion tick is upserted. Do not store the lock in `localStorage`. An incomplete week keeps the normal checkbox style and hides the badge.
+Evaluate on each timetable render and whenever a completion tick is upserted. Do not store the badge in `localStorage`. An incomplete viewed week keeps the normal checkbox style. Week chips, the identity line, and week meta name Week 4 as `WEEK 4` with no `DELOAD` suffix.
 
 ---
 
 ## 7. Cache
 
-`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v2_3`. The `relic-build` meta is `v2_3`.
+`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v2_4`. The `relic-build` meta is `v2_4`.
 
 ---
 
@@ -188,9 +188,9 @@ index.html?date=2026-09-25   → PREVIEW, January Week 1, practice ticks allowed
 2. Clips stream from Supabase public URLs. The set timer calls `playNextVideo()` at `00:00`. Duration overwrites remaining time and `SET_DURATION_SEC`. Add More Time only stacks onto remaining time. The next clip starts at the locked `SET_DURATION_SEC`.
 3. The table is exactly DAY / TRAINING RELICS / DONE at 20% / 70% / 10%.
 4. Ticks upsert `relic_completions`.
-5. `vercel.json` no-cache plus `?v=v2_3` on assets.
+5. `vercel.json` no-cache plus `?v=v2_4` on assets.
 6. `schedule.js`, `citations.js`, `videoArchive.js`, and `supabaseConfig.js` keep their data.
-7. A week whose Mon–Sat days are all `completed=true` shows gold `#ff8c00` checkboxes, black ticks, and a Golden Week Locked badge on the active week chip. An incomplete week does not.
+7. Each week whose Mon–Sat days are all `completed=true` keeps a Gold Week Complete Badge on its chip while any week is on screen. Gold `#ff8c00` checkboxes and black ticks apply only while that complete week is the one being viewed. Week 4 labels read `WEEK 4` with no DELOAD suffix.
 
 ---
 

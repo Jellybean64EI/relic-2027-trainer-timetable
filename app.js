@@ -204,8 +204,8 @@
     return '<td class="relics-cell"><div class="relic-stack">' + blocks.join("") + "</div></td>";
   }
 
-  function activeDaysForView() {
-    return S.daysInWeekOfMonth(2027, state.viewMonth, state.viewWeek)
+  function activeDaysForWeek(month, week) {
+    return S.daysInWeekOfMonth(2027, month, week)
       .filter(function (day) { return !day.isRecovery && day.dayIndex < 6; })
       .sort(function (a, b) {
         if (a.dateKey < b.dateKey) return -1;
@@ -214,9 +214,17 @@
       });
   }
 
-  /* Every Mon–Sat row in the selected bucket. Weeks 1–3 are six days.
-     Week 4 runs through month end, so it locks only when those extra days are done too.
-     Sunday stays out. Completions come from the relic_completions mirror, never localStorage. */
+  function activeDaysForView() {
+    return activeDaysForWeek(state.viewMonth, state.viewWeek);
+  }
+
+  /* Every Mon–Sat row in a week bucket. Weeks 1–3 are six days.
+     Week 4 runs through month end, so it completes only when those extra days are done too.
+     Sunday stays out. Completions come from the relic_completions mirror, never localStorage.
+     Each week of the viewed month is scored on its own. The badge stays on every complete chip.
+     Gold checkbox styling applies only to the week currently on screen. */
+  var GOLD_WEEK_BADGE = "Gold Week Complete Badge";
+
   function weekIsGolden(days) {
     if (!days || days.length < 6) return false;
     for (var i = 0; i < days.length; i++) {
@@ -225,26 +233,31 @@
     return true;
   }
 
-  function applyGoldenLock(days) {
-    var golden = weekIsGolden(days);
+  function applyGoldenLock(viewedDays) {
+    var viewedGolden = weekIsGolden(viewedDays);
     var card = $("relic-card");
     if (card) {
-      card.classList.toggle("is-golden-week", golden);
-      card.setAttribute("data-golden-week", golden ? "true" : "false");
+      card.classList.toggle("is-golden-week", viewedGolden);
+      card.setAttribute("data-golden-week", viewedGolden ? "true" : "false");
     }
     document.querySelectorAll(".wtab").forEach(function (btn) {
-      var show = golden && +btn.getAttribute("data-week") === state.viewWeek;
-      btn.classList.toggle("is-golden", show);
+      var week = +btn.getAttribute("data-week");
+      var days = week === state.viewWeek ? viewedDays : activeDaysForWeek(state.viewMonth, week);
+      var complete = weekIsGolden(days);
+      btn.classList.toggle("is-golden", complete);
       var badge = btn.querySelector(".golden-lock");
-      if (badge) badge.hidden = !show;
+      if (!badge) return;
+      badge.textContent = GOLD_WEEK_BADGE;
+      badge.setAttribute("aria-label", GOLD_WEEK_BADGE);
+      badge.hidden = !complete;
     });
     document.querySelectorAll("#tt-body .tick-hit").forEach(function (hit) {
-      hit.classList.toggle("is-golden", golden);
+      hit.classList.toggle("is-golden", viewedGolden);
       var input = hit.querySelector("input.tick");
       if (!input) return;
       var dateKey = input.getAttribute("data-date") || "";
-      input.setAttribute("aria-label", golden
-        ? "Completed " + dateKey + ", Golden Week Locked"
+      input.setAttribute("aria-label", viewedGolden
+        ? "Completed " + dateKey + ", " + GOLD_WEEK_BADGE
         : "Completed " + dateKey);
     });
   }
@@ -328,7 +341,6 @@
     if (weekDays.length) {
       metaLine = weekDays[0].dateKey + " → " + weekDays[weekDays.length - 1].dateKey + " · calendar order";
     }
-    if (state.viewWeek === 4) metaLine += " · DELOAD";
     $("week-meta").textContent = metaLine;
 
     var tbody = $("tt-body");
