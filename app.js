@@ -7,7 +7,8 @@
   var S = window.RELIC_SCHEDULE;
   var C = window.RELIC_CITATIONS;
   var TZ = "Europe/London";
-  var SET_SECONDS = 1200;
+  var SET_DURATION_SEC = 1200;
+  var SET_MODIFIER_MINUTES = [2, 5, 10, 20];
   var EMPTY_MSG = "No video file IDs mapped for this cabin.";
 
   var state = {
@@ -28,7 +29,7 @@
     phase: null,
     clips: [],
     index: 0,
-    remaining: SET_SECONDS,
+    remaining: SET_DURATION_SEC,
     timerId: null,
     paused: false,
     armed: false,
@@ -407,8 +408,51 @@
   function paintTimer() {
     var el = $("relic-set-timer");
     if (!el) return;
-    el.textContent = formatTimer(player.remaining);
-    el.setAttribute("data-seconds", String(SET_SECONDS));
+    var remaining = Math.max(0, player.remaining | 0);
+    el.textContent = formatTimer(remaining);
+    el.setAttribute("data-seconds", String(SET_DURATION_SEC));
+    el.setAttribute("data-remaining", String(remaining));
+    el.setAttribute("aria-label", "Set timer " + formatTimer(remaining) + ". Change interval.");
+    paintGateLabel();
+    paintModifierSelection();
+  }
+
+  function paintGateLabel() {
+    var gate = $("relic-start-gate");
+    if (!gate) return;
+    gate.textContent = "TAP TO START · " + formatTimer(player.remaining);
+  }
+
+  function paintModifierSelection() {
+    var mods = document.querySelectorAll(".timer-mod");
+    for (var i = 0; i < mods.length; i++) {
+      var selected = ((+mods[i].getAttribute("data-add-min") * 60) === SET_DURATION_SEC);
+      mods[i].classList.toggle("is-selected", selected);
+      mods[i].setAttribute("aria-pressed", selected ? "true" : "false");
+    }
+  }
+
+  function setTimerModsOpen(open) {
+    var panel = $("relic-timer-mods");
+    var badge = $("relic-set-timer");
+    if (!panel || !badge) return;
+    panel.hidden = !open;
+    badge.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  function toggleTimerMods() {
+    var panel = $("relic-timer-mods");
+    setTimerModsOpen(!(panel && !panel.hidden));
+  }
+
+  function applySetModifier(minutes) {
+    var mins = minutes | 0;
+    if (SET_MODIFIER_MINUTES.indexOf(mins) === -1) return;
+    var addSec = mins * 60;
+    SET_DURATION_SEC = addSec;
+    player.remaining = Math.max(0, player.remaining | 0) + addSec;
+    paintTimer();
+    setTimerModsOpen(false);
   }
 
   function stopCountdown() {
@@ -482,7 +526,7 @@
     player.armed = false;
     player.paused = true;
     stopCountdown();
-    player.remaining = SET_SECONDS;
+    player.remaining = SET_DURATION_SEC;
     paintTimer();
     assignVideoSrc("about:blank");
     setEmptyOverlay(true);
@@ -527,7 +571,7 @@
 
   function startCountdown() {
     stopCountdown();
-    player.remaining = SET_SECONDS;
+    player.remaining = SET_DURATION_SEC;
     player.armed = true;
     paintTimer();
     player.timerId = setInterval(function () {
@@ -603,6 +647,7 @@
 
   function closePlayer() {
     stopCountdown();
+    setTimerModsOpen(false);
     player.armed = false;
     player.paused = false;
     player.empty = false;
@@ -709,6 +754,30 @@
     $("btn-next-clip").addEventListener("click", playNextVideo);
     $("btn-play-pause").addEventListener("click", togglePlayPause);
 
+    var timerBadge = $("relic-set-timer");
+    if (timerBadge) {
+      timerBadge.addEventListener("click", function (event) {
+        event.stopPropagation();
+        toggleTimerMods();
+      });
+    }
+    var timerMods = $("relic-timer-mods");
+    if (timerMods) {
+      timerMods.addEventListener("click", function (event) {
+        event.stopPropagation();
+        var btn = event.target.closest(".timer-mod");
+        if (!btn) return;
+        applySetModifier(+btn.getAttribute("data-add-min"));
+      });
+    }
+    document.addEventListener("click", function (event) {
+      var panel = $("relic-timer-mods");
+      if (!panel || panel.hidden) return;
+      var dock = $("relic-timer-dock");
+      if (dock && event.target && dock.contains(event.target)) return;
+      setTimerModsOpen(false);
+    });
+
     activeVideo().addEventListener("error", function () {
       if (player.empty) return;
       var src = activeVideo().getAttribute("src") || "";
@@ -723,6 +792,12 @@
       var root = $("relic-player");
       if (!root || root.hidden) return;
       if (event.key === "Escape") {
+        var modsPanel = $("relic-timer-mods");
+        if (modsPanel && !modsPanel.hidden) {
+          event.preventDefault();
+          setTimerModsOpen(false);
+          return;
+        }
         event.preventDefault();
         closePlayer();
       } else if (event.key === " ") {
@@ -772,10 +847,13 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    setSeconds: SET_SECONDS,
+    get setSeconds() { return SET_DURATION_SEC; },
+    get SET_DURATION_SEC() { return SET_DURATION_SEC; },
+    get remaining() { return player.remaining; },
     resolveClipSrc: resolveClipSrc,
     openCabin: openCabin,
-    playNextVideo: playNextVideo
+    playNextVideo: playNextVideo,
+    applySetModifier: applySetModifier
   };
 
   if (document.readyState === "loading") {

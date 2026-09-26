@@ -6,9 +6,9 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v2_0" />
+  <meta name="relic-build" content="v2_1" />
   <title>2027 TRAINER TIMETABLE CARD — Relic Architect V2.0</title>
-  <link rel="stylesheet" href="styles.css?v=v2_0" />
+  <link rel="stylesheet" href="styles.css?v=v2_1" />
 </head>
 <body>
   <div class="wrap">
@@ -107,8 +107,16 @@
   <div id="relic-player" class="player" hidden aria-hidden="true">
     <div class="player-stage" role="dialog" aria-modal="true" aria-label="Relic trainer player">
       <video id="relic-active-video" autoplay loop playsinline></video>
-      <p id="relic-media-note" class="media-note" hidden>This clip is not in relic-videos yet. The 20-minute set still runs.</p>
-      <div id="relic-set-timer" class="set-timer" data-seconds="1200">20:00</div>
+      <p id="relic-media-note" class="media-note" hidden>This clip is not in relic-videos yet. The set timer still runs.</p>
+      <div class="timer-dock" id="relic-timer-dock">
+        <button type="button" id="relic-set-timer" class="set-timer" data-seconds="1200" data-remaining="1200" aria-expanded="false" aria-controls="relic-timer-mods" aria-haspopup="true" aria-label="Set timer 20:00. Change interval.">20:00</button>
+        <div id="relic-timer-mods" class="timer-mods" role="group" aria-label="Add time to this set" hidden>
+          <button type="button" class="timer-mod" data-add-min="2" aria-pressed="false">2 min</button>
+          <button type="button" class="timer-mod" data-add-min="5" aria-pressed="false">5 min</button>
+          <button type="button" class="timer-mod" data-add-min="10" aria-pressed="false">10 min</button>
+          <button type="button" class="timer-mod is-selected" data-add-min="20" aria-pressed="true">20 min</button>
+        </div>
+      </div>
       <p id="relic-empty-overlay" class="empty-overlay" hidden>No video file IDs mapped for this cabin.</p>
       <button type="button" id="relic-start-gate" class="start-gate" hidden>TAP TO START · 20 MIN SET</button>
       <button type="button" id="relic-player-close" class="player-close" aria-label="Close player">×</button>
@@ -125,10 +133,10 @@
     </section>
   </div>
 
-  <script src="data/schedule.js?v=v2_0"></script>
-  <script src="data/citations.js?v=v2_0"></script>
-  <script src="data/videoArchive.js?v=v2_0"></script>
-  <script src="data/supabaseConfig.js?v=v2_0"></script>
-  <script src="app.js?v=v2_0"></script>
+  <script src="data/schedule.js?v=v2_1"></script>
+  <script src="data/citations.js?v=v2_1"></script>
+  <script src="data/videoArchive.js?v=v2_1"></script>
+  <script src="data/supabaseConfig.js?v=v2_1"></script>
+  <script src="app.js?v=v2_1"></script>
 </body>
 </html>
