@@ -431,6 +431,13 @@
     if (visible) overlay.textContent = EMPTY_MSG;
   }
 
+  function setMediaNote(visible) {
+    var note = $("relic-media-note");
+    var video = activeVideo();
+    if (note) note.hidden = !visible;
+    if (video) video.style.visibility = visible ? "hidden" : "visible";
+  }
+
   function paintPlayButton() {
     var btn = $("btn-play-pause");
     if (!btn) return;
@@ -463,6 +470,7 @@
     video.setAttribute("playsinline", "");
     video.setAttribute("autoplay", "");
     video.setAttribute("loop", "");
+    setMediaNote(false);
     if (video.getAttribute("src") !== safe) {
       video.src = safe;
       try { video.load(); } catch (err) { /* about:blank is not a media file */ }
@@ -497,15 +505,21 @@
       try { activeVideo().pause(); } catch (err) { /* not playing yet */ }
       return;
     }
+    var token = {};
+    player.playToken = token;
     var pending = activeVideo().play();
     if (pending && typeof pending.then === "function") {
       pending.then(function () {
+        if (player.playToken !== token) return;
         player.paused = false;
         setGate(false);
         paintPlayButton();
-      }).catch(function () {
-        player.paused = true;
-        setGate(true);
+      }).catch(function (err) {
+        if (player.playToken !== token) return;
+        /* A missing file must not freeze the 20-minute set. Only an autoplay block waits for a tap. */
+        var blocked = err && err.name === "NotAllowedError";
+        player.paused = !!blocked;
+        setGate(!!blocked);
         paintPlayButton();
       });
     }
@@ -572,10 +586,12 @@
       setGate(false);
       var pending = video.play();
       if (pending && typeof pending.catch === "function") {
-        pending.catch(function () {
-          player.paused = true;
-          setGate(true);
-          paintPlayButton();
+        pending.catch(function (err) {
+          if (err && err.name === "NotAllowedError") {
+            player.paused = true;
+            setGate(true);
+            paintPlayButton();
+          }
         });
       }
     } else {
@@ -593,8 +609,13 @@
     player.clips = [];
     player.index = 0;
     player.cabin = null;
-    assignVideoSrc("about:blank");
-    try { activeVideo().pause(); } catch (err) { /* closed */ }
+    setMediaNote(false);
+    try {
+      var video = activeVideo();
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+    } catch (err) { /* closed */ }
     setEmptyOverlay(false);
     setGate(false);
     var root = $("relic-player");
@@ -687,6 +708,16 @@
     $("btn-prev-clip").addEventListener("click", playPreviousVideo);
     $("btn-next-clip").addEventListener("click", playNextVideo);
     $("btn-play-pause").addEventListener("click", togglePlayPause);
+
+    activeVideo().addEventListener("error", function () {
+      if (player.empty) return;
+      var src = activeVideo().getAttribute("src") || "";
+      if (!src || src === "about:blank") return;
+      setMediaNote(true);
+    });
+    activeVideo().addEventListener("loadeddata", function () {
+      setMediaNote(false);
+    });
 
     document.addEventListener("keydown", function (event) {
       var root = $("relic-player");
