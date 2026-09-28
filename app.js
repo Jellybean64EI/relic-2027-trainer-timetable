@@ -704,7 +704,7 @@
       var morning = (cue.morning || []).map(function (dose) {
         return dose.name + " " + dose.text;
       }).join(" · ");
-      var align = cue.alignment === "rotation"
+      var align = cue.protein === cue.rotationProtein
         ? cue.protein
         : (cue.rotationProtein + " → " + cue.protein);
       var extractLabel = cue.band === "restorative"
@@ -766,6 +766,13 @@
         "<h4>Method:</h4><ol>" + method + "</ol>" +
         '<p class="macro-tag">' + escapeHtml(card.macroLine) + "</p>" +
       "</article>";
+  }
+
+  function openFoodCard(id, band) {
+    state.foodCard = { id: id, band: band || "moderate" };
+    render();
+    var back = $("btn-food-card-back");
+    if (back && back.scrollIntoView) back.scrollIntoView({ block: "start" });
   }
 
   function paintFoodBoard() {
@@ -1928,20 +1935,12 @@
         }
         var meal = event.target.closest("[data-food-meal]");
         if (meal) {
-          state.foodCard = {
-            id: meal.getAttribute("data-food-meal"),
-            band: meal.getAttribute("data-food-band") || "moderate"
-          };
-          render();
+          openFoodCard(meal.getAttribute("data-food-meal"), meal.getAttribute("data-food-band"));
           return;
         }
         var extraction = event.target.closest("[data-food-extraction]");
         if (extraction) {
-          state.foodCard = {
-            id: extraction.getAttribute("data-food-extraction"),
-            band: extraction.getAttribute("data-food-band") || "moderate"
-          };
-          render();
+          openFoodCard(extraction.getAttribute("data-food-extraction"), extraction.getAttribute("data-food-band"));
         }
       });
     }
