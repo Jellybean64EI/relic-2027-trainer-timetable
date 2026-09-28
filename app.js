@@ -711,6 +711,10 @@
     days.forEach(function (day) {
       var cue = api.cueForDay(day);
       var cabins = (cue.cabins || []).join(" · ");
+      var portions = cue.portions || {};
+      var plate = (portions.proteinG ? portions.proteinG + " g " + portions.proteinName : portions.proteinName) +
+        " · " + portions.carbG + " g " + portions.carbName +
+        " · " + portions.vegG + " g " + portions.vegName;
       html += '<tr class="fuel-row is-' + cue.band + '">' +
         '<td class="day-cell">' +
           '<button type="button" class="food-date" data-open-room="meals" data-food-meal="' +
@@ -720,8 +724,13 @@
           "</button>" +
         "</td>" +
         '<td class="relics-cell"><div class="relic-stack">' +
-          '<p class="fuel-meal-name">' + escapeHtml(cue.mealName) + "</p>" +
-          '<p class="fuel-meta">' + escapeHtml(cue.protein) + " · " + escapeHtml(cue.carb) + "</p>" +
+          '<button type="button" class="fuel-morning" data-food-extraction="' + escapeHtml(cue.extractionId) +
+            '" data-food-band="' + escapeHtml(cue.band) + '">Morning · ' + escapeHtml(cue.smoothieName || cue.extractionName) + "</button>" +
+          '<button type="button" class="fuel-meal-name" data-food-meal="' + escapeHtml(cue.mealId) +
+            '" data-food-band="' + escapeHtml(cue.band) + '">' + escapeHtml(cue.mealName) + "</button>" +
+          '<p class="fuel-meta">' + escapeHtml(plate) + "</p>" +
+          '<p class="fuel-portions"><span>' + (cue.fruitPortions || 2) + " fruit</span><span>" +
+            (cue.vegPortions || 3) + " veg</span></p>" +
           (cabins ? '<p class="food-cabin-chip">' + escapeHtml(cabins) + "</p>" : "") +
         "</div></td></tr>";
     });

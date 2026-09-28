@@ -463,6 +463,165 @@ window.RELIC_FOOD_MEALS = (function () {
           step("Fold", "in the warmed spinach and serve beside the rice.")
         ]
       }
+    }),
+    "chicken-rice-broccoli": card({
+      id: "chicken-rice-broccoli",
+      kind: "meal",
+      seed: false,
+      name: "Chicken, Rice and Broccoli",
+      tagline: "The training plate.",
+      script: "Chicken first. Rice under it. Broccoli on the side.",
+      yield: "1 plate",
+      prepMin: 12,
+      cookLabel: "Pan · 18 min",
+      protein: "Chicken",
+      carb: "Rice",
+      role: "main",
+      timetable: {
+        bestFor: "Monday chicken night",
+        bestEaten: "Fresh",
+        reheat: "Cover and reheat until the chicken is piping hot"
+      },
+      tip: "Weigh the chicken raw. 300 g cooked shrinks, and the plate goes short.",
+      macros: { kcal: 640, protein: 52, carb: 58, fat: 16, basis: "plate" },
+      ingredients: {
+        1: [
+          { skuId: "chicken", qty: 300, text: "300 g Sainsbury's British Whole Chicken, skinless thigh or breast" },
+          { skuId: "rice", qty: 200, text: "200 g Sainsbury's Easy Cook Long Grain Rice, dry" },
+          { skuId: "broccoliF", qty: 150, text: "150 g Sainsbury's Frozen Broccoli" },
+          { skuId: "oil", qty: 8, text: "8 ml Sainsbury's Olive Oil" },
+          { skuId: "salt", qty: 1, text: "1 g Sainsbury's Table Salt" }
+        ]
+      },
+      method: {
+        1: [
+          step("Rinse", "200 g dry rice and simmer it until tender."),
+          step("Season", "300 g British chicken with salt."),
+          step("Pan", "fry the chicken in the oil until the juices run clear, about 16–18 minutes."),
+          step("Steam", "150 g frozen broccoli until hot."),
+          step("Plate", "chicken, rice, and broccoli. This is dinner. The smoothie was the morning.")
+        ]
+      }
+    }),
+    "tuna-avocado-lettuce": card({
+      id: "tuna-avocado-lettuce",
+      kind: "meal",
+      seed: false,
+      name: "Tuna, Avocado and Lettuce",
+      tagline: "The mixer-deck plate.",
+      script: "Cool tuna. Ripe avocado. Crisp leaves.",
+      yield: "1 plate",
+      prepMin: 8,
+      cookLabel: "No cook · 8 min",
+      protein: "Tuna",
+      carb: "Rice",
+      role: "main",
+      timetable: {
+        bestFor: "A flex night when the mince is already covered",
+        bestEaten: "Fresh",
+        reheat: "Do not reheat avocado. Build the plate again."
+      },
+      tip: "Tuna is a mixer card, not a replacement for the five training proteins.",
+      macros: { kcal: 520, protein: 34, carb: 28, fat: 28, basis: "plate" },
+      ingredients: {
+        1: [
+          { skuId: "tuna", qty: 120, text: "120 g Sainsbury's Tuna Chunks in Spring Water, drained" },
+          { skuId: "avocado", qty: 80, text: "80 g ripe avocado" },
+          { skuId: "lettuce", qty: 60, text: "60 g Sainsbury's Iceberg Lettuce" },
+          { skuId: "rice", qty: 80, text: "80 g Sainsbury's Easy Cook Long Grain Rice, cooked" },
+          { skuId: "lemons", qty: 15, text: "15 g Sainsbury's SO Organic Lemons, juice" }
+        ]
+      },
+      method: {
+        1: [
+          step("Drain", "120 g tuna and flake it."),
+          step("Slice", "80 g avocado and 60 g lettuce."),
+          step("Squeeze", "the lemon over the avocado."),
+          step("Plate", "the tuna on the rice with avocado and lettuce. No raw egg white.")
+        ]
+      }
+    }),
+    "mince-pasta-frozen-veg": card({
+      id: "mince-pasta-frozen-veg",
+      kind: "meal",
+      seed: false,
+      name: "Mince, Pasta and Frozen Veg",
+      tagline: "One dinner method.",
+      script: "Pasta, mince, then the frozen veg. Flex nights skip the mince.",
+      yield: "1 plate",
+      prepMin: 8,
+      cookLabel: "Pan · 16 min",
+      protein: "Turkey Mince",
+      carb: "Pasta",
+      role: "main",
+      timetable: {
+        bestFor: "Mince nights — turkey, chicken, or beef",
+        bestEaten: "Fresh",
+        reheat: "Cover and heat until the mince is piping hot"
+      },
+      tip: "Protect the packs already in the fridge. Do not open a new pack if this month is already covered.",
+      macros: { kcal: 680, protein: 42, carb: 62, fat: 22, basis: "plate" },
+      ingredients: {
+        1: [
+          { skuId: "turkey", qty: 300, text: "300 g Sainsbury's British Turkey Mince 2% Fat" },
+          { skuId: "pasta", qty: 120, text: "120 g Sainsbury's Wholewheat Pasta, dry" },
+          { skuId: "mixedVeg", qty: 200, text: "200 g frozen broccoli, peas, sweetcorn, or mixed vegetables" },
+          { skuId: "garlic", qty: 5, text: "5 g Sainsbury's Garlic" },
+          { skuId: "oil", qty: 8, text: "8 ml Sainsbury's Olive Oil" }
+        ],
+        2: [
+          { skuId: "beef5", qty: 300, text: "300 g Sainsbury's Taste the Difference British Beef Mince 5% Fat" },
+          { skuId: "pasta", qty: 120, text: "120 g Sainsbury's Wholewheat Pasta, dry" },
+          { skuId: "tenderstem", qty: 200, text: "200 g broccoli, peas, or mixed veg" },
+          { skuId: "garlic", qty: 5, text: "5 g Sainsbury's Garlic" },
+          { skuId: "oil", qty: 8, text: "8 ml Sainsbury's Olive Oil" }
+        ]
+      },
+      method: {
+        1: [
+          step("Boil", "120 g pasta from the stock you already have."),
+          step("Brown", "300 g mince in the oil with the garlic."),
+          step("Add", "200 g frozen veg and cook until hot."),
+          step("Combine", "pasta, mince, and veg. Flex nights skip the mince and keep the pasta and veg.")
+        ]
+      }
+    }),
+    "flex-pasta-veg-bowl": card({
+      id: "flex-pasta-veg-bowl",
+      kind: "meal",
+      seed: false,
+      name: "Flex Pasta and Veg Bowl",
+      tagline: "The night without mince.",
+      script: "Same pan. No new protein pack.",
+      yield: "1 bowl",
+      prepMin: 6,
+      cookLabel: "Pan · 12 min",
+      protein: "Eggs",
+      carb: "Pasta",
+      role: "main",
+      timetable: {
+        bestFor: "Saturday flex night",
+        bestEaten: "Fresh",
+        reheat: "Add a splash of water and reheat covered"
+      },
+      tip: "Skip the mince. The morning smoothie is not this dinner.",
+      macros: { kcal: 480, protein: 16, carb: 70, fat: 12, basis: "bowl" },
+      ingredients: {
+        1: [
+          { skuId: "pasta", qty: 150, text: "150 g Sainsbury's Wholewheat Pasta, dry" },
+          { skuId: "mixedVeg", qty: 250, text: "250 g frozen broccoli, peas, sweetcorn, or mixed vegetables" },
+          { skuId: "cheddar", qty: 20, text: "20 g Sainsbury's Mature Cheddar, optional" },
+          { skuId: "oil", qty: 5, text: "5 ml Sainsbury's Olive Oil" }
+        ]
+      },
+      method: {
+        1: [
+          step("Boil", "150 g pasta."),
+          step("Heat", "250 g frozen veg in the same pan until hot."),
+          step("Skip", "the mince. This is the flex night."),
+          step("Toss", "pasta and veg together. A little cheddar is optional.")
+        ]
+      }
     })
   };
 
@@ -480,9 +639,13 @@ window.RELIC_FOOD_MEALS = (function () {
     "beef-stuffed-potato-boats",
     "bread-egg-pan-pizza",
     "bulk-chicken-potato-plate",
+    "chicken-rice-broccoli",
     "turkey-mince-rice-skillet",
+    "mince-pasta-frozen-veg",
     "salmon-rice-plate",
-    "omega3-egg-rest-plate"
+    "omega3-egg-rest-plate",
+    "tuna-avocado-lettuce",
+    "flex-pasta-veg-bowl"
   ];
 
   function present(id, tierId) {
@@ -520,7 +683,7 @@ window.RELIC_FOOD_MEALS = (function () {
   }
 
   return {
-    build: "v18",
+    build: "v19",
     meals: MEALS,
     order: ORDER,
     present: present

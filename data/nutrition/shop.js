@@ -61,7 +61,25 @@ window.RELIC_FOOD_SHOP = (function () {
     spinachFresh: sku("spinachFresh", "Sainsbury's Baby-Leaf Spinach 200g", "Sainsbury's", 165, 200, "g", 2),
     tenderstem: sku("tenderstem", "Waitrose Tenderstem Broccoli 200g", "Waitrose", 220, 200, "g", 2),
     avocado: sku("avocado", "Waitrose Ripe Avocados 2 pack", "Waitrose", 210, 2, "each", 2),
-    yogurtW: sku("yogurtW", "Waitrose Essential Greek Yogurt 500g", "Waitrose", 180, 500, "g", 2)
+    yogurtW: sku("yogurtW", "Waitrose Essential Greek Yogurt 500g", "Waitrose", 180, 500, "g", 2),
+    banana: sku("banana", "Sainsbury's SO Organic Bananas", "Sainsbury's", 130, 5, "each", 1),
+    apples: sku("apples", "Sainsbury's SO Organic Apples 6 pack", "Sainsbury's", 180, 6, "each", 1),
+    kiwi: sku("kiwi", "Sainsbury's SO Organic Kiwi 6 pack", "Sainsbury's", 175, 6, "each", 1),
+    oranges: sku("oranges", "Sainsbury's SO Organic Oranges", "Sainsbury's", 150, 4, "each", 1),
+    pears: sku("pears", "Sainsbury's SO Organic Pears", "Sainsbury's", 160, 4, "each", 1),
+    mango: sku("mango", "Sainsbury's Frozen Mango Chunks 450g", "Sainsbury's", 220, 450, "g", 1),
+    cherries: sku("cherries", "Sainsbury's Frozen Cherries 400g", "Sainsbury's", 250, 400, "g", 1),
+    yogurt: sku("yogurt", "Sainsbury's Greek Style Yogurt 500g", "Sainsbury's", 140, 500, "g", 1),
+    oats: sku("oats", "Sainsbury's Porridge Oats 1kg", "Sainsbury's", 135, 1000, "g", 1),
+    brazil: sku("brazil", "Sainsbury's Brazil Nuts 200g", "Sainsbury's", 250, 200, "g", 1),
+    almondButter: sku("almondButter", "Sainsbury's Almond Butter 170g", "Sainsbury's", 230, 170, "g", 1),
+    pasta: sku("pasta", "Sainsbury's Wholewheat Pasta 500g", "Sainsbury's", 85, 500, "g", 1),
+    tuna: sku("tuna", "Sainsbury's Tuna Chunks in Spring Water 145g", "Sainsbury's", 95, 120, "g", 1),
+    lettuce: sku("lettuce", "Sainsbury's Iceberg Lettuce", "Sainsbury's", 65, 1, "each", 1),
+    ginger: sku("ginger", "Sainsbury's Fresh Ginger 100g", "Sainsbury's", 70, 100, "g", 1),
+    pineapple: sku("pineapple", "Sainsbury's Pineapple", "Sainsbury's", 110, 1, "each", 1),
+    cinnamon: sku("cinnamon", "Sainsbury's Ground Cinnamon 40g", "Sainsbury's", 90, 40, "g", 1),
+    kefir: sku("kefir", "Sainsbury's SO Organic Kefir 500ml", "Sainsbury's", 150, 500, "ml", 1)
   };
 
   var TIERS = {
@@ -70,6 +88,8 @@ window.RELIC_FOOD_SHOP = (function () {
       label: "Tier 1",
       budgetPence: 15000,
       budgetLabel: "£150",
+      stretchPence: 20000,
+      stretchLabel: "£200",
       from: "2026-10-01",
       through: "2027-01-31",
       rangeLabel: "Oct 2026 – Jan 2027",
