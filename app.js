@@ -31,6 +31,12 @@
     if (seconds >= 1 && seconds <= 1200) SET_DURATION_SEC = seconds;
   })();
   var HUD_IDLE_MS = 2000;
+  var TAP_SLOP = 18;
+  var PICK_GAP_MS = 320;
+  var lastPickAt = 0;
+  var hudGesture = null;
+  var viewScroll = {};
+  var surfacePress = null;
   var EMPTY_MSG = "No video file IDs mapped for this cabin.";
   var BRIDGE_LOCK_START = "2026-10-01";
 
@@ -482,7 +488,7 @@
       fullDays: fullDays,
       firstSessions: firstSessions,
       ticks: ticks,
-      complete: total >= 6 && fullDays === total
+      complete: total > 0 && fullDays === total
     };
   }
 
@@ -523,8 +529,16 @@
     var dualCount = btn.querySelector("[data-dual-count]");
     if (singleCount) singleCount.textContent = score.firstSessions + "/" + total;
     if (dualCount) dualCount.textContent = complete ? String(score.ticks) : (score.fullDays + "/" + total);
+    var singleSlot = btn.querySelector(".week-slot-single");
+    if (singleSlot) {
+      singleSlot.classList.toggle("is-started", score.firstSessions > 0 && !complete);
+      singleSlot.classList.toggle("is-full", total > 0 && score.firstSessions === total);
+    }
     var dualSlot = btn.querySelector(".week-slot-dual");
-    if (dualSlot) dualSlot.classList.toggle("is-full", complete);
+    if (dualSlot) {
+      dualSlot.classList.toggle("is-started", score.fullDays > 0 && !complete);
+      dualSlot.classList.toggle("is-full", complete);
+    }
     var badge = btn.querySelector(".week-slot-dual .shield-complete");
     if (!badge) {
       badge = document.createElement("span");
@@ -1029,7 +1043,29 @@
     return player.clips.length > 0 && player.index >= player.clips.length - 1;
   }
 
+  function pickSettled() {
+    var now = Date.now();
+    if (now - lastPickAt < PICK_GAP_MS) return false;
+    lastPickAt = now;
+    return true;
+  }
+
+  function viewScrollKey() {
+    return state.viewYear + ":" + (state.mode || "full") + ":" + state.viewMonth + ":" + state.viewWeek;
+  }
+
+  function rememberViewScroll() {
+    viewScroll[viewScrollKey()] = window.scrollY || 0;
+  }
+
+  function restoreViewScroll() {
+    var y = viewScroll[viewScrollKey()];
+    if (typeof y !== "number") return;
+    try { window.scrollTo(0, y); } catch (err) { /* scroll restore is optional */ }
+  }
+
   function pickMonth(month) {
+    if (!pickSettled()) return;
     if (periodMonths().indexOf(month) === -1) return;
     state.userPicked = true;
     state.viewMonth = month;
@@ -1067,8 +1103,10 @@
     if (!upperSchedule()) return;
     if (mode !== "full" && mode !== "upper") return;
     if (state.mode === mode) return;
+    rememberViewScroll();
     state.mode = mode;
     render();
+    restoreViewScroll();
   }
 
   function toggleScheduleMode() {
@@ -1129,6 +1167,7 @@
   }
 
   function pickWeek(week) {
+    if (!pickSettled()) return;
     state.userPicked = true;
     state.viewWeek = week;
     render();
@@ -1390,6 +1429,28 @@
       showPlayerHud();
       return;
     }
+    hudGesture = {
+      x: event.clientX,
+      y: event.clientY,
+      id: event.pointerId,
+      moved: false
+    };
+  }
+
+  function onStageHudPointerMove(event) {
+    if (!hudGesture || event.pointerId !== hudGesture.id) return;
+    if (Math.abs(event.clientX - hudGesture.x) > TAP_SLOP || Math.abs(event.clientY - hudGesture.y) > TAP_SLOP) {
+      hudGesture.moved = true;
+    }
+  }
+
+  function onStageHudPointerUp(event) {
+    if (!hudGesture || event.pointerId !== hudGesture.id) return;
+    var moved = hudGesture.moved;
+    hudGesture = null;
+    if (moved) return;
+    var node = eventElement(event);
+    if (isForensicChrome(node) || isHudChromeTarget(node)) return;
     if (hudIsHidden()) {
       showPlayerHud();
       player.swallowChromeClick = true;
@@ -1990,7 +2051,17 @@
       if (navBtn) navBtn.focus();
     });
     setNavOpen(false);
+    $("tt-body").addEventListener("pointerdown", function (event) {
+      surfacePress = { x: event.clientX, y: event.clientY, id: event.pointerId, moved: false };
+    });
+    $("tt-body").addEventListener("pointermove", function (event) {
+      if (!surfacePress || event.pointerId !== surfacePress.id || surfacePress.moved) return;
+      if (Math.abs(event.clientX - surfacePress.x) > TAP_SLOP || Math.abs(event.clientY - surfacePress.y) > TAP_SLOP) {
+        surfacePress.moved = true;
+      }
+    });
     $("tt-body").addEventListener("click", function (event) {
+      if (surfacePress && surfacePress.moved) return;
       var hit = event.target.closest("button.tick-hit");
       if (!hit) return;
       event.preventDefault();
@@ -2007,6 +2078,7 @@
       warmCabinLead(link.getAttribute("data-cabin"));
     });
     $("tt-body").addEventListener("click", function (event) {
+      if (surfacePress && surfacePress.moved) return;
       var link = event.target.closest("a.cite-link");
       if (!link) return;
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
@@ -2024,8 +2096,31 @@
     var stage = playerStage();
     if (stage) {
       stage.addEventListener("pointerdown", onStageHudPointerDown);
+      stage.addEventListener("pointermove", onStageHudPointerMove);
+      stage.addEventListener("pointerup", onStageHudPointerUp);
+      stage.addEventListener("pointercancel", function () { hudGesture = null; });
       stage.addEventListener("click", onStageHudClickCapture, true);
     }
+    document.addEventListener("pointerdown", function (event) {
+      var calm = event.target.closest(".mbtn, .wtab, #btn-schedule-mode, [data-set-mode], [data-set-branch]");
+      if (!calm || event.button > 0) return;
+      surfacePress = { x: event.clientX, y: event.clientY, id: event.pointerId, moved: false };
+    }, true);
+    document.addEventListener("pointermove", function (event) {
+      if (!surfacePress || event.pointerId !== surfacePress.id || surfacePress.moved) return;
+      if (Math.abs(event.clientX - surfacePress.x) > TAP_SLOP || Math.abs(event.clientY - surfacePress.y) > TAP_SLOP) {
+        surfacePress.moved = true;
+      }
+    }, true);
+    document.addEventListener("click", function (event) {
+      if (!surfacePress || !surfacePress.moved) return;
+      if (!event.target.closest(".mbtn, .wtab, #btn-schedule-mode, [data-set-mode], [data-set-branch]")) return;
+      event.preventDefault();
+      event.stopPropagation();
+    }, true);
+    document.addEventListener("click", function () {
+      if (surfacePress && surfacePress.moved) surfacePress = null;
+    });
     $("btn-prev-clip").addEventListener("click", playPreviousVideo);
     $("btn-next-clip").addEventListener("click", playNextVideo);
     $("btn-play-pause").addEventListener("click", togglePlayPause);

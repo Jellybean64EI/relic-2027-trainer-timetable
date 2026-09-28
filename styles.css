@@ -30,6 +30,8 @@ html, body {
 body {
   min-height: 100dvh;
   overflow-x: hidden;
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
 }
 
 button, a, input, label {
@@ -383,6 +385,17 @@ h1 {
   max-width: 100%;
 }
 
+.week-slot-single.is-started,
+.week-slot-dual.is-started {
+  border-color: #ff8c00;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.45);
+}
+
+.week-slot-single.is-full {
+  border-color: #ff8c00;
+  box-shadow: 0 0 12px rgba(255, 140, 0, 0.7);
+}
+
 .wtab.is-complete .week-slot-single {
   background: #12051d;
   border-color: rgba(255, 140, 0, 0.75);
@@ -664,6 +677,18 @@ tr.today td {
   background: transparent;
 }
 
+.tick-hit[data-tier="1"] .tick-box {
+  filter: drop-shadow(0 0 6px #ff8c00);
+}
+
+.tick-hit[data-tier="2"] .tick-box {
+  filter: drop-shadow(0 0 8px #3dff7a);
+}
+
+tr.is-tier-1 td {
+  box-shadow: inset 0 0 0 1px rgba(255, 140, 0, 0.72);
+}
+
 .tick-box .shield-tick {
   width: 22px;
   height: 26px;
@@ -683,7 +708,10 @@ tr.today td {
   letter-spacing: 0.04em;
 }
 
-tr.is-done td { background: #1c0c2e; }
+tr.is-done td {
+  background: #102818;
+  box-shadow: inset 3px 0 0 #1c9a48;
+}
 
 .schedule-switch {
   padding: 8px 8px 0;
@@ -754,7 +782,7 @@ tr.is-done td { background: #1c0c2e; }
   flex: 1 1 auto;
   min-height: 0;
   background: transparent;
-  touch-action: manipulation;
+  touch-action: pan-y;
 }
 
 #relic-active-video {
