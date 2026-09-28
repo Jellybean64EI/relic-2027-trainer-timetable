@@ -213,30 +213,45 @@ h1 {
 
 .wtab-label { display: block; }
 
-.golden-lock {
-  display: inline-block;
+.wtab.is-golden:not(.is-selected) {
+  border-color: #ff8c00;
+}
+
+.shield-complete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
   max-width: 100%;
   margin: 0;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: #0b0216;
+  line-height: 1;
+}
+
+.shield-complete[hidden] { display: none !important; }
+
+.shield-tick {
+  width: 18px;
+  height: 21px;
+  flex: 0 0 auto;
+  display: block;
+  background: #000;
+  border-radius: 4px;
+  padding: 1px;
+  box-sizing: border-box;
+}
+
+.shield-word {
   color: #ff8c00;
-  font-size: 0.52rem;
+  font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.01em;
-  line-height: 1.2;
-  text-align: center;
-  text-wrap: balance;
-  white-space: normal;
+  line-height: 1.1;
+  white-space: nowrap;
 }
 
-.wtab.is-selected .golden-lock,
-.wtab.is-golden .golden-lock {
-  background: #0b0216;
-  color: #ff8c00;
+.wtab.is-selected .shield-word {
+  color: #000;
 }
-
-.golden-lock[hidden] { display: none !important; }
 
 .mbtn.is-selected, .wtab.is-selected {
   background: var(--gold);

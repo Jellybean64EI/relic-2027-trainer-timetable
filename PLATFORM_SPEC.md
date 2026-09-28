@@ -5,7 +5,7 @@
 **Coach archive:** NiX  
 **Timezone:** Europe/London (always)  
 **Runtime:** static HTML / CSS / JS. No build step. No npm.  
-**Cache bust:** `?v=v2_7` on every stylesheet and script in `index.html`
+**Cache bust:** `?v=v2_8` on every stylesheet and script in `index.html`
 
 Footer motto (exact):
 
@@ -19,7 +19,7 @@ Title (exact):
 
 ## 1. Purpose
 
-Single-page timetable for the 2027 trainer year. Each training day shows two stacked cabin citations. Opening a citation streams that cabin’s movement clips from Supabase Storage. A completion checkbox for the London `date_key` upserts `relic_completions`.
+Single-page timetable for the 2027 trainer year. Each training day shows two stacked cabin citations. Opening a citation streams that cabin’s movement clips from Supabase Storage. A completion checkbox upserts `relic_completions` for the active schedule mode only.
 
 Two schedule modes share this page: **Full Body Trainer Schedules** (default) and **Upper Body Trainer Schedules**. A bottom button swaps the rendered rotation without a reload. See §11.
 
@@ -133,29 +133,29 @@ Table: `relic_completions`
 
 | Column | Type |
 |--------|------|
-| `date_key` | TEXT PRIMARY KEY (`YYYY-MM-DD`, Europe/London) |
+| `date_key` | TEXT PRIMARY KEY. Full Body: bare `YYYY-MM-DD` (Europe/London). Upper Body: `upper:YYYY-MM-DD` |
 | `completed` | BOOLEAN |
 | `updated_at` | TIMESTAMPTZ |
 
 - Load with the anon key via Supabase REST (`select=date_key,completed`).
 - Toggle upserts on `date_key` (`Prefer: resolution=merge-duplicates`).
 - In-memory state is only a mirror of Supabase. Do not persist ticks in `localStorage`.
-- Verified columns are only `date_key`, `completed`, and `updated_at`. There is no phase or schedule-mode column. Do not add one.
+- Columns stay `date_key`, `completed`, and `updated_at`. No `mode` column and no migration. Existing bare `YYYY-MM-DD` rows are Full Body and are not rewritten. A `full:` prefix, if present, is read as Full Body; new Full Body writes stay on the bare key so older clients keep working.
 
-### Shared date_key across schedule modes
+### Mode-isolated completions
 
-Full Body and Upper Body tick the same London date. Both write one `relic_completions` row keyed by `date_key` (`YYYY-MM-DD`). A tick in either mode sets that date completed for both, because the modes share the calendar day and the table has no mode column. No schema migration. Mode preference, if kept, is an in-memory flag only (`state.mode`, optional `?mode=upper` or `?mode=full` on first paint). It is not a completion source of truth.
+Full Body and Upper Body do not share a tick. The active mode (`state.mode`, first paint from `?mode=upper` or `?mode=full`) chooses the storage key: bare `YYYY-MM-DD` for Full Body, `upper:YYYY-MM-DD` for Upper Body. Switching the bottom toggle re-renders that mode’s ticks and week shields only. The other mode’s rows stay untouched.
 
-### Gold Week Complete Badge
+### Shield Tick badge
 
 Active days in each week bucket are Monday–Saturday (`dayIndex` 0–5). Sunday (Rest / Weekly Reset) stays off the main list and out of the evaluation.
 
-Each week of the viewed month is scored on its own from the in-memory `relic_completions` mirror. A week is complete when every active day in that bucket has `completed=true`. Weeks 1–3 are six days. Week 4 includes every Mon–Sat date from the 22nd through month end, so those extra days must be complete too.
+Each week of the viewed month is scored on its own from the active mode’s completion keys. A week is complete when every active day in that bucket is completed for that mode. Weeks 1–3 are six days. Week 4 includes every Mon–Sat date from the 22nd through month end, so those extra days must be complete too.
 
-While a week is complete:
+While a week is complete for the active mode:
 
-- That week’s chip shows a **Gold Week Complete Badge**, including while another week is on screen. The badge `aria-label` is `Gold Week Complete Badge`. An incomplete week hides the badge.
-- Gold `#ff8c00` checkboxes with a deep black checkmark apply only to the week currently being viewed, and only when that viewed week is complete. Those checkboxes use `aria-label` `Completed {date_key}, Gold Week Complete Badge`.
+- That week’s chip shows a gold `#ff8c00` shield with a deep black checkmark, and the word **Completed** under the week label, including while another week is on screen. An incomplete week hides the shield.
+- Gold `#ff8c00` checkboxes with a deep black checkmark apply only to the week currently being viewed, and only when that viewed week is complete for the active mode. Checkbox `aria-label` stays `Completed {date_key}`.
 
 Evaluate on each timetable render and whenever a completion tick is upserted. Do not store the badge in `localStorage`. An incomplete viewed week keeps the normal checkbox style. Week chips, the identity line, and week meta name Week 4 as `WEEK 4` with no `DELOAD` suffix.
 
@@ -163,7 +163,7 @@ Evaluate on each timetable render and whenever a completion tick is upserted. Do
 
 ## 7. Cache
 
-`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v2_7`. The `relic-build` meta is `v2_7`.
+`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v2_8`. The `relic-build` meta is `v2_8`.
 
 ---
 
@@ -200,18 +200,18 @@ index.html?date=2026-09-25   → PREVIEW, January Week 1, practice ticks allowed
 2. Clips stream from Supabase public URLs. The set timer calls `playNextVideo()` at `00:00`. Duration overwrites remaining time and `SET_DURATION_SEC`. Add More Time only stacks onto remaining time. The next clip starts at the locked `SET_DURATION_SEC`.
 3. The table is exactly DAY / TRAINING RELICS / DONE at 20% / 70% / 10%.
 4. Ticks upsert `relic_completions`.
-5. `vercel.json` no-cache plus `?v=v2_7` on assets.
+5. `vercel.json` no-cache plus `?v=v2_8` on assets.
 6. `schedule.js` `MONTH_ROTATIONS` stays the Full Body lock. Upper Body data is additive.
-7. Each week whose Mon–Sat days are all `completed=true` keeps a Gold Week Complete Badge on its chip while any week is on screen. Gold `#ff8c00` checkboxes and black ticks apply only while that complete week is the one being viewed. Week 4 labels read `WEEK 4` with no DELOAD suffix.
-8. The bottom button swaps Full Body and Upper Body without a reload. Completions stay on the shared `date_key`.
+7. Each week whose Mon–Sat days are all complete for the active mode keeps a gold shield tick and the word Completed on its chip while any week is on screen. Gold `#ff8c00` checkboxes and black ticks apply only while that complete week is the one being viewed. Week 4 labels read `WEEK 4` with no DELOAD suffix.
+8. The bottom button swaps Full Body and Upper Body without a reload. Each mode shows only its own ticks and shield badges.
 
 ---
 
 ## 11. Upper Body Trainer Schedules
 
-Same shell as Full Body: fixed 3-column table (DAY 20% / TRAINING RELICS 70% / DONE 10%), headers only `DAY`, `TRAINING RELICS`, `DONE`, gothic tokens (`#0b0216`, `#150724`, `#ff8c00`, `#d8b4fe`), 44px targets, month chips, week chips, Gold Week Complete Badge, dual-module timer, and Sunday hidden from the Mon–Sat list.
+Same shell as Full Body: fixed 3-column table (DAY 20% / TRAINING RELICS 70% / DONE 10%), headers only `DAY`, `TRAINING RELICS`, `DONE`, gothic tokens (`#0b0216`, `#150724`, `#ff8c00`, `#d8b4fe`), 44px targets, month chips, week chips, shield tick badge, dual-module timer, and Sunday hidden from the Mon–Sat list.
 
-`app.js` keeps one render path. `state.mode` is `full` or `upper`. `activeDaysForWeek` reads `RELIC_SCHEDULE.daysInWeekOfMonth` or `RELIC_UPPER_BODY.daysInWeekOfMonth`. Phase, timezone, week buckets, and the completion mirror do not fork.
+`app.js` keeps one render path. `state.mode` is `full` or `upper`. `activeDaysForWeek` reads `RELIC_SCHEDULE.daysInWeekOfMonth` or `RELIC_UPPER_BODY.daysInWeekOfMonth`. Phase, timezone, and week buckets do not fork. Completion reads and writes use the active mode’s `date_key` namespace.
 
 ### Toggle
 
@@ -247,7 +247,7 @@ Eyes is a single-document folder. `1. Eye_Sequence_Trainer.docx` is the href for
 
 ### Badge
 
-The Gold Week Complete Badge still scores each week of the viewed month on its own: every active Mon–Sat `date_key` in that bucket must be `completed=true`. Week 4 includes every Mon–Sat date from the 22nd through month end. Because both modes share `date_key`, a completed week shows the badge in both modes. Badge state is not stored in `localStorage`.
+The shield tick scores each week of the viewed month on its own, for the active mode only: every active Mon–Sat day in that bucket must be completed under that mode’s key. Week 4 includes every Mon–Sat date from the 22nd through month end. A week finished in Upper Body does not mark the same week finished in Full Body. Badge state is not stored in `localStorage`.
 
 ---
 

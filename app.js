@@ -1,8 +1,9 @@
 /* Relic Architect V2.0 — timetable, Supabase completions, HTML5 cabin player.
    Playback is Supabase Storage only. Drive iframes, previews, and embeddedfolderview are refused.
    Completions upsert relic_completions. localStorage is not the source of truth.
-   Schedule mode (full | upper) only swaps which rotation activeDaysForView reads.
-   Both modes upsert the same date_key. Mode preference stays in memory. */
+   Schedule mode (full | upper) swaps the rotation and its own completion namespace.
+   Full Body keeps the legacy bare YYYY-MM-DD key. Upper Body uses upper:YYYY-MM-DD.
+   Mode preference stays in memory. */
 (function () {
   "use strict";
 
@@ -144,6 +145,37 @@
     el.classList.toggle("is-error", !!isError);
   }
 
+  /* Full Body history is the bare London date. Upper Body never writes that key.
+     A full: prefix, if one appears, is read as Full Body and is not the write path. */
+  function activeMode() {
+    return viewingUpper() ? "upper" : "full";
+  }
+
+  function completionStorageKey(dateKey, mode) {
+    var which = mode || activeMode();
+    if (which === "upper") return "upper:" + dateKey;
+    return dateKey;
+  }
+
+  function absorbCompletionRow(next, dateKey, completed) {
+    if (!dateKey || !completed) return;
+    var upperMatch = /^upper:(\d{4}-\d{2}-\d{2})$/.exec(dateKey);
+    if (upperMatch) {
+      next["upper:" + upperMatch[1]] = true;
+      return;
+    }
+    var fullMatch = /^full:(\d{4}-\d{2}-\d{2})$/.exec(dateKey);
+    if (fullMatch) {
+      next[fullMatch[1]] = true;
+      return;
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) next[dateKey] = true;
+  }
+
+  function isDateComplete(dateKey, mode) {
+    return !!state.completes[completionStorageKey(dateKey, mode)];
+  }
+
   function pullCompletions() {
     var cfg = supabaseCfg();
     if (!cfg.url || !cfg.anonKey) {
@@ -160,7 +192,7 @@
       var next = {};
       if (Array.isArray(rows)) {
         rows.forEach(function (row) {
-          if (row && row.date_key && row.completed) next[row.date_key] = true;
+          if (row) absorbCompletionRow(next, row.date_key, row.completed);
         });
       }
       state.completes = next;
@@ -172,7 +204,7 @@
     });
   }
 
-  function upsertCompletion(dateKey, completed) {
+  function upsertCompletion(storageKey, completed) {
     var cfg = supabaseCfg();
     if (!cfg.url || !cfg.anonKey) return Promise.resolve(false);
     return fetch(restUrl("/rest/v1/relic_completions?on_conflict=date_key"), {
@@ -182,7 +214,7 @@
         Prefer: "resolution=merge-duplicates,return=minimal"
       }),
       body: JSON.stringify({
-        date_key: dateKey,
+        date_key: storageKey,
         completed: !!completed,
         updated_at: new Date().toISOString()
       })
@@ -243,15 +275,14 @@
 
   /* Every Mon–Sat row in a week bucket. Weeks 1–3 are six days.
      Week 4 runs through month end, so it completes only when those extra days are done too.
-     Sunday stays out. Completions come from the relic_completions mirror, never localStorage.
-     Each week of the viewed month is scored on its own. The badge stays on every complete chip.
+     Sunday stays out. Completions come from the active mode's relic_completions keys.
+     Each week of the viewed month is scored on its own. The shield stays on every complete chip.
      Gold checkbox styling applies only to the week currently on screen. */
-  var GOLD_WEEK_BADGE = "Gold Week Complete Badge";
 
   function weekIsGolden(days) {
     if (!days || days.length < 6) return false;
     for (var i = 0; i < days.length; i++) {
-      if (!state.completes[days[i].dateKey]) return false;
+      if (!isDateComplete(days[i].dateKey)) return false;
     }
     return true;
   }
@@ -268,10 +299,8 @@
       var days = week === state.viewWeek ? viewedDays : activeDaysForWeek(state.viewMonth, week);
       var complete = weekIsGolden(days);
       btn.classList.toggle("is-golden", complete);
-      var badge = btn.querySelector(".golden-lock");
+      var badge = btn.querySelector(".shield-complete");
       if (!badge) return;
-      badge.textContent = GOLD_WEEK_BADGE;
-      badge.setAttribute("aria-label", GOLD_WEEK_BADGE);
       badge.hidden = !complete;
     });
     document.querySelectorAll("#tt-body .tick-hit").forEach(function (hit) {
@@ -279,9 +308,7 @@
       var input = hit.querySelector("input.tick");
       if (!input) return;
       var dateKey = input.getAttribute("data-date") || "";
-      input.setAttribute("aria-label", viewedGolden
-        ? "Completed " + dateKey + ", " + GOLD_WEEK_BADGE
-        : "Completed " + dateKey);
+      input.setAttribute("aria-label", "Completed " + dateKey);
     });
   }
 
@@ -289,7 +316,7 @@
     if (!canTick(day.dateKey, parts)) {
       return '<td class="done-cell"><span class="lock-badge">LOCKED</span></td>';
     }
-    var checked = state.completes[day.dateKey] ? " checked" : "";
+    var checked = isDateComplete(day.dateKey) ? " checked" : "";
     return (
       '<td class="done-cell"><label class="tick-hit">' +
       '<input type="checkbox" class="tick" data-date="' + day.dateKey + '"' + checked +
@@ -375,7 +402,7 @@
       var isToday = day.dateKey === parts.dateKey;
       var classes = [];
       if (isToday) classes.push("today");
-      if (state.completes[day.dateKey]) classes.push("is-done");
+      if (isDateComplete(day.dateKey)) classes.push("is-done");
       html += '<tr class="' + classes.join(" ") + '">' +
         '<td class="day-cell">' +
           '<span class="day-name">' + day.dayName + "</span>" +
@@ -398,20 +425,21 @@
       return;
     }
     var completed = !!input.checked;
-    if (completed) state.completes[dateKey] = true;
-    else delete state.completes[dateKey];
+    var storageKey = completionStorageKey(dateKey);
+    if (completed) state.completes[storageKey] = true;
+    else delete state.completes[storageKey];
     var row = input.closest("tr");
     if (row) row.classList.toggle("is-done", completed);
     applyGoldenLock(activeDaysForView());
 
-    var gen = (state.saveGen[dateKey] || 0) + 1;
-    state.saveGen[dateKey] = gen;
+    var gen = (state.saveGen[storageKey] || 0) + 1;
+    state.saveGen[storageKey] = gen;
     setSync("Saving " + dateKey + "…", false);
-    upsertCompletion(dateKey, completed).then(function (ok) {
-      if (state.saveGen[dateKey] !== gen) return;
+    upsertCompletion(storageKey, completed).then(function (ok) {
+      if (state.saveGen[storageKey] !== gen) return;
       if (!ok) {
-        if (completed) delete state.completes[dateKey];
-        else state.completes[dateKey] = true;
+        if (completed) delete state.completes[storageKey];
+        else state.completes[storageKey] = true;
         setSync("Could not save " + dateKey + " to relic_completions.", true);
         render();
         return;
