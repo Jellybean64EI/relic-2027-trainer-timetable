@@ -5,7 +5,7 @@
 **Coach archive:** NiX  
 **Timezone:** Europe/London (always)  
 **Runtime:** static HTML / CSS / JS. No build step. No npm.  
-**Cache bust:** `?v=v2_4` on every stylesheet and script in `index.html`
+**Cache bust:** `?v=v2_6` on every stylesheet and script in `index.html`
 
 Footer motto (exact):
 
@@ -20,6 +20,8 @@ Title (exact):
 ## 1. Purpose
 
 Single-page timetable for the 2027 trainer year. Each training day shows two stacked cabin citations. Opening a citation streams that cabin’s movement clips from Supabase Storage. A completion checkbox for the London `date_key` upserts `relic_completions`.
+
+Two schedule modes share this page: **Full Body Trainer Schedules** (default) and **Upper Body Trainer Schedules**. A bottom button swaps the rendered rotation without a reload. See §11.
 
 Playback never uses Google Drive iframes, preview URLs, or `embeddedfolderview`. Completion state never uses `localStorage` as the source of truth.
 
@@ -66,7 +68,9 @@ Phase suffix follows the quarter, not a printed-card heading:
 | Q3 | Jul–Sep | `Expert` |
 | Q4 | Oct–Dec | `Till_Failure` |
 
-Cabin keys: `Back` · `Upper_Arms` · `Chest` · `Legs_Glutes` · `Abs_Pelvic` · `Calisthenics` · `Resistance_Bands` · `Hanging` · `Target_Weights` · `Hand_Wrist_Forearm` · `Posture_Mobility` · `Neck`
+Full Body cabin keys: `Back` · `Upper_Arms` · `Chest` · `Legs_Glutes` · `Abs_Pelvic` · `Calisthenics` · `Resistance_Bands` · `Hanging` · `Target_Weights` · `Hand_Wrist_Forearm` · `Posture_Mobility` · `Neck`
+
+Upper Body cabin keys: `Face` · `Eyes` · `Tongue` · `Jaw` · `Neck` (Neck is the same cabin key as Full Body)
 
 Document URLs stay in `data/citations.js`. A primary click starts the cabin video session. The anchor may still point at the phase document. Missing higher-tier documents fall back to Base. The visible label still uses the quarter phase. Do not show Drive filenames such as `Back_Base_Trainer.docx` in the table.
 
@@ -94,7 +98,7 @@ Document URLs stay in `data/citations.js`. A primary click starts the cabin vide
 **PREVIEW** (before 1 Jan 2027): January Week 1 by default. Practice ticks allowed.  
 **LIVE** (from 1 Jan 2027): future days cannot be ticked. Past days and today can. All 12 months stay viewable.
 
-Rotations live only in `data/schedule.js` (`MONTH_ROTATIONS`). The UI must not invent pairs.
+Full Body rotations live only in `data/schedule.js` (`MONTH_ROTATIONS`). The UI must not invent Full Body pairs. Upper Body rotations live only in `data/upperBody.js` (`RELIC_UPPER_BODY.MONTH_ROTATIONS`) and must not replace the Full Body table.
 
 ---
 
@@ -134,6 +138,11 @@ Table: `relic_completions`
 - Load with the anon key via Supabase REST (`select=date_key,completed`).
 - Toggle upserts on `date_key` (`Prefer: resolution=merge-duplicates`).
 - In-memory state is only a mirror of Supabase. Do not persist ticks in `localStorage`.
+- Verified columns are only `date_key`, `completed`, and `updated_at`. There is no phase or schedule-mode column. Do not add one.
+
+### Shared date_key across schedule modes
+
+Full Body and Upper Body tick the same London date. Both write one `relic_completions` row keyed by `date_key` (`YYYY-MM-DD`). A tick in either mode sets that date completed for both, because the modes share the calendar day and the table has no mode column. No schema migration. Mode preference, if kept, is an in-memory flag only (`state.mode`, optional `?mode=upper` or `?mode=full` on first paint). It is not a completion source of truth.
 
 ### Gold Week Complete Badge
 
@@ -152,20 +161,21 @@ Evaluate on each timetable render and whenever a completion tick is upserted. Do
 
 ## 7. Cache
 
-`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v2_4`. The `relic-build` meta is `v2_4`.
+`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v2_6`. The `relic-build` meta is `v2_6`.
 
 ---
 
 ## 8. Files
 
 ```
-index.html              — V2 shell
-styles.css              — S24 Ultra timetable + player
-app.js                  — calendar, Supabase ticks, HTML5 player
+index.html              — V2 shell, schedule-mode line, bottom mode button
+styles.css              — S24 Ultra timetable + player + mode button
+app.js                  — calendar, Supabase ticks, HTML5 player, mode swap
 PLATFORM_SPEC.md        — this law
 vercel.json             — no-cache headers
-data/schedule.js        — NiX month rotations (do not invent pairs)
-data/citations.js       — document links
+data/schedule.js        — Full Body NiX month rotations (do not invent pairs)
+data/upperBody.js       — Upper Body rotations (does not edit MONTH_ROTATIONS)
+data/citations.js       — document links, including Face / Eyes / Tongue / Jaw
 data/videoArchive.js    — cabin playlists (Drive id is not playback)
 data/supabaseConfig.js  — url, anonKey, bucket
 ```
@@ -188,9 +198,50 @@ index.html?date=2026-09-25   → PREVIEW, January Week 1, practice ticks allowed
 2. Clips stream from Supabase public URLs. The set timer calls `playNextVideo()` at `00:00`. Duration overwrites remaining time and `SET_DURATION_SEC`. Add More Time only stacks onto remaining time. The next clip starts at the locked `SET_DURATION_SEC`.
 3. The table is exactly DAY / TRAINING RELICS / DONE at 20% / 70% / 10%.
 4. Ticks upsert `relic_completions`.
-5. `vercel.json` no-cache plus `?v=v2_4` on assets.
-6. `schedule.js`, `citations.js`, `videoArchive.js`, and `supabaseConfig.js` keep their data.
+5. `vercel.json` no-cache plus `?v=v2_6` on assets.
+6. `schedule.js` `MONTH_ROTATIONS` stays the Full Body lock. Upper Body data is additive.
 7. Each week whose Mon–Sat days are all `completed=true` keeps a Gold Week Complete Badge on its chip while any week is on screen. Gold `#ff8c00` checkboxes and black ticks apply only while that complete week is the one being viewed. Week 4 labels read `WEEK 4` with no DELOAD suffix.
+8. The bottom button swaps Full Body and Upper Body without a reload. Completions stay on the shared `date_key`.
+
+---
+
+## 11. Upper Body Trainer Schedules
+
+Same shell as Full Body: fixed 3-column table (DAY 20% / TRAINING RELICS 70% / DONE 10%), headers only `DAY`, `TRAINING RELICS`, `DONE`, gothic tokens (`#0b0216`, `#150724`, `#ff8c00`, `#d8b4fe`), 44px targets, month chips, week chips, Gold Week Complete Badge, dual-module timer, and Sunday hidden from the Mon–Sat list.
+
+`app.js` keeps one render path. `state.mode` is `full` or `upper`. `activeDaysForWeek` reads `RELIC_SCHEDULE.daysInWeekOfMonth` or `RELIC_UPPER_BODY.daysInWeekOfMonth`. Phase, timezone, week buckets, and the completion mirror do not fork.
+
+### Toggle
+
+The header line `#schedule-mode` names the mode on screen: `Full Body Trainer Schedules` or `Upper Body Trainer Schedules`.
+
+The bottom button `#btn-schedule-mode` names the other mode. A click flips `state.mode` and calls `render()`. No `location` reload. The choice is in-memory. `?mode=upper` or `?mode=full` sets only the first paint.
+
+### Daily rotation
+
+Cabins: `Face`, `Tongue`, `Eyes`, `Jaw`, plus `Neck` on every Mon–Sat row. The partner cycles `Face → Tongue → Eyes → Jaw`. The month offset is 5 so each quarter still gives those four cabins equal template slots, and adjacent months do not open on the same lead. Odd weekdays list Neck first. Citation text is `1. {CabinKey}_Trainer_{Phase}` with the quarter suffix (`Base`, `Hard`, `Expert`, `Till_Failure`).
+
+Sunday in the data file remains `Rest / Light Mobility` and `Weekly Reset`, and stays off the list.
+
+### Player mapping
+
+Citation click still opens `<video id="relic-active-video">`. No Drive iframe, preview, or `embeddedfolderview`.
+
+Drive folder IDs below are mapping references. Public playback paths are `relic-videos/{CabinKey}/{filename}.mp4`.
+
+| Cabin | Drive folder (reference only) | Bucket prefix |
+|-------|-------------------------------|---------------|
+| Face | `1a1EPQ9tcq2h80sRUTy0RgPKVyjNofNr7` | `Face/` |
+| Eyes | `1IFYFNll4u0SOsKNwaXFwcGCzIeVt0YQG` | `Eyes/` |
+| Tongue | `1Hr-SOlyYmbA9ilHe07nV8mmkWHD7Nilm` | `Tongue/` |
+| Jaw | `14AXrIlRqWouimaym2gdACISEJbbNhBWj` | `Jaw/` |
+| Neck | `1FKFGp-0A9ZSUjeTH65saLabR2wXtcJTs` | `Neck/` |
+
+Neck already has a playlist in `videoArchive.js` and objects under `Neck/`. Upper Body reuses that cabin. Face, Eyes, Tongue, and Jaw are registered with those folder IDs and empty playlists until files exist. An empty playlist shows `No video file IDs mapped for this cabin.` Phase Docx files for Face, Eyes, Tongue, and Jaw are not authored; the visible label still uses the quarter phase.
+
+### Badge
+
+The Gold Week Complete Badge still scores each week of the viewed month on its own: every active Mon–Sat `date_key` in that bucket must be `completed=true`. Week 4 includes every Mon–Sat date from the 22nd through month end. Because both modes share `date_key`, a completed week shows the badge in both modes. Badge state is not stored in `localStorage`.
 
 ---
 

@@ -83,6 +83,15 @@ h1 {
   font-weight: 800;
 }
 
+.schedule-mode {
+  margin: 8px 0 0;
+  color: #d8b4fe;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.3;
+}
+
 .identity {
   margin: 8px 0 0;
   color: var(--gold);
@@ -179,7 +188,7 @@ h1 {
   font-size: 0.64rem;
 }
 
-.mbtn, .wtab, .tool-btn, .player-ctrl, .player-close, .start-gate {
+.mbtn, .wtab, .tool-btn, .mode-btn, .player-ctrl, .player-close, .start-gate {
   min-height: var(--touch);
   min-width: var(--touch);
   border: 1px solid rgba(255, 140, 0, 0.4);
@@ -341,6 +350,7 @@ tr.today td {
 .mbtn:focus-visible,
 .wtab:focus-visible,
 .tool-btn:focus-visible,
+.mode-btn:focus-visible,
 .tick-hit:focus-within,
 .player-ctrl:focus-visible,
 .player-close:focus-visible {
@@ -450,6 +460,22 @@ tr.is-done td { background: #1c0c2e; }
 }
 
 .tool-btn { width: 100%; }
+
+.schedule-switch {
+  padding: 0 8px 12px;
+  background: var(--container);
+}
+
+.mode-btn {
+  width: 100%;
+  min-height: var(--touch);
+  background: #150724;
+  color: #ff8c00;
+  border-color: #ff8c00;
+  white-space: normal;
+  line-height: 1.25;
+  padding: 8px 10px;
+}
 
 .footer {
   text-align: center;

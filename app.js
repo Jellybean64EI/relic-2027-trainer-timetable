@@ -1,6 +1,8 @@
 /* Relic Architect V2.0 — timetable, Supabase completions, HTML5 cabin player.
    Playback is Supabase Storage only. Drive iframes, previews, and embeddedfolderview are refused.
-   Completions upsert relic_completions. localStorage is not the source of truth. */
+   Completions upsert relic_completions. localStorage is not the source of truth.
+   Schedule mode (full | upper) only swaps which rotation activeDaysForView reads.
+   Both modes upsert the same date_key. Mode preference stays in memory. */
 (function () {
   "use strict";
 
@@ -10,6 +12,11 @@
   var SET_DURATION_SEC = 1200;
   var SET_MODIFIER_MINUTES = [2, 5, 10, 20];
   var EMPTY_MSG = "No video file IDs mapped for this cabin.";
+
+  var MODE_LABEL = {
+    full: "Full Body Trainer Schedules",
+    upper: "Upper Body Trainer Schedules"
+  };
 
   var state = {
     now: null,
@@ -21,7 +28,8 @@
     loaded: false,
     syncNote: "Loading completions from Supabase…",
     syncError: false,
-    saveGen: {}
+    saveGen: {},
+    mode: "full"
   };
 
   var player = {
@@ -56,6 +64,20 @@
       weekday: map.weekday,
       dateKey: map.year + "-" + map.month + "-" + map.day
     };
+  }
+
+  function parseModeOverride() {
+    var match = /[?&]mode=(upper|full)\b/.exec(location.search || "");
+    if (!match) return "full";
+    return match[1] === "upper" ? "upper" : "full";
+  }
+
+  function upperSchedule() {
+    return window.RELIC_UPPER_BODY || null;
+  }
+
+  function viewingUpper() {
+    return state.mode === "upper" && !!upperSchedule();
   }
 
   function parseDateOverride() {
@@ -205,7 +227,8 @@
   }
 
   function activeDaysForWeek(month, week) {
-    return S.daysInWeekOfMonth(2027, month, week)
+    var source = viewingUpper() ? upperSchedule() : S;
+    return source.daysInWeekOfMonth(2027, month, week)
       .filter(function (day) { return !day.isRecovery && day.dayIndex < 6; })
       .sort(function (a, b) {
         if (a.dateKey < b.dateKey) return -1;
@@ -296,7 +319,10 @@
     }
 
     var phase = S.phaseForMonth(state.viewMonth);
-    var meta = S.MONTH_META[state.viewMonth] || { phaseLine: phase.label, blurb: "" };
+    var metaSource = viewingUpper() ? upperSchedule() : S;
+    var meta = (metaSource.MONTH_META && metaSource.MONTH_META[state.viewMonth]) ||
+      S.MONTH_META[state.viewMonth] || { phaseLine: phase.label, blurb: "" };
+    paintModeChrome();
     var card = $("relic-card");
     card.setAttribute("data-month", String(state.viewMonth));
     card.setAttribute("data-phase", phase.suffix);
@@ -404,6 +430,28 @@
     } else {
       state.viewWeek = 1;
     }
+    render();
+  }
+
+  function paintModeChrome() {
+    var currentKey = viewingUpper() ? "upper" : "full";
+    var otherKey = currentKey === "upper" ? "full" : "upper";
+    var line = $("schedule-mode");
+    if (line) line.textContent = MODE_LABEL[currentKey];
+    var btn = $("btn-schedule-mode");
+    if (btn) {
+      btn.textContent = MODE_LABEL[otherKey];
+      btn.setAttribute("data-mode", currentKey);
+      btn.setAttribute("aria-label", "Show " + MODE_LABEL[otherKey]);
+    }
+    var card = $("relic-card");
+    if (card) card.setAttribute("data-schedule", currentKey);
+    document.body.setAttribute("data-schedule", currentKey);
+  }
+
+  function toggleScheduleMode() {
+    if (!upperSchedule()) return;
+    state.mode = state.mode === "upper" ? "full" : "upper";
     render();
   }
 
@@ -816,6 +864,12 @@
       state.userPicked = false;
       render();
     });
+    var modeBtn = $("btn-schedule-mode");
+    if (modeBtn) {
+      modeBtn.addEventListener("click", function () {
+        toggleScheduleMode();
+      });
+    }
     $("tt-body").addEventListener("change", function (event) {
       var input = event.target.closest("input.tick");
       if (!input) return;
@@ -912,6 +966,8 @@
       setSync("Schedule data failed to load.", true);
       return;
     }
+    state.mode = parseModeOverride();
+    if (state.mode === "upper" && !upperSchedule()) state.mode = "full";
     wire();
     render();
     pullCompletions().then(render);
@@ -940,7 +996,10 @@
     openCabin: openCabin,
     playNextVideo: playNextVideo,
     applyDurationOverride: applyDurationOverride,
-    applyAddMoreTime: applyAddMoreTime
+    applyAddMoreTime: applyAddMoreTime,
+    get mode() { return state.mode; },
+    toggleScheduleMode: toggleScheduleMode,
+    MODE_LABEL: MODE_LABEL
   };
 
   if (document.readyState === "loading") {

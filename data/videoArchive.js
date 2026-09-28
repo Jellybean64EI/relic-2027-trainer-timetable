@@ -420,11 +420,34 @@ window.RELIC_VIDEO_ARCHIVE = {
         { id: "1ErT1nZ3TI3nFmchydUlqTcq7-8RMZnjV", title: "6. Suboccipital Self Massage.mp4" }
       ]
     },
+    /* Upper Body cabins. Folder IDs are Drive mapping references only.
+       Playback URLs are relic-videos/{CabinKey}/{file}.mp4.
+       Face, Eyes, Tongue, and Jaw have no objects in the bucket yet, so the
+       playlists stay empty and the player shows the empty overlay.
+       Neck above is reused (folder 1FKFGp-0A9ZSUjeTH65saLabR2wXtcJTs). */
+    Face: {
+      folderId: "1a1EPQ9tcq2h80sRUTy0RgPKVyjNofNr7",
+      folderUrl: "https://drive.google.com/drive/folders/1a1EPQ9tcq2h80sRUTy0RgPKVyjNofNr7",
+      label: "1. Face Trainer Videos",
+      playlist: []
+    },
+    Eyes: {
+      folderId: "1IFYFNll4u0SOsKNwaXFwcGCzIeVt0YQG",
+      folderUrl: "https://drive.google.com/drive/folders/1IFYFNll4u0SOsKNwaXFwcGCzIeVt0YQG",
+      label: "2. Eyes Trainer Videos",
+      playlist: []
+    },
+    Tongue: {
+      folderId: "1Hr-SOlyYmbA9ilHe07nV8mmkWHD7Nilm",
+      folderUrl: "https://drive.google.com/drive/folders/1Hr-SOlyYmbA9ilHe07nV8mmkWHD7Nilm",
+      label: "3. Tongue Trainer Videos",
+      playlist: []
+    },
     Jaw: {
       folderId: "14AXrIlRqWouimaym2gdACISEJbbNhBWj",
       folderUrl: "https://drive.google.com/drive/folders/14AXrIlRqWouimaym2gdACISEJbbNhBWj",
       label: "4. Jaw Trainer Videos",
-      /* PRE→MAIN→POST file IDs (cap MAIN 20) */
+      /* PRE→MAIN→POST file IDs (cap MAIN 20). Bucket prefix Jaw/ is empty. */
       playlist: []
     },
     Kegel_Hip_Flexors: {
