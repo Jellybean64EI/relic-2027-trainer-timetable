@@ -28,8 +28,9 @@
     coachOverride: null,
     completes: {},
     loaded: false,
-    syncNote: "Loading completions from Supabase…",
+    syncNote: "Loading completions",
     syncError: false,
+    syncPending: 0,
     saveGen: {},
     mode: "full"
   };
@@ -143,13 +144,43 @@
     return headers;
   }
 
+  function paintSyncDot() {
+    var dot = $("sync-dot");
+    if (!dot) return;
+    var busy = state.syncPending > 0;
+    dot.classList.toggle("is-busy", busy);
+    dot.classList.toggle("is-error", !!state.syncError && !busy);
+    var label = busy ? "Syncing completions" : (state.syncError ? state.syncNote : "Synced");
+    dot.setAttribute("aria-label", label);
+    var text = $("sync-dot-text");
+    if (text) text.textContent = label;
+  }
+
+  function beginSyncActivity() {
+    state.syncPending += 1;
+    paintSyncDot();
+  }
+
+  function endSyncActivity() {
+    state.syncPending = Math.max(0, state.syncPending - 1);
+    paintSyncDot();
+  }
+
   function setSync(note, isError) {
     state.syncNote = note;
     state.syncError = !!isError;
     var el = $("sync-status");
-    if (!el) return;
-    el.textContent = note;
-    el.classList.toggle("is-error", !!isError);
+    if (el) {
+      el.classList.toggle("is-error", !!isError);
+      if (isError) {
+        el.hidden = false;
+        el.textContent = note;
+      } else {
+        el.hidden = true;
+        el.textContent = "";
+      }
+    }
+    paintSyncDot();
   }
 
   /* Full Body history is the bare London date. Upper Body never writes that key.
@@ -190,6 +221,7 @@
       setSync("Supabase config missing — ticks cannot sync.", true);
       return Promise.resolve();
     }
+    beginSyncActivity();
     return fetch(restUrl("/rest/v1/relic_completions?select=date_key,completed"), {
       headers: restHeaders()
     }).then(function (response) {
@@ -204,10 +236,12 @@
       }
       state.completes = next;
       state.loaded = true;
-      setSync("Synced · relic_completions", false);
+      setSync("Synced", false);
     }).catch(function () {
       state.loaded = true;
       setSync("Could not load relic_completions. Check the connection and try again.", true);
+    }).then(function () {
+      endSyncActivity();
     });
   }
 
@@ -363,7 +397,6 @@
     document.body.setAttribute("data-month", String(state.viewMonth));
     document.body.setAttribute("data-phase", phase.suffix);
 
-    $("banner-preview").hidden = !preview;
     $("banner-live").hidden = preview;
     var coach = $("banner-coach");
     if (state.coachOverride) {
@@ -377,7 +410,6 @@
     $("identity-line").textContent =
       S.MONTH_NAMES[state.viewMonth] + " · WEEK " + state.viewWeek + " OF 4 · " + phaseShort;
     $("month-blurb").textContent = meta.blurb || "";
-    $("deload-hint").hidden = state.viewWeek !== 4;
     $("meta-today").innerHTML = "TODAY <strong>" + parts.dateKey + "</strong> · " + parts.weekday;
     $("meta-mode").textContent = preview
       ? "PREVIEW · live 1 Jan 2027"
@@ -441,6 +473,7 @@
 
     var gen = (state.saveGen[storageKey] || 0) + 1;
     state.saveGen[storageKey] = gen;
+    beginSyncActivity();
     setSync("Saving " + dateKey + "…", false);
     upsertCompletion(storageKey, completed).then(function (ok) {
       if (state.saveGen[storageKey] !== gen) return;
@@ -451,8 +484,12 @@
         render();
         return;
       }
-      setSync("Synced · relic_completions", false);
+      setSync("Synced", false);
       applyGoldenLock(activeDaysForView());
+    }).then(function () {
+      endSyncActivity();
+    }, function () {
+      endSyncActivity();
     });
   }
 

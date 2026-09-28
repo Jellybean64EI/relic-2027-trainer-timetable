@@ -6,31 +6,38 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v2_12" />
-  <title>2027 TRAINER TIMETABLE CARD — Relic Architect V2.0</title>
-  <link rel="stylesheet" href="styles.css?v=v2_12" />
+  <meta name="relic-build" content="v2_13" />
+  <title>NiX Training Schedules</title>
+  <link rel="stylesheet" href="styles.css?v=v2_13" />
 </head>
 <body>
   <div class="wrap">
     <article class="card" id="relic-card" data-month="1" data-phase="Base">
       <header class="header">
-        <p class="version">RELIC ARCHITECT V2.0</p>
-        <h1>2027 TRAINER TIMETABLE CARD</h1>
-        <p class="schedule-mode" id="schedule-mode">Full Body Trainer Schedules</p>
-        <p class="identity" id="identity-line">JANUARY · WEEK 1 OF 4 · BASE</p>
-        <p class="blurb" id="month-blurb"></p>
-        <p class="deload" id="deload-hint" hidden>DELOAD — cut MAIN ~40–50%. No till-failure sets.</p>
-        <div class="meta-row">
-          <span class="chip" id="meta-today">TODAY</span>
-          <span class="chip" id="meta-mode">MODE</span>
-          <span class="chip">JOSEPH · LONDON</span>
+        <div class="brand-bar">
+          <div class="brand-main">
+            <h1>NiX Training Schedules</h1>
+            <p class="schedule-mode" id="schedule-mode">Full Body Trainer Schedules</p>
+          </div>
+          <div class="header-corner">
+            <span class="sync-dot is-busy" id="sync-dot" role="status" aria-live="polite" aria-label="Loading completions">
+              <span class="sr-only" id="sync-dot-text">Loading completions</span>
+            </span>
+            <p class="corner-who">JOSEPH · LONDON</p>
+            <p class="corner-mode" id="meta-mode">MODE</p>
+            <p class="corner-today" id="meta-today">TODAY</p>
+          </div>
         </div>
       </header>
 
-      <p class="banner" id="banner-preview">PREVIEW · Practice ticks allowed · Live tracking starts 1 January 2027</p>
       <p class="banner" id="banner-live" hidden>LIVE · Europe/London · Today and past can tick · Future days locked</p>
       <p class="banner coach" id="banner-coach" hidden></p>
-      <p class="banner warn" id="sync-status" role="status">Loading completions from Supabase…</p>
+      <p class="banner warn" id="sync-status" hidden></p>
+
+      <div class="live-stack">
+        <p class="identity" id="identity-line">JANUARY · WEEK 1 OF 4 · BASE</p>
+        <p class="blurb" id="month-blurb"></p>
+      </div>
 
       <div class="phase-bar" role="list" aria-label="Phase quarters">
         <div class="phase" data-phase="Base" role="listitem">
@@ -146,11 +153,11 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v2_12"></script>
-  <script src="data/upperBody.js?v=v2_12"></script>
-  <script src="data/citations.js?v=v2_12"></script>
-  <script src="data/videoArchive.js?v=v2_12"></script>
-  <script src="data/supabaseConfig.js?v=v2_12"></script>
-  <script src="app.js?v=v2_12"></script>
+  <script src="data/schedule.js?v=v2_13"></script>
+  <script src="data/upperBody.js?v=v2_13"></script>
+  <script src="data/citations.js?v=v2_13"></script>
+  <script src="data/videoArchive.js?v=v2_13"></script>
+  <script src="data/supabaseConfig.js?v=v2_13"></script>
+  <script src="app.js?v=v2_13"></script>
 </body>
 </html>
