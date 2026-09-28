@@ -6,9 +6,9 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v17" />
+  <meta name="relic-build" content="v18" />
   <title>NiX Training Schedules</title>
-  <link rel="stylesheet" href="styles.css?v=v17" />
+  <link rel="stylesheet" href="styles.css?v=v18" />
 </head>
 <body>
   <div class="wrap">
@@ -166,16 +166,11 @@
 
       <section class="food-board" id="food-board" hidden aria-labelledby="food-board-title">
         <button type="button" class="food-back" id="btn-food-close">Training timetable</button>
-        <h2 id="food-board-title" class="food-title" tabindex="-1">Food &amp; Prep Schedule</h2>
-        <div class="fuel-tier" id="fuel-tier" data-tier="1">
-          <p class="fuel-tier-label" id="fuel-tier-label">TIER 1 · £150/MONTH</p>
-          <p class="fuel-tier-range" id="fuel-tier-range">Oct 2026 – Jan 2027 · Sainsbury's</p>
-          <p class="fuel-tier-basket" id="fuel-tier-basket"></p>
-        </div>
-        <div id="food-schedule">
+        <h2 id="food-board-title" class="food-title" tabindex="-1">Weekly Food Schedule</h2>
+        <div class="food-room" id="food-weekly" hidden>
           <div class="table-wrap">
             <table class="timetable fuel-table" id="fuel-table">
-              <caption class="sr-only">Training cabins and the fuel cue for the selected week. Sunday stays off this list.</caption>
+              <caption class="sr-only">Monday to Saturday fuel for the selected week. Sunday stays off this list.</caption>
               <colgroup>
                 <col class="col-day" />
                 <col class="col-relics" />
@@ -183,18 +178,17 @@
               <thead>
                 <tr>
                   <th scope="col">DAY</th>
-                  <th scope="col">TRAINING + FUEL</th>
+                  <th scope="col">FUEL</th>
                 </tr>
               </thead>
               <tbody id="fuel-body"></tbody>
             </table>
           </div>
           <p class="fuel-sunday" id="fuel-sunday"></p>
-          <div class="food-jumps" id="food-jumps"></div>
-          <button type="button" class="fuel-basket-toggle" id="btn-fuel-basket" aria-expanded="false" aria-controls="fuel-basket">Monthly basket</button>
-          <div class="fuel-basket" id="fuel-basket" hidden></div>
         </div>
-        <div id="food-card-host" hidden></div>
+        <div class="food-room" id="food-shop" hidden></div>
+        <div class="food-room" id="food-meals" hidden></div>
+        <div class="food-room" id="food-extractions" hidden></div>
       </section>
 
       <div class="schedule-switch">
@@ -243,9 +237,21 @@
       <section class="nav-section" aria-labelledby="nav-food-label">
         <h3 id="nav-food-label" class="nav-kicker">Food and Prep</h3>
         <div class="nav-rows" role="group" aria-label="Food and Prep">
-          <button type="button" class="nav-row" id="btn-food-prep" aria-pressed="false" aria-controls="food-board">
-            <span class="nav-row-label">Food &amp; Prep Schedule</span>
-            <span class="nav-row-tag">FUEL</span>
+          <button type="button" class="nav-row" data-food-room="weekly" aria-pressed="false" aria-controls="food-weekly">
+            <span class="nav-row-label">Weekly Food Schedule</span>
+            <span class="nav-row-tag">WEEK</span>
+          </button>
+          <button type="button" class="nav-row" data-food-room="shop" aria-pressed="false" aria-controls="food-shop">
+            <span class="nav-row-label">Monthly Foods (Sainsbury’s)</span>
+            <span class="nav-row-tag">SHOP</span>
+          </button>
+          <button type="button" class="nav-row" data-food-room="meals" aria-pressed="false" aria-controls="food-meals">
+            <span class="nav-row-label">Meal Recipe Cards</span>
+            <span class="nav-row-tag">MEAL</span>
+          </button>
+          <button type="button" class="nav-row" data-food-room="extractions" aria-pressed="false" aria-controls="food-extractions">
+            <span class="nav-row-label">Smoothie / Extraction Cards</span>
+            <span class="nav-row-tag">BLEND</span>
           </button>
         </div>
       </section>
@@ -319,14 +325,17 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v17"></script>
-  <script src="data/precondition.js?v=v17"></script>
-  <script src="data/upperBody.js?v=v17"></script>
-  <script src="data/citations.js?v=v17"></script>
-  <script src="data/forensic.js?v=v17"></script>
-  <script src="data/videoArchive.js?v=v17"></script>
-  <script src="data/nutrition.js?v=v17"></script>
-  <script src="data/supabaseConfig.js?v=v17"></script>
-  <script src="app.js?v=v17"></script>
+  <script src="data/schedule.js?v=v18"></script>
+  <script src="data/precondition.js?v=v18"></script>
+  <script src="data/upperBody.js?v=v18"></script>
+  <script src="data/citations.js?v=v18"></script>
+  <script src="data/forensic.js?v=v18"></script>
+  <script src="data/videoArchive.js?v=v18"></script>
+  <script src="data/nutrition/shop.js?v=v18"></script>
+  <script src="data/nutrition/meals.js?v=v18"></script>
+  <script src="data/nutrition/extractions.js?v=v18"></script>
+  <script src="data/nutrition/schedule.js?v=v18"></script>
+  <script src="data/supabaseConfig.js?v=v18"></script>
+  <script src="app.js?v=v18"></script>
 </body>
 </html>
