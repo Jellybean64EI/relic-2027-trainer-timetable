@@ -5,7 +5,7 @@
 **Coach archive:** NiX  
 **Timezone:** Europe/London (always)  
 **Runtime:** static HTML / CSS / JS. No build step. No npm.  
-**Cache bust:** `?v=v2_8` on every stylesheet and script in `index.html`
+**Cache bust:** `?v=v2_9` on every stylesheet and script in `index.html`
 
 Footer motto (exact):
 
@@ -21,7 +21,7 @@ Title (exact):
 
 Single-page timetable for the 2027 trainer year. Each training day shows two stacked cabin citations. Opening a citation streams that cabin’s movement clips from Supabase Storage. A completion checkbox upserts `relic_completions` for the active schedule mode only.
 
-Two schedule modes share this page: **Full Body Trainer Schedules** (default) and **Upper Body Trainer Schedules**. A bottom button swaps the rendered rotation without a reload. See §11.
+Two schedule modes share this page: **Full Body Trainer Schedules** (default) and **Upper Body Trainer Schedules**. Under the week chrome the order is the timetable matrix, the schedule toggle immediately under the last day rows, then the motto and its metadata at the bottom of the card. The toggle swaps the rendered rotation without a reload. See §11.
 
 Playback never uses Google Drive iframes, preview URLs, or `embeddedfolderview`. Completion state never uses `localStorage` as the source of truth.
 
@@ -163,14 +163,14 @@ Evaluate on each timetable render and whenever a completion tick is upserted. Do
 
 ## 7. Cache
 
-`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v2_8`. The `relic-build` meta is `v2_8`.
+`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v2_9`. The `relic-build` meta is `v2_9`.
 
 ---
 
 ## 8. Files
 
 ```
-index.html              — V2 shell, schedule-mode line, bottom mode button
+index.html              — V2 shell, schedule-mode line, toggle under the timetable, motto last
 styles.css              — S24 Ultra timetable + player + mode button
 app.js                  — calendar, Supabase ticks, HTML5 player, mode swap
 PLATFORM_SPEC.md        — this law
@@ -200,10 +200,10 @@ index.html?date=2026-09-25   → PREVIEW, January Week 1, practice ticks allowed
 2. Clips stream from Supabase public URLs. The set timer calls `playNextVideo()` at `00:00`. Duration overwrites remaining time and `SET_DURATION_SEC`. Add More Time only stacks onto remaining time. The next clip starts at the locked `SET_DURATION_SEC`.
 3. The table is exactly DAY / TRAINING RELICS / DONE at 20% / 70% / 10%.
 4. Ticks upsert `relic_completions`.
-5. `vercel.json` no-cache plus `?v=v2_8` on assets.
+5. `vercel.json` no-cache plus `?v=v2_9` on assets.
 6. `schedule.js` `MONTH_ROTATIONS` stays the Full Body lock. Upper Body data is additive.
 7. Each week whose Mon–Sat days are all complete for the active mode keeps a gold shield tick and the word Completed on its chip while any week is on screen. Gold `#ff8c00` checkboxes and black ticks apply only while that complete week is the one being viewed. Week 4 labels read `WEEK 4` with no DELOAD suffix.
-8. The bottom button swaps Full Body and Upper Body without a reload. Each mode shows only its own ticks and shield badges.
+8. The toggle immediately under the timetable swaps Full Body and Upper Body without a reload. The motto and metadata stay under that toggle. Each mode shows only its own ticks and shield badges.
 
 ---
 
@@ -217,9 +217,9 @@ Same shell as Full Body: fixed 3-column table (DAY 20% / TRAINING RELICS 70% / D
 
 The header line `#schedule-mode` names the mode on screen: `Full Body Trainer Schedules` or `Upper Body Trainer Schedules`.
 
-The only schedule control is the bottom button `#btn-schedule-mode`. Its label names the other mode (`Upper Body Trainer Schedules` or `Full Body Trainer Schedules`). A click flips `state.mode` and calls `render()`. No `location` reload. The choice is in-memory. `?mode=upper` or `?mode=full` sets only the first paint. There is no Jump to Today button.
+The only schedule control is `#btn-schedule-mode`, placed immediately under the timetable matrix. Its label names the other mode (`Upper Body Trainer Schedules` or `Full Body Trainer Schedules`). A click flips `state.mode` and calls `render()`. No `location` reload. The choice is in-memory. `?mode=upper` or `?mode=full` sets only the first paint. There is no Jump to Today button.
 
-The footer motto is exactly `PIECE BY PIECE, I TAKE MY LIFE BACK.` in larger gold type (`1.15rem`, weight 900).
+The footer sits under that toggle, at the bottom of the card. The motto is exactly `PIECE BY PIECE, I TAKE MY LIFE BACK.` in larger gold type (`1.15rem`, weight 900), followed by the owner line and the storage line.
 
 ### Daily rotation
 
