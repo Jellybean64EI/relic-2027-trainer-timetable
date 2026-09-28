@@ -111,8 +111,8 @@ h1 {
 
 .sync-dot {
   position: relative;
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   margin: 0 0 3px;
   border-radius: 50%;
   background: var(--gold);
@@ -121,38 +121,28 @@ h1 {
 }
 
 .sync-dot.is-busy {
-  background: transparent;
+  background: conic-gradient(from 0deg, rgba(255, 140, 0, 0.2), var(--gold) 40%, rgba(255, 140, 0, 0.2) 64%, rgba(255, 140, 0, 0.2));
   box-shadow: none;
-  border: 2px solid rgba(255, 140, 0, 0.28);
-  border-top-color: var(--gold);
-  animation: sync-ring 0.75s linear infinite;
-}
-
-.sync-dot.is-busy::after {
-  content: "";
-  position: absolute;
-  inset: -5px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 140, 0, 0.45);
-  animation: sync-pulse 1.15s ease-out infinite;
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  animation: sync-ring 0.75s linear infinite, sync-fade 1.15s ease-in-out infinite;
 }
 
 .sync-dot.is-error {
   background: #ffb4a8;
-  border: 0;
   box-shadow: 0 0 6px rgba(255, 180, 168, 0.75);
+  -webkit-mask: none;
+  mask: none;
   animation: none;
 }
-
-.sync-dot.is-error::after { content: none; }
 
 @keyframes sync-ring {
   to { transform: rotate(360deg); }
 }
 
-@keyframes sync-pulse {
-  0% { opacity: 0.9; transform: scale(0.65); }
-  100% { opacity: 0; transform: scale(1.65); }
+@keyframes sync-fade {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
 }
 
 .corner-who,
