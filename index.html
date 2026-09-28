@@ -6,15 +6,18 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v2_13" />
+  <meta name="relic-build" content="v2_14" />
   <title>NiX Training Schedules</title>
-  <link rel="stylesheet" href="styles.css?v=v2_13" />
+  <link rel="stylesheet" href="styles.css?v=v2_14" />
 </head>
 <body>
   <div class="wrap">
     <article class="card" id="relic-card" data-month="1" data-phase="Base">
       <header class="header">
         <div class="brand-bar">
+          <button type="button" class="nav-toggle" id="btn-nav-toggle" aria-expanded="false" aria-controls="nav-drawer" aria-label="Open menu">
+            <span class="nav-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>
+          </button>
           <div class="brand-main">
             <h1>NiX Training Schedules</h1>
             <p class="schedule-mode" id="schedule-mode">Full Body Trainer Schedules</p>
@@ -111,6 +114,28 @@
     </article>
   </div>
 
+  <div class="nav-scrim" id="nav-scrim" inert></div>
+  <aside class="nav-drawer" id="nav-drawer" aria-hidden="true" inert aria-labelledby="nav-drawer-title">
+    <div class="nav-drawer-head">
+      <h2 id="nav-drawer-title">NiX Training Schedules</h2>
+    </div>
+    <nav class="nav-drawer-nav" aria-label="Primary">
+      <section class="nav-section" aria-labelledby="nav-trainer-label">
+        <h3 id="nav-trainer-label" class="nav-kicker">Trainer Schedules</h3>
+        <div class="nav-mode" role="group" aria-label="Upper Body and Full Body Trainer Schedules">
+          <button type="button" class="mode-btn nav-mode-opt" data-set-mode="full" aria-pressed="true">Full Body Trainer Schedules</button>
+          <button type="button" class="mode-btn nav-mode-opt" data-set-mode="upper" aria-pressed="false">Upper Body Trainer Schedules</button>
+        </div>
+      </section>
+      <section class="nav-section" aria-labelledby="nav-food-label">
+        <h3 id="nav-food-label" class="nav-kicker">Food and Prep Schedules</h3>
+        <p class="nav-placeholder">Monthly Foods</p>
+        <p class="nav-placeholder">Meal Recipe Cards</p>
+        <p class="nav-placeholder">Smoothie Recipe Cards</p>
+      </section>
+    </nav>
+  </aside>
+
   <video id="relic-frame-warm" preload="auto" muted playsinline webkit-playsinline aria-hidden="true" tabindex="-1"></video>
   <div id="relic-player" class="player" hidden aria-hidden="true">
     <div class="player-stage" role="dialog" aria-modal="true" aria-label="Relic trainer player">
@@ -153,11 +178,11 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v2_13"></script>
-  <script src="data/upperBody.js?v=v2_13"></script>
-  <script src="data/citations.js?v=v2_13"></script>
-  <script src="data/videoArchive.js?v=v2_13"></script>
-  <script src="data/supabaseConfig.js?v=v2_13"></script>
-  <script src="app.js?v=v2_13"></script>
+  <script src="data/schedule.js?v=v2_14"></script>
+  <script src="data/upperBody.js?v=v2_14"></script>
+  <script src="data/citations.js?v=v2_14"></script>
+  <script src="data/videoArchive.js?v=v2_14"></script>
+  <script src="data/supabaseConfig.js?v=v2_14"></script>
+  <script src="app.js?v=v2_14"></script>
 </body>
 </html>

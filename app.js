@@ -516,15 +516,43 @@
       btn.setAttribute("data-mode", currentKey);
       btn.setAttribute("aria-label", "Show " + MODE_LABEL[otherKey]);
     }
+    document.querySelectorAll("[data-set-mode]").forEach(function (opt) {
+      var on = opt.getAttribute("data-set-mode") === currentKey;
+      opt.classList.toggle("is-active", on);
+      opt.setAttribute("aria-pressed", on ? "true" : "false");
+    });
     var card = $("relic-card");
     if (card) card.setAttribute("data-schedule", currentKey);
     document.body.setAttribute("data-schedule", currentKey);
   }
 
-  function toggleScheduleMode() {
+  function setScheduleMode(mode) {
     if (!upperSchedule()) return;
-    state.mode = state.mode === "upper" ? "full" : "upper";
+    if (mode !== "full" && mode !== "upper") return;
+    if (state.mode === mode) return;
+    state.mode = mode;
     render();
+  }
+
+  function toggleScheduleMode() {
+    setScheduleMode(state.mode === "upper" ? "full" : "upper");
+  }
+
+  function setNavOpen(open) {
+    var next = !!open;
+    var drawer = $("nav-drawer");
+    var scrim = $("nav-scrim");
+    var btn = $("btn-nav-toggle");
+    document.body.classList.toggle("nav-open", next);
+    if (drawer) {
+      drawer.setAttribute("aria-hidden", next ? "false" : "true");
+      if ("inert" in drawer) drawer.inert = !next;
+    }
+    if (scrim && "inert" in scrim) scrim.inert = !next;
+    if (btn) {
+      btn.setAttribute("aria-expanded", next ? "true" : "false");
+      btn.setAttribute("aria-label", next ? "Close menu" : "Open menu");
+    }
   }
 
   function pickWeek(week) {
@@ -1219,6 +1247,32 @@
         toggleScheduleMode();
       });
     }
+    var navBtn = $("btn-nav-toggle");
+    if (navBtn) {
+      navBtn.addEventListener("click", function (event) {
+        event.stopPropagation();
+        setNavOpen(!document.body.classList.contains("nav-open"));
+      });
+    }
+    var navScrim = $("nav-scrim");
+    if (navScrim) {
+      navScrim.addEventListener("click", function () { setNavOpen(false); });
+    }
+    document.querySelectorAll("[data-set-mode]").forEach(function (opt) {
+      opt.addEventListener("click", function () {
+        setScheduleMode(opt.getAttribute("data-set-mode"));
+      });
+    });
+    document.addEventListener("keydown", function (event) {
+      if (event.key !== "Escape") return;
+      if (!document.body.classList.contains("nav-open")) return;
+      var playerRoot = $("relic-player");
+      if (playerRoot && !playerRoot.hidden) return;
+      event.preventDefault();
+      setNavOpen(false);
+      if (navBtn) navBtn.focus();
+    });
+    setNavOpen(false);
     $("tt-body").addEventListener("change", function (event) {
       var input = event.target.closest("input.tick");
       if (!input) return;
@@ -1381,6 +1435,7 @@
     applyAddMoreTime: applyAddMoreTime,
     get mode() { return state.mode; },
     toggleScheduleMode: toggleScheduleMode,
+    setScheduleMode: setScheduleMode,
     MODE_LABEL: MODE_LABEL
   };
 

@@ -5,7 +5,7 @@
 **Coach archive:** NiX  
 **Timezone:** Europe/London (always)  
 **Runtime:** static HTML / CSS / JS. No build step. No npm.  
-**Cache bust:** `?v=v2_13` on every stylesheet and script in `index.html`
+**Cache bust:** `?v=v2_14` on every stylesheet and script in `index.html`
 
 Footer motto (exact):
 
@@ -122,6 +122,7 @@ Element:
 - At `00:00`, call `playNextVideo()` and load the next cabin clip without closing the player. The next clip starts at the current `SET_DURATION_SEC` (the last Duration override, or 1200 seconds when only stacking was used).
 - Empty playlist: set the frame to `about:blank` and show `No video file IDs mapped for this cabin.`
 - **v2_13 header.** The card title is `NiX Training Schedules`. `JOSEPH · LONDON`, the preview/live status (`#meta-mode`), and today’s London date sit in the top-right corner. A sync dot (`#sync-dot`) shows a loading ring while a `relic_completions` GET or upsert is in flight, then a steady gold dot. Errors still use `#sync-status`. Month/week (`#identity-line`) and foundation (`#month-blurb`) stack in gold directly above the Q1–Q4 phase bar. The preview practice-ticks banner and the deload hint are gone.
+- **v2_14 menu.** A 44px hamburger sits at the top-left of the header, beside `NiX Training Schedules`. Closed, its three bars are horizontal. Open, that bar group rotates 90° with a CSS transition. A left drawer (`50vw`) slides over a scrim so the timetable stays partly visible. Tap the scrim, the hamburger, or Escape to close. The drawer title is `NiX Training Schedules`. Full Body and Upper Body buttons in the drawer call `setScheduleMode`, the same setter as `#btn-schedule-mode` under the timetable. Food and Prep Schedules, Monthly Foods, Meal Recipe Cards, and Smoothie Recipe Cards are labels only.
 - **v2_12 rapid HUD.** No tempo prompt bar. The video stage fills the viewport. Close, the gold timer badge (with Duration / Add More Time), the exercise title, and the centered white Prev / Play / Next dock are one HUD. Inactivity of exactly 2000ms fades that chrome out together via CSS opacity and visibility. A tap on the empty stage or the video toggles the group: hidden shows it at once and starts a fresh 2000ms timer; visible hides it at once. Taps on Prev, Play, Next, close, and the timer badge menus still run those controls and do not toggle the HUD away. The countdown, `autoplay` / `loop` / `playsinline`, and `playNextVideo()` at `00:00` keep running while the HUD is hidden.
 - **v2_11 flush open.** No `poster` attribute and no native play-button chrome. The stage and video paint transparent, so a gray or black slab cannot flash behind the frame. `preload="auto"`. A citation tap calls `play()` immediately. If `loadeddata` still leaves an unpainted `currentTime` of 0, the player nudges it to `0.001` so the first painted frame is the media frame. The player stays invisible until that frame is ready, then appears flush. `playsinline` and `loop` stay.
 
@@ -165,16 +166,16 @@ Evaluate on each timetable render and whenever a completion tick is upserted. Do
 
 ## 7. Cache
 
-`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v2_13`. The `relic-build` meta is `v2_13`.
+`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v2_14`. The `relic-build` meta is `v2_14`.
 
 ---
 
 ## 8. Files
 
 ```
-index.html              — V2 shell, schedule-mode line, toggle under the timetable, motto last
-styles.css              — S24 Ultra timetable + player + mode button
-app.js                  — calendar, Supabase ticks, HTML5 player, mode swap
+index.html              — V2 shell, NiX header, hamburger, left drawer, toggle under the timetable, motto last
+styles.css              — S24 Ultra timetable + player + mode button + drawer
+app.js                  — calendar, Supabase ticks, HTML5 player, one schedule-mode setter
 PLATFORM_SPEC.md        — this law
 vercel.json             — no-cache headers
 data/schedule.js        — Full Body NiX month rotations (do not invent pairs)
@@ -202,10 +203,10 @@ index.html?date=2026-09-25   → PREVIEW, January Week 1, practice ticks allowed
 2. Clips stream from Supabase public URLs. The set timer calls `playNextVideo()` at `00:00`. Duration overwrites remaining time and `SET_DURATION_SEC`. Add More Time only stacks onto remaining time. The next clip starts at the locked `SET_DURATION_SEC`.
 3. The table is exactly DAY / TRAINING RELICS / DONE at 20% / 70% / 10%.
 4. Ticks upsert `relic_completions`.
-5. `vercel.json` no-cache plus `?v=v2_13` on assets. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome immediately. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph.
+5. `vercel.json` no-cache plus `?v=v2_14` on assets. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome immediately. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph.
 6. `schedule.js` `MONTH_ROTATIONS` stays the Full Body lock. Upper Body data is additive.
 7. Each week whose Mon–Sat days are all complete for the active mode keeps a gold shield tick and the word Completed on its chip while any week is on screen. Gold `#ff8c00` checkboxes and black ticks apply only while that complete week is the one being viewed. Week 4 labels read `WEEK 4`. The deload hint does not render.
-8. The toggle immediately under the timetable swaps Full Body and Upper Body without a reload. The motto and metadata stay under that toggle. Each mode shows only its own ticks and shield badges.
+8. The toggle immediately under the timetable swaps Full Body and Upper Body without a reload. The drawer’s trainer buttons call the same `setScheduleMode`. The motto and metadata stay under that toggle. Each mode shows only its own ticks and shield badges.
 
 ---
 
@@ -219,7 +220,7 @@ Same shell as Full Body: fixed 3-column table (DAY 20% / TRAINING RELICS 70% / D
 
 The header line `#schedule-mode` sits under the title `NiX Training Schedules` and names the mode on screen: `Full Body Trainer Schedules` or `Upper Body Trainer Schedules`.
 
-The only schedule control is `#btn-schedule-mode`, placed immediately under the timetable matrix. Its label names the other mode (`Upper Body Trainer Schedules` or `Full Body Trainer Schedules`). A click flips `state.mode` and calls `render()`. No `location` reload. The choice is in-memory. `?mode=upper` or `?mode=full` sets only the first paint. There is no Jump to Today button.
+`#btn-schedule-mode` stays immediately under the timetable matrix. Its label names the other mode (`Upper Body Trainer Schedules` or `Full Body Trainer Schedules`). The drawer mirrors that choice with one button per mode. Both call `setScheduleMode`, which writes `state.mode` and calls `render()`. No `location` reload. The choice is in-memory. `?mode=upper` or `?mode=full` sets only the first paint. There is no Jump to Today button.
 
 The footer sits under that toggle, at the bottom of the card. The motto is exactly `PIECE BY PIECE, I TAKE MY LIFE BACK.` in larger gold type (`1.15rem`, weight 900), followed by the owner line and the storage line.
 
