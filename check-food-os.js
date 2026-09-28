@@ -59,6 +59,42 @@ if (!ctx.window.RELIC_FOOD_SHOP.tiers[1].stretchPence) {
   console.error("FAIL missing tier 1 stretch");
   process.exit(1);
 }
+const shop = ctx.window.RELIC_FOOD_SHOP;
+if (!shop.eggsBanned || shop.proteins.indexOf("Eggs") !== -1) {
+  console.error("FAIL eggs still allowed");
+  process.exit(1);
+}
+if (!shop.aisles || shop.aisles.length < 7 || !shop.sundayPrep || shop.sundayPrep.length < 6) {
+  console.error("FAIL aisle or sunday prep");
+  process.exit(1);
+}
+["live-mon-banana-blueberry", "live-fri-pineapple-ginger", "live-sat-banana-blueberry"].forEach(function (id) {
+  const card = extract.present(id, 1);
+  if (!card || card.lock.indexOf("Not dinner") === -1) {
+    console.error("FAIL live smoothie " + id);
+    process.exit(1);
+  }
+});
+const berryText = extract.present("berry-banana-brazil", 1).method.map(function (step) {
+  return step.verb + " " + step.detail;
+}).join(" ");
+if (/4\s*[-\u2013]\s*5/.test(berryText) || berryText.indexOf("One Brazil nut") === -1 && berryText.indexOf("one a day") === -1) {
+  console.error("FAIL brazil cap");
+  process.exit(1);
+}
+if (meals.present("paprika-potato-egg-skillet", 1) || meals.present("omega3-egg-rest-plate", 1)) {
+  console.error("FAIL banned egg card still presents");
+  process.exit(1);
+}
+if (meals.order.indexOf("chicken-broccoli-carrot") === -1 || meals.order.indexOf("paprika-potato-egg-skillet") !== -1) {
+  console.error("FAIL meal order");
+  process.exit(1);
+}
+const jan1 = ctx.window.RELIC_FOOD_SCHEDULE.buildFuelDays()["2027-01-01"];
+if (!jan1 || !jan1.portions || !jan1.portions.label || jan1.portions.precise || jan1.protein === "Eggs") {
+  console.error("FAIL jan 1 household plate");
+  process.exit(1);
+}
 ["data/nutrition/shop.js", "data/nutrition/meals.js", "data/nutrition/extractions.js", "data/nutrition/schedule.js"].forEach(function (file) {
   const text = fs.readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
   if (/relic_completions|relic-active-video|forensic-tab|localStorage/.test(text)) {
