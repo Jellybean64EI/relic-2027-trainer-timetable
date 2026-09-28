@@ -58,7 +58,7 @@ window.RELIC_FOOD_SHOP = (function () {
     psyllium: sku("psyllium", "Sainsbury's Psyllium Husk 200g", "Sainsbury's", 275, 200, "g", 1),
     shilajit: sku("shilajit", "Sainsbury's Shilajit Resin 15g", "Sainsbury's", 850, 15, "g", 1),
     berries: sku("berries", "Sainsbury's Taste the Difference Fresh Blueberries 150g", "Sainsbury's", 250, 150, "g", 2),
-    berriesW: sku("berriesW", "Waitrose Fresh Raspberries 150g", "Sainsbury's", 275, 150, "g", 2),
+    berriesW: sku("berriesW", "Waitrose Fresh Raspberries 150g", "Waitrose", 275, 150, "g", 2),
     spinachFresh: sku("spinachFresh", "Sainsbury's Baby-Leaf Spinach 200g", "Sainsbury's", 165, 200, "g", 2),
     tenderstem: sku("tenderstem", "Waitrose Tenderstem Broccoli 200g", "Waitrose", 220, 200, "g", 2),
     avocado: sku("avocado", "Waitrose Ripe Avocados 2 pack", "Waitrose", 210, 2, "each", 2),
