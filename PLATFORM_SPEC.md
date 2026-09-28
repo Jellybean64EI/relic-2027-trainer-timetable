@@ -5,7 +5,7 @@
 **Coach archive:** NiX  
 **Timezone:** Europe/London (always)  
 **Runtime:** static HTML / CSS / JS. No build step. No npm.  
-**Cache bust:** `?v=v2_6` on every stylesheet and script in `index.html`
+**Cache bust:** `?v=v2_7` on every stylesheet and script in `index.html`
 
 Footer motto (exact):
 
@@ -73,6 +73,8 @@ Full Body cabin keys: `Back` · `Upper_Arms` · `Chest` · `Legs_Glutes` · `Abs
 Upper Body cabin keys: `Face` · `Eyes` · `Tongue` · `Jaw` · `Neck` (Neck is the same cabin key as Full Body)
 
 Document URLs stay in `data/citations.js`. A primary click starts the cabin video session. The anchor may still point at the phase document. Missing higher-tier documents fall back to Base. The visible label still uses the quarter phase. Do not show Drive filenames such as `Back_Base_Trainer.docx` in the table.
+
+A cabin with one trainer document (Eyes: `1. Eye_Sequence_Trainer.docx`) uses that same file for `Base`, `Hard`, `Expert`, and `Till_Failure`. The year does not wait on phase variants. Face, Tongue, Jaw, and Neck keep one document per phase.
 
 **Sunday (data law, hidden in the Mon–Sat list):**
 
@@ -161,7 +163,7 @@ Evaluate on each timetable render and whenever a completion tick is upserted. Do
 
 ## 7. Cache
 
-`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v2_6`. The `relic-build` meta is `v2_6`.
+`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v2_7`. The `relic-build` meta is `v2_7`.
 
 ---
 
@@ -198,7 +200,7 @@ index.html?date=2026-09-25   → PREVIEW, January Week 1, practice ticks allowed
 2. Clips stream from Supabase public URLs. The set timer calls `playNextVideo()` at `00:00`. Duration overwrites remaining time and `SET_DURATION_SEC`. Add More Time only stacks onto remaining time. The next clip starts at the locked `SET_DURATION_SEC`.
 3. The table is exactly DAY / TRAINING RELICS / DONE at 20% / 70% / 10%.
 4. Ticks upsert `relic_completions`.
-5. `vercel.json` no-cache plus `?v=v2_6` on assets.
+5. `vercel.json` no-cache plus `?v=v2_7` on assets.
 6. `schedule.js` `MONTH_ROTATIONS` stays the Full Body lock. Upper Body data is additive.
 7. Each week whose Mon–Sat days are all `completed=true` keeps a Gold Week Complete Badge on its chip while any week is on screen. Gold `#ff8c00` checkboxes and black ticks apply only while that complete week is the one being viewed. Week 4 labels read `WEEK 4` with no DELOAD suffix.
 8. The bottom button swaps Full Body and Upper Body without a reload. Completions stay on the shared `date_key`.
@@ -215,7 +217,9 @@ Same shell as Full Body: fixed 3-column table (DAY 20% / TRAINING RELICS 70% / D
 
 The header line `#schedule-mode` names the mode on screen: `Full Body Trainer Schedules` or `Upper Body Trainer Schedules`.
 
-The bottom button `#btn-schedule-mode` names the other mode. A click flips `state.mode` and calls `render()`. No `location` reload. The choice is in-memory. `?mode=upper` or `?mode=full` sets only the first paint.
+The only schedule control is the bottom button `#btn-schedule-mode`. Its label names the other mode (`Upper Body Trainer Schedules` or `Full Body Trainer Schedules`). A click flips `state.mode` and calls `render()`. No `location` reload. The choice is in-memory. `?mode=upper` or `?mode=full` sets only the first paint. There is no Jump to Today button.
+
+The footer motto is exactly `PIECE BY PIECE, I TAKE MY LIFE BACK.` in larger gold type (`1.15rem`, weight 900).
 
 ### Daily rotation
 
@@ -227,17 +231,19 @@ Sunday in the data file remains `Rest / Light Mobility` and `Weekly Reset`, and 
 
 Citation click still opens `<video id="relic-active-video">`. No Drive iframe, preview, or `embeddedfolderview`.
 
-Drive folder IDs below are mapping references. Public playback paths are `relic-videos/{CabinKey}/{filename}.mp4`.
+Public playback paths are `relic-videos/{CabinKey}/{filename}.mp4`. The player never uses a Drive iframe, preview URL, or `embeddedfolderview`.
 
-| Cabin | Drive folder (reference only) | Bucket prefix |
-|-------|-------------------------------|---------------|
-| Face | `1a1EPQ9tcq2h80sRUTy0RgPKVyjNofNr7` | `Face/` |
-| Eyes | `1IFYFNll4u0SOsKNwaXFwcGCzIeVt0YQG` | `Eyes/` |
-| Tongue | `1Hr-SOlyYmbA9ilHe07nV8mmkWHD7Nilm` | `Tongue/` |
-| Jaw | `14AXrIlRqWouimaym2gdACISEJbbNhBWj` | `Jaw/` |
-| Neck | `1FKFGp-0A9ZSUjeTH65saLabR2wXtcJTs` | `Neck/` |
+The document folders below are the citation mapping. Playback objects were copied from the trainer-video folders into the public bucket. Clips over the 50MB storage cap were re-encoded before upload. `videoArchive.js` playlists name those object filenames. An empty playlist still shows `No video file IDs mapped for this cabin.` Face, Eyes, Tongue, Jaw, and Neck are not empty.
 
-Neck already has a playlist in `videoArchive.js` and objects under `Neck/`. Upper Body reuses that cabin. Face, Eyes, Tongue, and Jaw are registered with those folder IDs and empty playlists until files exist. An empty playlist shows `No video file IDs mapped for this cabin.` Phase Docx files for Face, Eyes, Tongue, and Jaw are not authored; the visible label still uses the quarter phase.
+| Cabin | Document folder | Video folder (bytes copied from) | Bucket prefix |
+|-------|-----------------|----------------------------------|---------------|
+| Face | `1opDQL0l5oGXTkfoIQtfNOX6TxZR84sYt` | `1a1EPQ9tcq2h80sRUTy0RgPKVyjNofNr7` | `Face/` |
+| Eyes | `1WN7qz3tkaZG-mL_-4NDdBcx3jtu0AVNI` | `1IFYFNll4u0SOsKNwaXFwcGCzIeVt0YQG` | `Eyes/` |
+| Tongue | `1cC-MISCfVkYtzX8_dt_0SMn4qhUmCokb` | `1Hr-SOlyYmbA9ilHe07nV8mmkWHD7Nilm` | `Tongue/` |
+| Jaw | `1Dmk_4gUcy5t_xd7fmxUf36gzgV_sDDla` | `14AXrIlRqWouimaym2gdACISEJbbNhBWj` | `Jaw/` |
+| Neck | `1h6AgF9B3QHB7y6JIyo7amU0U5SUrwQbj` | `1FKFGp-0A9ZSUjeTH65saLabR2wXtcJTs` | `Neck/` |
+
+Eyes is a single-document folder. `1. Eye_Sequence_Trainer.docx` is the href for every phase. Face, Tongue, Jaw, and Neck each have Base, Hard, Expert, and Till_Failure documents. Neck playback reuses the existing `Neck/` playlist. Face order is PRE, then MAIN (capped at 20), then POST.
 
 ### Badge
 

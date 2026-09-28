@@ -10,7 +10,7 @@
    stay balanced while neighbouring months do not repeat the same lead.
    Weekday order alternates which cabin is listed first.
 
-   Drive folder IDs are mapping references only. Playback is Supabase
+   Document folder IDs live in citations.js. Playback is Supabase
    relic-videos/{CabinKey}/{file}.mp4 via videoArchive.js — never Drive. */
 window.RELIC_UPPER_BODY = (function () {
   var S = window.RELIC_SCHEDULE;
