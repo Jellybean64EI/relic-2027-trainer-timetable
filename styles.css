@@ -30,6 +30,8 @@ html, body {
 body {
   min-height: 100dvh;
   overflow-x: hidden;
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
 }
 
 button, a, input, label {
@@ -383,6 +385,17 @@ h1 {
   max-width: 100%;
 }
 
+.week-slot-single.is-started,
+.week-slot-dual.is-started {
+  border-color: #ff8c00;
+  box-shadow: 0 0 10px rgba(255, 140, 0, 0.45);
+}
+
+.week-slot-single.is-full {
+  border-color: #ff8c00;
+  box-shadow: 0 0 12px rgba(255, 140, 0, 0.7);
+}
+
 .wtab.is-complete .week-slot-single {
   background: #12051d;
   border-color: rgba(255, 140, 0, 0.75);
@@ -664,6 +677,18 @@ tr.today td {
   background: transparent;
 }
 
+.tick-hit[data-tier="1"] .tick-box {
+  filter: drop-shadow(0 0 6px #ff8c00);
+}
+
+.tick-hit[data-tier="2"] .tick-box {
+  filter: drop-shadow(0 0 8px #3dff7a);
+}
+
+tr.is-tier-1 td {
+  box-shadow: inset 0 0 0 1px rgba(255, 140, 0, 0.72);
+}
+
 .tick-box .shield-tick {
   width: 22px;
   height: 26px;
@@ -683,7 +708,10 @@ tr.today td {
   letter-spacing: 0.04em;
 }
 
-tr.is-done td { background: #1c0c2e; }
+tr.is-done td {
+  background: #102818;
+  box-shadow: inset 3px 0 0 #1c9a48;
+}
 
 .schedule-switch {
   padding: 8px 8px 0;
@@ -754,7 +782,7 @@ tr.is-done td { background: #1c0c2e; }
   flex: 1 1 auto;
   min-height: 0;
   background: transparent;
-  touch-action: manipulation;
+  touch-action: pan-y;
 }
 
 #relic-active-video {
@@ -1639,7 +1667,7 @@ table.fuel-table col.col-relics { width: 78%; }
   outline-offset: 2px;
 }
 
-/* v18 Food OS rooms. The training table above keeps its three columns. */
+/* v19 Food OS rooms. The training table above keeps its three columns. */
 .food-date {
   display: flex;
   flex-direction: column;
@@ -1671,10 +1699,93 @@ table.fuel-table col.col-relics { width: 78%; }
   font-weight: 800;
 }
 
+.fuel-morning,
+.fuel-meal-name {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--gold);
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fuel-morning {
+  color: #f3d48a;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 700;
+}
+
+.fuel-portions {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+}
+
+.fuel-portions span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #1f1812;
+  color: #fcf5e8;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
 .food-cabin-chip {
   color: var(--cite);
   font-size: 0.72rem;
   font-weight: 700;
+}
+
+.shop-editor li,
+.shop-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.shop-tick,
+.shop-qty button,
+.shop-editor button,
+.shop-add button,
+.shop-lock {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 140, 0, 0.55);
+  border-radius: 8px;
+  background: #150724;
+  color: #ff8c00;
+  font: inherit;
+  font-weight: 800;
+}
+
+.shop-add select {
+  min-height: 44px;
+  max-width: 100%;
+  color: #1f1812;
+  background: #fcf5e8;
+}
+
+.shop-lock {
+  display: block;
+  width: calc(100% - 16px);
+  margin: 8px;
+}
+
+.shop-line.is-ticked span {
+  color: #f6eefe;
 }
 
 .food-subhead {

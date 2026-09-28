@@ -5,7 +5,7 @@
 **Coach archive:** NiX  
 **Timezone:** Europe/London (always)  
 **Runtime:** static HTML / CSS / JS. No build step. No npm.  
-**Cache bust:** `?v=v18` on every stylesheet and script in `index.html`
+**Cache bust:** `?v=v19` on every stylesheet and script in `index.html`
 
 Footer motto (exact):
 
@@ -201,7 +201,7 @@ Evaluate on each timetable render and whenever a completion is upserted. Do not 
 
 ## 7. Cache
 
-`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v18`. The `relic-build` meta is `v18`. The in-memory month-row cache key is `{year}:{mode}:{month}`.
+`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v19`. The `relic-build` meta is `v19`. The in-memory month-row cache key is `{year}:{mode}:{month}`.
 
 ---
 
@@ -247,7 +247,7 @@ index.html?date=2027-01-04&setsec=3   → coach set length 3 seconds. At 00:00 t
 2. Clips stream from Supabase public URLs. At `00:00` the opened citation is credited and, once that set is finished, the player closes and the timetable is showing. Duration overwrites remaining time and `SET_DURATION_SEC`. Add More Time only stacks onto remaining time. Next still advances a clip without crediting it.
 3. The table is exactly DAY / TRAINING RELICS / DONE at 20% / 70% / 10%.
 4. Ticks upsert `relic_completions`.
-5. `vercel.json` no-cache plus `?v=v18` on assets. The `relic-build` meta is `v18`. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome immediately. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph. The forensic CUE tab slides up from the bottom, does not reset that timer, and does not reload the video.
+5. `vercel.json` no-cache plus `?v=v19` on assets. The `relic-build` meta is `v19`. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome. A drag past 18px does not. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph. The forensic CUE tab slides up from the bottom, does not reset that timer, and does not reload the video.
 6. `schedule.js` `MONTH_ROTATIONS` stays the Full Body lock. Upper Body data is additive.
 7. A week chip has a SINGLE slot and a DUAL slot. At 100% dual the chip is rich green, the dual slot shows an orange `#ff8c00` double-tick shield and the aggregate tick count, and the single slot stays a separate dark module. Day DONE cells use a compact box or a single/double shield, with a 44px hit target. Month chips and `#year-badge` use the same score and light up only at 100%. Week 4 labels read `WEEK 4`. The deload hint does not render. Calisthenics appears only in October–December 2027.
 8. The toggle immediately under the timetable swaps Full Body and Upper Body without a reload. The drawer’s Full Body and Upper Body rows call the same `setScheduleMode`. Ambient Hub switches the 2026 bridge and the 2027 year. The motto and metadata stay under that toggle. Each mode shows only its own ticks and shield badges.
@@ -306,8 +306,8 @@ Four drawer rows sit under Food and Prep. Each opens one board:
 
 | Row | Board |
 |-----|--------|
-| Weekly Food Schedule | Mon–Sat fuel for the month and week already on screen. Sunday stays off the list. The date is the only link, and it opens that day’s meal card. Cabin names, when shown, are read-only text. |
-| Monthly Foods (Sainsbury’s) | Budget tier, NPQ laws, protect / fruit-first / food-second, and the priced basket. |
+| Weekly Food Schedule | Mon–Sat rows for the month and week already on screen. Each row names the morning smoothie, the dinner as a household portion (or a Drive card gram where the card states one), lunch, and 2 fruit + 3 veg. Sunday stays off the list. Cabin names are read-only text. |
+| Monthly Foods (Sainsbury’s) | Editable Sainsbury’s list (tick, quantity, add, remove), NPQ laws, and Lock. |
 | Meal Recipe Cards | Forensic magazine cards. Cream `#FCF5E8` interior, oak `#1F1812` panels, brass `#C9A227` accents. |
 | Smoothie / Extraction Cards | Morning 3000W card only. Order is liquid, frozen fruit, citrus, hemp, blend, cheesecloth strain, then botanicals. |
 
@@ -315,7 +315,7 @@ Four drawer rows sit under Food and Prep. Each opens one board:
 
 | Tier | Window | Budget | Counter |
 |------|--------|--------|---------|
-| 1 | Oct 2026 – Jan 2027 | £150 / month | Bulk chicken, turkey mince, potatoes, rice, eggs. Prefer Omega-3, free-range, and SO Organic when stocked. Frozen fruit is allowed. Salmon on this tier is the frozen fillet. |
+| 1 | Oct 2026 – Jan 2027 | £150 / month | Bulk chicken, turkey mince, potatoes, rice, and eggs. Taste the Difference free-range first, then SO Organic free-range, then standard free-range. Frozen fruit is allowed. Salmon on this tier is the frozen fillet. |
 | 2 | Feb 2027 onward | £300 / month | Salmon, premium beef mince, wider veg, Waitrose and Sainsbury’s premium lines. |
 
 `RELIC_FOOD_SHOP.tierFor(viewYear, viewMonth)` follows the timetable. January 2027 is Tier 1. February 2027 and later months are Tier 2. October–December 2026 on the bridge are Tier 1. Prices are Sainsbury’s / Waitrose product-style placeholders and each mapped list fits its cap.
@@ -324,7 +324,7 @@ Shopping lists: `2026-10`, `2026-11`, `2026-12`, `2027-01`, and the February-onw
 
 ### Dietary baseline
 
-Allowed proteins: Chicken, Turkey Mince, Beef Mince, Salmon, Eggs. Allowed carbs: Potatoes and Rice. Weekday rotation is Mon Chicken, Tue Turkey Mince, Wed Beef Mince, Thu Salmon, Fri Eggs, Sat Chicken. Sunday stays off the food grid. SO Organic or Soil Association is preferred when it is on the shelf. Brazil nuts are capped at one a day. Egg whites are cooked.
+Allowed proteins: Chicken, Turkey Mince, Beef Mince, Salmon, Eggs. Allowed carbs: Potatoes and Rice. The FOOD_LIVE week is Mon eggs at lunch and chicken in the evening, Tue salmon, Wed eggs with mushrooms and greens, Thu chicken thigh tray, Fri eggs at lunch and salmon or white fish in the evening, Sat a cooked breakfast with eggs and beef boats. Sunday stays off the food grid and holds a 45-minute prep note, including boiled eggs for two days. Egg whites are cooked. Taste the Difference free-range eggs come first, then SO Organic free-range, then standard free-range. Brazil nuts are capped at one a day. Smoothies are morning or a lunch refresh only.
 
 ### NPQ laws
 
@@ -338,13 +338,21 @@ Allowed proteins: Chicken, Turkey Mince, Beef Mince, Salmon, Eggs. Allowed carbs
 
 Every meal card has a serif title, a script tagline, a facts bar (Yield, Prep, Cook, Cals, £ tier), ingredient lines with weights and Sainsbury’s-style names, numbered method steps whose leading verb is bold, a Weekly Timetable box (Best for, Best eaten, Reheat), and a footer tip.
 
-Seed cards: Crispy Potato Snack (air fry 200°C, 12–15 min), Cheesy Roasted Garlic Bread, Cheesy Potato Toast, Paprika Potato Egg Skillet, Beef-Stuffed Potato Boats, Bread & Egg Pan Pizza. Week plates for chicken, turkey mince, salmon, and the Omega-3 egg rest plate live on the same board.
+Seed snack cards keep the Drive gram lines: Crispy Potato Snack (400 g potato and 15 g cornflour, air fry 200°C, 12–15 min), Cheesy Roasted Garlic Bread, Cheesy Potato Toast, Beef-Stuffed Potato Boats (300 g beef). The paprika egg skillet, bread-and-egg pan pizza, Omega-3 egg plate, and Wednesday eggs with mushrooms and greens are on the live meal board. Week plates use household portions: one breast, one fillet, one tray, or two eggs.
 
-Cabin load still only chooses the weekly plate. It is not written back onto `MONTH_ROTATIONS`. Score 4 or more on an egg-rotation day uses Beef-Stuffed Potato Boats. Score 0–1 uses the Omega-3 Egg Rest Plate. The extraction card stays on its own board.
+Cabin load is copied onto the row as read-only text. It is not written back onto `MONTH_ROTATIONS`. The extraction card stays on its own board.
 
 ### Extraction card
 
 Ashwagandha 600 mg, Lion’s Mane 1000 mg (1500 mg on the recovery card), Spirulina 3 g (5 g on the recovery card), Psyllium Husk 5 g, Shilajit 300 mg. Those doses are whisked in after the cheesecloth strain. The morning lock is not dinner.
+
+### v19 depth and lock
+
+A single DONE tick glows gold. A dual tick glows green. The week chip turns green only when every Mon–Sat day in that week is dual. SINGLE and DUAL slots show an orange edge while that slot has progress and is not yet complete. Full Body and Upper Body keep separate `{year}:{mode}:{month}` caches and restore that mode’s scroll. A pointer move past 18px does not change month, week, cabin, or the player HUD.
+
+Weekly rows follow the FOOD_LIVE training-day smoothie week: Monday banana, blueberry, spinach, and hemp; Tuesday papaya and pineapple; Wednesday mango, cherry, and hemp; Thursday kiwi and berry; Friday pineapple, spinach, and ginger; Saturday banana and blueberry. Sunday’s papaya, pineapple, kiwi, and berry glass is a prep note, not a row. The five basin kitchen cards stay beside that week: Berry Banana Brazil (one Brazil nut), Cherry Banana Cream, Mango Banana Nut, Berry Oat Almond, Orange Berry Yogurt. Dinner rows use a household portion. Wednesday evening is eggs, mushrooms, and greens. Saturday’s beef boats keep the card line of 300 g ground beef and 3 potatoes. Each row also shows lunch and 2 fruit + 3 veg. Monday, Friday, and Saturday lunch include eggs.
+
+Monthly Foods edits a Sainsbury’s list in `localStorage` key `relic_food_shop_v19`. That store is not `relic_completions`. The board shows the aisle table, the fruit-first buys, and the Sunday 45-minute prep. Egg lines stay on the list: Taste the Difference free-range, then SO Organic free-range, then standard free-range. Tier 1 stays £150 with a visible soft stretch to £200. Tier 2 stays £300. Lock this month’s shop runs `composeFromBasket` and freezes the weekly prep plan. Before lock, the week is the suggested FOOD_LIVE rotation. Prices stay placeholders. A basket that only ticks an egg SKU plates eggs and cooks the whites.
 
 ---
 

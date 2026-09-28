@@ -176,7 +176,7 @@ window.RELIC_FOOD_MEALS = (function () {
         1: [
           { skuId: "potatoes", qty: 300, text: "2 Sainsbury's Maris Piper Potatoes, thinly sliced" },
           { skuId: "salt", qty: 2, text: "1 tsp paprika, salt, and black pepper" },
-          { skuId: "eggsOmega", qty: 2, text: "2 Sainsbury's Woodland Free Range Omega-3 Enriched Eggs" },
+          { skuId: "eggsSo", qty: 2, text: "2 Sainsbury's SO Organic Free Range Eggs. Standard free-range if SO Organic is out." },
           { skuId: "passata", qty: 40, text: "1 tomato, diced" },
           { skuId: "onion", qty: 15, text: "Chopped chives or spring onion" },
           { skuId: "mozzarella", qty: 40, text: "40 g Sainsbury's Grated Mozzarella" },
@@ -185,7 +185,7 @@ window.RELIC_FOOD_MEALS = (function () {
         2: [
           { skuId: "potatoes", qty: 300, text: "2 Sainsbury's Maris Piper Potatoes, thinly sliced" },
           { skuId: "salt", qty: 2, text: "1 tsp paprika, salt, and black pepper" },
-          { skuId: "eggsPasture", qty: 2, text: "2 Sainsbury's Taste the Difference Pasture-Raised Eggs" },
+          { skuId: "eggsPasture", qty: 2, text: "2 Sainsbury's Taste the Difference Free Range Eggs" },
           { skuId: "passata", qty: 40, text: "1 tomato, diced" },
           { skuId: "onion", qty: 15, text: "Chopped chives or spring onion" },
           { skuId: "cheddarPremium", qty: 30, text: "30 g Sainsbury's Taste the Difference Extra Mature Cheddar" },
@@ -271,7 +271,7 @@ window.RELIC_FOOD_MEALS = (function () {
       ingredients: {
         1: [
           { skuId: "bread", qty: 240, text: "6 slices Sainsbury's White Farmhouse Bloomer" },
-          { skuId: "eggsOmega", qty: 4, text: "3 to 4 Sainsbury's Woodland Free Range Omega-3 Enriched Eggs" },
+          { skuId: "eggsSo", qty: 4, text: "3 to 4 Sainsbury's SO Organic Free Range Eggs. Taste the Difference when it is stocked." },
           { skuId: "passata", qty: 80, text: "80 g Sainsbury's Tomato Passata" },
           { skuId: "passata", qty: 40, text: "1 small tomato, diced" },
           { skuId: "onion", qty: 30, text: "Red onion and spring onion, finely chopped" },
@@ -306,24 +306,24 @@ window.RELIC_FOOD_MEALS = (function () {
         bestEaten: "Fresh",
         reheat: "Air fryer until the chicken is hot through"
       },
-      tip: "Cook extra chicken once so the next lunch does not need a new pack.",
-      macros: { kcal: 680, protein: 52, carb: 54, fat: 22, basis: "plate" },
+      tip: "Cook extra chicken once so the next lunch does not need a new pack. Drive has no gram lock for this plate.",
+      macros: { kcal: "—", protein: "—", carb: "—", fat: "—", basis: "household portion" },
       ingredients: {
         1: [
-          { skuId: "chicken", qty: 320, text: "320 g Sainsbury's British Whole Chicken" },
-          { skuId: "potatoes", qty: 350, text: "350 g Sainsbury's Maris Piper Potatoes" },
-          { skuId: "spinachF", qty: 80, text: "80 g Sainsbury's Frozen Spinach" },
-          { skuId: "garlic", qty: 4, text: "4 g Sainsbury's Garlic" },
-          { skuId: "oil", qty: 8, text: "8 ml Sainsbury's Olive Oil" },
-          { skuId: "salt", qty: 2, text: "2 g Sainsbury's Table Salt" }
+          { skuId: "chicken", qty: 1, text: "1 British chicken breast, or a tray of thighs" },
+          { skuId: "potatoes", qty: 1, text: "Potatoes from the bag" },
+          { skuId: "spinachF", qty: 1, text: "A portion of frozen spinach" },
+          { skuId: "garlic", qty: 1, text: "1 clove Sainsbury's Garlic" },
+          { skuId: "oil", qty: 1, text: "A splash of Sainsbury's Olive Oil" },
+          { skuId: "salt", qty: 1, text: "Sainsbury's Table Salt" }
         ],
         2: [
-          { skuId: "chicken", qty: 340, text: "340 g Sainsbury's British Whole Chicken" },
-          { skuId: "potatoes", qty: 300, text: "300 g Sainsbury's Maris Piper Potatoes" },
-          { skuId: "sweetPot", qty: 120, text: "120 g Sainsbury's Sweet Potatoes" },
-          { skuId: "tenderstem", qty: 80, text: "80 g Tenderstem broccoli" },
-          { skuId: "garlic", qty: 4, text: "4 g Sainsbury's Garlic" },
-          { skuId: "oil", qty: 8, text: "8 ml Sainsbury's Olive Oil" }
+          { skuId: "chicken", qty: 1, text: "1 British chicken breast, or a tray of thighs" },
+          { skuId: "potatoes", qty: 1, text: "Potatoes from the bag" },
+          { skuId: "sweetPot", qty: 1, text: "1 sweet potato" },
+          { skuId: "tenderstem", qty: 1, text: "A handful of Tenderstem broccoli" },
+          { skuId: "garlic", qty: 1, text: "1 clove Sainsbury's Garlic" },
+          { skuId: "oil", qty: 1, text: "A splash of Sainsbury's Olive Oil" }
         ]
       },
       method: {
@@ -353,16 +353,16 @@ window.RELIC_FOOD_MEALS = (function () {
         bestEaten: "Fresh",
         reheat: "Covered pan with a splash of water"
       },
-      tip: "If turkey mince is already covering the month, do not buy another pack.",
-      macros: { kcal: 620, protein: 48, carb: 68, fat: 14, basis: "skillet" },
+      tip: "If turkey mince is already covering the month, do not buy another pack. Use a household portion from the open pack.",
+      macros: { kcal: "—", protein: "—", carb: "—", fat: "—", basis: "household portion" },
       ingredients: {
         1: [
-          { skuId: "turkey", qty: 200, text: "200 g Sainsbury's British Turkey Mince 2% Fat" },
-          { skuId: "rice", qty: 80, text: "80 g Sainsbury's Easy Cook Long Grain Rice, dry" },
-          { skuId: "onion", qty: 50, text: "50 g Sainsbury's White Onions" },
-          { skuId: "passata", qty: 80, text: "80 g Sainsbury's Tomato Passata" },
-          { skuId: "spinachF", qty: 60, text: "60 g Sainsbury's Frozen Spinach" },
-          { skuId: "oil", qty: 5, text: "5 ml Sainsbury's Olive Oil" }
+          { skuId: "turkey", qty: 1, text: "A household portion of Sainsbury's British Turkey Mince 2% Fat from the open pack" },
+          { skuId: "rice", qty: 1, text: "Rice from the 1 kg bag" },
+          { skuId: "onion", qty: 1, text: "1 onion" },
+          { skuId: "passata", qty: 1, text: "A ladle of Sainsbury's Tomato Passata" },
+          { skuId: "spinachF", qty: 1, text: "A handful of frozen spinach" },
+          { skuId: "oil", qty: 1, text: "A splash of Sainsbury's Olive Oil" }
         ]
       },
       method: {
@@ -392,22 +392,22 @@ window.RELIC_FOOD_MEALS = (function () {
         bestEaten: "Fresh",
         reheat: "Covered, low heat, so the fillet stays moist"
       },
-      tip: "Tier 1 uses the frozen fillet. Tier 2 uses the fresh ASC fillet when it is on the counter.",
-      macros: { kcal: 640, protein: 42, carb: 66, fat: 20, basis: "plate" },
+      tip: "Tier 1 uses one frozen fillet. Tier 2 uses one fresh ASC fillet when it is on the counter. Drive has no gram lock for this plate.",
+      macros: { kcal: "—", protein: "—", carb: "—", fat: "—", basis: "household portion" },
       ingredients: {
         1: [
-          { skuId: "salmonFrozen", qty: 120, text: "120 g Sainsbury's Frozen Boneless Salmon Fillets" },
-          { skuId: "rice", qty: 80, text: "80 g Sainsbury's Easy Cook Long Grain Rice, dry" },
-          { skuId: "spinachF", qty: 80, text: "80 g Sainsbury's Frozen Spinach" },
-          { skuId: "lemons", qty: 20, text: "20 g Sainsbury's SO Organic Lemons" },
-          { skuId: "oil", qty: 4, text: "4 ml Sainsbury's Olive Oil" }
+          { skuId: "salmonFrozen", qty: 1, text: "1 Sainsbury's Frozen Boneless Salmon Fillet" },
+          { skuId: "rice", qty: 1, text: "Rice from the 1 kg bag" },
+          { skuId: "spinachF", qty: 1, text: "A plate of greens" },
+          { skuId: "lemons", qty: 1, text: "Lemon" },
+          { skuId: "oil", qty: 1, text: "A splash of Sainsbury's Olive Oil" }
         ],
         2: [
-          { skuId: "salmonFresh", qty: 180, text: "180 g Sainsbury's ASC Fresh Scottish Salmon Fillets" },
-          { skuId: "rice", qty: 80, text: "80 g Sainsbury's Easy Cook Long Grain Rice, dry" },
-          { skuId: "tenderstem", qty: 80, text: "80 g Tenderstem broccoli" },
-          { skuId: "lemons", qty: 20, text: "20 g Sainsbury's SO Organic Lemons" },
-          { skuId: "oil", qty: 4, text: "4 ml Sainsbury's Olive Oil" }
+          { skuId: "salmonFresh", qty: 1, text: "1 Sainsbury's ASC Fresh Scottish Salmon Fillet" },
+          { skuId: "rice", qty: 1, text: "Rice from the 1 kg bag" },
+          { skuId: "tenderstem", qty: 1, text: "A handful of Tenderstem broccoli" },
+          { skuId: "lemons", qty: 1, text: "Lemon" },
+          { skuId: "oil", qty: 1, text: "A splash of Sainsbury's Olive Oil" }
         ]
       },
       method: {
@@ -441,14 +441,14 @@ window.RELIC_FOOD_MEALS = (function () {
       macros: { kcal: 460, protein: 28, carb: 42, fat: 20, basis: "plate" },
       ingredients: {
         1: [
-          { skuId: "eggsOmega", qty: 3, text: "3 Sainsbury's Woodland Free Range Omega-3 Enriched Eggs" },
+          { skuId: "eggsSo", qty: 3, text: "3 Sainsbury's SO Organic Free Range Eggs" },
           { skuId: "rice", qty: 60, text: "60 g Sainsbury's Easy Cook Long Grain Rice, dry" },
           { skuId: "butter", qty: 8, text: "8 g Sainsbury's British Salted Butter" },
           { skuId: "spinachF", qty: 40, text: "40 g Sainsbury's Frozen Spinach" },
           { skuId: "salt", qty: 1, text: "1 g Sainsbury's Table Salt" }
         ],
         2: [
-          { skuId: "eggsPasture", qty: 3, text: "3 Sainsbury's Taste the Difference Pasture-Raised Eggs" },
+          { skuId: "eggsPasture", qty: 3, text: "3 Sainsbury's Taste the Difference Free Range Eggs" },
           { skuId: "rice", qty: 50, text: "50 g Sainsbury's Easy Cook Long Grain Rice, dry" },
           { skuId: "butter", qty: 8, text: "8 g Sainsbury's British Salted Butter" },
           { skuId: "spinachFresh", qty: 40, text: "40 g Sainsbury's Baby-Leaf Spinach" },
@@ -463,6 +463,328 @@ window.RELIC_FOOD_MEALS = (function () {
           step("Fold", "in the warmed spinach and serve beside the rice.")
         ]
       }
+    }),
+    "chicken-rice-broccoli": card({
+      id: "chicken-rice-broccoli",
+      kind: "meal",
+      seed: false,
+      name: "Chicken, Rice and Broccoli",
+      tagline: "The training plate.",
+      script: "Chicken first. Rice under it. Broccoli on the side.",
+      yield: "1 plate",
+      prepMin: 12,
+      cookLabel: "Pan · 18 min",
+      protein: "Chicken",
+      carb: "Rice",
+      role: "main",
+      timetable: {
+        bestFor: "Monday chicken night",
+        bestEaten: "Fresh",
+        reheat: "Cover and reheat until the chicken is piping hot"
+      },
+      tip: "Drive has no gram lock for this plate. One breast, rice from the bag, and a portion of broccoli.",
+      macros: { kcal: "—", protein: "—", carb: "—", fat: "—", basis: "household portion" },
+      ingredients: {
+        1: [
+          { skuId: "chicken", qty: 1, text: "1 British chicken breast" },
+          { skuId: "rice", qty: 1, text: "Rice from the 1 kg bag" },
+          { skuId: "broccoliF", qty: 1, text: "A portion of Sainsbury's Frozen Broccoli" },
+          { skuId: "oil", qty: 1, text: "A splash of Sainsbury's Olive Oil" },
+          { skuId: "salt", qty: 1, text: "Sainsbury's Table Salt" }
+        ]
+      },
+      method: {
+        1: [
+          step("Rinse", "a portion of rice from the bag and simmer it until tender."),
+          step("Season", "one British chicken breast with salt."),
+          step("Pan", "fry the chicken in the oil until the juices run clear, about 16–18 minutes."),
+          step("Steam", "a portion of frozen broccoli until hot."),
+          step("Plate", "chicken, rice, and broccoli. This is dinner. The smoothie was the morning.")
+        ]
+      }
+    }),
+    "tuna-avocado-lettuce": card({
+      id: "tuna-avocado-lettuce",
+      kind: "meal",
+      seed: false,
+      name: "Tuna, Avocado and Lettuce",
+      tagline: "The mixer-deck plate.",
+      script: "Cool tuna. Ripe avocado. Crisp leaves.",
+      yield: "1 plate",
+      prepMin: 8,
+      cookLabel: "No cook · 8 min",
+      protein: "Tuna",
+      carb: "Rice",
+      role: "main",
+      timetable: {
+        bestFor: "A flex night when the mince is already covered",
+        bestEaten: "Fresh",
+        reheat: "Do not reheat avocado. Build the plate again."
+      },
+      tip: "Tuna is a mixer card, not one of the four training proteins. One tin is the portion.",
+      macros: { kcal: "—", protein: "—", carb: "—", fat: "—", basis: "household portion" },
+      ingredients: {
+        1: [
+          { skuId: "tuna", qty: 1, text: "1 tin Sainsbury's Tuna Chunks in Spring Water, drained" },
+          { skuId: "avocado", qty: 1, text: "1 ripe avocado" },
+          { skuId: "lettuce", qty: 1, text: "A handful of Sainsbury's Iceberg Lettuce" },
+          { skuId: "rice", qty: 1, text: "Rice from the 1 kg bag, cooked" },
+          { skuId: "lemons", qty: 1, text: "Lemon juice" }
+        ]
+      },
+      method: {
+        1: [
+          step("Drain", "one tin of tuna and flake it."),
+          step("Slice", "one avocado and a handful of lettuce."),
+          step("Squeeze", "the lemon over the avocado."),
+          step("Plate", "the tuna on the rice with avocado and lettuce. No raw egg white.")
+        ]
+      }
+    }),
+    "mince-pasta-frozen-veg": card({
+      id: "mince-pasta-frozen-veg",
+      kind: "meal",
+      seed: false,
+      name: "Mince, Pasta and Frozen Veg",
+      tagline: "One dinner method.",
+      script: "Pasta, mince, then the frozen veg. Flex nights skip the mince.",
+      yield: "1 plate",
+      prepMin: 8,
+      cookLabel: "Pan · 16 min",
+      protein: "Turkey Mince",
+      carb: "Pasta",
+      role: "main",
+      timetable: {
+        bestFor: "Mince nights — turkey, chicken, or beef",
+        bestEaten: "Fresh",
+        reheat: "Cover and heat until the mince is piping hot"
+      },
+      tip: "Protect the packs already in the fridge. Do not open a new pack if this month is already covered. A household portion, not an invented gram weight.",
+      macros: { kcal: "—", protein: "—", carb: "—", fat: "—", basis: "household portion" },
+      ingredients: {
+        1: [
+          { skuId: "turkey", qty: 1, text: "A household portion of Sainsbury's British Turkey Mince 2% Fat from the open pack" },
+          { skuId: "pasta", qty: 1, text: "Pasta from the cupboard" },
+          { skuId: "mixedVeg", qty: 1, text: "1 tray of frozen broccoli, peas, sweetcorn, or mixed vegetables" },
+          { skuId: "garlic", qty: 1, text: "1 clove Sainsbury's Garlic" },
+          { skuId: "oil", qty: 1, text: "A splash of Sainsbury's Olive Oil" }
+        ],
+        2: [
+          { skuId: "beef5", qty: 1, text: "A household portion of Sainsbury's Taste the Difference British Beef Mince 5% Fat" },
+          { skuId: "pasta", qty: 1, text: "Pasta from the cupboard" },
+          { skuId: "tenderstem", qty: 1, text: "1 tray of broccoli, peas, or mixed veg" },
+          { skuId: "garlic", qty: 1, text: "1 clove Sainsbury's Garlic" },
+          { skuId: "oil", qty: 1, text: "A splash of Sainsbury's Olive Oil" }
+        ]
+      },
+      method: {
+        1: [
+          step("Boil", "pasta from the stock you already have."),
+          step("Brown", "a household portion of mince in the oil with the garlic."),
+          step("Add", "one tray of frozen veg and cook until hot."),
+          step("Combine", "pasta, mince, and veg. Flex nights skip the mince and keep the pasta and veg.")
+        ]
+      }
+    }),
+    "flex-pasta-veg-bowl": card({
+      id: "flex-pasta-veg-bowl",
+      kind: "meal",
+      seed: false,
+      name: "Flex Pasta and Veg Bowl",
+      tagline: "The night without mince.",
+      script: "Same pan. No new protein pack.",
+      yield: "1 bowl",
+      prepMin: 6,
+      cookLabel: "Pan · 12 min",
+      protein: "Chicken",
+      carb: "Pasta",
+      role: "main",
+      timetable: {
+        bestFor: "Saturday flex night",
+        bestEaten: "Fresh",
+        reheat: "Add a splash of water and reheat covered"
+      },
+      tip: "Skip the mince. The morning smoothie is not this dinner. Pasta and one tray of veg are the portion.",
+      macros: { kcal: "—", protein: "—", carb: "—", fat: "—", basis: "household portion" },
+      ingredients: {
+        1: [
+          { skuId: "pasta", qty: 1, text: "Pasta from the cupboard" },
+          { skuId: "mixedVeg", qty: 1, text: "1 tray of frozen broccoli, peas, sweetcorn, or mixed vegetables" },
+          { skuId: "cheddar", qty: 1, text: "A little Sainsbury's Mature Cheddar, optional" },
+          { skuId: "oil", qty: 1, text: "A splash of Sainsbury's Olive Oil" }
+        ]
+      },
+      method: {
+        1: [
+          step("Boil", "pasta from the cupboard."),
+          step("Heat", "one tray of frozen veg in the same pan until hot."),
+          step("Skip", "the mince. This is the flex night."),
+          step("Toss", "pasta and veg together. A little cheddar is optional.")
+        ]
+      }
+    }),
+    "chicken-broccoli-carrot": card({
+      id: "chicken-broccoli-carrot",
+      kind: "meal",
+      name: "Chicken, Broccoli and Carrot",
+      tagline: "Monday evening. Lunch was the eggs.",
+      script: "The bird, the greens, one carrot.",
+      yield: "1 plate",
+      prepMin: 15,
+      cookLabel: "Tray or pan · until the chicken is cooked through",
+      protein: "Chicken",
+      carb: "Rice",
+      role: "main",
+      timetable: { bestFor: "Monday evening", bestEaten: "Fresh", reheat: "Heat the leftover chicken until piping hot" },
+      tip: "Drive has no cooked-plate gram lock for this dinner. The portion is one breast, broccoli, and a carrot.",
+      macros: { kcal: "—", protein: "—", carb: "—", fat: "—", basis: "household portion" },
+      ingredients: { 1: [
+        { skuId: "chicken", qty: 1, text: "1 British chicken breast" },
+        { skuId: "broccoliF", qty: 1, text: "1 handful broccoli" },
+        { skuId: "carrots", qty: 1, text: "1 carrot" },
+        { skuId: "rice", qty: 1, text: "Rice or potato from the bag already open" }
+      ] },
+      method: { 1: [
+        step("Cook", "one British chicken breast until the juices run clear."),
+        step("Steam", "the broccoli and the carrot."),
+        step("Plate", "them with rice or potato. This is dinner. The smoothie was the morning. Lunch was eggs, with the whites cooked.")
+      ] }
+    }),
+    "salmon-greens-potato": card({
+      id: "salmon-greens-potato",
+      kind: "meal",
+      name: "Salmon, Greens and Potato",
+      tagline: "Tuesday evening.",
+      script: "One fillet. Greens. One potato.",
+      yield: "1 plate",
+      prepMin: 10,
+      cookLabel: "Oven tray",
+      protein: "Salmon",
+      carb: "Potatoes",
+      role: "main",
+      timetable: { bestFor: "Tuesday evening", bestEaten: "Fresh", reheat: "Heat the fillet until piping hot" },
+      tip: "Household portion from FOOD_LIVE. Not a weighed gram plate.",
+      macros: { kcal: "—", protein: "—", carb: "—", fat: "—", basis: "household portion" },
+      ingredients: { 1: [
+        { skuId: "salmonFrozen", qty: 1, text: "1 ASC salmon fillet" },
+        { skuId: "spinachF", qty: 1, text: "A plate of greens" },
+        { skuId: "potatoes", qty: 1, text: "1 potato" }
+      ] },
+      method: { 1: [
+        step("Roast", "one salmon fillet on a tray."),
+        step("Cook", "the greens and one potato."),
+        step("Plate", "fillet, greens, and potato. The morning glass is not this dinner.")
+      ] }
+    }),
+    "chicken-mushroom-greens": card({
+      id: "chicken-mushroom-greens",
+      kind: "meal",
+      name: "Chicken, Mushrooms and Greens",
+      tagline: "Leftover chicken, when Wednesday is not the egg plate.",
+      script: "Leftover bird. Mushrooms. Greens.",
+      yield: "1 plate",
+      prepMin: 10,
+      cookLabel: "Pan",
+      protein: "Chicken",
+      carb: "Rice",
+      role: "main",
+      timetable: { bestFor: "Wednesday evening", bestEaten: "Fresh", reheat: "Heat until the chicken is piping hot" },
+      tip: "FOOD_LIVE Wednesday evening is eggs, mushrooms, and greens. This chicken plate is the leftover, not a replacement for the eggs.",
+      macros: { kcal: "—", protein: "—", carb: "—", fat: "—", basis: "household portion" },
+      ingredients: { 1: [
+        { skuId: "chicken", qty: 1, text: "Leftover British chicken" },
+        { skuId: "mushrooms", qty: 1, text: "1 handful mushrooms" },
+        { skuId: "spinachF", qty: 1, text: "A plate of greens" }
+      ] },
+      method: { 1: [
+        step("Warm", "the leftover chicken."),
+        step("Fry", "the mushrooms and greens."),
+        step("Plate", "them together.")
+      ] }
+    }),
+    "chicken-thigh-tray": card({
+      id: "chicken-thigh-tray",
+      kind: "meal",
+      name: "Chicken Thigh Tray",
+      tagline: "Thursday evening.",
+      script: "One tray of thighs. One tray of veg.",
+      yield: "1 tray",
+      prepMin: 10,
+      cookLabel: "Oven tray",
+      protein: "Chicken",
+      carb: "Potatoes",
+      role: "main",
+      timetable: { bestFor: "Thursday evening", bestEaten: "Fresh", reheat: "Cover and heat the tray" },
+      tip: "A tray is the portion. Drive does not lock a gram weight for this dinner.",
+      macros: { kcal: "—", protein: "—", carb: "—", fat: "—", basis: "household tray" },
+      ingredients: { 1: [
+        { skuId: "chicken", qty: 1, text: "1 tray of British chicken thighs" },
+        { skuId: "mixedVeg", qty: 1, text: "1 tray of mixed veg" }
+      ] },
+      method: { 1: [
+        step("Roast", "the chicken thighs on one tray."),
+        step("Roast", "the mixed veg on the second tray."),
+        step("Serve", "both. Friday lunch is eggs, with the whites cooked.")
+      ] }
+    }),
+    "salmon-or-white-fish": card({
+      id: "salmon-or-white-fish",
+      kind: "meal",
+      name: "Salmon or White Fish",
+      tagline: "Friday evening. Easy night.",
+      script: "One fillet. Greens. Rice from the open bag.",
+      yield: "1 plate",
+      prepMin: 10,
+      cookLabel: "Pan or oven",
+      protein: "Salmon",
+      carb: "Rice",
+      role: "main",
+      timetable: { bestFor: "Friday evening", bestEaten: "Fresh", reheat: "Heat the fillet until piping hot" },
+      tip: "Friday lunch is eggs. This evening plate is the fish. Cook egg whites. Raw whites block biotin.",
+      macros: { kcal: "—", protein: "—", carb: "—", fat: "—", basis: "household portion" },
+      ingredients: { 1: [
+        { skuId: "salmonFrozen", qty: 1, text: "1 salmon or white-fish fillet" },
+        { skuId: "spinachF", qty: 1, text: "Greens" },
+        { skuId: "rice", qty: 1, text: "Rice from the 1 kg bag" }
+      ] },
+      method: { 1: [
+        step("Cook", "one fillet."),
+        step("Heat", "the greens and a portion of rice."),
+        step("Plate", "them. The eggs were lunch, and the whites were cooked.")
+      ] }
+    }),
+    "eggs-mushroom-greens": card({
+      id: "eggs-mushroom-greens",
+      kind: "meal",
+      name: "Eggs, Mushrooms and Greens",
+      tagline: "Wednesday evening.",
+      script: "Eggs, mushrooms, greens. Cook the whites.",
+      yield: "1 plate",
+      prepMin: 8,
+      cookLabel: "Covered pan · until the white is set",
+      protein: "Eggs",
+      carb: "Rice",
+      role: "main",
+      timetable: { bestFor: "Wednesday evening", bestEaten: "Fresh", reheat: "Cook a fresh pair. Do not reheat a soft white." },
+      tip: "Taste the Difference free-range when it is stocked, then SO Organic, then standard free-range. Never skip the eggs. Raw whites block biotin.",
+      macros: { kcal: "—", protein: "—", carb: "—", fat: "—", basis: "household portion" },
+      ingredients: {
+        1: [
+          { skuId: "eggsSo", qty: 2, text: "2 Sainsbury's SO Organic Free Range Eggs" },
+          { skuId: "mushrooms", qty: 1, text: "1 handful mushrooms" },
+          { skuId: "spinachF", qty: 1, text: "A plate of greens" }
+        ],
+        2: [
+          { skuId: "eggsPasture", qty: 2, text: "2 Sainsbury's Taste the Difference Free Range Eggs" },
+          { skuId: "mushrooms", qty: 1, text: "1 handful mushrooms" },
+          { skuId: "spinachFresh", qty: 1, text: "A plate of greens" }
+        ]
+      },
+      method: { 1: [
+        step("Whisk", "two eggs. The whites go into the pan, not into a glass."),
+        step("Fry", "the mushrooms and greens until hot."),
+        step("Cook", "the eggs until the white is fully set, then plate them with the mushrooms and greens.")
+      ] }
     })
   };
 
@@ -476,19 +798,29 @@ window.RELIC_FOOD_MEALS = (function () {
     "crispy-potato-snack",
     "cheesy-roasted-garlic-bread",
     "cheesy-potato-toast",
-    "paprika-potato-egg-skillet",
     "beef-stuffed-potato-boats",
+    "paprika-potato-egg-skillet",
     "bread-egg-pan-pizza",
+    "eggs-mushroom-greens",
+    "omega3-egg-rest-plate",
+    "chicken-broccoli-carrot",
+    "salmon-greens-potato",
+    "chicken-mushroom-greens",
+    "chicken-thigh-tray",
+    "salmon-or-white-fish",
     "bulk-chicken-potato-plate",
+    "chicken-rice-broccoli",
     "turkey-mince-rice-skillet",
+    "mince-pasta-frozen-veg",
     "salmon-rice-plate",
-    "omega3-egg-rest-plate"
+    "tuna-avocado-lettuce",
+    "flex-pasta-veg-bowl"
   ];
 
   function present(id, tierId) {
     var meal = MEALS[id];
     var shop = window.RELIC_FOOD_SHOP;
-    if (!meal || !shop) return null;
+    if (!meal || meal.banned || !shop) return null;
     var tier = tierId === 2 ? 2 : 1;
     var tierRow = shop.tiers[tier];
     var ingredients = (meal.ingredients[tier] || meal.ingredients[1]).slice();
@@ -520,7 +852,7 @@ window.RELIC_FOOD_MEALS = (function () {
   }
 
   return {
-    build: "v18",
+    build: "v19",
     meals: MEALS,
     order: ORDER,
     present: present

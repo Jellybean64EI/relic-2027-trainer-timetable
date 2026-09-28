@@ -13,7 +13,9 @@
    set closes the player and returns to the timetable. Week chips keep a single
    slot and a dual slot. Calisthenics is Q4 2027 only.
    v18: Food OS is four rooms behind the drawer. It does not write
-   relic_completions, move the player timer, or open the CUE panel. */
+   relic_completions, move the player timer, or open the CUE panel.
+   v19: day ticks glow, cabin switches keep their scroll, weekly rows carry
+   portions, and the Sainsbury’s list locks into localStorage only. */
 (function () {
   "use strict";
 
@@ -31,6 +33,12 @@
     if (seconds >= 1 && seconds <= 1200) SET_DURATION_SEC = seconds;
   })();
   var HUD_IDLE_MS = 2000;
+  var TAP_SLOP = 18;
+  var PICK_GAP_MS = 320;
+  var lastPickAt = 0;
+  var hudGesture = null;
+  var viewScroll = {};
+  var surfacePress = null;
   var EMPTY_MSG = "No video file IDs mapped for this cabin.";
   var BRIDGE_LOCK_START = "2026-10-01";
 
@@ -482,7 +490,7 @@
       fullDays: fullDays,
       firstSessions: firstSessions,
       ticks: ticks,
-      complete: total >= 6 && fullDays === total
+      complete: total > 0 && fullDays === total
     };
   }
 
@@ -523,8 +531,16 @@
     var dualCount = btn.querySelector("[data-dual-count]");
     if (singleCount) singleCount.textContent = score.firstSessions + "/" + total;
     if (dualCount) dualCount.textContent = complete ? String(score.ticks) : (score.fullDays + "/" + total);
+    var singleSlot = btn.querySelector(".week-slot-single");
+    if (singleSlot) {
+      singleSlot.classList.toggle("is-started", score.firstSessions > 0 && !complete);
+      singleSlot.classList.toggle("is-full", total > 0 && score.firstSessions === total);
+    }
     var dualSlot = btn.querySelector(".week-slot-dual");
-    if (dualSlot) dualSlot.classList.toggle("is-full", complete);
+    if (dualSlot) {
+      dualSlot.classList.toggle("is-started", score.fullDays > 0 && !complete);
+      dualSlot.classList.toggle("is-full", complete);
+    }
     var badge = btn.querySelector(".week-slot-dual .shield-complete");
     if (!badge) {
       badge = document.createElement("span");
@@ -658,7 +674,7 @@
       return '<li><span class="method-num" aria-hidden="true">' + (index + 1) +
         '</span><p><strong>' + escapeHtml(step.verb) + "</strong> " + escapeHtml(step.detail) + "</p></li>";
     }).join("");
-    var kcal = card.macros.kcal + " kcal";
+    var kcal = card.macros.kcal === "—" || card.macros.kcal === "-" ? "—" : card.macros.kcal + " kcal";
     if (card.macros.basis) kcal += " · " + card.macros.basis;
     return (
       '<article class="recipe-card" data-kind="' + escapeHtml(card.kind) + '">' +
@@ -690,13 +706,136 @@
     );
   }
 
+  var FOOD_STORE_KEY = "relic_food_shop_v19";
+
+  function foodMonthKey(year, month) {
+    var m = +month;
+    return (+year) + "-" + (m < 10 ? "0" : "") + m;
+  }
+
+  function readFoodStore() {
+    try {
+      var raw = localStorage.getItem(FOOD_STORE_KEY);
+      var parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function writeFoodStore(store) {
+    try { localStorage.setItem(FOOD_STORE_KEY, JSON.stringify(store)); } catch (err) { /* private mode */ }
+  }
+
+  function suggestedDraft() {
+    var api = foodShop();
+    var list = api && api.shoppingListFor(state.viewYear, state.viewMonth);
+    return {
+      items: (list && list.items ? list.items : []).map(function (item) {
+        return { skuId: item.skuId, qty: item.qty, ticked: true };
+      }),
+      locked: false,
+      lockedAt: "",
+      plan: null
+    };
+  }
+
+  function draftFor(year, month, create) {
+    var store = readFoodStore();
+    var key = foodMonthKey(year, month);
+    if (!store[key] && create) {
+      store[key] = suggestedDraft();
+      writeFoodStore(store);
+    }
+    return store[key] || null;
+  }
+
+  function saveDraft(draft) {
+    var store = readFoodStore();
+    store[foodMonthKey(state.viewYear, state.viewMonth)] = draft;
+    writeFoodStore(store);
+  }
+
+  function tickedSkuIds(draft) {
+    var ids = [];
+    (draft.items || []).forEach(function (item) {
+      if (item.ticked && item.qty > 0 && ids.indexOf(item.skuId) === -1) ids.push(item.skuId);
+    });
+    return ids;
+  }
+
+  function lockShopMonth() {
+    var api = foodSchedule();
+    if (!api || !api.composeFromBasket) return;
+    var draft = draftFor(state.viewYear, state.viewMonth, true);
+    var plan = {};
+    trainingDaysForMonth(state.viewMonth, state.viewYear).forEach(function (day) {
+      plan[day.dateKey] = api.composeFromBasket(day, tickedSkuIds(draft));
+    });
+    draft.locked = true;
+    draft.lockedAt = new Date().toISOString();
+    draft.plan = plan;
+    saveDraft(draft);
+    render();
+  }
+
+  function unlockShopMonth() {
+    var draft = draftFor(state.viewYear, state.viewMonth, true);
+    draft.locked = false;
+    draft.plan = null;
+    saveDraft(draft);
+    render();
+  }
+
+  function onShopAction(btn) {
+    var action = btn.getAttribute("data-shop-action");
+    if (action === "lock") {
+      lockShopMonth();
+      return;
+    }
+    if (action === "unlock") {
+      unlockShopMonth();
+      return;
+    }
+    var draft = draftFor(state.viewYear, state.viewMonth, true);
+    if (draft.locked) return;
+    if (action === "add") {
+      var select = $("shop-add-sku");
+      var skuId = select ? select.value : "";
+      if (!skuId) return;
+      var found = false;
+      draft.items.forEach(function (item) {
+        if (item.skuId === skuId) {
+          item.qty += 1;
+          item.ticked = true;
+          found = true;
+        }
+      });
+      if (!found) draft.items.push({ skuId: skuId, qty: 1, ticked: true });
+    } else {
+      var index = +btn.getAttribute("data-shop-index");
+      var item = draft.items[index];
+      if (!item) return;
+      if (action === "tick") item.ticked = !item.ticked;
+      if (action === "qty") item.qty = Math.max(1, item.qty + (+btn.getAttribute("data-shop-delta") || 0));
+      if (action === "remove") draft.items.splice(index, 1);
+    }
+    saveDraft(draft);
+    render();
+  }
+
   function paintFuelWeek() {
     var api = foodSchedule();
     var days = activeDaysForView();
     var html = "";
+    var draft = draftFor(state.viewYear, state.viewMonth, false);
+    var lockedPlan = draft && draft.locked && draft.plan;
     days.forEach(function (day) {
-      var cue = api.cueForDay(day);
+      var cue = lockedPlan && lockedPlan[day.dateKey] ? lockedPlan[day.dateKey] : api.cueForDay(day);
       var cabins = (cue.cabins || []).join(" · ");
+      var portions = cue.portions || {};
+      var plate = portions.label ||
+        ((portions.proteinName || "") + (portions.carbName ? " · " + portions.carbName : ""));
       html += '<tr class="fuel-row is-' + cue.band + '">' +
         '<td class="day-cell">' +
           '<button type="button" class="food-date" data-open-room="meals" data-food-meal="' +
@@ -706,8 +845,14 @@
           "</button>" +
         "</td>" +
         '<td class="relics-cell"><div class="relic-stack">' +
-          '<p class="fuel-meal-name">' + escapeHtml(cue.mealName) + "</p>" +
-          '<p class="fuel-meta">' + escapeHtml(cue.protein) + " · " + escapeHtml(cue.carb) + "</p>" +
+          '<button type="button" class="fuel-morning" data-food-extraction="' + escapeHtml(cue.extractionId) +
+            '" data-food-band="' + escapeHtml(cue.band) + '">Morning · ' + escapeHtml(cue.smoothieName || cue.extractionName) + "</button>" +
+          '<button type="button" class="fuel-meal-name" data-food-meal="' + escapeHtml(cue.mealId) +
+            '" data-food-band="' + escapeHtml(cue.band) + '">' + escapeHtml(cue.mealName) + "</button>" +
+          '<p class="fuel-meta">' + escapeHtml(plate) + "</p>" +
+          (cue.lunch ? '<p class="fuel-meta">' + escapeHtml("Lunch · " + cue.lunch) + "</p>" : "") +
+          '<p class="fuel-portions"><span>' + (cue.fruitPortions || 2) + " fruit</span><span>" +
+            (cue.vegPortions || 3) + " veg</span></p>" +
           (cabins ? '<p class="food-cabin-chip">' + escapeHtml(cabins) + "</p>" : "") +
         "</div></td></tr>";
     });
@@ -715,7 +860,9 @@
     if (body) body.innerHTML = html;
     var sunday = $("fuel-sunday");
     if (sunday) {
-      sunday.textContent = "Sunday stays off this list. The date opens that day’s meal card. Cabin names are read-only.";
+      sunday.textContent = lockedPlan
+        ? "Locked prep plan. Sunday is a 45-minute prep, not a plate on this list. Boil eggs for two days and cook the whites. Seven Brazil nuts, one a day. Cabin names are read-only."
+        : "Suggested rotation until you lock the Sainsbury’s list. Sunday is a 45-minute prep, not a plate on this list. Boil eggs for two days and cook the whites. Seven Brazil nuts, one a day. Cabin names are read-only.";
     }
   }
 
@@ -724,12 +871,22 @@
     var api = foodShop();
     if (!host || !api) return;
     var tier = api.tierFor(state.viewYear, state.viewMonth);
-    var list = api.shoppingListFor(state.viewYear, state.viewMonth);
+    var draft = draftFor(state.viewYear, state.viewMonth, true);
+    var stretch = tier.stretchPence || tier.budgetPence;
+    var total = 0;
+    (draft.items || []).forEach(function (item) {
+      var entry = api.skus[item.skuId];
+      if (item.ticked && entry) total += entry.pricePence * item.qty;
+    });
+    var capNote = total <= tier.budgetPence
+      ? "Inside " + tier.budgetLabel
+      : (total <= stretch ? "Soft stretch to " + (tier.stretchLabel || api.formatGbp(stretch)) : "Over the stretch cap");
     var html = '<section class="fuel-tier" data-tier="' + tier.id + '">' +
       '<p class="fuel-tier-label">TIER ' + tier.id + " · " + escapeHtml(tier.budgetLabel) + "/MONTH</p>" +
       '<p class="fuel-tier-range">' + escapeHtml(tier.rangeLabel) + " · " + escapeHtml(tier.stores.join(" / ")) + "</p>" +
-      (list ? '<p class="fuel-tier-basket">Basket ' + api.formatGbp(list.totalPence) + " of " +
-        escapeHtml(tier.budgetLabel) + " · " + api.formatGbp(list.headroomPence) + " headroom</p>" : "") +
+      '<p class="fuel-tier-basket">Ticked ' + api.formatGbp(total) + " · " + escapeHtml(capNote) +
+        (tier.stretchLabel ? " · stretch " + escapeHtml(tier.stretchLabel) : "") + "</p>" +
+      '<p class="fuel-basket-note">' + (draft.locked ? "Locked. The weekly schedule is this month’s prep plan." : "Suggested list. Lock it to fill the weekly schedule.") + "</p>" +
       "</section>";
     html += '<ol class="food-laws">';
     api.laws.forEach(function (law) { html += "<li>" + escapeHtml(law) + "</li>"; });
@@ -746,18 +903,56 @@
     html += '</ul><h3 class="food-subhead">On the Sainsbury’s shelf</h3><ul class="food-plain">';
     api.citations.forEach(function (item) { html += "<li>" + escapeHtml(item) + "</li>"; });
     html += "</ul>";
-    if (list) {
-      html += '<h3 class="food-subhead">This month’s basket</h3><p class="fuel-basket-note">' +
-        escapeHtml(list.vegNote || "") + '</p><ul class="fuel-basket-list">';
-      list.items.forEach(function (item) {
-        var entry = api.skus[item.skuId];
-        if (!entry) return;
-        html += "<li><span>" + item.qty + " × " + escapeHtml(entry.name) + "</span><span>" +
-          api.formatGbp(entry.pricePence * item.qty) + "</span></li>";
+    if (api.aisles && api.aisles.length) {
+      html += '<h3 class="food-subhead">Aisle table</h3><ul class="food-plain">';
+      api.aisles.forEach(function (row) {
+        html += "<li><strong>" + escapeHtml(row.aisle) + ".</strong> " + escapeHtml(row.prefer) +
+          " Fallback: " + escapeHtml(row.fallback) + "</li>";
       });
-      html += '</ul><p class="fuel-basket-total">Total ' + api.formatGbp(list.totalPence) +
-        " · Fits " + escapeHtml(list.budgetLabel) + "</p>";
+      html += "</ul>";
     }
+    if (api.fruitFirstBuys && api.fruitFirstBuys.length) {
+      html += '<h3 class="food-subhead">Fruit buys</h3><ul class="food-plain">';
+      api.fruitFirstBuys.forEach(function (row) {
+        html += "<li>" + escapeHtml(row.item) + " · " + escapeHtml(row.buy) + " · " + escapeHtml(row.why) + "</li>";
+      });
+      html += "</ul>";
+    }
+    if (api.sundayPrep && api.sundayPrep.length) {
+      html += '<h3 class="food-subhead">Sunday 45-minute prep</h3><ol class="food-plain">';
+      api.sundayPrep.forEach(function (line) { html += "<li>" + escapeHtml(line) + "</li>"; });
+      html += "</ol>";
+    }
+    html += '<h3 class="food-subhead">This month’s list</h3><ul class="fuel-basket-list shop-editor">';
+    (draft.items || []).forEach(function (item, index) {
+      var entry = api.skus[item.skuId];
+      if (!entry) return;
+      html += '<li class="shop-line' + (item.ticked ? " is-ticked" : "") + '">' +
+        '<button type="button" class="shop-tick" data-shop-action="tick" data-shop-index="' + index +
+          '" aria-pressed="' + (item.ticked ? "true" : "false") + '">' + (item.ticked ? "In" : "Out") + "</button>" +
+        "<span>" + escapeHtml(entry.name) + "</span>" +
+        '<span class="shop-qty">' +
+          '<button type="button" data-shop-action="qty" data-shop-index="' + index + '" data-shop-delta="-1" aria-label="Fewer">−</button>' +
+          "<strong>" + item.qty + "</strong>" +
+          '<button type="button" data-shop-action="qty" data-shop-index="' + index + '" data-shop-delta="1" aria-label="More">+</button>' +
+        "</span>" +
+        "<span>" + api.formatGbp(entry.pricePence * item.qty) + "</span>" +
+        '<button type="button" data-shop-action="remove" data-shop-index="' + index + '">Remove</button>' +
+        "</li>";
+    });
+    html += "</ul>";
+    var options = "";
+    Object.keys(api.skus).forEach(function (id) {
+      var entry = api.skus[id];
+      if (entry.tierMin > tier.id) return;
+      options += '<option value="' + escapeHtml(id) + '">' + escapeHtml(entry.name) + "</option>";
+    });
+    html += '<div class="shop-add"><label>Add a Sainsbury’s line <select id="shop-add-sku">' + options +
+      '</select></label><button type="button" data-shop-action="add">Add</button></div>';
+    html += '<p class="fuel-basket-total">Ticked total ' + api.formatGbp(total) + " · " + escapeHtml(capNote) + "</p>";
+    html += draft.locked
+      ? '<button type="button" class="shop-lock" data-shop-action="unlock">Unlock this month’s shop</button>'
+      : '<button type="button" class="shop-lock" data-shop-action="lock">Lock this month’s shop</button>';
     host.innerHTML = html;
   }
 
@@ -776,6 +971,7 @@
     }
     host.innerHTML = api.order.map(function (id) {
       var meal = api.meals[id];
+      if (!meal || meal.banned) return "";
       return '<button type="button" class="food-jump" data-food-meal="' + escapeHtml(id) + '">' +
         escapeHtml(meal.name) + "<span>" + escapeHtml(meal.tagline) + "</span></button>";
     }).join("");
@@ -1029,7 +1225,29 @@
     return player.clips.length > 0 && player.index >= player.clips.length - 1;
   }
 
+  function pickSettled() {
+    var now = Date.now();
+    if (now - lastPickAt < PICK_GAP_MS) return false;
+    lastPickAt = now;
+    return true;
+  }
+
+  function viewScrollKey() {
+    return state.viewYear + ":" + (state.mode || "full") + ":" + state.viewMonth + ":" + state.viewWeek;
+  }
+
+  function rememberViewScroll() {
+    viewScroll[viewScrollKey()] = window.scrollY || 0;
+  }
+
+  function restoreViewScroll() {
+    var y = viewScroll[viewScrollKey()];
+    if (typeof y !== "number") return;
+    try { window.scrollTo(0, y); } catch (err) { /* scroll restore is optional */ }
+  }
+
   function pickMonth(month) {
+    if (!pickSettled()) return;
     if (periodMonths().indexOf(month) === -1) return;
     state.userPicked = true;
     state.viewMonth = month;
@@ -1067,8 +1285,10 @@
     if (!upperSchedule()) return;
     if (mode !== "full" && mode !== "upper") return;
     if (state.mode === mode) return;
+    rememberViewScroll();
     state.mode = mode;
     render();
+    restoreViewScroll();
   }
 
   function toggleScheduleMode() {
@@ -1129,6 +1349,7 @@
   }
 
   function pickWeek(week) {
+    if (!pickSettled()) return;
     state.userPicked = true;
     state.viewWeek = week;
     render();
@@ -1390,6 +1611,28 @@
       showPlayerHud();
       return;
     }
+    hudGesture = {
+      x: event.clientX,
+      y: event.clientY,
+      id: event.pointerId,
+      moved: false
+    };
+  }
+
+  function onStageHudPointerMove(event) {
+    if (!hudGesture || event.pointerId !== hudGesture.id) return;
+    if (Math.abs(event.clientX - hudGesture.x) > TAP_SLOP || Math.abs(event.clientY - hudGesture.y) > TAP_SLOP) {
+      hudGesture.moved = true;
+    }
+  }
+
+  function onStageHudPointerUp(event) {
+    if (!hudGesture || event.pointerId !== hudGesture.id) return;
+    var moved = hudGesture.moved;
+    hudGesture = null;
+    if (moved) return;
+    var node = eventElement(event);
+    if (isForensicChrome(node) || isHudChromeTarget(node)) return;
     if (hudIsHidden()) {
       showPlayerHud();
       player.swallowChromeClick = true;
@@ -1951,7 +2194,10 @@
         var extraction = event.target.closest("[data-food-extraction]");
         if (extraction) {
           openFoodRoom("extractions", extraction.getAttribute("data-food-extraction"), extraction.getAttribute("data-food-band"));
+          return;
         }
+        var shopAct = event.target.closest("[data-shop-action]");
+        if (shopAct) onShopAction(shopAct);
       });
     }
     var forensicTab = $("forensic-tab");
@@ -1990,7 +2236,17 @@
       if (navBtn) navBtn.focus();
     });
     setNavOpen(false);
+    $("tt-body").addEventListener("pointerdown", function (event) {
+      surfacePress = { x: event.clientX, y: event.clientY, id: event.pointerId, moved: false };
+    });
+    $("tt-body").addEventListener("pointermove", function (event) {
+      if (!surfacePress || event.pointerId !== surfacePress.id || surfacePress.moved) return;
+      if (Math.abs(event.clientX - surfacePress.x) > TAP_SLOP || Math.abs(event.clientY - surfacePress.y) > TAP_SLOP) {
+        surfacePress.moved = true;
+      }
+    });
     $("tt-body").addEventListener("click", function (event) {
+      if (surfacePress && surfacePress.moved) return;
       var hit = event.target.closest("button.tick-hit");
       if (!hit) return;
       event.preventDefault();
@@ -2007,6 +2263,7 @@
       warmCabinLead(link.getAttribute("data-cabin"));
     });
     $("tt-body").addEventListener("click", function (event) {
+      if (surfacePress && surfacePress.moved) return;
       var link = event.target.closest("a.cite-link");
       if (!link) return;
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
@@ -2024,8 +2281,31 @@
     var stage = playerStage();
     if (stage) {
       stage.addEventListener("pointerdown", onStageHudPointerDown);
+      stage.addEventListener("pointermove", onStageHudPointerMove);
+      stage.addEventListener("pointerup", onStageHudPointerUp);
+      stage.addEventListener("pointercancel", function () { hudGesture = null; });
       stage.addEventListener("click", onStageHudClickCapture, true);
     }
+    document.addEventListener("pointerdown", function (event) {
+      var calm = event.target.closest(".mbtn, .wtab, #btn-schedule-mode, [data-set-mode], [data-set-branch]");
+      if (!calm || event.button > 0) return;
+      surfacePress = { x: event.clientX, y: event.clientY, id: event.pointerId, moved: false };
+    }, true);
+    document.addEventListener("pointermove", function (event) {
+      if (!surfacePress || event.pointerId !== surfacePress.id || surfacePress.moved) return;
+      if (Math.abs(event.clientX - surfacePress.x) > TAP_SLOP || Math.abs(event.clientY - surfacePress.y) > TAP_SLOP) {
+        surfacePress.moved = true;
+      }
+    }, true);
+    document.addEventListener("click", function (event) {
+      if (!surfacePress || !surfacePress.moved) return;
+      if (!event.target.closest(".mbtn, .wtab, #btn-schedule-mode, [data-set-mode], [data-set-branch]")) return;
+      event.preventDefault();
+      event.stopPropagation();
+    }, true);
+    document.addEventListener("click", function () {
+      if (surfacePress && surfacePress.moved) surfacePress = null;
+    });
     $("btn-prev-clip").addEventListener("click", playPreviousVideo);
     $("btn-next-clip").addEventListener("click", playNextVideo);
     $("btn-play-pause").addEventListener("click", togglePlayPause);
@@ -2148,7 +2428,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v18",
+    build: "v19",
     get nutrition() {
       return {
         shop: foodShop(),
