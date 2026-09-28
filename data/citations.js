@@ -103,6 +103,46 @@ window.RELIC_CITATIONS = {
       Hard: { id: "1aijtT_BLHww5uPHA7ceDn9_tTwfG-fvg", file: "2. Neck_Hard_Trainer.docx", url: "https://docs.google.com/document/d/1aijtT_BLHww5uPHA7ceDn9_tTwfG-fvg/edit" },
       Expert: { id: "1JL_fi69ejMOT3PV6wO1XmnFJ1YVE3EUo", file: "3. Neck_Expert_Trainer.docx", url: "https://docs.google.com/document/d/1JL_fi69ejMOT3PV6wO1XmnFJ1YVE3EUo/edit" },
       Till_Failure: { id: "1OhzwTV3jIB9pWAi44iPXRNGT5BIAj68m", file: "4. Neck_Till_Failure_Trainer.docx", url: "https://docs.google.com/document/d/1OhzwTV3jIB9pWAi44iPXRNGT5BIAj68m/edit" }
+    },
+    /* Upper Body citation keys. Visible label is still 1. {CabinKey}_Trainer_{Phase}.
+       Phase documents are not authored. Folder URLs are mapping references only.
+       Video folder for Neck rotation content is 1FKFGp-0A9ZSUjeTH65saLabR2wXtcJTs
+       (see videoArchive.js). These anchors do not embed Drive. */
+    Face: {
+      folder: "https://drive.google.com/drive/folders/1a1EPQ9tcq2h80sRUTy0RgPKVyjNofNr7",
+      label: "Face",
+      gate: "No phase Docx yet. Label uses the quarter. Playback is relic-videos/Face when files exist.",
+      Base: null,
+      Hard: null,
+      Expert: null,
+      Till_Failure: null
+    },
+    Eyes: {
+      folder: "https://drive.google.com/drive/folders/1IFYFNll4u0SOsKNwaXFwcGCzIeVt0YQG",
+      label: "Eyes",
+      gate: "No phase Docx yet. Label uses the quarter. Playback is relic-videos/Eyes when files exist.",
+      Base: null,
+      Hard: null,
+      Expert: null,
+      Till_Failure: null
+    },
+    Tongue: {
+      folder: "https://drive.google.com/drive/folders/1Hr-SOlyYmbA9ilHe07nV8mmkWHD7Nilm",
+      label: "Tongue",
+      gate: "No phase Docx yet. Label uses the quarter. Playback is relic-videos/Tongue when files exist.",
+      Base: null,
+      Hard: null,
+      Expert: null,
+      Till_Failure: null
+    },
+    Jaw: {
+      folder: "https://drive.google.com/drive/folders/14AXrIlRqWouimaym2gdACISEJbbNhBWj",
+      label: "Jaw",
+      gate: "No phase Docx yet. Label uses the quarter. Playback is relic-videos/Jaw when files exist.",
+      Base: null,
+      Hard: null,
+      Expert: null,
+      Till_Failure: null
     }
   }
 };
