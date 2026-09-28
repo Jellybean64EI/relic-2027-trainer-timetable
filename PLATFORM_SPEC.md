@@ -5,7 +5,7 @@
 **Coach archive:** NiX  
 **Timezone:** Europe/London (always)  
 **Runtime:** static HTML / CSS / JS. No build step. No npm.  
-**Cache bust:** `?v=v2_14` on every stylesheet and script in `index.html`
+**Cache bust:** `?v=v14` on every stylesheet and script in `index.html`
 
 Footer motto (exact):
 
@@ -19,7 +19,7 @@ Title (exact):
 
 ## 1. Purpose
 
-Single-page timetable for the 2027 trainer year. Each training day shows two stacked cabin citations. Opening a citation streams that cabin’s movement clips from Supabase Storage. A completion checkbox upserts `relic_completions` for the active schedule mode only.
+Single-page timetable for the 2027 trainer year. Each training day shows two stacked cabin citations. Opening a citation streams that cabin’s movement clips from Supabase Storage. Finishing a citation’s set, or using the DONE control, upserts that day’s tier on `relic_completions` for the active schedule mode only.
 
 Two schedule modes share this page: **Full Body Trainer Schedules** (default) and **Upper Body Trainer Schedules**. Under the week chrome the order is the timetable matrix, the schedule toggle immediately under the last day rows, then the motto and its metadata at the bottom of the card. The toggle swaps the rendered rotation without a reload. See §11.
 
@@ -47,7 +47,7 @@ The timetable is exactly three columns, `table-layout: fixed`:
 - Headers are only `DAY`, `TRAINING RELICS`, `DONE`.
 - Do not add `TRAINING PAIR`, `DOCUMENT 1`, or `DOCUMENT 2` headers.
 - Both document citations stack inside TRAINING RELICS.
-- DONE is a centered completion checkbox.
+- DONE is a centered compact tier control. The drawn box is small. The hit target stays at least 44px.
 
 ---
 
@@ -120,6 +120,7 @@ Element:
 - **Duration** (master override): buttons **2m, 5m, 10m, 20m**. A tap overwrites the remaining countdown to that interval (`02:00`, `05:00`, `10:00`, or `20:00`) and sets `SET_DURATION_SEC` to that many seconds. The current clip keeps looping.
 - **Add More Time** (stacking): buttons **+2m, +5m, +10m, +20m**. A tap adds that many seconds to the remaining countdown only. `SET_DURATION_SEC` stays unchanged. Example: `09:00` left + 5 min → `14:00` left, and the next set still uses the locked duration. The current clip keeps looping.
 - At `00:00`, call `playNextVideo()` and load the next cabin clip without closing the player. The next clip starts at the current `SET_DURATION_SEC` (the last Duration override, or 1200 seconds when only stacking was used).
+- **v14 set credit.** That same `00:00` marks the opened citation’s trainer video complete for its day. Slot 0 (first scheduled citation) sets tier bit `1`. Slot 1 (second/final citation) sets tier bit `2`. A later clip in the same cabin does not add another tier. Skipping with Next does not credit a video.
 - Empty playlist: set the frame to `about:blank` and show `No video file IDs mapped for this cabin.`
 - **v2_13 header.** The card title is `NiX Training Schedules`. `JOSEPH · LONDON`, the preview/live status (`#meta-mode`), and today’s London date sit in the top-right corner. A sync dot (`#sync-dot`) shows a loading ring while a `relic_completions` GET or upsert is in flight, then a steady gold dot. Errors still use `#sync-status`. Month/week (`#identity-line`) and foundation (`#month-blurb`) stack in gold directly above the Q1–Q4 phase bar. The preview practice-ticks banner and the deload hint are gone.
 - **v2_14 menu.** A 44px hamburger sits at the top-left of the header, beside `NiX Training Schedules`. Closed, its three bars are horizontal. Open, that bar group rotates 90° with a CSS transition. A left drawer (`50vw`) slides over a scrim so the timetable stays partly visible. Tap the scrim, the hamburger, or Escape to close. The drawer title is `NiX Training Schedules`. Full Body and Upper Body buttons in the drawer call `setScheduleMode`, the same setter as `#btn-schedule-mode` under the timetable. Food and Prep Schedules, Monthly Foods, Meal Recipe Cards, and Smoothie Recipe Cards are labels only.
@@ -137,36 +138,47 @@ Table: `relic_completions`
 | Column | Type |
 |--------|------|
 | `date_key` | TEXT PRIMARY KEY. Full Body: bare `YYYY-MM-DD` (Europe/London). Upper Body: `upper:YYYY-MM-DD` |
-| `completed` | BOOLEAN |
+| `completed` | BOOLEAN. True only for a dual/full day |
+| `tier` | SMALLINT 0–3. Video bitmask added in v14. `1` = first trainer video, `2` = second/final trainer video, `3` = both |
 | `updated_at` | TIMESTAMPTZ |
 
-- Load with the anon key via Supabase REST (`select=date_key,completed`).
-- Toggle upserts on `date_key` (`Prefer: resolution=merge-duplicates`).
+- Load with the anon key via Supabase REST (`select=date_key,completed,tier`).
+- Upsert on `date_key` (`Prefer: resolution=merge-duplicates`). The body sends `completed`, `tier`, and `updated_at`.
 - In-memory state is only a mirror of Supabase. Do not persist ticks in `localStorage`.
-- Columns stay `date_key`, `completed`, and `updated_at`. No `mode` column and no migration. Existing bare `YYYY-MM-DD` rows are Full Body and are not rewritten. A `full:` prefix, if present, is read as Full Body; new Full Body writes stay on the bare key so older clients keep working.
+- No `mode` column. Existing bare `YYYY-MM-DD` rows are Full Body and are not rewritten. A `full:` prefix, if present, is read as Full Body; new Full Body writes stay on the bare key so older clients keep working.
+- **v14 legacy rule.** `completed=true` is a full day, including rows written before `tier` existed. Those rows were backfilled to `tier=3`. A pre-v14 client that still writes `completed=true` and leaves `tier` at 0 is read as dual (`tier` 3). `completed=false` with `tier` 1 or 2 is a single shield. `tier` 3 with `completed=false` is treated as cleared.
+
+### Two-stage day
+
+Each Mon–Sat row has two trainer citations. Display tier is the number of finished videos (0, 1, or 2).
+
+- Timer `00:00` on the first citation sets bit `1` (single orange shield).
+- Timer `00:00` on the second citation sets bit `2`. Both bits are the double orange shield and `completed=true`.
+- The DONE control cycles in the same order: empty box → single shield (bit `1`) → double shield (bits `1` and `2`, `completed=true`) → clear (`tier` 0, `completed=false`). A single shield that is only the second video still advances to dual, then the next tap clears. `aria-checked` is `false`, `mixed`, or `true`.
 
 ### Mode-isolated completions
 
-Full Body and Upper Body do not share a tick. The active mode (`state.mode`, first paint from `?mode=upper` or `?mode=full`) chooses the storage key: bare `YYYY-MM-DD` for Full Body, `upper:YYYY-MM-DD` for Upper Body. Switching the bottom toggle re-renders that mode’s ticks and week shields only. The other mode’s rows stay untouched.
+Full Body and Upper Body do not share a tick. The active mode (`state.mode`, first paint from `?mode=upper` or `?mode=full`) chooses the storage key: bare `YYYY-MM-DD` for Full Body, `upper:YYYY-MM-DD` for Upper Body. Switching the bottom toggle re-renders that mode’s ticks and period shields only. The other mode’s rows stay untouched.
 
 ### Shield Tick badge
 
 Active days in each week bucket are Monday–Saturday (`dayIndex` 0–5). Sunday (Rest / Weekly Reset) stays off the main list and out of the evaluation.
 
-Each week of the viewed month is scored on its own from the active mode’s completion keys. A week is complete when every active day in that bucket is completed for that mode. Weeks 1–3 are six days. Week 4 includes every Mon–Sat date from the 22nd through month end, so those extra days must be complete too.
+Week buckets stay days **1–7**, **8–14**, **15–21**, and **22–end**. A week, month, or year lights up only when every active Mon–Sat day in that period is dual-tier for the active mode. Weeks 1–3 are six days. Week 4 includes every Mon–Sat date from the 22nd through month end. The tick count is the sum of finished videos (2 per dual day).
 
-While a week is complete for the active mode:
+While a period is complete for the active mode:
 
-- That week’s chip shows a gold `#ff8c00` shield with a deep black checkmark, and the word **Completed** under the week label, including while another week is on screen. An incomplete week hides the shield.
-- Gold `#ff8c00` checkboxes with a deep black checkmark apply only to the week currently being viewed, and only when that viewed week is complete for the active mode. Checkbox `aria-label` stays `Completed {date_key}`.
+- That week’s chip, and a fully dual month chip, uses a rich green field, an orange `#ff8c00` double-tick shield, and the numeric tick count. The shield stays while another week is on screen. An incomplete chip hides it.
+- The year badge (`#year-badge`) uses the same green, shield, and count, and stays hidden until all 12 months are dual-complete.
+- Day cells show a compact empty box, a single-tick shield, or a double-tick shield. They do not turn into a large gold checkbox.
 
-Evaluate on each timetable render and whenever a completion tick is upserted. Do not store the badge in `localStorage`. An incomplete viewed week keeps the normal checkbox style. Week chips, the identity line, and week meta name Week 4 as `WEEK 4`. There is no deload hint.
+Evaluate on each timetable render and whenever a completion is upserted. Do not store the badge in `localStorage`. Week chips, the identity line, and week meta name Week 4 as `WEEK 4`. There is no deload hint.
 
 ---
 
 ## 7. Cache
 
-`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v2_14`. The `relic-build` meta is `v2_14`.
+`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v14`. The `relic-build` meta is `v14`.
 
 ---
 
@@ -203,9 +215,9 @@ index.html?date=2026-09-25   → PREVIEW, January Week 1, practice ticks allowed
 2. Clips stream from Supabase public URLs. The set timer calls `playNextVideo()` at `00:00`. Duration overwrites remaining time and `SET_DURATION_SEC`. Add More Time only stacks onto remaining time. The next clip starts at the locked `SET_DURATION_SEC`.
 3. The table is exactly DAY / TRAINING RELICS / DONE at 20% / 70% / 10%.
 4. Ticks upsert `relic_completions`.
-5. `vercel.json` no-cache plus `?v=v2_14` on assets. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome immediately. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph.
+5. `vercel.json` no-cache plus `?v=v14` on assets. The `relic-build` meta is `v14`. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome immediately. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph.
 6. `schedule.js` `MONTH_ROTATIONS` stays the Full Body lock. Upper Body data is additive.
-7. Each week whose Mon–Sat days are all complete for the active mode keeps a gold shield tick and the word Completed on its chip while any week is on screen. Gold `#ff8c00` checkboxes and black ticks apply only while that complete week is the one being viewed. Week 4 labels read `WEEK 4`. The deload hint does not render.
+7. A week whose Mon–Sat days are all dual-complete for the active mode keeps a rich green chip, an orange `#ff8c00` double-tick shield, and the numeric tick count while any week is on screen. Day DONE cells use a compact box or a single/double shield, with a 44px hit target. Month chips and `#year-badge` use the same score and light up only at 100%. Week 4 labels read `WEEK 4`. The deload hint does not render.
 8. The toggle immediately under the timetable swaps Full Body and Upper Body without a reload. The drawer’s trainer buttons call the same `setScheduleMode`. The motto and metadata stay under that toggle. Each mode shows only its own ticks and shield badges.
 
 ---
@@ -250,7 +262,7 @@ Eyes is a single-document folder. `1. Eye_Sequence_Trainer.docx` is the href for
 
 ### Badge
 
-The shield tick scores each week of the viewed month on its own, for the active mode only: every active Mon–Sat day in that bucket must be completed under that mode’s key. Week 4 includes every Mon–Sat date from the 22nd through month end. A week finished in Upper Body does not mark the same week finished in Full Body. Badge state is not stored in `localStorage`.
+The shield tick scores each week of the viewed month on its own, for the active mode only: every active Mon–Sat day in that bucket must be dual-tier (`tier` 3 / `completed=true`) under that mode’s key. Week 4 includes every Mon–Sat date from the 22nd through month end. A complete chip is rich green with an orange double-tick shield and the video tick count. A week finished in Upper Body does not mark the same week finished in Full Body. Month and year use the same rule. Badge state is not stored in `localStorage`.
 
 ---
 
