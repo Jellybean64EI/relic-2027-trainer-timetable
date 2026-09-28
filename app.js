@@ -860,10 +860,6 @@
     document.querySelectorAll(".wtab").forEach(function (btn) {
       btn.addEventListener("click", function () { pickWeek(+btn.getAttribute("data-week")); });
     });
-    $("btn-today").addEventListener("click", function () {
-      state.userPicked = false;
-      render();
-    });
     var modeBtn = $("btn-schedule-mode");
     if (modeBtn) {
       modeBtn.addEventListener("click", function () {

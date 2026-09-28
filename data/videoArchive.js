@@ -386,6 +386,8 @@ window.RELIC_VIDEO_ARCHIVE = {
     Neck: {
       folderId: "1FKFGp-0A9ZSUjeTH65saLabR2wXtcJTs",
       folderUrl: "https://drive.google.com/drive/folders/1FKFGp-0A9ZSUjeTH65saLabR2wXtcJTs",
+      documentFolderId: "1h6AgF9B3QHB7y6JIyo7amU0U5SUrwQbj",
+      documentFolderUrl: "https://drive.google.com/drive/folders/1h6AgF9B3QHB7y6JIyo7amU0U5SUrwQbj",
       label: "5. Neck Trainer Videos",
       /* PRE→MAIN→POST file IDs (cap MAIN 20) */
       playlist: [
@@ -420,35 +422,123 @@ window.RELIC_VIDEO_ARCHIVE = {
         { id: "1ErT1nZ3TI3nFmchydUlqTcq7-8RMZnjV", title: "6. Suboccipital Self Massage.mp4" }
       ]
     },
-    /* Upper Body cabins. Folder IDs are Drive mapping references only.
-       Playback URLs are relic-videos/{CabinKey}/{file}.mp4.
-       Face, Eyes, Tongue, and Jaw have no objects in the bucket yet, so the
-       playlists stay empty and the player shows the empty overlay.
-       Neck above is reused (folder 1FKFGp-0A9ZSUjeTH65saLabR2wXtcJTs). */
+    /* Upper Body cabins.
+       documentFolderId = trainer-document folder (citation mapping).
+       folderId = trainer-video folder the mp4 bytes were copied from.
+       Playback is relic-videos/{CabinKey}/{title} — never a Drive iframe.
+       Face order is PRE, MAIN (cap 20), POST. Eyes is one video folder. */
     Face: {
       folderId: "1a1EPQ9tcq2h80sRUTy0RgPKVyjNofNr7",
       folderUrl: "https://drive.google.com/drive/folders/1a1EPQ9tcq2h80sRUTy0RgPKVyjNofNr7",
+      documentFolderId: "1opDQL0l5oGXTkfoIQtfNOX6TxZR84sYt",
+      documentFolderUrl: "https://drive.google.com/drive/folders/1opDQL0l5oGXTkfoIQtfNOX6TxZR84sYt",
       label: "1. Face Trainer Videos",
-      playlist: []
+      playlist: [
+        { title: "1. Temporal Fascial Twist for Skull Asymmetry.mp4" },
+        { title: "2. Outer Orbital Stretch for Hunter Eyes.mp4" },
+        { title: "3. Isolated Eyelid Control (Brows Locked).mp4" },
+        { title: "4. Eyebrow Raise Control Drill.mp4" },
+        { title: "5. Nasolabial Fold Soft-Tissue Vibration.mp4" },
+        { title: "6. Zygomatic Bone Lymphatic Glide.mp4" },
+        { title: "7. Depressor Mouth Corner Lift.mp4" },
+        { title: "8. Anterior Nasal Spine Lift & Lip Plump.mp4" },
+        { title: "9. Cheek Puff Smooth and Tap.mp4" },
+        { title: "10. Chin Muscle + Mouth Corner Release.mp4" },
+        { title: "1. Lips Seal Drill.mp4" },
+        { title: "2. Controlled Lip Pucker.mp4" },
+        { title: "3. Mid-Face Activation Sequence.mp4" },
+        { title: "4. Cheek Puff Hold.mp4" },
+        { title: "5. Cheek Puff and Controlled Transfer.mp4" },
+        { title: "6. Zygomaticus Smile Lift Isometric.mp4" },
+        { title: "7. Pen-Guided Closed-Lip Cheek Lift.mp4" },
+        { title: "8. Tongue-Up Partial Jaw Opening.mp4" },
+        { title: "9. Lip Plumping Press and Border Pinch.mp4" },
+        { title: "10. Tongue-to-Lower-Lip Smile Hold.mp4" },
+        { title: "11. Mouth Corner Pinch & Lift.mp4" },
+        { title: "12. Platysma Stretch Under Cheekbone.mp4" },
+        { title: "1. Neck-to-Cheek Fascial Decompression.mp4" },
+        { title: "2. Under-Eye Knuckle Massage.mp4" },
+        { title: "3. Temporalis Massage.mp4" },
+        { title: "4. Frontalis _ Corrugator Relaxation Glide.mp4" },
+        { title: "5. Nasolabial Fold Muscle Release.mp4" },
+        { title: "6. Frown Line Pinch and Release.mp4" },
+        { title: "7. Mouth Corner Lift Against Depressor.mp4" },
+        { title: "8. Marionette Line Chin Lift.mp4" },
+        { title: "9. Sphenoid Temple Rotation.mp4" },
+        { title: "10. Corrugator Tension Release.mp4" },
+        { title: "11. SCM Softening Release.mp4" }
+      ]
     },
     Eyes: {
       folderId: "1IFYFNll4u0SOsKNwaXFwcGCzIeVt0YQG",
       folderUrl: "https://drive.google.com/drive/folders/1IFYFNll4u0SOsKNwaXFwcGCzIeVt0YQG",
+      documentFolderId: "1WN7qz3tkaZG-mL_-4NDdBcx3jtu0AVNI",
+      documentFolderUrl: "https://drive.google.com/drive/folders/1WN7qz3tkaZG-mL_-4NDdBcx3jtu0AVNI",
       label: "2. Eyes Trainer Videos",
-      playlist: []
+      playlist: [
+        { title: "1. Multi-Pattern Field.mp4" },
+        { title: "2. Centre Fixation + Target Switching.mp4" },
+        { title: "3. Pathway Expansion + Clock-Gap + Radial.mp4" },
+        { title: "4. Circular-Arc and Radial Pursuit.mp4" },
+        { title: "5. Geometric Pathway Pursuit.mp4" },
+        { title: "6. Visual Search and Multi-Target Saccades.mp4" }
+      ]
     },
     Tongue: {
       folderId: "1Hr-SOlyYmbA9ilHe07nV8mmkWHD7Nilm",
       folderUrl: "https://drive.google.com/drive/folders/1Hr-SOlyYmbA9ilHe07nV8mmkWHD7Nilm",
+      documentFolderId: "1cC-MISCfVkYtzX8_dt_0SMn4qhUmCokb",
+      documentFolderUrl: "https://drive.google.com/drive/folders/1cC-MISCfVkYtzX8_dt_0SMn4qhUmCokb",
       label: "3. Tongue Trainer Videos",
-      playlist: []
+      playlist: [
+        { title: "1. Cloth-Assisted Tongue Traction.mp4" },
+        { title: "2. Mouth-Assisted Neck Mobility Stretch.mp4" },
+        { title: "3. Upper-Lip Stretch.mp4" },
+        { title: "4. Tongue Protrusion Stretch.mp4" },
+        { title: "5. Palatal Pressure Hold.mp4" },
+        { title: "6. Tongue and Eye Tracking.mp4" },
+        { title: "7. Cheekbone-Lifting Mouth Press.mp4" },
+        { title: "8. Gloved Intraoral Tongue Massage.mp4" },
+        { title: "9. Nose-Ridge Hook With Intraoral Pressure.mp4" },
+        { title: "10. Fist-In-Mouth Pressure Release.mp4" },
+        { title: "11. Masseter Self-Massage.mp4" }
+      ]
     },
     Jaw: {
       folderId: "14AXrIlRqWouimaym2gdACISEJbbNhBWj",
       folderUrl: "https://drive.google.com/drive/folders/14AXrIlRqWouimaym2gdACISEJbbNhBWj",
+      documentFolderId: "1Dmk_4gUcy5t_xd7fmxUf36gzgV_sDDla",
+      documentFolderUrl: "https://drive.google.com/drive/folders/1Dmk_4gUcy5t_xd7fmxUf36gzgV_sDDla",
       label: "4. Jaw Trainer Videos",
-      /* PRE→MAIN→POST file IDs (cap MAIN 20). Bucket prefix Jaw/ is empty. */
-      playlist: []
+      playlist: [
+        { title: "1. Jaw Rest Position Drill.mp4" },
+        { title: "2. Jaw Rest Position Reset.mp4" },
+        { title: "3. Tongue Resting Position Guide.mp4" },
+        { title: "4. Tongue Tension Release.mp4" },
+        { title: "5. Release Jaw Tension.mp4" },
+        { title: "6. Facial Tension Decompression Hold.mp4" },
+        { title: "7. Cranial Osteopathy.mp4" },
+        { title: "8. Skull Decompression.mp4" },
+        { title: "9. Masseter Self-Massage.mp4" },
+        { title: "10. Masseter Muscle Release.mp4" },
+        { title: "11. Masseter Spasm Release.mp4" },
+        { title: "12. Lateral Pterygoid Release for Clicking Jaw.mp4" },
+        { title: "13. Medial Pterygoid Release.mp4" },
+        { title: "14. Jawline Massage Under-Jaw Release.mp4" },
+        { title: "15. Intraoral Cheek Muscle Massage.mp4" },
+        { title: "16. Controlled Jaw Opening in Mirror.mp4" },
+        { title: "17. Tongue-Up Partial Jaw Opening.mp4" },
+        { title: "18. Temporal Lift Jaw Opening.mp4" },
+        { title: "19. Towel Bite Jaw Exercise.mp4" },
+        { title: "20. Vowel Sounds O-To-E.mp4" },
+        { title: "21. Exaggerated Kiss With Jaw Protraction.mp4" },
+        { title: "22. Facial Asymmetry Correction.mp4" },
+        { title: "23. Zygomatic Bone Upward Push.mp4" },
+        { title: "24. Four-Point Face Slimming Sequence.mp4" },
+        { title: "25. V-Line Cheek and Jaw Sculpting Sequence.mp4" },
+        { title: "26. Jaw Liner.mp4" },
+        { title: "27. TMJ Disc Popping Treatment.mp4" }
+      ]
     },
     Kegel_Hip_Flexors: {
       folderId: "1FnjpjofY_LhX1Tgj6D7gwCVvUlucvXIT",

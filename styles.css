@@ -188,7 +188,7 @@ h1 {
   font-size: 0.64rem;
 }
 
-.mbtn, .wtab, .tool-btn, .mode-btn, .player-ctrl, .player-close, .start-gate {
+.mbtn, .wtab, .mode-btn, .player-ctrl, .player-close, .start-gate {
   min-height: var(--touch);
   min-width: var(--touch);
   border: 1px solid rgba(255, 140, 0, 0.4);
@@ -238,7 +238,7 @@ h1 {
 
 .golden-lock[hidden] { display: none !important; }
 
-.mbtn.is-selected, .wtab.is-selected, .tool-btn {
+.mbtn.is-selected, .wtab.is-selected {
   background: var(--gold);
   color: var(--bg);
   border-color: var(--gold);
@@ -349,7 +349,6 @@ tr.today td {
 .cite-link:focus-visible,
 .mbtn:focus-visible,
 .wtab:focus-visible,
-.tool-btn:focus-visible,
 .mode-btn:focus-visible,
 .tick-hit:focus-within,
 .player-ctrl:focus-visible,
@@ -454,13 +453,6 @@ tr.today td {
 
 tr.is-done td { background: #1c0c2e; }
 
-.toolbar {
-  padding: 8px;
-  background: var(--container);
-}
-
-.tool-btn { width: 100%; }
-
 .schedule-switch {
   padding: 0 8px 12px;
   background: var(--container);
@@ -484,11 +476,14 @@ tr.is-done td { background: #1c0c2e; }
 }
 
 .motto {
-  margin: 0;
+  margin: 0 auto;
+  max-width: 22rem;
   color: var(--gold);
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  font-size: 1.15rem;
+  line-height: 1.35;
+  text-wrap: balance;
 }
 
 /* ——— Player ——— */

@@ -105,44 +105,41 @@ window.RELIC_CITATIONS = {
       Till_Failure: { id: "1OhzwTV3jIB9pWAi44iPXRNGT5BIAj68m", file: "4. Neck_Till_Failure_Trainer.docx", url: "https://docs.google.com/document/d/1OhzwTV3jIB9pWAi44iPXRNGT5BIAj68m/edit" }
     },
     /* Upper Body citation keys. Visible label is still 1. {CabinKey}_Trainer_{Phase}.
-       Phase documents are not authored. Folder URLs are mapping references only.
-       Video folder for Neck rotation content is 1FKFGp-0A9ZSUjeTH65saLabR2wXtcJTs
-       (see videoArchive.js). These anchors do not embed Drive. */
+       Folder URLs are the trainer-document folders. Playback is relic-videos/{Cabin}
+       via videoArchive.js — these anchors never embed Drive.
+       Eyes has one sequence document. That same file fills every phase so the
+       year does not wait on Hard / Expert / Till_Failure variants. */
     Face: {
-      folder: "https://drive.google.com/drive/folders/1a1EPQ9tcq2h80sRUTy0RgPKVyjNofNr7",
+      folder: "https://drive.google.com/drive/folders/1opDQL0l5oGXTkfoIQtfNOX6TxZR84sYt",
       label: "Face",
-      gate: "No phase Docx yet. Label uses the quarter. Playback is relic-videos/Face when files exist.",
-      Base: null,
-      Hard: null,
-      Expert: null,
-      Till_Failure: null
+      Base: { id: "1wekuE0mBRbMMtUMeJNXkRAWzw_s5GXYd", file: "1. Face_Trainer_Base.docx", url: "https://docs.google.com/document/d/1wekuE0mBRbMMtUMeJNXkRAWzw_s5GXYd/edit" },
+      Hard: { id: "1VIKz-yd1_VjyYeErScMuySqvjVQdc0ja", file: "2. Face_Trainer_Hard.docx", url: "https://docs.google.com/document/d/1VIKz-yd1_VjyYeErScMuySqvjVQdc0ja/edit" },
+      Expert: { id: "1cvDI6qSxbog4jK7BqvADQtnVvkJ4pQdL", file: "3. Face_Trainer_Expert.docx", url: "https://docs.google.com/document/d/1cvDI6qSxbog4jK7BqvADQtnVvkJ4pQdL/edit" },
+      Till_Failure: { id: "1s2dgJx6EkAAlO_Rj87WUnMDT7JoJ2pfP", file: "4. Face_Trainer_Till_Failure.docx", url: "https://docs.google.com/document/d/1s2dgJx6EkAAlO_Rj87WUnMDT7JoJ2pfP/edit" }
     },
     Eyes: {
-      folder: "https://drive.google.com/drive/folders/1IFYFNll4u0SOsKNwaXFwcGCzIeVt0YQG",
+      folder: "https://drive.google.com/drive/folders/1WN7qz3tkaZG-mL_-4NDdBcx3jtu0AVNI",
       label: "Eyes",
-      gate: "No phase Docx yet. Label uses the quarter. Playback is relic-videos/Eyes when files exist.",
-      Base: null,
-      Hard: null,
-      Expert: null,
-      Till_Failure: null
+      Base: { id: "1qPm_5gOUHhViOmgOOFVgPeJRHrttI24R", file: "1. Eye_Sequence_Trainer.docx", url: "https://docs.google.com/document/d/1qPm_5gOUHhViOmgOOFVgPeJRHrttI24R/edit" },
+      Hard: { id: "1qPm_5gOUHhViOmgOOFVgPeJRHrttI24R", file: "1. Eye_Sequence_Trainer.docx", url: "https://docs.google.com/document/d/1qPm_5gOUHhViOmgOOFVgPeJRHrttI24R/edit" },
+      Expert: { id: "1qPm_5gOUHhViOmgOOFVgPeJRHrttI24R", file: "1. Eye_Sequence_Trainer.docx", url: "https://docs.google.com/document/d/1qPm_5gOUHhViOmgOOFVgPeJRHrttI24R/edit" },
+      Till_Failure: { id: "1qPm_5gOUHhViOmgOOFVgPeJRHrttI24R", file: "1. Eye_Sequence_Trainer.docx", url: "https://docs.google.com/document/d/1qPm_5gOUHhViOmgOOFVgPeJRHrttI24R/edit" }
     },
     Tongue: {
-      folder: "https://drive.google.com/drive/folders/1Hr-SOlyYmbA9ilHe07nV8mmkWHD7Nilm",
+      folder: "https://drive.google.com/drive/folders/1cC-MISCfVkYtzX8_dt_0SMn4qhUmCokb",
       label: "Tongue",
-      gate: "No phase Docx yet. Label uses the quarter. Playback is relic-videos/Tongue when files exist.",
-      Base: null,
-      Hard: null,
-      Expert: null,
-      Till_Failure: null
+      Base: { id: "1vDosIykfmMZy89FsmY8pH50b07qKfx3Z", file: "1. Tongue_Base_Trainer.docx", url: "https://docs.google.com/document/d/1vDosIykfmMZy89FsmY8pH50b07qKfx3Z/edit" },
+      Hard: { id: "1jmyCKQl-E7SfRbMcPAGz6JJPY_fHsjJC", file: "2. Tongue_Hard_Trainer.docx", url: "https://docs.google.com/document/d/1jmyCKQl-E7SfRbMcPAGz6JJPY_fHsjJC/edit" },
+      Expert: { id: "1po8MOwCpSVwqVlIQqcpMCzi6HUf47pWn", file: "3. Tongue_Expert_Trainer.docx", url: "https://docs.google.com/document/d/1po8MOwCpSVwqVlIQqcpMCzi6HUf47pWn/edit" },
+      Till_Failure: { id: "1Ms0jgDdKQFjSTUjiCZvya3gXrjBzTCIC", file: "4. Tongue_Till_Failure_Trainer.docx", url: "https://docs.google.com/document/d/1Ms0jgDdKQFjSTUjiCZvya3gXrjBzTCIC/edit" }
     },
     Jaw: {
-      folder: "https://drive.google.com/drive/folders/14AXrIlRqWouimaym2gdACISEJbbNhBWj",
+      folder: "https://drive.google.com/drive/folders/1Dmk_4gUcy5t_xd7fmxUf36gzgV_sDDla",
       label: "Jaw",
-      gate: "No phase Docx yet. Label uses the quarter. Playback is relic-videos/Jaw when files exist.",
-      Base: null,
-      Hard: null,
-      Expert: null,
-      Till_Failure: null
+      Base: { id: "1IAqMNtwxJ2s7c3d6djeSWEAu0qLXhtba", file: "1. Jaw_Base_Trainer.docx", url: "https://docs.google.com/document/d/1IAqMNtwxJ2s7c3d6djeSWEAu0qLXhtba/edit" },
+      Hard: { id: "1haYgL0hsS-duXE3mFPNtpM3EC5Xo4Hds", file: "2. Jaw_Hard_Trainer.docx", url: "https://docs.google.com/document/d/1haYgL0hsS-duXE3mFPNtpM3EC5Xo4Hds/edit" },
+      Expert: { id: "1QMM4dPr028VmKXFbQ7KKJ37fziPVh4io", file: "3. Jaw_Expert_Trainer.docx", url: "https://docs.google.com/document/d/1QMM4dPr028VmKXFbQ7KKJ37fziPVh4io/edit" },
+      Till_Failure: { id: "1XpX7njtKPAChxWW-_VI4jj6GX7AbkUgY", file: "4. Jaw_Till_Failure_Trainer.docx", url: "https://docs.google.com/document/d/1XpX7njtKPAChxWW-_VI4jj6GX7AbkUgY/edit" }
     }
   }
 };
