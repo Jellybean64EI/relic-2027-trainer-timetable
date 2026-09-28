@@ -92,7 +92,7 @@ A cabin with one trainer document (Eyes: `1. Eye_Sequence_Trainer.docx`) uses th
 | Live start | `2027-01-01`. Before that date the UI is **PREVIEW** |
 | Week of month | Days **1–7 = W1**, **8–14 = W2**, **15–21 = W3**, **22–end = W4** |
 | Row order | Sort the visible week by `dateKey`. Never by weekday name |
-| Sunday | Present in `schedule.js`. Omitted from the main Mon–Sat list |
+| Sunday | Present in `schedule.js` and in `data/precondition.js`. Omitted from the main Mon–Sat list |
 | Deload | Removed in v2_13. No `#deload-hint`, no Week 4 deload copy, no amber deload warning. Week chips still read `WEEK 4` |
 | Auto-advance | When the London date changes, the UI snaps to that month and week unless the user picked a month |
 | Coach override | `?date=YYYY-MM-DD` forces London “today” |
@@ -112,9 +112,11 @@ A cabin with one trainer document (Eyes: `1. Eye_Sequence_Trainer.docx`) uses th
 
 Ambient Hub in the drawer switches the branch: it clears the client month-row cache, sets `viewYear` / `branch`, and calls `render()`. The month-row cache key is `{year}:{mode}:{month}` (example `2026:full:10`), so a 2026 bridge month never reuses a 2027 row. Completion rows stay on the existing `date_key` strings. There is no schema change.
 
+Full Body bridge days are read from `data/precondition.js` (`window.RELIC_PRECONDITION`). That file owns October, November, and December 2026 only. Week buckets stay 1–7, 8–14, 15–21, and 22–end. Sunday is in the month build and stays off the active list. Pairings omit Hanging and Target_Weights. Citations use `1. {CabinKey}_Trainer_Base`. `MONTH_ROTATIONS` in `data/schedule.js` is the 2027 Full Body lock and is not the bridge source.
+
 `paintYear()` follows `state.viewYear`. The 2026 shield lights only when all three bridge months are dual-complete (every required Mon–Sat day at tier 3). The 2027 shield still lights only when all 12 months are dual-complete. The badge label is the view year.
 
-Full Body rotations live only in `data/schedule.js` (`MONTH_ROTATIONS`). The UI must not invent Full Body pairs. Upper Body rotations live only in `data/upperBody.js` (`RELIC_UPPER_BODY.MONTH_ROTATIONS`) and must not replace the Full Body table.
+2027 Full Body rotations live only in `data/schedule.js` (`MONTH_ROTATIONS`). The UI must not invent those pairs. Upper Body rotations live only in `data/upperBody.js` (`RELIC_UPPER_BODY.MONTH_ROTATIONS`) and must not replace the Full Body table. On the bridge, Upper Body still uses that file.
 
 ---
 
@@ -139,7 +141,7 @@ Element:
 - **v2_13 header.** The card title is `NiX Training Schedules`. `JOSEPH · LONDON`, the preview/live status (`#meta-mode`), and today’s London date sit in the top-right corner. A sync dot (`#sync-dot`) shows a loading ring while a `relic_completions` GET or upsert is in flight, then a steady gold dot. Errors still use `#sync-status`. Month/week (`#identity-line`) and foundation (`#month-blurb`) stack in gold directly above the Q1–Q4 phase bar. The preview practice-ticks banner and the deload hint are gone.
 - **v2_14 menu.** A 44px hamburger sits at the top-left of the header, beside `NiX Training Schedules`. Closed, its three bars are horizontal. Open, that bar group rotates 90° with a CSS transition. A left drawer (`50vw`) slides over a scrim so the timetable stays partly visible. Tap the scrim, the hamburger, or Escape to close. The drawer title is `NiX Training Schedules`.
 - **v15 drawer rows.** Full Body and Upper Body are modular rows (at least 44px, hairline dividers, left label, right tag). The active row carries a 2px `#ff8c00` rail. Both call `setScheduleMode`, the same setter as `#btn-schedule-mode` under the timetable. Ambient Hub rows switch `bridge` (Q4 2026 Pre-Recondition) and `year` (2027 Year). Food and Prep Schedules, Monthly Foods, Meal Recipe Cards, and Smoothie Recipe Cards stay static labels.
-- **v15 forensic cue.** Inside `.player-stage`, a `CUE` tab (`.forensic-tab`) sits on the right edge, sibling to `#relic-player-hud`. Opening it drops `.forensic-panel` downward to at most `40vh` with internal scroll. That toggle does not touch `player.timerId`, does not stop or restart autoplay, and does not reload `<video id="relic-active-video">`. `isHudChromeTarget()` includes `.forensic-tab` and `.forensic-panel`. Those elements `stopPropagation` so they do not toggle the 2000ms HUD.
+- **v15 forensic cue.** Inside `.player-stage`, a `CUE` tab (`.forensic-tab`) sits on the right edge, sibling to `#relic-player-hud`. Opening it drops `.forensic-panel` downward to at most `40vh` with internal scroll. That toggle does not touch `player.timerId`, does not stop or restart autoplay, and does not reload `<video id="relic-active-video">`. `isHudChromeTarget()` includes `.forensic-tab` and `.forensic-panel`. Those elements `stopPropagation` so they do not toggle the 2000ms HUD. On the bridge the panel reads `data/forensic.js` (`RELIC_FORENSIC.read("bridge", cabinKey)`) for sets, reps, hold, rest, and the shared Q4 safety rules: left-lead lowerings, nasal breathing, stop-at-shake, no hanging, no failure, no added load.
 - **v2_12 rapid HUD.** No tempo prompt bar. The video stage fills the viewport. Close, the gold timer badge (with Duration / Add More Time), the exercise title, and the centered white Prev / Play / Next dock are one HUD. Inactivity of exactly 2000ms fades that chrome out together via CSS opacity and visibility. A tap on the empty stage or the video toggles the group: hidden shows it at once and starts a fresh 2000ms timer; visible hides it at once. Taps on Prev, Play, Next, close, and the timer badge menus still run those controls and do not toggle the HUD away. The countdown, `autoplay` / `loop` / `playsinline`, and `playNextVideo()` at `00:00` keep running while the HUD is hidden.
 - **v2_11 flush open.** No `poster` attribute and no native play-button chrome. The stage and video paint transparent, so a gray or black slab cannot flash behind the frame. `preload="auto"`. A citation tap calls `play()` immediately. If `loadeddata` still leaves an unpainted `currentTime` of 0, the player nudges it to `0.001` so the first painted frame is the media frame. The player stays invisible until that frame is ready, then appears flush. `playsinline` and `loop` stay.
 
@@ -206,9 +208,11 @@ styles.css              — S24 Ultra timetable + player + mode button + drawer
 app.js                  — calendar, Supabase ticks, HTML5 player, one schedule-mode setter
 PLATFORM_SPEC.md        — this law
 vercel.json             — no-cache headers
-data/schedule.js        — Full Body NiX month rotations (do not invent pairs)
+data/schedule.js        — 2027 Full Body NiX month rotations (MONTH_ROTATIONS; do not invent pairs)
+data/precondition.js    — Q4 2026 Full Body bridge pairings (RELIC_PRECONDITION)
 data/upperBody.js       — Upper Body rotations (does not edit MONTH_ROTATIONS)
 data/citations.js       — document links, including Face / Eyes / Tongue / Jaw
+data/forensic.js        — Q4 bridge sets, reps, hold, rest, and shared safety rules
 data/videoArchive.js    — cabin playlists (Drive id is not playback)
 data/supabaseConfig.js  — url, anonKey, bucket
 ```

@@ -100,6 +100,18 @@
     return window.RELIC_UPPER_BODY || null;
   }
 
+  function preconditionSchedule() {
+    return window.RELIC_PRECONDITION || null;
+  }
+
+  /* Full Body bridge months come from RELIC_PRECONDITION.
+     The 2027 year stays on RELIC_SCHEDULE. Upper Body stays on RELIC_UPPER_BODY. */
+  function timetableSource(year) {
+    if (viewingUpper()) return upperSchedule() || S;
+    if (year === 2026 && preconditionSchedule()) return preconditionSchedule();
+    return S;
+  }
+
   function viewingUpper() {
     return state.mode === "upper" && !!upperSchedule();
   }
@@ -410,7 +422,7 @@
     if (!state.monthCache) state.monthCache = {};
     var key = monthCacheKey(y, mode, month);
     if (!state.monthCache[key]) {
-      var source = viewingUpper() ? upperSchedule() : S;
+      var source = timetableSource(y);
       var days = source.buildMonthDays(y, month).filter(function (day) {
         return !day.isRecovery && day.dayIndex < 6;
       });
@@ -605,8 +617,11 @@
       state.viewWeek = 1;
     }
 
-    var phase = S.phaseForMonth(state.viewMonth);
-    var metaSource = viewingUpper() ? upperSchedule() : S;
+    var bridgeFull = state.branch === "bridge" && !viewingUpper() && preconditionSchedule();
+    var phase = bridgeFull
+      ? preconditionSchedule().phaseForMonth(state.viewMonth)
+      : S.phaseForMonth(state.viewMonth);
+    var metaSource = viewingUpper() ? upperSchedule() : (bridgeFull ? preconditionSchedule() : S);
     var meta = (metaSource.MONTH_META && metaSource.MONTH_META[state.viewMonth]) ||
       S.MONTH_META[state.viewMonth] || { phaseLine: phase.label, blurb: "" };
     paintModeChrome();
@@ -986,6 +1001,32 @@
     if (yearEl) yearEl.textContent = String(state.viewYear);
     var tickEl = $("forensic-cantick");
     if (tickEl) tickEl.textContent = dateKey ? (canTick(dateKey, parts) ? "true" : "false") : "—";
+    var cabinKey = player.cabin || "";
+    var entry = null;
+    var lib = window.RELIC_FORENSIC;
+    if (lib && typeof lib.read === "function") {
+      entry = lib.read(state.branch === "bridge" ? "bridge" : "year", cabinKey);
+    }
+    var cabinEl = $("forensic-cabin");
+    if (cabinEl) cabinEl.textContent = cabinKey || "—";
+    var hasDose = !!(entry && entry.sets !== null && entry.sets !== undefined && entry.allowed !== false);
+    var setsEl = $("forensic-sets");
+    if (setsEl) setsEl.textContent = hasDose ? String(entry.sets) : "—";
+    var repsEl = $("forensic-reps");
+    if (repsEl) repsEl.textContent = hasDose ? String(entry.reps) : "—";
+    var holdEl = $("forensic-hold");
+    if (holdEl) holdEl.textContent = hasDose ? String(entry.holdSec) + "s" : "—";
+    var restEl = $("forensic-rest");
+    if (restEl) restEl.textContent = hasDose ? String(entry.restSec) + "s" : "—";
+    var safetyEl = $("forensic-safety");
+    if (safetyEl) {
+      var rules = entry && entry.safety ? entry.safety : [];
+      safetyEl.textContent = rules.length
+        ? rules.map(function (rule) { return rule.label; }).join(" · ")
+        : "—";
+    }
+    var noteEl = $("forensic-note");
+    if (noteEl) noteEl.textContent = (entry && entry.note) ? entry.note : "—";
   }
 
   function setForensicOpen(open) {
