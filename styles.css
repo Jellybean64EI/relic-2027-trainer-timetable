@@ -1365,3 +1365,260 @@ table.timetable td {
 }
 table.timetable tr.is-tier-1 td { background-color: #1a0c2e; }
 table.timetable tr.is-tier-2 td { background-color: #1c1032; }
+
+/* v17 fuel board. Training column law above stays on the three-column timetable. */
+table.fuel-table col.col-day { width: 22%; }
+table.fuel-table col.col-relics { width: 78%; }
+
+.food-board {
+  padding: 0 0 8px;
+  background: var(--container-deep);
+}
+
+.food-back,
+.fuel-basket-toggle,
+.food-jump,
+.fuel-cue {
+  display: flex;
+  align-items: center;
+  width: calc(100% - 16px);
+  min-height: var(--touch);
+  margin: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 140, 0, 0.55);
+  border-left: 2px solid #ff8c00;
+  border-radius: 8px;
+  background: var(--cell);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  touch-action: manipulation;
+}
+
+.food-title {
+  margin: 0 8px 4px;
+  color: var(--gold);
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.food-title:focus {
+  outline: none;
+}
+
+.food-title:focus-visible {
+  outline: 2px solid #ff8c00;
+  outline-offset: 2px;
+}
+
+.fuel-tier {
+  margin: 0 8px 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 140, 0, 0.55);
+  border-left: 2px solid #ff8c00;
+  border-radius: 8px;
+  background: var(--cell);
+}
+
+.fuel-tier-label,
+.fuel-tier-range,
+.fuel-tier-basket,
+.fuel-sunday,
+.fuel-meta,
+.fuel-morning,
+.fuel-basket-note,
+.fuel-basket-total,
+.recipe-kicker,
+.recipe-params {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.fuel-tier-label {
+  color: var(--gold);
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.fuel-tier-range,
+.fuel-tier-basket,
+.fuel-sunday,
+.fuel-meta,
+.fuel-morning,
+.fuel-basket-note {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.fuel-tier-basket {
+  margin-top: 4px;
+  color: var(--cite);
+}
+
+.fuel-tier[data-tier="2"] .fuel-tier-label {
+  color: var(--gold);
+}
+
+.fuel-sunday {
+  margin: 0 8px 4px;
+}
+
+.food-jumps {
+  display: flex;
+  flex-direction: column;
+}
+
+.food-jump {
+  color: var(--cite);
+}
+
+.fuel-cue {
+  width: 100%;
+  margin: 6px 0 0;
+  color: var(--gold);
+}
+
+.fuel-cue-extract {
+  color: var(--cite);
+}
+
+.cabin-line {
+  display: block;
+  color: var(--cite);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.fuel-meta,
+.fuel-morning {
+  margin-top: 4px;
+}
+
+.fuel-basket {
+  margin: 0 8px 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(216, 180, 254, 0.28);
+  border-radius: 8px;
+  background: var(--cell);
+}
+
+.fuel-basket-list {
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fuel-basket-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 32px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(216, 180, 254, 0.28);
+  color: var(--text);
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
+.fuel-basket-list li span:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.fuel-basket-list li span:last-child {
+  flex: 0 0 auto;
+  color: var(--gold);
+  font-weight: 800;
+}
+
+.fuel-basket-total {
+  color: var(--gold);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.recipe-card {
+  margin: 0 8px 12px;
+  padding: 12px;
+  background: var(--cell);
+  border: 1px solid rgba(255, 140, 0, 0.45);
+  border-left: 2px solid #ff8c00;
+  border-radius: 8px;
+}
+
+.recipe-kicker {
+  color: var(--gold);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.recipe-card h3 {
+  margin: 4px 0;
+  color: var(--text);
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
+.recipe-params {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.recipe-card h4 {
+  margin: 12px 0 6px;
+  color: var(--gold);
+  font-size: 0.84rem;
+}
+
+.recipe-card ul,
+.recipe-card ol {
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.recipe-card li {
+  margin: 0 0 6px;
+  color: var(--text);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.macro-tag {
+  display: flex;
+  align-items: center;
+  min-height: var(--touch);
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border: 1px solid #ff8c00;
+  border-radius: 8px;
+  background: var(--container);
+  color: var(--gold);
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.food-back:focus-visible,
+.fuel-basket-toggle:focus-visible,
+.food-jump:focus-visible,
+.fuel-cue:focus-visible {
+  outline: 2px solid #ff8c00;
+  outline-offset: 2px;
+}

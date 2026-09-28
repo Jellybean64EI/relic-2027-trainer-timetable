@@ -11,7 +11,9 @@
    and locks every 2027 day until 1 Jan 2027.
    v16: the CUE panel slides up from the bottom of the stage. A finished citation
    set closes the player and returns to the timetable. Week chips keep a single
-   slot and a dual slot. Calisthenics is Q4 2027 only. */
+   slot and a dual slot. Calisthenics is Q4 2027 only.
+   v17: Food & Prep Schedule pairs each training day with a fuel cue from
+   RELIC_NUTRITION. Training rotations, the player, and completions stay put. */
 (function () {
   "use strict";
 
@@ -52,7 +54,10 @@
     syncError: false,
     syncPending: 0,
     saveGen: {},
-    mode: "full"
+    mode: "full",
+    foodOpen: false,
+    foodCard: null,
+    foodBasketOpen: false
   };
 
   var player = {
@@ -633,6 +638,183 @@
     );
   }
 
+  function nutritionApi() {
+    return window.RELIC_NUTRITION || null;
+  }
+
+  function cabinLines(day) {
+    var phase = day.phase || "Base";
+    if (day.isRecovery) {
+      return '<span class="cabin-line">' + escapeHtml(day.doc1 || "Rest / Light Mobility") + "</span>";
+    }
+    return (day.cabins || []).map(function (cabinKey) {
+      if (!cabinKey) return "";
+      return '<span class="cabin-line">' + escapeHtml(S.citationLabel(cabinKey, phase)) + "</span>";
+    }).join("");
+  }
+
+  function paintFoodJumps() {
+    var host = $("food-jumps");
+    if (!host) return;
+    var jumps = [
+      ["crispy-potato-snack", "Crispy Potato Snack"],
+      ["cheesy-roasted-garlic-bread", "Cheesy Roasted Garlic Bread"],
+      ["beef-stuffed-potato-boats", "Beef-Stuffed Potato Boats"]
+    ];
+    host.innerHTML = jumps.map(function (jump) {
+      return '<button type="button" class="food-jump" data-food-meal="' + jump[0] + '">' +
+        escapeHtml(jump[1]) + "</button>";
+    }).join("");
+  }
+
+  function paintBasket(api, list) {
+    var btn = $("btn-fuel-basket");
+    var box = $("fuel-basket");
+    if (!btn || !box) return;
+    if (!list) {
+      btn.hidden = true;
+      box.hidden = true;
+      return;
+    }
+    btn.hidden = false;
+    btn.textContent = "Monthly basket · " + api.formatGbp(list.totalPence) + " of " + list.budgetLabel;
+    btn.setAttribute("aria-expanded", state.foodBasketOpen ? "true" : "false");
+    box.hidden = !state.foodBasketOpen;
+    if (!state.foodBasketOpen) {
+      box.innerHTML = "";
+      return;
+    }
+    var html = '<p class="fuel-basket-note">' + escapeHtml(list.vegNote || "") + '</p><ul class="fuel-basket-list">';
+    list.items.forEach(function (item) {
+      var entry = api.skus[item.skuId];
+      if (!entry) return;
+      html += "<li><span>" + item.qty + " × " + escapeHtml(entry.name) + "</span><span>" +
+        api.formatGbp(entry.pricePence * item.qty) + "</span></li>";
+    });
+    html += '</ul><p class="fuel-basket-total">Total ' + api.formatGbp(list.totalPence) +
+      " · Fits " + escapeHtml(list.budgetLabel) + "</p>";
+    box.innerHTML = html;
+  }
+
+  function paintFuelWeek(api, list) {
+    var days = activeDaysForView();
+    var html = "";
+    days.forEach(function (day) {
+      var cue = api.cueForDay(day);
+      var morning = (cue.morning || []).map(function (dose) {
+        return dose.name + " " + dose.text;
+      }).join(" · ");
+      var align = cue.alignment === "rotation"
+        ? cue.protein
+        : (cue.rotationProtein + " → " + cue.protein);
+      var extractLabel = cue.band === "restorative"
+        ? "HEAVY BOTANICAL EXTRACTION"
+        : "AM EXTRACTION · 3000W";
+      html += '<tr class="fuel-row is-' + cue.band + '">' +
+        '<td class="day-cell">' +
+          '<span class="day-name">' + escapeHtml(day.dayName) + "</span>" +
+          '<span class="day-key">' + escapeHtml(day.dateKey) + "</span>" +
+        "</td>" +
+        '<td class="relics-cell"><div class="relic-stack">' +
+          '<span class="doc-text">' + escapeHtml(day.pair || "") + "</span>" +
+          cabinLines(day) +
+          '<button type="button" class="fuel-cue" data-food-meal="' + escapeHtml(cue.mealId) +
+            '" data-food-band="' + escapeHtml(cue.band) + '">FUEL CUE · ' + escapeHtml(cue.cue) + "</button>" +
+          '<p class="fuel-meta">' + escapeHtml(cue.band) + " · " + escapeHtml(align) +
+            " · " + escapeHtml(cue.carb) + "</p>" +
+          '<button type="button" class="fuel-cue fuel-cue-extract" data-food-extraction="' +
+            escapeHtml(cue.extractionId) + '" data-food-band="' + escapeHtml(cue.band) + '">' +
+            escapeHtml(extractLabel) + "</button>" +
+          '<p class="fuel-morning">Morning · ' + escapeHtml(morning) + "</p>" +
+        "</div></td></tr>";
+    });
+    var body = $("fuel-body");
+    if (body) body.innerHTML = html;
+    var sunday = $("fuel-sunday");
+    if (sunday) {
+      sunday.textContent = "Sunday stays off this list. Recovery fuel is the Omega-3 Egg Rest Plate and the heavy botanical extraction.";
+    }
+    paintFoodJumps();
+    paintBasket(api, list);
+  }
+
+  function paintFoodCard(api, tier) {
+    var host = $("food-card-host");
+    if (!host || !state.foodCard) return;
+    var card = api.presentRecipe(state.foodCard.id, tier.id, state.foodCard.band);
+    if (!card) {
+      host.innerHTML = "";
+      return;
+    }
+    var kicker = card.kind === "extraction" ? "3000W EXTRACTION CARD" : "MEAL RECIPE CARD";
+    var appliances = (card.appliances || []).map(function (item) {
+      return item.name + " · " + item.params;
+    }).join(" · ");
+    var ingredients = card.ingredients.map(function (item) {
+      return "<li>" + escapeHtml(item.line) + "</li>";
+    }).join("");
+    var method = card.method.map(function (step) {
+      return "<li>" + escapeHtml(step) + "</li>";
+    }).join("");
+    host.innerHTML =
+      '<button type="button" class="food-back" id="btn-food-card-back">Food & Prep Schedule</button>' +
+      '<article class="recipe-card" data-kind="' + escapeHtml(card.kind) + '">' +
+        '<p class="recipe-kicker">' + kicker + "</p>" +
+        "<h3>" + escapeHtml(card.name) + "</h3>" +
+        '<p class="recipe-params">Prep ' + card.prepMin + " min · " + escapeHtml(appliances) + "</p>" +
+        "<h4>Ingredients:</h4><ul>" + ingredients + "</ul>" +
+        "<h4>Method:</h4><ol>" + method + "</ol>" +
+        '<p class="macro-tag">' + escapeHtml(card.macroLine) + "</p>" +
+      "</article>";
+  }
+
+  function paintFoodBoard() {
+    var board = $("food-board");
+    var training = $("training-board");
+    var open = !!state.foodOpen;
+    if (board) board.hidden = !open;
+    if (training) training.hidden = open;
+    document.body.classList.toggle("is-food", open);
+    var row = $("btn-food-prep");
+    if (row) {
+      row.classList.toggle("is-active", open);
+      row.setAttribute("aria-pressed", open ? "true" : "false");
+    }
+    if (!open) return;
+    var api = nutritionApi();
+    if (!api) return;
+    var tier = api.tierFor(state.viewYear, state.viewMonth);
+    var card = $("relic-card");
+    if (card) card.setAttribute("data-budget-tier", String(tier.id));
+    var tierEl = $("fuel-tier");
+    if (tierEl) tierEl.setAttribute("data-tier", String(tier.id));
+    var label = $("fuel-tier-label");
+    if (label) label.textContent = "TIER " + tier.id + " · " + tier.budgetLabel + "/MONTH";
+    var range = $("fuel-tier-range");
+    if (range) range.textContent = tier.rangeLabel + " · " + tier.stores.join(" / ");
+    var list = api.shoppingListFor(state.viewYear, state.viewMonth);
+    var basketLine = $("fuel-tier-basket");
+    if (basketLine) {
+      basketLine.textContent = list
+        ? ("Basket " + api.formatGbp(list.totalPence) + " of " + tier.budgetLabel +
+          " · " + api.formatGbp(list.headroomPence) + " headroom")
+        : "";
+    }
+    var showingCard = !!state.foodCard;
+    var schedule = $("food-schedule");
+    var host = $("food-card-host");
+    var closeBtn = $("btn-food-close");
+    if (schedule) schedule.hidden = showingCard;
+    if (host) host.hidden = !showingCard;
+    if (closeBtn) closeBtn.hidden = showingCard;
+    if (showingCard) paintFoodCard(api, tier);
+    else paintFuelWeek(api, list);
+    var blurb = $("month-blurb");
+    if (blurb && blurb.textContent.indexOf("Food & Prep") === -1) {
+      blurb.textContent = (blurb.textContent ? blurb.textContent + " · " : "") + "Food & Prep dual-sync";
+    }
+  }
+
   function render() {
     if (!S) return;
     state.now = getNow();
@@ -766,6 +948,7 @@
     tbody.innerHTML = html;
     applyPeriodMarks(weekDays);
     paintForensic();
+    paintFoodBoard();
     if (state.restoreTickDate) {
       var again = tbody.querySelector('button.tick-hit[data-date="' + state.restoreTickDate + '"]');
       state.restoreTickDate = "";
@@ -1708,6 +1891,60 @@
         setBranch(opt.getAttribute("data-set-branch"));
       });
     });
+    var foodBtn = $("btn-food-prep");
+    if (foodBtn) {
+      foodBtn.addEventListener("click", function () {
+        state.foodOpen = true;
+        state.foodCard = null;
+        setNavOpen(false);
+        render();
+        var title = $("food-board-title");
+        if (title) {
+          try { title.focus({ preventScroll: true }); } catch (err) {
+            try { title.focus(); } catch (err2) { /* focus is optional */ }
+          }
+        }
+      });
+    }
+    var foodBoard = $("food-board");
+    if (foodBoard) {
+      foodBoard.addEventListener("click", function (event) {
+        if (event.target.closest("#btn-food-close")) {
+          state.foodOpen = false;
+          state.foodCard = null;
+          state.foodBasketOpen = false;
+          render();
+          return;
+        }
+        if (event.target.closest("#btn-food-card-back")) {
+          state.foodCard = null;
+          render();
+          return;
+        }
+        if (event.target.closest("#btn-fuel-basket")) {
+          state.foodBasketOpen = !state.foodBasketOpen;
+          render();
+          return;
+        }
+        var meal = event.target.closest("[data-food-meal]");
+        if (meal) {
+          state.foodCard = {
+            id: meal.getAttribute("data-food-meal"),
+            band: meal.getAttribute("data-food-band") || "moderate"
+          };
+          render();
+          return;
+        }
+        var extraction = event.target.closest("[data-food-extraction]");
+        if (extraction) {
+          state.foodCard = {
+            id: extraction.getAttribute("data-food-extraction"),
+            band: extraction.getAttribute("data-food-band") || "moderate"
+          };
+          render();
+        }
+      });
+    }
     var forensicTab = $("forensic-tab");
     var forensicPanel = $("forensic-panel");
     var forensicDock = $("forensic-dock");
@@ -1896,7 +2133,8 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v16",
+    build: "v17",
+    get nutrition() { return nutritionApi(); },
     get viewYear() { return state.viewYear; },
     get branch() { return state.branch; },
     setBranch: setBranch,

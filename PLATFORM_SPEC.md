@@ -5,7 +5,7 @@
 **Coach archive:** NiX  
 **Timezone:** Europe/London (always)  
 **Runtime:** static HTML / CSS / JS. No build step. No npm.  
-**Cache bust:** `?v=v16` on every stylesheet and script in `index.html`
+**Cache bust:** `?v=v17` on every stylesheet and script in `index.html`
 
 Footer motto (exact):
 
@@ -142,7 +142,8 @@ Element:
 - Empty playlist: set the frame to `about:blank` and show `No video file IDs mapped for this cabin.`
 - **v2_13 header.** The card title is `NiX Training Schedules`. `JOSEPH · LONDON`, the preview/live status (`#meta-mode`), and today’s London date sit in the top-right corner. A sync dot (`#sync-dot`) shows a loading ring while a `relic_completions` GET or upsert is in flight, then a steady gold dot. Errors still use `#sync-status`. Month/week (`#identity-line`) and foundation (`#month-blurb`) stack in gold directly above the Q1–Q4 phase bar. The preview practice-ticks banner and the deload hint are gone.
 - **v2_14 menu.** A 44px hamburger sits at the top-left of the header, beside `NiX Training Schedules`. Closed, its three bars are horizontal. Open, that bar group rotates 90° with a CSS transition. A left drawer (`50vw`) slides over a scrim so the timetable stays partly visible. Tap the scrim, the hamburger, or Escape to close. The drawer title is `NiX Training Schedules`.
-- **v15 drawer rows.** Full Body and Upper Body are modular rows (at least 44px, hairline dividers, left label, right tag). The active row carries a 2px `#ff8c00` rail. Both call `setScheduleMode`, the same setter as `#btn-schedule-mode` under the timetable. Ambient Hub rows switch `bridge` (Q4 2026 Pre-Recondition) and `year` (2027 Year). Food and Prep Schedules, Monthly Foods, Meal Recipe Cards, and Smoothie Recipe Cards stay static labels.
+- **v15 drawer rows.** Full Body and Upper Body are modular rows (at least 44px, hairline dividers, left label, right tag). The active row carries a 2px `#ff8c00` rail. Both call `setScheduleMode`, the same setter as `#btn-schedule-mode` under the timetable. Ambient Hub rows switch `bridge` (Q4 2026 Pre-Recondition) and `year` (2027 Year).
+- **v17 food row.** The four static Food and Prep labels are one wired row, `Food & Prep Schedule`, tagged `FUEL`. It opens the fuel board on the same month and week chrome. Monthly basket, meal cards, and 3000W extraction cards live inside that board. See §12.
 - **v16 forensic cue.** Inside `.player-stage`, a `CUE` tab (`.forensic-tab`) is anchored to the bottom edge, inside `.forensic-dock`, a sibling of `#relic-player-hud`. Closed, the dock sits at `translateY(calc(100% - 44px))` so only the tab shows. Open, `.forensic-panel` slides up with that same transform to at most `48vh`. The video shifts up slightly (`translateY(-7vh)`) so the tracking stays clear of the panel. The scroll body carries `3-Lead Unique Rule: Left-Lead. 3-second ease.`, `Do this properly: …`, `Avoid this: …`, and a breathing label. The metrics footer stays pinned: `Sets: X | Reps: X | Hold: X | Rest: X`. Breathing is Box Breathing (4-4-4-4) for isometric holds and posture resets, Relaxation Breathing (4-7-8) for deep restorative stretches, and Controlled Nasal Cadence synced with the 3-second negative eccentric. The toggle does not touch `player.timerId`, does not stop or restart autoplay, and does not reload `<video id="relic-active-video">`. `isHudChromeTarget()` includes `.forensic-tab`, `.forensic-panel`, and `.forensic-dock`. Those elements `stopPropagation` and do not restart the 2000ms HUD fade or pause the video. Bridge reads still refuse Hanging, Target_Weights, and Calisthenics. Year reads include the Q4 2027 Calisthenics profile.
 - **v2_12 rapid HUD.** No tempo prompt bar. The video stage fills the viewport. Close, the gold timer badge (with Duration / Add More Time), the exercise title, and the centered white Prev / Play / Next dock are one HUD. Inactivity of exactly 2000ms fades that chrome out together via CSS opacity and visibility. A tap on the empty stage or the video toggles the group: hidden shows it at once and starts a fresh 2000ms timer; visible hides it at once. Taps on Prev, Play, Next, close, and the timer badge menus still run those controls and do not toggle the HUD away. The countdown, `autoplay` / `loop` / `playsinline`, and the `00:00` set finish keep running while the HUD is hidden.
 - **v2_11 flush open.** No `poster` attribute and no native play-button chrome. The stage and video paint transparent, so a gray or black slab cannot flash behind the frame. `preload="auto"`. A citation tap calls `play()` immediately. If `loadeddata` still leaves an unpainted `currentTime` of 0, the player nudges it to `0.001` so the first painted frame is the media frame. The player stays invisible until that frame is ready, then appears flush. `playsinline` and `loop` stay.
@@ -200,7 +201,7 @@ Evaluate on each timetable render and whenever a completion is upserted. Do not 
 
 ## 7. Cache
 
-`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v16`. The `relic-build` meta is `v16`. The in-memory month-row cache key is `{year}:{mode}:{month}`.
+`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v17`. The `relic-build` meta is `v17`. The in-memory month-row cache key is `{year}:{mode}:{month}`.
 
 ---
 
@@ -217,7 +218,8 @@ data/precondition.js    — Q4 2026 Full Body bridge pairings (RELIC_PRECONDITIO
 data/upperBody.js       — Upper Body rotations (does not edit MONTH_ROTATIONS)
 data/citations.js       — document links, including Face / Eyes / Tongue / Jaw
 data/forensic.js        — execution profiles: dose line, 3-lead rule, do / avoid, breathing
-data/videoArchive.js    — cabin playlists (Drive id is not playback)
+data/videoArchive.js    — cabin playlists (Drive id is not playback). Unchanged in v17.
+data/nutrition.js       — v17 fuel engine (RELIC_NUTRITION). Does not edit MONTH_ROTATIONS.
 data/supabaseConfig.js  — url, anonKey, bucket
 ```
 
@@ -242,7 +244,7 @@ index.html?date=2027-01-04&setsec=3   → coach set length 3 seconds. At 00:00 t
 2. Clips stream from Supabase public URLs. At `00:00` the opened citation is credited and, once that set is finished, the player closes and the timetable is showing. Duration overwrites remaining time and `SET_DURATION_SEC`. Add More Time only stacks onto remaining time. Next still advances a clip without crediting it.
 3. The table is exactly DAY / TRAINING RELICS / DONE at 20% / 70% / 10%.
 4. Ticks upsert `relic_completions`.
-5. `vercel.json` no-cache plus `?v=v16` on assets. The `relic-build` meta is `v16`. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome immediately. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph. The forensic CUE tab slides up from the bottom, does not reset that timer, and does not reload the video.
+5. `vercel.json` no-cache plus `?v=v17` on assets. The `relic-build` meta is `v17`. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome immediately. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph. The forensic CUE tab slides up from the bottom, does not reset that timer, and does not reload the video.
 6. `schedule.js` `MONTH_ROTATIONS` stays the Full Body lock. Upper Body data is additive.
 7. A week chip has a SINGLE slot and a DUAL slot. At 100% dual the chip is rich green, the dual slot shows an orange `#ff8c00` double-tick shield and the aggregate tick count, and the single slot stays a separate dark module. Day DONE cells use a compact box or a single/double shield, with a 44px hit target. Month chips and `#year-badge` use the same score and light up only at 100%. Week 4 labels read `WEEK 4`. The deload hint does not render. Calisthenics appears only in October–December 2027.
 8. The toggle immediately under the timetable swaps Full Body and Upper Body without a reload. The drawer’s Full Body and Upper Body rows call the same `setScheduleMode`. Ambient Hub switches the 2026 bridge and the 2027 year. The motto and metadata stay under that toggle. Each mode shows only its own ticks and shield badges.
@@ -290,6 +292,39 @@ Eyes is a single-document folder. `1. Eye_Sequence_Trainer.docx` is the href for
 ### Badge
 
 The shield tick scores each week of the viewed month on its own, for the active mode only: every active Mon–Sat day in that bucket must be dual-tier (`tier` 3 / `completed=true`) under that mode’s key. Week 4 includes every Mon–Sat date from the 22nd through month end. Each week chip has a SINGLE slot and a DUAL slot. A complete chip is rich green; the dual slot carries an orange double-tick shield and the video tick count, and the single slot stays a separate dark module. A week finished in Upper Body does not mark the same week finished in Full Body. Month and year use the same dual rule. Badge state is not stored in `localStorage`.
+
+---
+
+## 12. Nutritional architecture (v17)
+
+`data/nutrition.js` publishes `window.RELIC_NUTRITION`. It does not write `MONTH_ROTATIONS`, `data/upperBody.js`, or `data/videoArchive.js`. Training pair labels, cabin keys, citations, the player, the slide-up CUE, week slots, tiers, and the 2026 bridge stay as in v16. Fuel is paired beside a day the timetable already built.
+
+### Budget tiers
+
+| Tier | Window | Budget | Counter |
+|------|--------|--------|---------|
+| 1 | Oct 2026 – Jan 2027 | £150 / month | Sainsbury's cost-effective muscle builders. Omega-3 enriched and pasture-raised eggs stay in the basket where those SKUs exist. Salmon on this tier is the frozen fillet. |
+| 2 | Feb 2027 onward | £300 / month | Fresh salmon, Taste the Difference beef mince, wider veg, Waitrose and Sainsbury's premium SKUs. |
+
+`tierFor(viewYear, viewMonth)` follows the timetable. January 2027 is Tier 1. February 2027 and later months are Tier 2. October–December 2026 on the bridge are Tier 1. The fuel board prints `TIER n · £150/MONTH` or `TIER n · £300/MONTH` plus the basket total for that month. Prices are Sainsbury's / Waitrose product-style placeholders and each mapped list fits its cap.
+
+Shopping lists: `2026-10`, `2026-11`, `2026-12`, `2027-01`, and the February-onward template `2027-02+`.
+
+### Dietary baseline
+
+Hardcoded proteins: Chicken, Turkey Mince, Beef Mince, Salmon, Eggs. Carb baselines: Potatoes and Rice. Older restrictions that banned these foods are overridden. Weekday rotation is Mon Chicken, Tue Turkey Mince, Wed Beef Mince, Thu Salmon, Fri Eggs, Sat Chicken, Sun Eggs.
+
+### Caloric alignment
+
+Cabin load is scored only to choose a meal. It is not written back onto the rotation. Score 4 or more is intense and keeps a protein-dense plate (Beef-Stuffed Potato Boats when the day resolves to beef, including a Friday egg-rotation day that is intense). Score 0–1, or a recovery day, overrides the rotation to the Omega-3 Egg Rest Plate plus the heavy botanical extraction. Everything else keeps the weekday protein.
+
+### Morning botanicals
+
+Ashwagandha 600 mg, Lion's Mane 1000 mg (1500 mg on restorative days), Spirulina 3 g (5 g restorative), Psyllium Husk 5 g, Shilajit 300 mg. Every fuel day carries that morning protocol. Extraction cards load frozen fruit, then citrus, then hemp seeds into a 3000W blender for cell-wall shatter, strain through cheesecloth, and only then whisk the registry doses into the strained liquid.
+
+### Food board
+
+One drawer row opens the board. The month bar, week chips, and identity line stay. Each Mon–Sat row shows the physical cabins for the active mode and that day's Fuel CUE. Sunday stays off the list. Meal cards use the headings `Ingredients:`, `Method:`, and a `Macros & Cost` tag that names the current £150 or £300 tier. The same shell is the 3000W extraction card. `Training timetable` returns to the player and the DONE column. Completions are untouched.
 
 ---
 
