@@ -515,11 +515,28 @@ tr.is-done td { background: #1c0c2e; }
 
 .player[hidden] { display: none; }
 
+/* Hold the open off the timetable until the first media frame exists. */
+.player.is-awaiting-frame {
+  opacity: 0;
+  pointer-events: none;
+}
+
+#relic-frame-warm {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  left: 0;
+  bottom: 0;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
 .player-stage {
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
-  background: #000;
+  background: transparent;
   touch-action: manipulation;
 }
 
@@ -528,8 +545,31 @@ tr.is-done td { background: #1c0c2e; }
   width: 100%;
   height: 100%;
   object-fit: contain;
-  background: #000;
+  background: transparent;
+  background-image: none;
   outline: none;
+}
+
+#relic-active-video::-webkit-media-controls,
+#relic-active-video::-webkit-media-controls-enclosure,
+#relic-active-video::-webkit-media-controls-panel,
+#relic-active-video::-webkit-media-controls-play-button,
+#relic-active-video::-webkit-media-controls-start-playback-button,
+#relic-active-video::-webkit-media-controls-overlay-play-button,
+#relic-active-video::-webkit-media-controls-overlay-enclosure,
+#relic-frame-warm::-webkit-media-controls,
+#relic-frame-warm::-webkit-media-controls-enclosure,
+#relic-frame-warm::-webkit-media-controls-panel,
+#relic-frame-warm::-webkit-media-controls-play-button,
+#relic-frame-warm::-webkit-media-controls-start-playback-button,
+#relic-frame-warm::-webkit-media-controls-overlay-play-button,
+#relic-frame-warm::-webkit-media-controls-overlay-enclosure {
+  display: none !important;
+  -webkit-appearance: none;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .timer-dock {
