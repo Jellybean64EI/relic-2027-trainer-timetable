@@ -271,7 +271,7 @@ h1 {
 
 .table-wrap {
   background: var(--container-deep);
-  padding: 0 0 8px;
+  padding: 0;
 }
 
 .timetable {
@@ -469,7 +469,7 @@ tr.today td {
 tr.is-done td { background: #1c0c2e; }
 
 .schedule-switch {
-  padding: 0 8px 12px;
+  padding: 8px 8px 0;
   background: var(--container);
 }
 
@@ -486,7 +486,7 @@ tr.is-done td { background: #1c0c2e; }
 
 .footer {
   text-align: center;
-  padding: 12px 10px 16px;
+  padding: 14px 10px 18px;
   background: var(--container);
 }
 
