@@ -62,7 +62,7 @@
   var SHIELD_SVG_OPEN = '<svg class="shield-tick" viewBox="0 0 24 28" aria-hidden="true" focusable="false">';
   var SHIELD_BODY = '<path fill="#ff8c00" stroke="#000" stroke-width="1.15" stroke-linejoin="round" d="M12 1.4 21 5v8.6c0 5.7-3.6 9.9-9 12.6-5.4-2.7-9-6.9-9-12.6V5l9-3.6z"/>';
   var SHIELD_ONE = '<path fill="none" stroke="#000" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round" d="M7.5 14.2 10.6 17.3 16.7 10.1"/>';
-  var SHIELD_TWO = '<path fill="none" stroke="#000" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" d="M6.2 14.15 8.35 16.3 11.9 11.85"/><path fill="none" stroke="#000" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" d="M11.7 15.05 13.9 17.25 18.15 12.05"/>';
+  var SHIELD_TWO = '<path fill="none" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M5.0 15.0 7.15 17.15 10.15 13.15"/><path fill="none" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M13.55 15.0 15.7 17.15 18.85 13.0"/>';
 
   function $(id) { return document.getElementById(id); }
 

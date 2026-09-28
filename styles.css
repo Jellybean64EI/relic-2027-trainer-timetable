@@ -355,13 +355,12 @@ h1 {
 .shield-complete[hidden] { display: none !important; }
 
 .shield-tick {
-  width: 18px;
-  height: 21px;
+  width: 22px;
+  height: 26px;
   flex: 0 0 auto;
   display: block;
-  background: #000;
-  border-radius: 4px;
-  padding: 1px;
+  background: transparent;
+  padding: 0;
   box-sizing: border-box;
 }
 
@@ -389,8 +388,8 @@ h1 {
 }
 
 .mbtn .shield-tick {
-  width: 14px;
-  height: 16px;
+  width: 16px;
+  height: 19px;
 }
 
 .mbtn .shield-count { font-size: 0.62rem; }
@@ -550,34 +549,36 @@ tr.today td {
   overflow: visible;
 }
 
-/* Visual mark stays centered in the 10% DONE column. The control itself is 44px
-   and is biased left so the touch target stays inside the card on an S24 Ultra. */
+/* Visual mark stays centered in the 10% DONE column. The 44px hit target is
+   anchored to the card edge so it stays inside an S24 Ultra row. */
 .tick-hit {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--touch);
-  height: var(--touch);
-  min-width: var(--touch);
-  min-height: var(--touch);
-  margin: 0 0 0 -8px;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 44px;
+  height: auto;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0;
   padding: 0;
   border: 0;
   border-radius: 8px;
   background: transparent;
   color: inherit;
   font: inherit;
-  vertical-align: middle;
   cursor: pointer;
   appearance: none;
 }
 
 .tick-box {
-  position: relative;
-  left: 8px;
+  position: absolute;
+  top: 50%;
+  right: 8px;
   width: 22px;
   height: 22px;
+  margin: 0;
+  transform: translateY(-50%);
   border: 1.5px solid rgba(255, 140, 0, 0.92);
   border-radius: 5px;
   background: transparent;
@@ -589,15 +590,15 @@ tr.today td {
 
 .tick-hit[data-tier="1"] .tick-box,
 .tick-hit[data-tier="2"] .tick-box {
-  width: 20px;
-  height: 24px;
+  width: 22px;
+  height: 26px;
   border-color: transparent;
   background: transparent;
 }
 
 .tick-box .shield-tick {
-  width: 18px;
-  height: 21px;
+  width: 22px;
+  height: 26px;
   padding: 0;
   background: transparent;
   border-radius: 0;
