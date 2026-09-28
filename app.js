@@ -12,8 +12,8 @@
    v16: the CUE panel slides up from the bottom of the stage. A finished citation
    set closes the player and returns to the timetable. Week chips keep a single
    slot and a dual slot. Calisthenics is Q4 2027 only.
-   v17: Food & Prep Schedule pairs each training day with a fuel cue from
-   RELIC_NUTRITION. Training rotations, the player, and completions stay put. */
+   v18: Food OS is four rooms behind the drawer. It does not write
+   relic_completions, move the player timer, or open the CUE panel. */
 (function () {
   "use strict";
 
@@ -55,9 +55,9 @@
     syncPending: 0,
     saveGen: {},
     mode: "full",
-    foodOpen: false,
-    foodCard: null,
-    foodBasketOpen: false
+    foodRoom: "",
+    foodFocusId: "",
+    foodFocusBand: "moderate"
   };
 
   var player = {
@@ -638,188 +638,214 @@
     );
   }
 
-  function nutritionApi() {
-    return window.RELIC_NUTRITION || null;
-  }
+  function foodShop() { return window.RELIC_FOOD_SHOP || null; }
+  function foodMeals() { return window.RELIC_FOOD_MEALS || null; }
+  function foodExtractions() { return window.RELIC_FOOD_EXTRACTIONS || null; }
+  function foodSchedule() { return window.RELIC_FOOD_SCHEDULE || null; }
 
-  function cabinLines(day) {
-    var phase = day.phase || "Base";
-    if (day.isRecovery) {
-      return '<span class="cabin-line">' + escapeHtml(day.doc1 || "Rest / Light Mobility") + "</span>";
-    }
-    return (day.cabins || []).map(function (cabinKey) {
-      if (!cabinKey) return "";
-      return '<span class="cabin-line">' + escapeHtml(S.citationLabel(cabinKey, phase)) + "</span>";
+  var FOOD_TITLES = {
+    weekly: "Weekly Food Schedule",
+    shop: "Monthly Foods (Sainsbury’s)",
+    meals: "Meal Recipe Cards",
+    extractions: "Smoothie / Extraction Cards"
+  };
+
+  function magazineCardHtml(card) {
+    var ingredients = card.ingredients.map(function (item) {
+      return "<li>" + escapeHtml(item.text) + "</li>";
     }).join("");
-  }
-
-  function paintFoodJumps() {
-    var host = $("food-jumps");
-    if (!host) return;
-    var jumps = [
-      ["crispy-potato-snack", "Crispy Potato Snack"],
-      ["cheesy-roasted-garlic-bread", "Cheesy Roasted Garlic Bread"],
-      ["beef-stuffed-potato-boats", "Beef-Stuffed Potato Boats"]
-    ];
-    host.innerHTML = jumps.map(function (jump) {
-      return '<button type="button" class="food-jump" data-food-meal="' + jump[0] + '">' +
-        escapeHtml(jump[1]) + "</button>";
+    var method = card.method.map(function (step, index) {
+      return '<li><span class="method-num" aria-hidden="true">' + (index + 1) +
+        '</span><p><strong>' + escapeHtml(step.verb) + "</strong> " + escapeHtml(step.detail) + "</p></li>";
     }).join("");
+    var kcal = card.macros.kcal + " kcal";
+    if (card.macros.basis) kcal += " · " + card.macros.basis;
+    return (
+      '<article class="recipe-card" data-kind="' + escapeHtml(card.kind) + '">' +
+        '<p class="recipe-kicker">' + (card.kind === "extraction" ? "SMOOTHIE / EXTRACTION" : "MEAL RECIPE") + "</p>" +
+        "<h3>" + escapeHtml(card.name) + "</h3>" +
+        '<p class="recipe-tagline">' + escapeHtml(card.tagline) + "</p>" +
+        '<p class="recipe-script">' + escapeHtml(card.script) + "</p>" +
+        '<ul class="recipe-facts">' +
+          "<li><span>Yield</span><strong>" + escapeHtml(card.yield) + "</strong></li>" +
+          "<li><span>Prep</span><strong>" + card.prepMin + " min</strong></li>" +
+          "<li><span>Cook</span><strong>" + escapeHtml(card.cookLabel) + "</strong></li>" +
+          "<li><span>Cals</span><strong>" + escapeHtml(kcal) + "</strong></li>" +
+          "<li><span>£ tier</span><strong>" + escapeHtml(card.tierFact) + "</strong></li>" +
+        "</ul>" +
+        (card.lock ? '<p class="recipe-lock">' + escapeHtml(card.lock) + "</p>" : "") +
+        (card.sequence ? '<ol class="extract-sequence">' + card.sequence.map(function (item) {
+          return "<li>" + escapeHtml(item) + "</li>";
+        }).join("") + "</ol>" : "") +
+        "<h4>Ingredients</h4><ul class=\"recipe-ingredients\">" + ingredients + "</ul>" +
+        "<h4>Method</h4><ol class=\"recipe-method\">" + method + "</ol>" +
+        '<section class="recipe-weekbox">' +
+          "<h4>Weekly Timetable</h4>" +
+          "<p><strong>Best for</strong> " + escapeHtml(card.timetable.bestFor) + "</p>" +
+          "<p><strong>Best eaten</strong> " + escapeHtml(card.timetable.bestEaten) + "</p>" +
+          "<p><strong>Reheat</strong> " + escapeHtml(card.timetable.reheat) + "</p>" +
+        "</section>" +
+        '<p class="recipe-tip">Tip: ' + escapeHtml(card.tip) + "</p>" +
+      "</article>"
+    );
   }
 
-  function paintBasket(api, list) {
-    var btn = $("btn-fuel-basket");
-    var box = $("fuel-basket");
-    if (!btn || !box) return;
-    if (!list) {
-      btn.hidden = true;
-      box.hidden = true;
-      return;
-    }
-    btn.hidden = false;
-    btn.textContent = "Monthly basket · " + api.formatGbp(list.totalPence) + " of " + list.budgetLabel;
-    btn.setAttribute("aria-expanded", state.foodBasketOpen ? "true" : "false");
-    box.hidden = !state.foodBasketOpen;
-    if (!state.foodBasketOpen) {
-      box.innerHTML = "";
-      return;
-    }
-    var html = '<p class="fuel-basket-note">' + escapeHtml(list.vegNote || "") + '</p><ul class="fuel-basket-list">';
-    list.items.forEach(function (item) {
-      var entry = api.skus[item.skuId];
-      if (!entry) return;
-      html += "<li><span>" + item.qty + " × " + escapeHtml(entry.name) + "</span><span>" +
-        api.formatGbp(entry.pricePence * item.qty) + "</span></li>";
-    });
-    html += '</ul><p class="fuel-basket-total">Total ' + api.formatGbp(list.totalPence) +
-      " · Fits " + escapeHtml(list.budgetLabel) + "</p>";
-    box.innerHTML = html;
-  }
-
-  function paintFuelWeek(api, list) {
+  function paintFuelWeek() {
+    var api = foodSchedule();
     var days = activeDaysForView();
     var html = "";
     days.forEach(function (day) {
       var cue = api.cueForDay(day);
-      var morning = (cue.morning || []).map(function (dose) {
-        return dose.name + " " + dose.text;
-      }).join(" · ");
-      var align = cue.protein === cue.rotationProtein
-        ? cue.protein
-        : (cue.rotationProtein + " → " + cue.protein);
-      var extractLabel = cue.band === "restorative"
-        ? "HEAVY BOTANICAL EXTRACTION"
-        : "AM EXTRACTION · 3000W";
+      var cabins = (cue.cabins || []).join(" · ");
       html += '<tr class="fuel-row is-' + cue.band + '">' +
         '<td class="day-cell">' +
-          '<span class="day-name">' + escapeHtml(day.dayName) + "</span>" +
-          '<span class="day-key">' + escapeHtml(day.dateKey) + "</span>" +
+          '<button type="button" class="food-date" data-open-room="meals" data-food-meal="' +
+            escapeHtml(cue.mealId) + '" data-food-band="' + escapeHtml(cue.band) + '">' +
+            '<span class="day-name">' + escapeHtml(day.dayName) + "</span>" +
+            '<span class="day-key">' + escapeHtml(day.dateKey) + "</span>" +
+          "</button>" +
         "</td>" +
         '<td class="relics-cell"><div class="relic-stack">' +
-          '<span class="doc-text">' + escapeHtml(day.pair || "") + "</span>" +
-          cabinLines(day) +
-          '<button type="button" class="fuel-cue" data-food-meal="' + escapeHtml(cue.mealId) +
-            '" data-food-band="' + escapeHtml(cue.band) + '">FUEL CUE · ' + escapeHtml(cue.cue) + "</button>" +
-          '<p class="fuel-meta">' + escapeHtml(cue.band) + " · " + escapeHtml(align) +
-            " · " + escapeHtml(cue.carb) + "</p>" +
-          '<button type="button" class="fuel-cue fuel-cue-extract" data-food-extraction="' +
-            escapeHtml(cue.extractionId) + '" data-food-band="' + escapeHtml(cue.band) + '">' +
-            escapeHtml(extractLabel) + "</button>" +
-          '<p class="fuel-morning">Morning · ' + escapeHtml(morning) + "</p>" +
+          '<p class="fuel-meal-name">' + escapeHtml(cue.mealName) + "</p>" +
+          '<p class="fuel-meta">' + escapeHtml(cue.protein) + " · " + escapeHtml(cue.carb) + "</p>" +
+          (cabins ? '<p class="food-cabin-chip">' + escapeHtml(cabins) + "</p>" : "") +
         "</div></td></tr>";
     });
     var body = $("fuel-body");
     if (body) body.innerHTML = html;
     var sunday = $("fuel-sunday");
     if (sunday) {
-      sunday.textContent = "Sunday stays off this list. Recovery fuel is the Omega-3 Egg Rest Plate and the heavy botanical extraction.";
+      sunday.textContent = "Sunday stays off this list. The date opens that day’s meal card. Cabin names are read-only.";
     }
-    paintFoodJumps();
-    paintBasket(api, list);
   }
 
-  function paintFoodCard(api, tier) {
-    var host = $("food-card-host");
-    if (!host || !state.foodCard) return;
-    var card = api.presentRecipe(state.foodCard.id, tier.id, state.foodCard.band);
-    if (!card) {
-      host.innerHTML = "";
+  function paintShop() {
+    var host = $("food-shop");
+    var api = foodShop();
+    if (!host || !api) return;
+    var tier = api.tierFor(state.viewYear, state.viewMonth);
+    var list = api.shoppingListFor(state.viewYear, state.viewMonth);
+    var html = '<section class="fuel-tier" data-tier="' + tier.id + '">' +
+      '<p class="fuel-tier-label">TIER ' + tier.id + " · " + escapeHtml(tier.budgetLabel) + "/MONTH</p>" +
+      '<p class="fuel-tier-range">' + escapeHtml(tier.rangeLabel) + " · " + escapeHtml(tier.stores.join(" / ")) + "</p>" +
+      (list ? '<p class="fuel-tier-basket">Basket ' + api.formatGbp(list.totalPence) + " of " +
+        escapeHtml(tier.budgetLabel) + " · " + api.formatGbp(list.headroomPence) + " headroom</p>" : "") +
+      "</section>";
+    html += '<ol class="food-laws">';
+    api.laws.forEach(function (law) { html += "<li>" + escapeHtml(law) + "</li>"; });
+    html += "</ol>";
+    html += '<h3 class="food-subhead">Protect stock</h3><ul class="fuel-basket-list">';
+    api.protect.forEach(function (row) {
+      html += "<li><span>" + escapeHtml(row.item) + " · " + escapeHtml(row.stock) + "</span><span>" +
+        escapeHtml(row.action) + "</span></li>";
+    });
+    html += '</ul><h3 class="food-subhead">Fruit first</h3><ul class="food-plain">';
+    api.fruitFirst.forEach(function (item) { html += "<li>" + escapeHtml(item) + "</li>"; });
+    html += '</ul><h3 class="food-subhead">Food second</h3><ul class="food-plain">';
+    api.foodSecond.forEach(function (item) { html += "<li>" + escapeHtml(item) + "</li>"; });
+    html += '</ul><h3 class="food-subhead">On the Sainsbury’s shelf</h3><ul class="food-plain">';
+    api.citations.forEach(function (item) { html += "<li>" + escapeHtml(item) + "</li>"; });
+    html += "</ul>";
+    if (list) {
+      html += '<h3 class="food-subhead">This month’s basket</h3><p class="fuel-basket-note">' +
+        escapeHtml(list.vegNote || "") + '</p><ul class="fuel-basket-list">';
+      list.items.forEach(function (item) {
+        var entry = api.skus[item.skuId];
+        if (!entry) return;
+        html += "<li><span>" + item.qty + " × " + escapeHtml(entry.name) + "</span><span>" +
+          api.formatGbp(entry.pricePence * item.qty) + "</span></li>";
+      });
+      html += '</ul><p class="fuel-basket-total">Total ' + api.formatGbp(list.totalPence) +
+        " · Fits " + escapeHtml(list.budgetLabel) + "</p>";
+    }
+    host.innerHTML = html;
+  }
+
+  function paintMeals() {
+    var host = $("food-meals");
+    var api = foodMeals();
+    var shop = foodShop();
+    if (!host || !api || !shop) return;
+    var tier = shop.tierFor(state.viewYear, state.viewMonth);
+    if (state.foodFocusId) {
+      var card = api.present(state.foodFocusId, tier.id);
+      host.innerHTML = card
+        ? '<button type="button" class="food-back" data-food-index="meals">All meal cards</button>' + magazineCardHtml(card)
+        : "";
       return;
     }
-    var kicker = card.kind === "extraction" ? "3000W EXTRACTION CARD" : "MEAL RECIPE CARD";
-    var appliances = (card.appliances || []).map(function (item) {
-      return item.name + " · " + item.params;
-    }).join(" · ");
-    var ingredients = card.ingredients.map(function (item) {
-      return "<li>" + escapeHtml(item.line) + "</li>";
+    host.innerHTML = api.order.map(function (id) {
+      var meal = api.meals[id];
+      return '<button type="button" class="food-jump" data-food-meal="' + escapeHtml(id) + '">' +
+        escapeHtml(meal.name) + "<span>" + escapeHtml(meal.tagline) + "</span></button>";
     }).join("");
-    var method = card.method.map(function (step) {
-      return "<li>" + escapeHtml(step) + "</li>";
-    }).join("");
-    host.innerHTML =
-      '<button type="button" class="food-back" id="btn-food-card-back">Food & Prep Schedule</button>' +
-      '<article class="recipe-card" data-kind="' + escapeHtml(card.kind) + '">' +
-        '<p class="recipe-kicker">' + kicker + "</p>" +
-        "<h3>" + escapeHtml(card.name) + "</h3>" +
-        '<p class="recipe-params">Prep ' + card.prepMin + " min · " + escapeHtml(appliances) + "</p>" +
-        "<h4>Ingredients:</h4><ul>" + ingredients + "</ul>" +
-        "<h4>Method:</h4><ol>" + method + "</ol>" +
-        '<p class="macro-tag">' + escapeHtml(card.macroLine) + "</p>" +
-      "</article>";
   }
 
-  function openFoodCard(id, band) {
-    state.foodCard = { id: id, band: band || "moderate" };
+  function paintExtractions() {
+    var host = $("food-extractions");
+    var api = foodExtractions();
+    var shop = foodShop();
+    if (!host || !api || !shop) return;
+    var tier = shop.tierFor(state.viewYear, state.viewMonth);
+    if (state.foodFocusId) {
+      var card = api.present(state.foodFocusId, tier.id);
+      host.innerHTML = card
+        ? '<button type="button" class="food-back" data-food-index="extractions">All extraction cards</button>' + magazineCardHtml(card)
+        : "";
+      return;
+    }
+    host.innerHTML = '<p class="fuel-sunday">Morning lock. Liquid, frozen fruit, citrus, hemp, 3000W blend, cheesecloth strain, then botanicals. Not dinner.</p>' +
+      api.order.map(function (id) {
+        var row = api.cards[id];
+        return '<button type="button" class="food-jump" data-food-extraction="' + escapeHtml(id) + '">' +
+          escapeHtml(row.name) + "<span>" + escapeHtml(row.tagline) + "</span></button>";
+      }).join("");
+  }
+
+  function openFoodRoom(room, focusId, band) {
+    if (!FOOD_TITLES[room]) return;
+    state.foodRoom = room;
+    state.foodFocusId = focusId || "";
+    state.foodFocusBand = band || "moderate";
     render();
-    var back = $("btn-food-card-back");
-    if (back && back.scrollIntoView) back.scrollIntoView({ block: "start" });
+    var title = $("food-board-title");
+    if (title && title.focus) {
+      try { title.focus({ preventScroll: true }); } catch (err) {
+        try { title.focus(); } catch (err2) { /* focus is optional */ }
+      }
+    }
+  }
+
+  function closeFoodRoom() {
+    state.foodRoom = "";
+    state.foodFocusId = "";
+    render();
   }
 
   function paintFoodBoard() {
     var board = $("food-board");
     var training = $("training-board");
-    var open = !!state.foodOpen;
+    var room = FOOD_TITLES[state.foodRoom] ? state.foodRoom : "";
+    var open = !!room;
     if (board) board.hidden = !open;
     if (training) training.hidden = open;
     document.body.classList.toggle("is-food", open);
-    var row = $("btn-food-prep");
-    if (row) {
-      row.classList.toggle("is-active", open);
-      row.setAttribute("aria-pressed", open ? "true" : "false");
-    }
+    document.querySelectorAll("[data-food-room]").forEach(function (row) {
+      var on = row.getAttribute("data-food-room") === room;
+      row.classList.toggle("is-active", on);
+      row.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    ["weekly", "shop", "meals", "extractions"].forEach(function (name) {
+      var panel = $("food-" + name);
+      if (panel) panel.hidden = name !== room;
+    });
     if (!open) return;
-    var api = nutritionApi();
-    if (!api) return;
-    var tier = api.tierFor(state.viewYear, state.viewMonth);
-    var card = $("relic-card");
-    if (card) card.setAttribute("data-budget-tier", String(tier.id));
-    var tierEl = $("fuel-tier");
-    if (tierEl) tierEl.setAttribute("data-tier", String(tier.id));
-    var label = $("fuel-tier-label");
-    if (label) label.textContent = "TIER " + tier.id + " · " + tier.budgetLabel + "/MONTH";
-    var range = $("fuel-tier-range");
-    if (range) range.textContent = tier.rangeLabel + " · " + tier.stores.join(" / ");
-    var list = api.shoppingListFor(state.viewYear, state.viewMonth);
-    var basketLine = $("fuel-tier-basket");
-    if (basketLine) {
-      basketLine.textContent = list
-        ? ("Basket " + api.formatGbp(list.totalPence) + " of " + tier.budgetLabel +
-          " · " + api.formatGbp(list.headroomPence) + " headroom")
-        : "";
-    }
-    var showingCard = !!state.foodCard;
-    var schedule = $("food-schedule");
-    var host = $("food-card-host");
-    var closeBtn = $("btn-food-close");
-    if (schedule) schedule.hidden = showingCard;
-    if (host) host.hidden = !showingCard;
-    if (closeBtn) closeBtn.hidden = showingCard;
-    if (showingCard) paintFoodCard(api, tier);
-    else paintFuelWeek(api, list);
-    var blurb = $("month-blurb");
-    if (blurb && blurb.textContent.indexOf("Food & Prep") === -1) {
-      blurb.textContent = (blurb.textContent ? blurb.textContent + " · " : "") + "Food & Prep dual-sync";
-    }
+    var title = $("food-board-title");
+    if (title) title.textContent = FOOD_TITLES[room];
+    if (room === "weekly") paintFuelWeek();
+    if (room === "shop") paintShop();
+    if (room === "meals") paintMeals();
+    if (room === "extractions") paintExtractions();
   }
 
   function render() {
@@ -1898,49 +1924,33 @@
         setBranch(opt.getAttribute("data-set-branch"));
       });
     });
-    var foodBtn = $("btn-food-prep");
-    if (foodBtn) {
+    document.querySelectorAll("[data-food-room]").forEach(function (foodBtn) {
       foodBtn.addEventListener("click", function () {
-        state.foodOpen = true;
-        state.foodCard = null;
+        openFoodRoom(foodBtn.getAttribute("data-food-room"));
         setNavOpen(false);
-        render();
-        var title = $("food-board-title");
-        if (title) {
-          try { title.focus({ preventScroll: true }); } catch (err) {
-            try { title.focus(); } catch (err2) { /* focus is optional */ }
-          }
-        }
       });
-    }
+    });
     var foodBoard = $("food-board");
     if (foodBoard) {
       foodBoard.addEventListener("click", function (event) {
         if (event.target.closest("#btn-food-close")) {
-          state.foodOpen = false;
-          state.foodCard = null;
-          state.foodBasketOpen = false;
-          render();
+          closeFoodRoom();
           return;
         }
-        if (event.target.closest("#btn-food-card-back")) {
-          state.foodCard = null;
-          render();
-          return;
-        }
-        if (event.target.closest("#btn-fuel-basket")) {
-          state.foodBasketOpen = !state.foodBasketOpen;
+        var indexBtn = event.target.closest("[data-food-index]");
+        if (indexBtn) {
+          state.foodFocusId = "";
           render();
           return;
         }
         var meal = event.target.closest("[data-food-meal]");
         if (meal) {
-          openFoodCard(meal.getAttribute("data-food-meal"), meal.getAttribute("data-food-band"));
+          openFoodRoom("meals", meal.getAttribute("data-food-meal"), meal.getAttribute("data-food-band"));
           return;
         }
         var extraction = event.target.closest("[data-food-extraction]");
         if (extraction) {
-          openFoodCard(extraction.getAttribute("data-food-extraction"), extraction.getAttribute("data-food-band"));
+          openFoodRoom("extractions", extraction.getAttribute("data-food-extraction"), extraction.getAttribute("data-food-band"));
         }
       });
     }
@@ -1966,9 +1976,15 @@
     }
     document.addEventListener("keydown", function (event) {
       if (event.key !== "Escape") return;
-      if (!document.body.classList.contains("nav-open")) return;
       var playerRoot = $("relic-player");
-      if (playerRoot && !playerRoot.hidden) return;
+      var playerOpen = playerRoot && !playerRoot.hidden;
+      if (state.foodRoom && !playerOpen && !document.body.classList.contains("nav-open")) {
+        event.preventDefault();
+        closeFoodRoom();
+        return;
+      }
+      if (!document.body.classList.contains("nav-open")) return;
+      if (playerOpen) return;
       event.preventDefault();
       setNavOpen(false);
       if (navBtn) navBtn.focus();
@@ -2132,8 +2148,15 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v17",
-    get nutrition() { return nutritionApi(); },
+    build: "v18",
+    get nutrition() {
+      return {
+        shop: foodShop(),
+        meals: foodMeals(),
+        extractions: foodExtractions(),
+        schedule: foodSchedule()
+      };
+    },
     get viewYear() { return state.viewYear; },
     get branch() { return state.branch; },
     setBranch: setBranch,

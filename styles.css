@@ -78,7 +78,7 @@ button, a, input, label {
 
 .nav-toggle {
   position: relative;
-  z-index: 120;
+  z-index: 1200;
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -1202,10 +1202,16 @@ tr.is-done td { background: #1c0c2e; }
 body.player-open,
 body.nav-open { overflow: hidden; }
 
+/* A food room covers the stage without pausing the set that is already running. */
+body.is-food #relic-player {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .nav-scrim {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  z-index: 1100;
   background: rgba(11, 2, 22, 0.46);
   opacity: 0;
   pointer-events: none;
@@ -1221,7 +1227,7 @@ body.nav-open .nav-scrim {
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 90;
+  z-index: 1110;
   display: flex;
   flex-direction: column;
   width: 50vw;
@@ -1544,6 +1550,15 @@ table.fuel-table col.col-relics { width: 78%; }
   font-weight: 800;
 }
 
+#food-shop .fuel-basket-list li {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+#food-shop .fuel-basket-list li span:last-child {
+  text-align: left;
+}
+
 .fuel-basket-total {
   color: var(--gold);
   font-size: 0.78rem;
@@ -1618,7 +1633,241 @@ table.fuel-table col.col-relics { width: 78%; }
 .food-back:focus-visible,
 .fuel-basket-toggle:focus-visible,
 .food-jump:focus-visible,
-.fuel-cue:focus-visible {
+.fuel-cue:focus-visible,
+.food-date:focus-visible {
   outline: 2px solid #ff8c00;
   outline-offset: 2px;
+}
+
+/* v18 Food OS rooms. The training table above keeps its three columns. */
+.food-date {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fuel-meal-name,
+.food-cabin-chip,
+.food-subhead,
+.food-laws,
+.food-plain,
+.recipe-lock {
+  margin: 4px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.fuel-meal-name {
+  color: var(--gold);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.food-cabin-chip {
+  color: var(--cite);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.food-subhead {
+  margin: 14px 8px 4px;
+  color: var(--gold);
+  font-size: 0.84rem;
+}
+
+.food-laws,
+.food-plain {
+  margin: 0 8px 8px;
+  padding-left: 1.1rem;
+  color: var(--text);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.food-laws li,
+.food-plain li {
+  margin: 0 0 6px;
+}
+
+.food-jump {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 44px;
+  color: #1f1812;
+  background: #fcf5e8;
+  border-color: #c9a227;
+}
+
+.food-jump span {
+  display: block;
+  color: #2c2118;
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+}
+
+.recipe-card {
+  margin: 8px;
+  padding: 14px 12px 12px;
+  background: #fcf5e8;
+  color: #2c2118;
+  border: 8px solid #1f1812;
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 2px #c9a227;
+}
+
+.recipe-kicker,
+.recipe-card h4,
+.recipe-tip {
+  color: #1f1812;
+}
+
+.recipe-card h3 {
+  margin: 2px 0 0;
+  color: #1f1812;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.45rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.recipe-tagline,
+.recipe-script {
+  margin: 4px 0 0;
+  color: #2c2118;
+  font-family: Georgia, "Palatino Linotype", serif;
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.3;
+}
+
+.recipe-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recipe-facts li {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 44px;
+  margin: 0;
+  padding: 6px 8px;
+  border: 1px solid #c9a227;
+  background: #fffdf8;
+  color: #2c2118;
+  font-size: 0.72rem;
+}
+
+.recipe-facts strong {
+  color: #1f1812;
+  font-size: 0.78rem;
+}
+
+.recipe-lock,
+.extract-sequence {
+  margin: 8px 0;
+  color: #1f1812;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.extract-sequence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.extract-sequence li {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 0;
+  padding: 6px 8px;
+  background: #1f1812;
+  color: #fcf5e8;
+  font-size: 0.72rem;
+}
+
+.recipe-method {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recipe-method li {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 8px;
+  align-items: start;
+  margin: 0 0 8px;
+  color: #2c2118;
+}
+
+.method-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #1f1812;
+  color: #c9a227;
+  font-weight: 800;
+}
+
+.recipe-method strong {
+  color: #1f1812;
+}
+
+.recipe-weekbox {
+  margin-top: 12px;
+  padding: 10px;
+  background: #1f1812;
+  color: #fcf5e8;
+  border-top: 3px solid #c9a227;
+}
+
+.recipe-weekbox h4,
+.recipe-weekbox p,
+.recipe-weekbox strong {
+  color: #fcf5e8;
+}
+
+.recipe-weekbox p {
+  margin: 4px 0 0;
+  font-size: 0.78rem;
+}
+
+.recipe-tip {
+  margin: 10px 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+@media (max-width: 412px) {
+  .recipe-facts {
+    grid-template-columns: 1fr;
+  }
+
+  .recipe-card h3 {
+    font-size: 1.28rem;
+  }
 }
