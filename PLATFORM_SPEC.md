@@ -5,7 +5,7 @@
 **Coach archive:** NiX  
 **Timezone:** Europe/London (always)  
 **Runtime:** static HTML / CSS / JS. No build step. No npm.  
-**Cache bust:** `?v=v2_10` on every stylesheet and script in `index.html`
+**Cache bust:** `?v=v2_11` on every stylesheet and script in `index.html`
 
 Footer motto (exact):
 
@@ -109,7 +109,7 @@ Full Body rotations live only in `data/schedule.js` (`MONTH_ROTATIONS`). The UI 
 Element:
 
 ```html
-<video id="relic-active-video" src="..." autoplay loop playsinline></video>
+<video id="relic-active-video" src="..." autoplay loop playsinline preload="auto"></video>
 ```
 
 - Public object URL: `{SUPABASE_URL}/storage/v1/object/public/relic-videos/{cabinKey}/{filename.mp4}`
@@ -122,6 +122,7 @@ Element:
 - At `00:00`, call `playNextVideo()` and load the next cabin clip without closing the player. The next clip starts at the current `SET_DURATION_SEC` (the last Duration override, or 1200 seconds when only stacking was used).
 - Empty playlist: set the frame to `about:blank` and show `No video file IDs mapped for this cabin.`
 - **v2_10 immersive HUD.** No tempo prompt bar. The video stage fills the viewport. Close, the gold timer badge (with Duration / Add More Time), the exercise title, and the centered white Prev / Play / Next dock are one HUD. One 5-second inactivity timer fades that chrome out together via CSS opacity and visibility. A tap or click anywhere on the video viewport brings the whole HUD back for another 5 seconds. The countdown, `autoplay` / `loop` / `playsinline`, and `playNextVideo()` at `00:00` keep running while the HUD is hidden.
+- **v2_11 flush open.** No `poster` attribute and no native play-button chrome. The stage and video paint transparent, so a gray or black slab cannot flash behind the frame. `preload="auto"`. A citation tap calls `play()` immediately. If `loadeddata` still leaves an unpainted `currentTime` of 0, the player nudges it to `0.001` so the first painted frame is the media frame. The player stays invisible until that frame is ready, then appears flush. `playsinline` and `loop` stay.
 
 Config: `data/supabaseConfig.js` (`url`, `anonKey`, `bucket`). Playlists: `data/videoArchive.js`.
 
@@ -163,7 +164,7 @@ Evaluate on each timetable render and whenever a completion tick is upserted. Do
 
 ## 7. Cache
 
-`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v2_10`. The `relic-build` meta is `v2_10`.
+`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v2_11`. The `relic-build` meta is `v2_11`.
 
 ---
 
@@ -200,7 +201,7 @@ index.html?date=2026-09-25   → PREVIEW, January Week 1, practice ticks allowed
 2. Clips stream from Supabase public URLs. The set timer calls `playNextVideo()` at `00:00`. Duration overwrites remaining time and `SET_DURATION_SEC`. Add More Time only stacks onto remaining time. The next clip starts at the locked `SET_DURATION_SEC`.
 3. The table is exactly DAY / TRAINING RELICS / DONE at 20% / 70% / 10%.
 4. Ticks upsert `relic_completions`.
-5. `vercel.json` no-cache plus `?v=v2_10` on assets. The player HUD auto-hides after 5 seconds and the tempo prompt bar is gone.
+5. `vercel.json` no-cache plus `?v=v2_11` on assets. The player HUD auto-hides after 5 seconds and the tempo prompt bar is gone. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph.
 6. `schedule.js` `MONTH_ROTATIONS` stays the Full Body lock. Upper Body data is additive.
 7. Each week whose Mon–Sat days are all complete for the active mode keeps a gold shield tick and the word Completed on its chip while any week is on screen. Gold `#ff8c00` checkboxes and black ticks apply only while that complete week is the one being viewed. Week 4 labels read `WEEK 4` with no DELOAD suffix.
 8. The toggle immediately under the timetable swaps Full Body and Upper Body without a reload. The motto and metadata stay under that toggle. Each mode shows only its own ticks and shield badges.

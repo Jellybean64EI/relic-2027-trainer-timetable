@@ -45,7 +45,11 @@
     armed: false,
     empty: false,
     historyPushed: false,
-    hudTimer: null
+    hudTimer: null,
+    flushToken: 0,
+    flushFallback: null,
+    wantsFlushFrame: false,
+    awaitingReveal: false
   };
 
   function $(id) { return document.getElementById(id); }
@@ -528,6 +532,23 @@
     return storagePublicUrl([cabinKey, file]);
   }
 
+  function clipsForCabin(cabinKey) {
+    var archive = (window.RELIC_VIDEO_ARCHIVE && window.RELIC_VIDEO_ARCHIVE.cabins) || {};
+    var cabin = archive[cabinKey];
+    var raw = (cabin && cabin.playlist) || [];
+    var clips = [];
+    raw.forEach(function (clip) {
+      if (!clip) return;
+      var src = resolveClipSrc(cabinKey, clip);
+      if (!src || isBlockedMediaUrl(src)) return;
+      clips.push({
+        title: clip.title || filenameFromTitle(clip.title) || "Clip",
+        src: src
+      });
+    });
+    return clips;
+  }
+
   function activeVideo() { return $("relic-active-video"); }
 
   function formatTimer(seconds) {
@@ -713,21 +734,161 @@
       (clip && clip.title ? clip.title : "Clip");
   }
 
+  function stripVideoChrome(video) {
+    video.removeAttribute("poster");
+    video.removeAttribute("controls");
+    video.controls = false;
+    video.preload = "auto";
+    video.setAttribute("preload", "auto");
+    video.playsInline = true;
+    video.setAttribute("playsinline", "");
+    video.setAttribute("webkit-playsinline", "");
+    try { video.disablePictureInPicture = true; } catch (err) { /* optional */ }
+    try { video.disableRemotePlayback = true; } catch (err) { /* optional */ }
+  }
+
+  function stopFlushWatch() {
+    player.flushToken = (player.flushToken | 0) + 1;
+    player.wantsFlushFrame = false;
+    if (player.flushFallback) {
+      clearTimeout(player.flushFallback);
+      player.flushFallback = null;
+    }
+  }
+
+  function revealActiveFrame() {
+    var video = activeVideo();
+    var root = $("relic-player");
+    var wasWaiting = !!player.awaitingReveal;
+    var pending = !!player.wantsFlushFrame || wasWaiting;
+    if (!pending && video && video.classList.contains("is-frame-ready")) return;
+    if (video) video.classList.add("is-frame-ready");
+    if (root) {
+      root.classList.remove("is-awaiting-frame");
+      if (!root.hidden) root.setAttribute("aria-hidden", "false");
+    }
+    player.awaitingReveal = false;
+    stopFlushWatch();
+    if (!wasWaiting) return;
+    showPlayerHud();
+    var closeBtn = $("relic-player-close");
+    if (!closeBtn) return;
+    try { closeBtn.focus({ preventScroll: true }); } catch (err) {
+      try { closeBtn.focus(); } catch (err2) { /* focus is optional */ }
+    }
+  }
+
+  function resumeIfNudged(video) {
+    if (!video || player.paused || player.empty || !video.paused) return;
+    var pending = video.play();
+    if (pending && typeof pending.catch === "function") {
+      pending.catch(function (err) {
+        if (err && err.name === "AbortError") return;
+        if (err && err.name === "NotAllowedError") {
+          player.paused = true;
+          setGate(true);
+          paintPlayButton();
+        }
+      });
+    }
+  }
+
+  function nudgeFirstFrame(video) {
+    if (!video || !player.wantsFlushFrame) return;
+    if (video.readyState < 2) return;
+    if (video.currentTime >= 0.05) {
+      revealActiveFrame();
+      return;
+    }
+    if (!video.paused || video.seeking) return;
+    if (Math.abs(video.currentTime - 0.001) < 0.0001) {
+      revealActiveFrame();
+      return;
+    }
+    try {
+      video.currentTime = 0.001;
+    } catch (err) {
+      revealActiveFrame();
+    }
+  }
+
+  function armFlushFrame(video) {
+    stopFlushWatch();
+    var token = player.flushToken;
+    var started = Date.now();
+    player.wantsFlushFrame = true;
+    video.classList.remove("is-frame-ready");
+    if (typeof video.requestVideoFrameCallback === "function") {
+      var onPresented = function () {
+        if (token !== player.flushToken || !player.wantsFlushFrame) return;
+        if (video.readyState < 2 || !video.videoWidth) {
+          try { video.requestVideoFrameCallback(onPresented); } catch (err) { /* keep waiting */ }
+          return;
+        }
+        revealActiveFrame();
+      };
+      try { video.requestVideoFrameCallback(onPresented); } catch (err) { /* frame callback is optional */ }
+    }
+    function poll() {
+      if (token !== player.flushToken || !player.wantsFlushFrame) return;
+      if (video.readyState >= 2 && !video.paused && video.videoWidth) {
+        revealActiveFrame();
+        return;
+      }
+      if (video.readyState >= 2 && video.paused && !video.seeking && video.videoWidth) nudgeFirstFrame(video);
+      if (token !== player.flushToken || !player.wantsFlushFrame) return;
+      if (video.error || (Date.now() - started) > 8000) {
+        revealActiveFrame();
+        return;
+      }
+      player.flushFallback = setTimeout(poll, 120);
+    }
+    player.flushFallback = setTimeout(poll, 120);
+  }
+
+  function warmCabinLead(cabinKey) {
+    var clips = clipsForCabin(cabinKey);
+    var src = clips.length ? clips[0].src : "";
+    var warm = $("relic-frame-warm");
+    if (!warm || !src) return;
+    if (warm.getAttribute("src") === src) return;
+    stripVideoChrome(warm);
+    warm.muted = true;
+    warm.defaultMuted = true;
+    warm.setAttribute("muted", "");
+    warm.removeAttribute("autoplay");
+    warm.autoplay = false;
+    warm.src = src;
+    try { warm.load(); } catch (err) { /* warm is best-effort */ }
+  }
+
   function assignVideoSrc(src) {
     var video = activeVideo();
     if (!video) return;
     var safe = src || "about:blank";
     if (safe !== "about:blank" && isBlockedMediaUrl(safe)) safe = "about:blank";
-    video.autoplay = safe !== "about:blank";
-    video.loop = safe !== "about:blank";
-    video.playsInline = true;
-    video.setAttribute("playsinline", "");
-    video.setAttribute("autoplay", "");
-    video.setAttribute("loop", "");
+    stripVideoChrome(video);
+    var playable = safe !== "about:blank";
+    video.autoplay = playable;
+    video.loop = playable;
+    if (playable) {
+      video.setAttribute("autoplay", "");
+      video.setAttribute("loop", "");
+      armFlushFrame(video);
+    } else {
+      video.removeAttribute("autoplay");
+      video.removeAttribute("loop");
+      video.classList.remove("is-frame-ready");
+      stopFlushWatch();
+      var root = $("relic-player");
+      if (root) root.classList.remove("is-awaiting-frame");
+    }
     setMediaNote(false);
     if (video.getAttribute("src") !== safe) {
       video.src = safe;
       try { video.load(); } catch (err) { /* about:blank is not a media file */ }
+    } else if (playable && video.readyState >= 2) {
+      nudgeFirstFrame(video);
     }
   }
 
@@ -735,9 +896,15 @@
     player.empty = true;
     player.armed = false;
     player.paused = true;
+    player.awaitingReveal = false;
     stopCountdown();
     player.remaining = SET_DURATION_SEC;
     paintTimer();
+    var root = $("relic-player");
+    if (root) {
+      root.classList.remove("is-awaiting-frame");
+      if (!root.hidden) root.setAttribute("aria-hidden", "false");
+    }
     assignVideoSrc("about:blank");
     setEmptyOverlay(true);
     setGate(false);
@@ -770,11 +937,14 @@
         paintPlayButton();
       }).catch(function (err) {
         if (player.playToken !== token) return;
+        /* A seek that paints frame 0 aborts the first play(); start it again from seeked. */
+        if (err && err.name === "AbortError") return;
         /* A missing file must not freeze the 20-minute set. Only an autoplay block waits for a tap. */
         var blocked = err && err.name === "NotAllowedError";
         player.paused = !!blocked;
         setGate(!!blocked);
         paintPlayButton();
+        if (blocked) nudgeFirstFrame(activeVideo());
       });
     }
   }
@@ -859,6 +1029,8 @@
 
   function closePlayer() {
     stopHudTimer();
+    stopFlushWatch();
+    player.awaitingReveal = false;
     setTimerModsOpen(false);
     stopCountdown();
     setTimerModsOpen(false);
@@ -872,6 +1044,8 @@
     try {
       var video = activeVideo();
       video.pause();
+      video.classList.remove("is-frame-ready");
+      video.removeAttribute("poster");
       video.removeAttribute("src");
       video.load();
     } catch (err) { /* closed */ }
@@ -879,6 +1053,7 @@
     setGate(false);
     var root = $("relic-player");
     if (root) {
+      root.classList.remove("is-awaiting-frame");
       root.hidden = true;
       root.setAttribute("aria-hidden", "true");
     }
@@ -897,25 +1072,11 @@
     player.cabin = cabinKey;
     player.phase = phase || "Base";
     player.index = 0;
-    player.clips = [];
-    var archive = (window.RELIC_VIDEO_ARCHIVE && window.RELIC_VIDEO_ARCHIVE.cabins) || {};
-    var cabin = archive[cabinKey];
-    var raw = (cabin && cabin.playlist) || [];
-    raw.forEach(function (clip) {
-      if (!clip) return;
-      var src = resolveClipSrc(cabinKey, clip);
-      if (!src || isBlockedMediaUrl(src)) return;
-      player.clips.push({
-        title: clip.title || filenameFromTitle(clip.title) || "Clip",
-        src: src
-      });
-    });
+    player.clips = clipsForCabin(cabinKey);
+    warmCabinLead(cabinKey);
 
     var root = $("relic-player");
-    root.hidden = false;
-    root.setAttribute("aria-hidden", "false");
-    document.body.classList.add("player-open");
-    showPlayerHud();
+    var wasHidden = !root || root.hidden;
     if (!player.historyPushed) {
       try {
         history.pushState({ relicPlayer: 1 }, "");
@@ -924,10 +1085,29 @@
     }
 
     if (!player.clips.length) {
+      player.awaitingReveal = false;
+      if (root) {
+        root.classList.remove("is-awaiting-frame");
+        root.hidden = false;
+        root.setAttribute("aria-hidden", "false");
+      }
+      document.body.classList.add("player-open");
+      showPlayerHud();
       showEmptyFrame();
       $("relic-player-close").focus();
       return;
     }
+
+    player.awaitingReveal = !!wasHidden;
+    if (root) {
+      if (wasHidden) {
+        root.classList.add("is-awaiting-frame");
+        root.setAttribute("aria-hidden", "true");
+      }
+      root.hidden = false;
+    }
+    document.body.classList.add("player-open");
+    if (!player.awaitingReveal) showPlayerHud();
 
     player.empty = false;
     player.paused = false;
@@ -936,7 +1116,7 @@
     loadCurrentClip(true);
     startCountdown();
     paintPlayButton();
-    $("relic-player-close").focus();
+    if (!player.awaitingReveal) $("relic-player-close").focus();
   }
 
   function wire() {
@@ -956,6 +1136,16 @@
       var input = event.target.closest("input.tick");
       if (!input) return;
       onTick(input);
+    });
+    $("tt-body").addEventListener("pointerover", function (event) {
+      var link = event.target.closest("a.cite-link");
+      if (!link) return;
+      warmCabinLead(link.getAttribute("data-cabin"));
+    });
+    $("tt-body").addEventListener("pointerdown", function (event) {
+      var link = event.target.closest("a.cite-link");
+      if (!link) return;
+      warmCabinLead(link.getAttribute("data-cabin"));
     });
     $("tt-body").addEventListener("click", function (event) {
       var link = event.target.closest("a.cite-link");
@@ -1011,9 +1201,24 @@
       var src = activeVideo().getAttribute("src") || "";
       if (!src || src === "about:blank") return;
       setMediaNote(true);
+      revealActiveFrame();
     });
     activeVideo().addEventListener("loadeddata", function () {
       setMediaNote(false);
+      nudgeFirstFrame(activeVideo());
+    });
+    activeVideo().addEventListener("playing", function () {
+      var video = activeVideo();
+      if (!video || !player.wantsFlushFrame || !video.videoWidth) return;
+      revealActiveFrame();
+    });
+    activeVideo().addEventListener("seeked", function () {
+      var video = activeVideo();
+      if (!video || !player.wantsFlushFrame) return;
+      if (video.currentTime < 0.0005) return;
+      var resume = !player.paused && !player.empty && video.paused;
+      revealActiveFrame();
+      if (resume) resumeIfNudged(video);
     });
 
     document.addEventListener("keydown", function (event) {
