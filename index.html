@@ -6,9 +6,9 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v14" />
+  <meta name="relic-build" content="v15" />
   <title>NiX Training Schedules</title>
-  <link rel="stylesheet" href="styles.css?v=v14" />
+  <link rel="stylesheet" href="styles.css?v=v15" />
 </head>
 <body>
   <div class="wrap">
@@ -123,16 +123,38 @@
     <nav class="nav-drawer-nav" aria-label="Primary">
       <section class="nav-section" aria-labelledby="nav-trainer-label">
         <h3 id="nav-trainer-label" class="nav-kicker">Trainer Schedules</h3>
-        <div class="nav-mode" role="group" aria-label="Upper Body and Full Body Trainer Schedules">
-          <button type="button" class="mode-btn nav-mode-opt" data-set-mode="full" aria-pressed="true">Full Body Trainer Schedules</button>
-          <button type="button" class="mode-btn nav-mode-opt" data-set-mode="upper" aria-pressed="false">Upper Body Trainer Schedules</button>
+        <div class="nav-rows" role="group" aria-label="Upper Body and Full Body Trainer Schedules">
+          <button type="button" class="nav-row" data-set-mode="full" aria-pressed="true">
+            <span class="nav-row-label">Full Body</span>
+            <span class="nav-row-tag">FULL</span>
+          </button>
+          <button type="button" class="nav-row" data-set-mode="upper" aria-pressed="false">
+            <span class="nav-row-label">Upper Body</span>
+            <span class="nav-row-tag">UPPER</span>
+          </button>
+        </div>
+      </section>
+      <section class="nav-section" aria-labelledby="nav-hub-label">
+        <h3 id="nav-hub-label" class="nav-kicker">Ambient Hub</h3>
+        <div class="nav-rows" role="group" aria-label="Ambient Hub branch">
+          <button type="button" class="nav-row" data-set-branch="bridge" aria-pressed="false">
+            <span class="nav-row-label">Q4 2026 Pre-Recondition</span>
+            <span class="nav-row-tag">BRIDGE</span>
+          </button>
+          <button type="button" class="nav-row" data-set-branch="year" aria-pressed="true">
+            <span class="nav-row-label">2027 Year</span>
+            <span class="nav-row-tag">YEAR</span>
+          </button>
         </div>
       </section>
       <section class="nav-section" aria-labelledby="nav-food-label">
-        <h3 id="nav-food-label" class="nav-kicker">Food and Prep Schedules</h3>
-        <p class="nav-placeholder">Monthly Foods</p>
-        <p class="nav-placeholder">Meal Recipe Cards</p>
-        <p class="nav-placeholder">Smoothie Recipe Cards</p>
+        <h3 id="nav-food-label" class="nav-kicker">Food and Prep</h3>
+        <div class="nav-rows">
+          <p class="nav-row is-static"><span class="nav-row-label">Food and Prep Schedules</span></p>
+          <p class="nav-row is-static"><span class="nav-row-label">Monthly Foods</span></p>
+          <p class="nav-row is-static"><span class="nav-row-label">Meal Recipe Cards</span></p>
+          <p class="nav-row is-static"><span class="nav-row-label">Smoothie Recipe Cards</span></p>
+        </div>
       </section>
     </nav>
   </aside>
@@ -174,16 +196,47 @@
           <button type="button" id="btn-next-clip" class="player-ctrl" aria-label="Next clip">›</button>
         </div>
       </div>
+      <button type="button" class="forensic-tab" id="forensic-tab" aria-expanded="false" aria-controls="forensic-panel">CUE</button>
+      <div class="forensic-panel" id="forensic-panel" hidden>
+        <dl>
+          <dt>date_key</dt>
+          <dd id="forensic-date-key">—</dd>
+          <dt>tier</dt>
+          <dd id="forensic-tier">—</dd>
+          <dt>branch</dt>
+          <dd id="forensic-branch">—</dd>
+          <dt>viewYear</dt>
+          <dd id="forensic-year">—</dd>
+          <dt>canTick</dt>
+          <dd id="forensic-cantick">—</dd>
+          <dt>cabin</dt>
+          <dd id="forensic-cabin">—</dd>
+          <dt>sets</dt>
+          <dd id="forensic-sets">—</dd>
+          <dt>reps</dt>
+          <dd id="forensic-reps">—</dd>
+          <dt>hold</dt>
+          <dd id="forensic-hold">—</dd>
+          <dt>rest</dt>
+          <dd id="forensic-rest">—</dd>
+          <dt>safety</dt>
+          <dd id="forensic-safety">—</dd>
+          <dt>note</dt>
+          <dd id="forensic-note">—</dd>
+        </dl>
+      </div>
       <p id="relic-empty-overlay" class="empty-overlay" hidden>No video file IDs mapped for this cabin.</p>
       <button type="button" id="relic-start-gate" class="start-gate" hidden>TAP TO START · 20 MIN SET</button>
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v14"></script>
-  <script src="data/upperBody.js?v=v14"></script>
-  <script src="data/citations.js?v=v14"></script>
-  <script src="data/videoArchive.js?v=v14"></script>
-  <script src="data/supabaseConfig.js?v=v14"></script>
-  <script src="app.js?v=v14"></script>
+  <script src="data/schedule.js?v=v15"></script>
+  <script src="data/precondition.js?v=v15"></script>
+  <script src="data/upperBody.js?v=v15"></script>
+  <script src="data/citations.js?v=v15"></script>
+  <script src="data/forensic.js?v=v15"></script>
+  <script src="data/videoArchive.js?v=v15"></script>
+  <script src="data/supabaseConfig.js?v=v15"></script>
+  <script src="app.js?v=v15"></script>
 </body>
 </html>

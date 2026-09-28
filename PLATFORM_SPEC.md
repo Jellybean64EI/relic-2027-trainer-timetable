@@ -5,7 +5,7 @@
 **Coach archive:** NiX  
 **Timezone:** Europe/London (always)  
 **Runtime:** static HTML / CSS / JS. No build step. No npm.  
-**Cache bust:** `?v=v14` on every stylesheet and script in `index.html`
+**Cache bust:** `?v=v15` on every stylesheet and script in `index.html`
 
 Footer motto (exact):
 
@@ -92,15 +92,31 @@ A cabin with one trainer document (Eyes: `1. Eye_Sequence_Trainer.docx`) uses th
 | Live start | `2027-01-01`. Before that date the UI is **PREVIEW** |
 | Week of month | Days **1–7 = W1**, **8–14 = W2**, **15–21 = W3**, **22–end = W4** |
 | Row order | Sort the visible week by `dateKey`. Never by weekday name |
-| Sunday | Present in `schedule.js`. Omitted from the main Mon–Sat list |
+| Sunday | Present in `schedule.js` and in `data/precondition.js`. Omitted from the main Mon–Sat list |
 | Deload | Removed in v2_13. No `#deload-hint`, no Week 4 deload copy, no amber deload warning. Week chips still read `WEEK 4` |
 | Auto-advance | When the London date changes, the UI snaps to that month and week unless the user picked a month |
 | Coach override | `?date=YYYY-MM-DD` forces London “today” |
 
-**PREVIEW** (before 1 Jan 2027): January Week 1 by default. Practice ticks allowed.  
+**PREVIEW** (before 1 Oct 2026): January Week 1 of the 2027 year timetable by default. Practice ticks allowed on every shown day.  
+**Q4 2026** (1 Oct 2026 through 31 Dec 2026): a 2026 day ticks only on or before London today. Later 2026 days are locked. Every 2027 day is locked.  
 **LIVE** (from 1 Jan 2027): future days cannot be ticked. Past days and today can. All 12 months stay viewable.
 
-Full Body rotations live only in `data/schedule.js` (`MONTH_ROTATIONS`). The UI must not invent Full Body pairs. Upper Body rotations live only in `data/upperBody.js` (`RELIC_UPPER_BODY.MONTH_ROTATIONS`) and must not replace the Full Body table.
+### Branch (v15)
+
+`state.viewYear` is `2026` or `2027`. `state.branch` is `bridge` when the view year is 2026 and `year` when it is 2027.
+
+| Branch | View | Months |
+|--------|------|--------|
+| `bridge` | Q4 2026 Pre-Recondition | October, November, December 2026 |
+| `year` | 2027 timetable | January–December 2027 |
+
+Ambient Hub in the drawer switches the branch: it clears the client month-row cache, sets `viewYear` / `branch`, and calls `render()`. The month-row cache key is `{year}:{mode}:{month}` (example `2026:full:10`), so a 2026 bridge month never reuses a 2027 row. Completion rows stay on the existing `date_key` strings. There is no schema change.
+
+Full Body bridge days are read from `data/precondition.js` (`window.RELIC_PRECONDITION`). That file owns October, November, and December 2026 only. Week buckets stay 1–7, 8–14, 15–21, and 22–end. Sunday is in the month build and stays off the active list. Pairings omit Hanging and Target_Weights. Citations use `1. {CabinKey}_Trainer_Base`. `MONTH_ROTATIONS` in `data/schedule.js` is the 2027 Full Body lock and is not the bridge source.
+
+`paintYear()` follows `state.viewYear`. The 2026 shield lights only when all three bridge months are dual-complete (every required Mon–Sat day at tier 3). The 2027 shield still lights only when all 12 months are dual-complete. The badge label is the view year.
+
+2027 Full Body rotations live only in `data/schedule.js` (`MONTH_ROTATIONS`). The UI must not invent those pairs. Upper Body rotations live only in `data/upperBody.js` (`RELIC_UPPER_BODY.MONTH_ROTATIONS`) and must not replace the Full Body table. On the bridge, Upper Body still uses that file.
 
 ---
 
@@ -123,7 +139,9 @@ Element:
 - **v14 set credit.** That same `00:00` marks the opened citation’s trainer video complete for its day. Slot 0 (first scheduled citation) sets tier bit `1`. Slot 1 (second/final citation) sets tier bit `2`. A later clip in the same cabin does not add another tier. Skipping with Next does not credit a video.
 - Empty playlist: set the frame to `about:blank` and show `No video file IDs mapped for this cabin.`
 - **v2_13 header.** The card title is `NiX Training Schedules`. `JOSEPH · LONDON`, the preview/live status (`#meta-mode`), and today’s London date sit in the top-right corner. A sync dot (`#sync-dot`) shows a loading ring while a `relic_completions` GET or upsert is in flight, then a steady gold dot. Errors still use `#sync-status`. Month/week (`#identity-line`) and foundation (`#month-blurb`) stack in gold directly above the Q1–Q4 phase bar. The preview practice-ticks banner and the deload hint are gone.
-- **v2_14 menu.** A 44px hamburger sits at the top-left of the header, beside `NiX Training Schedules`. Closed, its three bars are horizontal. Open, that bar group rotates 90° with a CSS transition. A left drawer (`50vw`) slides over a scrim so the timetable stays partly visible. Tap the scrim, the hamburger, or Escape to close. The drawer title is `NiX Training Schedules`. Full Body and Upper Body buttons in the drawer call `setScheduleMode`, the same setter as `#btn-schedule-mode` under the timetable. Food and Prep Schedules, Monthly Foods, Meal Recipe Cards, and Smoothie Recipe Cards are labels only.
+- **v2_14 menu.** A 44px hamburger sits at the top-left of the header, beside `NiX Training Schedules`. Closed, its three bars are horizontal. Open, that bar group rotates 90° with a CSS transition. A left drawer (`50vw`) slides over a scrim so the timetable stays partly visible. Tap the scrim, the hamburger, or Escape to close. The drawer title is `NiX Training Schedules`.
+- **v15 drawer rows.** Full Body and Upper Body are modular rows (at least 44px, hairline dividers, left label, right tag). The active row carries a 2px `#ff8c00` rail. Both call `setScheduleMode`, the same setter as `#btn-schedule-mode` under the timetable. Ambient Hub rows switch `bridge` (Q4 2026 Pre-Recondition) and `year` (2027 Year). Food and Prep Schedules, Monthly Foods, Meal Recipe Cards, and Smoothie Recipe Cards stay static labels.
+- **v15 forensic cue.** Inside `.player-stage`, a `CUE` tab (`.forensic-tab`) sits on the right edge, sibling to `#relic-player-hud`. Opening it drops `.forensic-panel` downward to at most `40vh` with internal scroll. That toggle does not touch `player.timerId`, does not stop or restart autoplay, and does not reload `<video id="relic-active-video">`. `isHudChromeTarget()` includes `.forensic-tab` and `.forensic-panel`. Those elements `stopPropagation` so they do not toggle the 2000ms HUD. On the bridge the panel reads `data/forensic.js` (`RELIC_FORENSIC.read("bridge", cabinKey)`) for sets, reps, hold, rest, and the shared Q4 safety rules: left-lead lowerings, nasal breathing, stop-at-shake, no hanging, no failure, no added load.
 - **v2_12 rapid HUD.** No tempo prompt bar. The video stage fills the viewport. Close, the gold timer badge (with Duration / Add More Time), the exercise title, and the centered white Prev / Play / Next dock are one HUD. Inactivity of exactly 2000ms fades that chrome out together via CSS opacity and visibility. A tap on the empty stage or the video toggles the group: hidden shows it at once and starts a fresh 2000ms timer; visible hides it at once. Taps on Prev, Play, Next, close, and the timer badge menus still run those controls and do not toggle the HUD away. The countdown, `autoplay` / `loop` / `playsinline`, and `playNextVideo()` at `00:00` keep running while the HUD is hidden.
 - **v2_11 flush open.** No `poster` attribute and no native play-button chrome. The stage and video paint transparent, so a gray or black slab cannot flash behind the frame. `preload="auto"`. A citation tap calls `play()` immediately. If `loadeddata` still leaves an unpainted `currentTime` of 0, the player nudges it to `0.001` so the first painted frame is the media frame. The player stays invisible until that frame is ready, then appears flush. `playsinline` and `loop` stay.
 
@@ -169,7 +187,7 @@ Week buckets stay days **1–7**, **8–14**, **15–21**, and **22–end**. A w
 While a period is complete for the active mode:
 
 - That week’s chip, and a fully dual month chip, uses a rich green field, an orange `#ff8c00` double-tick shield, and the numeric tick count. The shield stays while another week is on screen. An incomplete chip hides it.
-- The year badge (`#year-badge`) uses the same green, shield, and count, and stays hidden until all 12 months are dual-complete.
+- The year badge (`#year-badge`) uses the same green, shield, and count. On the 2027 branch it stays hidden until all 12 months are dual-complete. On the 2026 bridge it stays hidden until October, November, and December are each dual-complete. The label is `state.viewYear`.
 - Day cells show a compact empty box, a single-tick shield, or a double-tick shield. They do not turn into a large gold checkbox.
 
 Evaluate on each timetable render and whenever a completion is upserted. Do not store the badge in `localStorage`. Week chips, the identity line, and week meta name Week 4 as `WEEK 4`. There is no deload hint.
@@ -178,7 +196,7 @@ Evaluate on each timetable render and whenever a completion is upserted. Do not 
 
 ## 7. Cache
 
-`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v14`. The `relic-build` meta is `v14`.
+`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v15`. The `relic-build` meta is `v15`. The in-memory month-row cache key is `{year}:{mode}:{month}`.
 
 ---
 
@@ -190,9 +208,11 @@ styles.css              — S24 Ultra timetable + player + mode button + drawer
 app.js                  — calendar, Supabase ticks, HTML5 player, one schedule-mode setter
 PLATFORM_SPEC.md        — this law
 vercel.json             — no-cache headers
-data/schedule.js        — Full Body NiX month rotations (do not invent pairs)
+data/schedule.js        — 2027 Full Body NiX month rotations (MONTH_ROTATIONS; do not invent pairs)
+data/precondition.js    — Q4 2026 Full Body bridge pairings (RELIC_PRECONDITION)
 data/upperBody.js       — Upper Body rotations (does not edit MONTH_ROTATIONS)
 data/citations.js       — document links, including Face / Eyes / Tongue / Jaw
+data/forensic.js        — Q4 bridge sets, reps, hold, rest, and shared safety rules
 data/videoArchive.js    — cabin playlists (Drive id is not playback)
 data/supabaseConfig.js  — url, anonKey, bucket
 ```
@@ -204,7 +224,8 @@ data/supabaseConfig.js  — url, anonKey, bucket
 ```
 index.html?date=2027-01-01   → January Week 1, BASE, Fri 1 then Sat 2 then Mon 4
 index.html?date=2027-04-15   → April Week 3, HARD
-index.html?date=2026-09-25   → PREVIEW, January Week 1, practice ticks allowed
+index.html?date=2026-09-25   → PREVIEW, 2027 January Week 1, practice ticks allowed
+index.html?date=2026-10-15   → 2027 year view, every 2027 day LOCKED. Ambient Hub → Q4 2026 shows October; days after the 15th LOCKED
 ```
 
 ---
@@ -215,10 +236,10 @@ index.html?date=2026-09-25   → PREVIEW, January Week 1, practice ticks allowed
 2. Clips stream from Supabase public URLs. The set timer calls `playNextVideo()` at `00:00`. Duration overwrites remaining time and `SET_DURATION_SEC`. Add More Time only stacks onto remaining time. The next clip starts at the locked `SET_DURATION_SEC`.
 3. The table is exactly DAY / TRAINING RELICS / DONE at 20% / 70% / 10%.
 4. Ticks upsert `relic_completions`.
-5. `vercel.json` no-cache plus `?v=v14` on assets. The `relic-build` meta is `v14`. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome immediately. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph.
+5. `vercel.json` no-cache plus `?v=v15` on assets. The `relic-build` meta is `v15`. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome immediately. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph. The forensic CUE tab does not reset that timer or reload the video.
 6. `schedule.js` `MONTH_ROTATIONS` stays the Full Body lock. Upper Body data is additive.
 7. A week whose Mon–Sat days are all dual-complete for the active mode keeps a rich green chip, an orange `#ff8c00` double-tick shield, and the numeric tick count while any week is on screen. Day DONE cells use a compact box or a single/double shield, with a 44px hit target. Month chips and `#year-badge` use the same score and light up only at 100%. Week 4 labels read `WEEK 4`. The deload hint does not render.
-8. The toggle immediately under the timetable swaps Full Body and Upper Body without a reload. The drawer’s trainer buttons call the same `setScheduleMode`. The motto and metadata stay under that toggle. Each mode shows only its own ticks and shield badges.
+8. The toggle immediately under the timetable swaps Full Body and Upper Body without a reload. The drawer’s Full Body and Upper Body rows call the same `setScheduleMode`. Ambient Hub switches the 2026 bridge and the 2027 year. The motto and metadata stay under that toggle. Each mode shows only its own ticks and shield badges.
 
 ---
 
@@ -232,7 +253,7 @@ Same shell as Full Body: fixed 3-column table (DAY 20% / TRAINING RELICS 70% / D
 
 The header line `#schedule-mode` sits under the title `NiX Training Schedules` and names the mode on screen: `Full Body Trainer Schedules` or `Upper Body Trainer Schedules`.
 
-`#btn-schedule-mode` stays immediately under the timetable matrix. Its label names the other mode (`Upper Body Trainer Schedules` or `Full Body Trainer Schedules`). The drawer mirrors that choice with one button per mode. Both call `setScheduleMode`, which writes `state.mode` and calls `render()`. No `location` reload. The choice is in-memory. `?mode=upper` or `?mode=full` sets only the first paint. There is no Jump to Today button.
+`#btn-schedule-mode` stays immediately under the timetable matrix. Its label names the other mode (`Upper Body Trainer Schedules` or `Full Body Trainer Schedules`). The drawer mirrors that choice with one row per mode. Both call `setScheduleMode`, which writes `state.mode` and calls `render()`. No `location` reload. The choice is in-memory. `?mode=upper` or `?mode=full` sets only the first paint. There is no Jump to Today button.
 
 The footer sits under that toggle, at the bottom of the card. The motto is exactly `PIECE BY PIECE, I TAKE MY LIFE BACK.` in larger gold type (`1.15rem`, weight 900), followed by the owner line and the storage line.
 
