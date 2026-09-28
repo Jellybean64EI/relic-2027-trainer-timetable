@@ -12,7 +12,7 @@
   var TZ = "Europe/London";
   var SET_DURATION_SEC = 1200;
   var SET_MODIFIER_MINUTES = [2, 5, 10, 20];
-  var HUD_IDLE_MS = 5000;
+  var HUD_IDLE_MS = 2000;
   var EMPTY_MSG = "No video file IDs mapped for this cabin.";
 
   var MODE_LABEL = {
@@ -46,6 +46,7 @@
     empty: false,
     historyPushed: false,
     hudTimer: null,
+    swallowChromeClick: false,
     flushToken: 0,
     flushFallback: null,
     wantsFlushFrame: false,
@@ -610,6 +611,23 @@
     return root ? root.querySelector(".player-stage") : null;
   }
 
+  function hudIsHidden() {
+    var stage = playerStage();
+    return !!(stage && stage.classList.contains("is-hud-idle"));
+  }
+
+  function eventElement(event) {
+    var node = event && event.target;
+    if (!node) return null;
+    if (node.nodeType === 1) return node;
+    return node.parentElement || null;
+  }
+
+  function isHudChromeTarget(node) {
+    if (!node || !node.closest) return false;
+    return !!node.closest(".player-close, .player-controls, .timer-dock, .start-gate");
+  }
+
   function showPlayerHud() {
     var root = $("relic-player");
     if (!root || root.hidden) return;
@@ -624,11 +642,14 @@
       hud.classList.remove("is-hud-instant");
     }
     if (player.hudTimer) clearTimeout(player.hudTimer);
-    player.hudTimer = setTimeout(hidePlayerHud, HUD_IDLE_MS);
+    player.hudTimer = setTimeout(function () { hidePlayerHud(false); }, HUD_IDLE_MS);
   }
 
-  function hidePlayerHud() {
-    player.hudTimer = null;
+  function hidePlayerHud(instant) {
+    if (player.hudTimer) {
+      clearTimeout(player.hudTimer);
+      player.hudTimer = null;
+    }
     var root = $("relic-player");
     if (!root || root.hidden) return;
     var stage = playerStage();
@@ -639,17 +660,46 @@
         try { video.focus({ preventScroll: true }); } catch (err) { /* viewport focus is optional */ }
       }
     }
+    if (instant && hud) hud.classList.add("is-hud-instant");
     if (stage) stage.classList.add("is-hud-idle");
     if (hud) {
       hud.inert = true;
       hud.setAttribute("aria-hidden", "true");
+      if (instant) {
+        void hud.offsetWidth;
+        hud.classList.remove("is-hud-instant");
+      }
     }
     setTimeout(function () {
       var live = $("relic-player");
       var current = playerStage();
       if (!live || live.hidden) return;
       if (current && current.classList.contains("is-hud-idle")) setTimerModsOpen(false);
-    }, 420);
+    }, instant ? 0 : 420);
+  }
+
+  function onStageHudPointerDown(event) {
+    if (!event || event.button > 0) return;
+    var node = eventElement(event);
+    if (isHudChromeTarget(node)) {
+      showPlayerHud();
+      return;
+    }
+    if (hudIsHidden()) {
+      showPlayerHud();
+      player.swallowChromeClick = true;
+      setTimeout(function () { player.swallowChromeClick = false; }, 450);
+      return;
+    }
+    hidePlayerHud(true);
+  }
+
+  function onStageHudClickCapture(event) {
+    if (!player.swallowChromeClick) return;
+    player.swallowChromeClick = false;
+    if (!isHudChromeTarget(eventElement(event))) return;
+    event.preventDefault();
+    event.stopPropagation();
   }
 
   function stopHudTimer() {
@@ -1159,9 +1209,8 @@
     $("relic-start-gate").addEventListener("click", togglePlayPause);
     var stage = playerStage();
     if (stage) {
-      stage.addEventListener("pointerdown", function () {
-        showPlayerHud();
-      });
+      stage.addEventListener("pointerdown", onStageHudPointerDown);
+      stage.addEventListener("click", onStageHudClickCapture, true);
     }
     $("btn-prev-clip").addEventListener("click", playPreviousVideo);
     $("btn-next-clip").addEventListener("click", playNextVideo);
