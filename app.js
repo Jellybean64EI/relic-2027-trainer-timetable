@@ -704,12 +704,132 @@
     );
   }
 
+  var FOOD_STORE_KEY = "relic_food_shop_v19";
+
+  function foodMonthKey(year, month) {
+    var m = +month;
+    return (+year) + "-" + (m < 10 ? "0" : "") + m;
+  }
+
+  function readFoodStore() {
+    try {
+      var raw = localStorage.getItem(FOOD_STORE_KEY);
+      var parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function writeFoodStore(store) {
+    try { localStorage.setItem(FOOD_STORE_KEY, JSON.stringify(store)); } catch (err) { /* private mode */ }
+  }
+
+  function suggestedDraft() {
+    var api = foodShop();
+    var list = api && api.shoppingListFor(state.viewYear, state.viewMonth);
+    return {
+      items: (list && list.items ? list.items : []).map(function (item) {
+        return { skuId: item.skuId, qty: item.qty, ticked: true };
+      }),
+      locked: false,
+      lockedAt: "",
+      plan: null
+    };
+  }
+
+  function draftFor(year, month, create) {
+    var store = readFoodStore();
+    var key = foodMonthKey(year, month);
+    if (!store[key] && create) {
+      store[key] = suggestedDraft();
+      writeFoodStore(store);
+    }
+    return store[key] || null;
+  }
+
+  function saveDraft(draft) {
+    var store = readFoodStore();
+    store[foodMonthKey(state.viewYear, state.viewMonth)] = draft;
+    writeFoodStore(store);
+  }
+
+  function tickedSkuIds(draft) {
+    var ids = [];
+    (draft.items || []).forEach(function (item) {
+      if (item.ticked && item.qty > 0 && ids.indexOf(item.skuId) === -1) ids.push(item.skuId);
+    });
+    return ids;
+  }
+
+  function lockShopMonth() {
+    var api = foodSchedule();
+    if (!api || !api.composeFromBasket) return;
+    var draft = draftFor(state.viewYear, state.viewMonth, true);
+    var plan = {};
+    trainingDaysForMonth(state.viewMonth, state.viewYear).forEach(function (day) {
+      plan[day.dateKey] = api.composeFromBasket(day, tickedSkuIds(draft));
+    });
+    draft.locked = true;
+    draft.lockedAt = new Date().toISOString();
+    draft.plan = plan;
+    saveDraft(draft);
+    render();
+  }
+
+  function unlockShopMonth() {
+    var draft = draftFor(state.viewYear, state.viewMonth, true);
+    draft.locked = false;
+    draft.plan = null;
+    saveDraft(draft);
+    render();
+  }
+
+  function onShopAction(btn) {
+    var action = btn.getAttribute("data-shop-action");
+    if (action === "lock") {
+      lockShopMonth();
+      return;
+    }
+    if (action === "unlock") {
+      unlockShopMonth();
+      return;
+    }
+    var draft = draftFor(state.viewYear, state.viewMonth, true);
+    if (draft.locked) return;
+    if (action === "add") {
+      var select = $("shop-add-sku");
+      var skuId = select ? select.value : "";
+      if (!skuId) return;
+      var found = false;
+      draft.items.forEach(function (item) {
+        if (item.skuId === skuId) {
+          item.qty += 1;
+          item.ticked = true;
+          found = true;
+        }
+      });
+      if (!found) draft.items.push({ skuId: skuId, qty: 1, ticked: true });
+    } else {
+      var index = +btn.getAttribute("data-shop-index");
+      var item = draft.items[index];
+      if (!item) return;
+      if (action === "tick") item.ticked = !item.ticked;
+      if (action === "qty") item.qty = Math.max(1, item.qty + (+btn.getAttribute("data-shop-delta") || 0));
+      if (action === "remove") draft.items.splice(index, 1);
+    }
+    saveDraft(draft);
+    render();
+  }
+
   function paintFuelWeek() {
     var api = foodSchedule();
     var days = activeDaysForView();
     var html = "";
+    var draft = draftFor(state.viewYear, state.viewMonth, false);
+    var lockedPlan = draft && draft.locked && draft.plan;
     days.forEach(function (day) {
-      var cue = api.cueForDay(day);
+      var cue = lockedPlan && lockedPlan[day.dateKey] ? lockedPlan[day.dateKey] : api.cueForDay(day);
       var cabins = (cue.cabins || []).join(" · ");
       var portions = cue.portions || {};
       var plate = (portions.proteinG ? portions.proteinG + " g " + portions.proteinName : portions.proteinName) +
@@ -738,7 +858,9 @@
     if (body) body.innerHTML = html;
     var sunday = $("fuel-sunday");
     if (sunday) {
-      sunday.textContent = "Sunday stays off this list. The date opens that day’s meal card. Cabin names are read-only.";
+      sunday.textContent = lockedPlan
+        ? "Locked prep plan. Sunday stays off this list. Cabin names are read-only."
+        : "Suggested rotation until you lock the Sainsbury’s list. Sunday stays off this list. Cabin names are read-only.";
     }
   }
 
@@ -747,12 +869,22 @@
     var api = foodShop();
     if (!host || !api) return;
     var tier = api.tierFor(state.viewYear, state.viewMonth);
-    var list = api.shoppingListFor(state.viewYear, state.viewMonth);
+    var draft = draftFor(state.viewYear, state.viewMonth, true);
+    var stretch = tier.stretchPence || tier.budgetPence;
+    var total = 0;
+    (draft.items || []).forEach(function (item) {
+      var entry = api.skus[item.skuId];
+      if (item.ticked && entry) total += entry.pricePence * item.qty;
+    });
+    var capNote = total <= tier.budgetPence
+      ? "Inside " + tier.budgetLabel
+      : (total <= stretch ? "Soft stretch to " + (tier.stretchLabel || api.formatGbp(stretch)) : "Over the stretch cap");
     var html = '<section class="fuel-tier" data-tier="' + tier.id + '">' +
       '<p class="fuel-tier-label">TIER ' + tier.id + " · " + escapeHtml(tier.budgetLabel) + "/MONTH</p>" +
       '<p class="fuel-tier-range">' + escapeHtml(tier.rangeLabel) + " · " + escapeHtml(tier.stores.join(" / ")) + "</p>" +
-      (list ? '<p class="fuel-tier-basket">Basket ' + api.formatGbp(list.totalPence) + " of " +
-        escapeHtml(tier.budgetLabel) + " · " + api.formatGbp(list.headroomPence) + " headroom</p>" : "") +
+      '<p class="fuel-tier-basket">Ticked ' + api.formatGbp(total) + " · " + escapeHtml(capNote) +
+        (tier.stretchLabel ? " · stretch " + escapeHtml(tier.stretchLabel) : "") + "</p>" +
+      '<p class="fuel-basket-note">' + (draft.locked ? "Locked. The weekly schedule is this month’s prep plan." : "Suggested list. Lock it to fill the weekly schedule.") + "</p>" +
       "</section>";
     html += '<ol class="food-laws">';
     api.laws.forEach(function (law) { html += "<li>" + escapeHtml(law) + "</li>"; });
@@ -769,18 +901,36 @@
     html += '</ul><h3 class="food-subhead">On the Sainsbury’s shelf</h3><ul class="food-plain">';
     api.citations.forEach(function (item) { html += "<li>" + escapeHtml(item) + "</li>"; });
     html += "</ul>";
-    if (list) {
-      html += '<h3 class="food-subhead">This month’s basket</h3><p class="fuel-basket-note">' +
-        escapeHtml(list.vegNote || "") + '</p><ul class="fuel-basket-list">';
-      list.items.forEach(function (item) {
-        var entry = api.skus[item.skuId];
-        if (!entry) return;
-        html += "<li><span>" + item.qty + " × " + escapeHtml(entry.name) + "</span><span>" +
-          api.formatGbp(entry.pricePence * item.qty) + "</span></li>";
-      });
-      html += '</ul><p class="fuel-basket-total">Total ' + api.formatGbp(list.totalPence) +
-        " · Fits " + escapeHtml(list.budgetLabel) + "</p>";
-    }
+    html += '<h3 class="food-subhead">This month’s list</h3><ul class="fuel-basket-list shop-editor">';
+    (draft.items || []).forEach(function (item, index) {
+      var entry = api.skus[item.skuId];
+      if (!entry) return;
+      html += '<li class="shop-line' + (item.ticked ? " is-ticked" : "") + '">' +
+        '<button type="button" class="shop-tick" data-shop-action="tick" data-shop-index="' + index +
+          '" aria-pressed="' + (item.ticked ? "true" : "false") + '">' + (item.ticked ? "In" : "Out") + "</button>" +
+        "<span>" + escapeHtml(entry.name) + "</span>" +
+        '<span class="shop-qty">' +
+          '<button type="button" data-shop-action="qty" data-shop-index="' + index + '" data-shop-delta="-1" aria-label="Fewer">−</button>' +
+          "<strong>" + item.qty + "</strong>" +
+          '<button type="button" data-shop-action="qty" data-shop-index="' + index + '" data-shop-delta="1" aria-label="More">+</button>' +
+        "</span>" +
+        "<span>" + api.formatGbp(entry.pricePence * item.qty) + "</span>" +
+        '<button type="button" data-shop-action="remove" data-shop-index="' + index + '">Remove</button>' +
+        "</li>";
+    });
+    html += "</ul>";
+    var options = "";
+    Object.keys(api.skus).forEach(function (id) {
+      var entry = api.skus[id];
+      if (entry.tierMin > tier.id) return;
+      options += '<option value="' + escapeHtml(id) + '">' + escapeHtml(entry.name) + "</option>";
+    });
+    html += '<div class="shop-add"><label>Add a Sainsbury’s line <select id="shop-add-sku">' + options +
+      '</select></label><button type="button" data-shop-action="add">Add</button></div>';
+    html += '<p class="fuel-basket-total">Ticked total ' + api.formatGbp(total) + " · " + escapeHtml(capNote) + "</p>";
+    html += draft.locked
+      ? '<button type="button" class="shop-lock" data-shop-action="unlock">Unlock this month’s shop</button>'
+      : '<button type="button" class="shop-lock" data-shop-action="lock">Lock this month’s shop</button>';
     host.innerHTML = html;
   }
 
@@ -2021,7 +2171,10 @@
         var extraction = event.target.closest("[data-food-extraction]");
         if (extraction) {
           openFoodRoom("extractions", extraction.getAttribute("data-food-extraction"), extraction.getAttribute("data-food-band"));
+          return;
         }
+        var shopAct = event.target.closest("[data-shop-action]");
+        if (shopAct) onShopAction(shopAct);
       });
     }
     var forensicTab = $("forensic-tab");

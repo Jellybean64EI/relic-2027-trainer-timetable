@@ -1747,6 +1747,47 @@ table.fuel-table col.col-relics { width: 78%; }
   font-weight: 700;
 }
 
+.shop-editor li,
+.shop-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.shop-tick,
+.shop-qty button,
+.shop-editor button,
+.shop-add button,
+.shop-lock {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 140, 0, 0.55);
+  border-radius: 8px;
+  background: #150724;
+  color: #ff8c00;
+  font: inherit;
+  font-weight: 800;
+}
+
+.shop-add select {
+  min-height: 44px;
+  max-width: 100%;
+  color: #1f1812;
+  background: #fcf5e8;
+}
+
+.shop-lock {
+  display: block;
+  width: calc(100% - 16px);
+  margin: 8px;
+}
+
+.shop-line.is-ticked span {
+  color: #f6eefe;
+}
+
 .food-subhead {
   margin: 14px 8px 4px;
   color: var(--gold);

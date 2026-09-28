@@ -115,6 +115,46 @@ window.RELIC_FOOD_SCHEDULE = (function () {
     return "bulk-chicken-potato-plate";
   }
 
+  var PROTEIN_SKUS = {
+    Chicken: ["chicken"],
+    "Turkey Mince": ["turkey"],
+    "Beef Mince": ["beef10", "beef5"],
+    Salmon: ["salmonFresh", "salmonFrozen", "salmonWaitrose"],
+    Eggs: ["eggsOmega", "eggsPasture"]
+  };
+  var PROTEIN_FALLBACK = ["Chicken", "Turkey Mince", "Eggs", "Beef Mince", "Salmon"];
+
+  function basketHas(ids, skuList) {
+    var i;
+    for (i = 0; i < skuList.length; i++) {
+      if (ids.indexOf(skuList[i]) !== -1) return true;
+    }
+    return false;
+  }
+
+  function composeFromBasket(day, skuIds) {
+    var ids = Array.isArray(skuIds) ? skuIds : [];
+    var cue = cueForDay(day);
+    cue.plan = "locked";
+    if (!ids.length || cue.protein === "Flex") return cue;
+    var current = cue.protein;
+    if (basketHas(ids, PROTEIN_SKUS[current] || [])) return cue;
+    var next = "";
+    PROTEIN_FALLBACK.forEach(function (name) {
+      if (!next && basketHas(ids, PROTEIN_SKUS[name] || [])) next = name;
+    });
+    if (!next) return cue;
+    var carb = next === "Chicken" || next === "Beef Mince" ? "Potatoes" : "Rice";
+    if (next === "Turkey Mince" || (next === "Beef Mince" && cue.band !== "intense")) carb = "Pasta";
+    cue.protein = next;
+    cue.carb = carb;
+    cue.mealId = mealFor(next, cue.band, day && day.dayName);
+    cue.portions = portionsFor(next, carb, false);
+    var meal = meals().meals[cue.mealId];
+    if (meal) cue.mealName = meal.name;
+    return cue;
+  }
+
   function cueForDay(day) {
     var apiShop = shop();
     var apiMeals = meals();
@@ -253,6 +293,17 @@ window.RELIC_FOOD_SCHEDULE = (function () {
       problems.push("jan 1 portions");
     }
     if (!jan1.smoothieName) problems.push("jan 1 smoothie");
+    if (window.RELIC_SCHEDULE && window.RELIC_SCHEDULE.buildMonthDays) {
+      var monday = null;
+      window.RELIC_SCHEDULE.buildMonthDays(2027, 2).forEach(function (day) {
+        if (!monday && day.dayName === "MON") monday = day;
+      });
+      if (!monday) problems.push("compose day");
+      else {
+        var swapped = composeFromBasket(monday, ["eggsOmega"]);
+        if (swapped.plan !== "locked" || swapped.protein !== "Eggs") problems.push("compose " + (swapped && swapped.protein));
+      }
+    }
     if (apiShop.tierFor(2027, 2).id !== 2) problems.push("feb tier");
     if (apiShop.tierFor(2026, 10).id !== 1 || apiShop.tierFor(2027, 1).id !== 1) problems.push("tier 1 window");
     Object.keys(fuelDays).forEach(function (dateKey) {
@@ -271,6 +322,7 @@ window.RELIC_FOOD_SCHEDULE = (function () {
     build: "v18",
     rotation: ROTATION,
     cueForDay: cueForDay,
+    composeFromBasket: composeFromBasket,
     buildFuelDays: buildFuelDays,
     audit: audit
   };
