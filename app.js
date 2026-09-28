@@ -674,7 +674,7 @@
       return '<li><span class="method-num" aria-hidden="true">' + (index + 1) +
         '</span><p><strong>' + escapeHtml(step.verb) + "</strong> " + escapeHtml(step.detail) + "</p></li>";
     }).join("");
-    var kcal = card.macros.kcal + " kcal";
+    var kcal = card.macros.kcal === "—" || card.macros.kcal === "-" ? "—" : card.macros.kcal + " kcal";
     if (card.macros.basis) kcal += " · " + card.macros.basis;
     return (
       '<article class="recipe-card" data-kind="' + escapeHtml(card.kind) + '">' +
@@ -834,9 +834,8 @@
       var cue = lockedPlan && lockedPlan[day.dateKey] ? lockedPlan[day.dateKey] : api.cueForDay(day);
       var cabins = (cue.cabins || []).join(" · ");
       var portions = cue.portions || {};
-      var plate = (portions.proteinG ? portions.proteinG + " g " + portions.proteinName : portions.proteinName) +
-        " · " + portions.carbG + " g " + portions.carbName +
-        " · " + portions.vegG + " g " + portions.vegName;
+      var plate = portions.label ||
+        ((portions.proteinName || "") + (portions.carbName ? " · " + portions.carbName : ""));
       html += '<tr class="fuel-row is-' + cue.band + '">' +
         '<td class="day-cell">' +
           '<button type="button" class="food-date" data-open-room="meals" data-food-meal="' +
@@ -851,6 +850,7 @@
           '<button type="button" class="fuel-meal-name" data-food-meal="' + escapeHtml(cue.mealId) +
             '" data-food-band="' + escapeHtml(cue.band) + '">' + escapeHtml(cue.mealName) + "</button>" +
           '<p class="fuel-meta">' + escapeHtml(plate) + "</p>" +
+          (cue.lunch ? '<p class="fuel-meta">' + escapeHtml("Lunch · " + cue.lunch) + "</p>" : "") +
           '<p class="fuel-portions"><span>' + (cue.fruitPortions || 2) + " fruit</span><span>" +
             (cue.vegPortions || 3) + " veg</span></p>" +
           (cabins ? '<p class="food-cabin-chip">' + escapeHtml(cabins) + "</p>" : "") +
@@ -861,8 +861,8 @@
     var sunday = $("fuel-sunday");
     if (sunday) {
       sunday.textContent = lockedPlan
-        ? "Locked prep plan. Sunday stays off this list. Cabin names are read-only."
-        : "Suggested rotation until you lock the Sainsbury’s list. Sunday stays off this list. Cabin names are read-only.";
+        ? "Locked prep plan. Sunday is a 45-minute prep, not a plate on this list. Boil eggs for two days and cook the whites. Seven Brazil nuts, one a day. Cabin names are read-only."
+        : "Suggested rotation until you lock the Sainsbury’s list. Sunday is a 45-minute prep, not a plate on this list. Boil eggs for two days and cook the whites. Seven Brazil nuts, one a day. Cabin names are read-only.";
     }
   }
 
@@ -903,6 +903,26 @@
     html += '</ul><h3 class="food-subhead">On the Sainsbury’s shelf</h3><ul class="food-plain">';
     api.citations.forEach(function (item) { html += "<li>" + escapeHtml(item) + "</li>"; });
     html += "</ul>";
+    if (api.aisles && api.aisles.length) {
+      html += '<h3 class="food-subhead">Aisle table</h3><ul class="food-plain">';
+      api.aisles.forEach(function (row) {
+        html += "<li><strong>" + escapeHtml(row.aisle) + ".</strong> " + escapeHtml(row.prefer) +
+          " Fallback: " + escapeHtml(row.fallback) + "</li>";
+      });
+      html += "</ul>";
+    }
+    if (api.fruitFirstBuys && api.fruitFirstBuys.length) {
+      html += '<h3 class="food-subhead">Fruit buys</h3><ul class="food-plain">';
+      api.fruitFirstBuys.forEach(function (row) {
+        html += "<li>" + escapeHtml(row.item) + " · " + escapeHtml(row.buy) + " · " + escapeHtml(row.why) + "</li>";
+      });
+      html += "</ul>";
+    }
+    if (api.sundayPrep && api.sundayPrep.length) {
+      html += '<h3 class="food-subhead">Sunday 45-minute prep</h3><ol class="food-plain">';
+      api.sundayPrep.forEach(function (line) { html += "<li>" + escapeHtml(line) + "</li>"; });
+      html += "</ol>";
+    }
     html += '<h3 class="food-subhead">This month’s list</h3><ul class="fuel-basket-list shop-editor">';
     (draft.items || []).forEach(function (item, index) {
       var entry = api.skus[item.skuId];
@@ -951,6 +971,7 @@
     }
     host.innerHTML = api.order.map(function (id) {
       var meal = api.meals[id];
+      if (!meal || meal.banned) return "";
       return '<button type="button" class="food-jump" data-food-meal="' + escapeHtml(id) + '">' +
         escapeHtml(meal.name) + "<span>" + escapeHtml(meal.tagline) + "</span></button>";
     }).join("");
