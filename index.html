@@ -6,9 +6,9 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v15" />
+  <meta name="relic-build" content="v16" />
   <title>NiX Training Schedules</title>
-  <link rel="stylesheet" href="styles.css?v=v15" />
+  <link rel="stylesheet" href="styles.css?v=v16" />
 </head>
 <body>
   <div class="wrap">
@@ -78,10 +78,70 @@
       </nav>
 
       <div class="week-tabs" role="tablist" aria-label="Week of month">
-        <button type="button" class="wtab" data-week="1"><span class="wtab-label">WEEK 1</span><span class="shield-complete" hidden></span></button>
-        <button type="button" class="wtab" data-week="2"><span class="wtab-label">WEEK 2</span><span class="shield-complete" hidden></span></button>
-        <button type="button" class="wtab" data-week="3"><span class="wtab-label">WEEK 3</span><span class="shield-complete" hidden></span></button>
-        <button type="button" class="wtab" data-week="4"><span class="wtab-label">WEEK 4</span><span class="shield-complete" hidden></span></button>
+        <button type="button" class="wtab" data-week="1" aria-label="WEEK 1">
+          <span class="wtab-label">WEEK 1</span>
+          <span class="week-slots">
+            <span class="week-slot week-slot-single">
+              <span class="week-slot-kicker">SINGLE</span>
+              <span class="week-slot-count" data-single-count>0/0</span>
+            </span>
+            <span class="week-slot week-slot-dual">
+              <span class="week-slot-kicker">DUAL</span>
+              <span class="week-slot-dual-row">
+                <span class="shield-complete" hidden></span>
+                <span class="week-slot-count" data-dual-count>0/0</span>
+              </span>
+            </span>
+          </span>
+        </button>
+        <button type="button" class="wtab" data-week="2" aria-label="WEEK 2">
+          <span class="wtab-label">WEEK 2</span>
+          <span class="week-slots">
+            <span class="week-slot week-slot-single">
+              <span class="week-slot-kicker">SINGLE</span>
+              <span class="week-slot-count" data-single-count>0/0</span>
+            </span>
+            <span class="week-slot week-slot-dual">
+              <span class="week-slot-kicker">DUAL</span>
+              <span class="week-slot-dual-row">
+                <span class="shield-complete" hidden></span>
+                <span class="week-slot-count" data-dual-count>0/0</span>
+              </span>
+            </span>
+          </span>
+        </button>
+        <button type="button" class="wtab" data-week="3" aria-label="WEEK 3">
+          <span class="wtab-label">WEEK 3</span>
+          <span class="week-slots">
+            <span class="week-slot week-slot-single">
+              <span class="week-slot-kicker">SINGLE</span>
+              <span class="week-slot-count" data-single-count>0/0</span>
+            </span>
+            <span class="week-slot week-slot-dual">
+              <span class="week-slot-kicker">DUAL</span>
+              <span class="week-slot-dual-row">
+                <span class="shield-complete" hidden></span>
+                <span class="week-slot-count" data-dual-count>0/0</span>
+              </span>
+            </span>
+          </span>
+        </button>
+        <button type="button" class="wtab" data-week="4" aria-label="WEEK 4">
+          <span class="wtab-label">WEEK 4</span>
+          <span class="week-slots">
+            <span class="week-slot week-slot-single">
+              <span class="week-slot-kicker">SINGLE</span>
+              <span class="week-slot-count" data-single-count>0/0</span>
+            </span>
+            <span class="week-slot week-slot-dual">
+              <span class="week-slot-kicker">DUAL</span>
+              <span class="week-slot-dual-row">
+                <span class="shield-complete" hidden></span>
+                <span class="week-slot-count" data-dual-count>0/0</span>
+              </span>
+            </span>
+          </span>
+        </button>
       </div>
       <p class="week-meta" id="week-meta"></p>
 
@@ -196,47 +256,43 @@
           <button type="button" id="btn-next-clip" class="player-ctrl" aria-label="Next clip">›</button>
         </div>
       </div>
-      <button type="button" class="forensic-tab" id="forensic-tab" aria-expanded="false" aria-controls="forensic-panel">CUE</button>
-      <div class="forensic-panel" id="forensic-panel" hidden>
-        <dl>
-          <dt>date_key</dt>
-          <dd id="forensic-date-key">—</dd>
-          <dt>tier</dt>
-          <dd id="forensic-tier">—</dd>
-          <dt>branch</dt>
-          <dd id="forensic-branch">—</dd>
-          <dt>viewYear</dt>
-          <dd id="forensic-year">—</dd>
-          <dt>canTick</dt>
-          <dd id="forensic-cantick">—</dd>
-          <dt>cabin</dt>
-          <dd id="forensic-cabin">—</dd>
-          <dt>sets</dt>
-          <dd id="forensic-sets">—</dd>
-          <dt>reps</dt>
-          <dd id="forensic-reps">—</dd>
-          <dt>hold</dt>
-          <dd id="forensic-hold">—</dd>
-          <dt>rest</dt>
-          <dd id="forensic-rest">—</dd>
-          <dt>safety</dt>
-          <dd id="forensic-safety">—</dd>
-          <dt>note</dt>
-          <dd id="forensic-note">—</dd>
-        </dl>
+      <div class="forensic-dock" id="forensic-dock">
+        <button type="button" class="forensic-tab" id="forensic-tab" aria-expanded="false" aria-controls="forensic-panel">CUE</button>
+        <div class="forensic-panel" id="forensic-panel" aria-hidden="true" inert>
+          <div class="forensic-scroll" id="forensic-scroll">
+            <p class="forensic-cabin" id="forensic-cabin">—</p>
+            <p class="forensic-line" id="forensic-lead">3-Lead Unique Rule: Left-Lead. 3-second ease.</p>
+            <p class="forensic-line" id="forensic-do">Do this properly: —</p>
+            <p class="forensic-line" id="forensic-avoid">Avoid this: —</p>
+            <p class="forensic-line forensic-breath" id="forensic-breath">Breathing: —</p>
+            <dl class="forensic-meta">
+              <dt>date_key</dt>
+              <dd id="forensic-date-key">—</dd>
+              <dt>tier</dt>
+              <dd id="forensic-tier">—</dd>
+              <dt>branch</dt>
+              <dd id="forensic-branch">—</dd>
+              <dt>viewYear</dt>
+              <dd id="forensic-year">—</dd>
+              <dt>canTick</dt>
+              <dd id="forensic-cantick">—</dd>
+            </dl>
+          </div>
+          <p class="forensic-metrics" id="forensic-metrics">Sets: — | Reps: — | Hold: — | Rest: —</p>
+        </div>
       </div>
       <p id="relic-empty-overlay" class="empty-overlay" hidden>No video file IDs mapped for this cabin.</p>
       <button type="button" id="relic-start-gate" class="start-gate" hidden>TAP TO START · 20 MIN SET</button>
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v15"></script>
-  <script src="data/precondition.js?v=v15"></script>
-  <script src="data/upperBody.js?v=v15"></script>
-  <script src="data/citations.js?v=v15"></script>
-  <script src="data/forensic.js?v=v15"></script>
-  <script src="data/videoArchive.js?v=v15"></script>
-  <script src="data/supabaseConfig.js?v=v15"></script>
-  <script src="app.js?v=v15"></script>
+  <script src="data/schedule.js?v=v16"></script>
+  <script src="data/precondition.js?v=v16"></script>
+  <script src="data/upperBody.js?v=v16"></script>
+  <script src="data/citations.js?v=v16"></script>
+  <script src="data/forensic.js?v=v16"></script>
+  <script src="data/videoArchive.js?v=v16"></script>
+  <script src="data/supabaseConfig.js?v=v16"></script>
+  <script src="app.js?v=v16"></script>
 </body>
 </html>

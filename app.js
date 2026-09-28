@@ -8,7 +8,10 @@
    Mode preference stays in memory.
    v15: viewYear 2026 is the Q4 bridge; 2027 is the year timetable.
    Month-row cache keys are year:mode:month. canTick locks future days from 1 Oct 2026
-   and locks every 2027 day until 1 Jan 2027. */
+   and locks every 2027 day until 1 Jan 2027.
+   v16: the CUE panel slides up from the bottom of the stage. A finished citation
+   set closes the player and returns to the timetable. Week chips keep a single
+   slot and a dual slot. Calisthenics is Q4 2027 only. */
 (function () {
   "use strict";
 
@@ -17,6 +20,14 @@
   var TZ = "Europe/London";
   var SET_DURATION_SEC = 1200;
   var SET_MODIFIER_MINUTES = [2, 5, 10, 20];
+
+  /* Coach-only shorter set. Absent unless ?setsec=1..1200 is in the URL. */
+  (function applySetSecondsOverride() {
+    var match = /[?&]setsec=(\d{1,4})\b/.exec(location.search || "");
+    if (!match) return;
+    var seconds = +match[1];
+    if (seconds >= 1 && seconds <= 1200) SET_DURATION_SEC = seconds;
+  })();
   var HUD_IDLE_MS = 2000;
   var EMPTY_MSG = "No video file IDs mapped for this cabin.";
   var BRIDGE_LOCK_START = "2026-10-01";
@@ -453,15 +464,18 @@
   function scoreDays(days) {
     var ticks = 0;
     var fullDays = 0;
+    var firstSessions = 0;
     var total = days ? days.length : 0;
     for (var i = 0; i < total; i++) {
       var mask = maskFor(days[i].dateKey);
       ticks += popcount(mask);
+      if ((mask & 1) === 1) firstSessions += 1;
       if ((mask & 3) === 3) fullDays += 1;
     }
     return {
       total: total,
       fullDays: fullDays,
+      firstSessions: firstSessions,
       ticks: ticks,
       complete: total >= 6 && fullDays === total
     };
@@ -488,6 +502,45 @@
     badge.hidden = false;
     badge.innerHTML = shieldSvg(true) +
       '<span class="shield-count">' + score.ticks + '<span class="sr-only"> ticks</span></span>';
+  }
+
+  /* Single slot tracks first-session bits. Dual slot tracks full days.
+     At 100% the dual slot keeps the orange double shield and the tick total. */
+  function paintWeekChip(btn, score) {
+    var complete = !!score.complete;
+    btn.classList.toggle("is-complete", complete);
+    btn.classList.remove("is-golden");
+    btn.setAttribute("data-tick-count", String(score.ticks));
+    btn.setAttribute("data-full-days", String(score.fullDays));
+    btn.setAttribute("data-first-sessions", String(score.firstSessions));
+    var total = score.total;
+    var singleCount = btn.querySelector("[data-single-count]");
+    var dualCount = btn.querySelector("[data-dual-count]");
+    if (singleCount) singleCount.textContent = score.firstSessions + "/" + total;
+    if (dualCount) dualCount.textContent = complete ? String(score.ticks) : (score.fullDays + "/" + total);
+    var dualSlot = btn.querySelector(".week-slot-dual");
+    if (dualSlot) dualSlot.classList.toggle("is-full", complete);
+    var badge = btn.querySelector(".week-slot-dual .shield-complete");
+    if (!badge) {
+      badge = document.createElement("span");
+      badge.className = "shield-complete";
+      badge.hidden = true;
+      var row = btn.querySelector(".week-slot-dual-row");
+      if (row) row.insertBefore(badge, row.firstChild);
+    }
+    if (!complete) {
+      badge.hidden = true;
+      badge.innerHTML = "";
+    } else {
+      badge.hidden = false;
+      badge.innerHTML = shieldSvg(true);
+    }
+    var week = btn.getAttribute("data-week") || "";
+    btn.setAttribute("aria-label",
+      "WEEK " + week +
+      ", single sessions " + score.firstSessions + " of " + total +
+      ", dual " + score.fullDays + " of " + total +
+      (complete ? ", " + score.ticks + " ticks" : ""));
   }
 
   function paintYear(score) {
@@ -533,7 +586,7 @@
     document.querySelectorAll(".wtab").forEach(function (btn) {
       var week = +btn.getAttribute("data-week");
       var days = week === state.viewWeek ? viewedDays : activeDaysForWeek(state.viewMonth, week);
-      paintChip(btn, scoreDays(days));
+      paintWeekChip(btn, scoreDays(days));
     });
     var yearComplete = monthsComplete === months.length && yearTotal >= 6 && yearFull === yearTotal;
     paintYear({
@@ -737,14 +790,27 @@
 
   function noteSetComplete() {
     var credit = player.credit;
-    if (!credit || !credit.dateKey || !credit.storageKey) return;
+    if (!credit || !credit.dateKey || !credit.storageKey) return false;
     var parts = londonParts(state.now || getNow());
-    if (!canTick(credit.dateKey, parts)) return;
+    if (!canTick(credit.dateKey, parts)) return false;
     var storageKey = credit.storageKey;
     var current = state.videos[storageKey] || 0;
     var bit = credit.slot === 1 ? 2 : 1;
-    if ((current & bit) === bit) return;
+    if ((current & bit) === bit) return false;
     saveMask(storageKey, (current | bit) & 3, credit.dateKey, false);
+    return true;
+  }
+
+  /* The opened citation's set is finished once its tier bit is on.
+     A playlist with no credit still ends on its last clip instead of looping. */
+  function citationSetIsFinished() {
+    var credit = player.credit;
+    if (credit && credit.storageKey) {
+      var bit = credit.slot === 1 ? 2 : 1;
+      var current = state.videos[credit.storageKey] || 0;
+      if ((current & bit) === bit) return true;
+    }
+    return player.clips.length > 0 && player.index >= player.clips.length - 1;
   }
 
   function pickMonth(month) {
@@ -979,14 +1045,19 @@
     return node.parentElement || null;
   }
 
+  function isForensicChrome(node) {
+    if (!node || !node.closest) return false;
+    return !!node.closest(".forensic-tab, .forensic-panel, .forensic-dock");
+  }
+
   function isHudChromeTarget(node) {
     if (!node || !node.closest) return false;
-    return !!node.closest(".player-close, .player-controls, .timer-dock, .start-gate, .forensic-tab, .forensic-panel");
+    return !!node.closest(".player-close, .player-controls, .timer-dock, .start-gate, .forensic-tab, .forensic-panel, .forensic-dock");
   }
 
   function paintForensic() {
-    var panel = $("forensic-panel");
-    if (!panel || panel.hidden) return;
+    var stage = playerStage();
+    if (!stage || !stage.classList.contains("is-forensic-open")) return;
     var credit = player.credit;
     var dateKey = credit && credit.dateKey ? String(credit.dateKey) : "";
     var parts = londonParts(state.now || getNow());
@@ -1009,24 +1080,22 @@
     }
     var cabinEl = $("forensic-cabin");
     if (cabinEl) cabinEl.textContent = cabinKey || "—";
-    var hasDose = !!(entry && entry.sets !== null && entry.sets !== undefined && entry.allowed !== false);
-    var setsEl = $("forensic-sets");
-    if (setsEl) setsEl.textContent = hasDose ? String(entry.sets) : "—";
-    var repsEl = $("forensic-reps");
-    if (repsEl) repsEl.textContent = hasDose ? String(entry.reps) : "—";
-    var holdEl = $("forensic-hold");
-    if (holdEl) holdEl.textContent = hasDose ? String(entry.holdSec) + "s" : "—";
-    var restEl = $("forensic-rest");
-    if (restEl) restEl.textContent = hasDose ? String(entry.restSec) + "s" : "—";
-    var safetyEl = $("forensic-safety");
-    if (safetyEl) {
-      var rules = entry && entry.safety ? entry.safety : [];
-      safetyEl.textContent = rules.length
-        ? rules.map(function (rule) { return rule.label; }).join(" · ")
-        : "—";
+    var leadEl = $("forensic-lead");
+    if (leadEl) {
+      leadEl.textContent = "3-Lead Unique Rule: " + ((entry && entry.leadRule) ? entry.leadRule : "Left-Lead. 3-second ease.");
     }
-    var noteEl = $("forensic-note");
-    if (noteEl) noteEl.textContent = (entry && entry.note) ? entry.note : "—";
+    var doEl = $("forensic-do");
+    if (doEl) doEl.textContent = "Do this properly: " + ((entry && entry.doThis) ? entry.doThis : "—");
+    var avoidEl = $("forensic-avoid");
+    if (avoidEl) avoidEl.textContent = "Avoid this: " + ((entry && entry.avoidThis) ? entry.avoidThis : "—");
+    var breathEl = $("forensic-breath");
+    if (breathEl) breathEl.textContent = "Breathing: " + ((entry && entry.breathing) ? entry.breathing : "—");
+    var metrics = $("forensic-metrics");
+    if (metrics) {
+      metrics.textContent = (entry && entry.metrics)
+        ? entry.metrics
+        : "Sets: — | Reps: — | Hold: — | Rest: —";
+    }
   }
 
   function setForensicOpen(open) {
@@ -1034,8 +1103,10 @@
     var tab = $("forensic-tab");
     if (!panel || !tab) return;
     var next = !!open;
-    panel.hidden = !next;
+    /* Slide only. Leave player.timerId, the countdown, and the video src alone. */
     tab.setAttribute("aria-expanded", next ? "true" : "false");
+    panel.setAttribute("aria-hidden", next ? "false" : "true");
+    if ("inert" in panel) panel.inert = !next;
     var stage = playerStage();
     if (stage) stage.classList.toggle("is-forensic-open", next);
     if (next) paintForensic();
@@ -1098,6 +1169,7 @@
   function onStageHudPointerDown(event) {
     if (!event || event.button > 0) return;
     var node = eventElement(event);
+    if (isForensicChrome(node)) return;
     if (isHudChromeTarget(node)) {
       showPlayerHud();
       return;
@@ -1424,6 +1496,10 @@
       paintTimer();
       stopCountdown();
       noteSetComplete();
+      if (citationSetIsFinished()) {
+        setTimeout(closePlayer, 0);
+        return;
+      }
       setTimeout(playNextVideo, 0);
       return;
     }
@@ -1500,12 +1576,7 @@
     stopFlushWatch();
     player.awaitingReveal = false;
     setTimerModsOpen(false);
-    var forensicPanel = $("forensic-panel");
-    var forensicTab = $("forensic-tab");
-    if (forensicPanel) forensicPanel.hidden = true;
-    if (forensicTab) forensicTab.setAttribute("aria-expanded", "false");
-    var forensicStage = playerStage();
-    if (forensicStage) forensicStage.classList.remove("is-forensic-open");
+    setForensicOpen(false);
     stopCountdown();
     setTimerModsOpen(false);
     player.armed = false;
@@ -1639,13 +1710,18 @@
     });
     var forensicTab = $("forensic-tab");
     var forensicPanel = $("forensic-panel");
+    var forensicDock = $("forensic-dock");
+    if (forensicDock) {
+      forensicDock.addEventListener("pointerdown", stopForensicEvent);
+      forensicDock.addEventListener("click", stopForensicEvent);
+    }
     if (forensicTab) {
       forensicTab.addEventListener("pointerdown", stopForensicEvent);
       forensicTab.addEventListener("click", function (event) {
         event.preventDefault();
         event.stopPropagation();
-        var panel = $("forensic-panel");
-        setForensicOpen(!(panel && !panel.hidden));
+        var stage = playerStage();
+        setForensicOpen(!(stage && stage.classList.contains("is-forensic-open")));
       });
     }
     if (forensicPanel) {
@@ -1820,7 +1896,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v15",
+    build: "v16",
     get viewYear() { return state.viewYear; },
     get branch() { return state.branch; },
     setBranch: setBranch,
