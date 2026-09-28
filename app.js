@@ -5,7 +5,10 @@
    Full Body keeps the legacy bare YYYY-MM-DD key. Upper Body uses upper:YYYY-MM-DD.
    v14: each day has two trainer videos. tier is a bitmask (1 first, 2 second, 3 dual).
    completed=true is dual/full only. Legacy completed=true with tier 0 still reads as dual.
-   Mode preference stays in memory. */
+   Mode preference stays in memory.
+   v15: viewYear 2026 is the Q4 bridge; 2027 is the year timetable.
+   Month-row cache keys are year:mode:month. canTick locks future days from 1 Oct 2026
+   and locks every 2027 day until 1 Jan 2027. */
 (function () {
   "use strict";
 
@@ -16,6 +19,7 @@
   var SET_MODIFIER_MINUTES = [2, 5, 10, 20];
   var HUD_IDLE_MS = 2000;
   var EMPTY_MSG = "No video file IDs mapped for this cabin.";
+  var BRIDGE_LOCK_START = "2026-10-01";
 
   var MODE_LABEL = {
     full: "Full Body Trainer Schedules",
@@ -29,8 +33,9 @@
     userPicked: false,
     coachOverride: null,
     videos: {},
-    monthCache: null,
-    monthCacheMode: "",
+    monthCache: {},
+    viewYear: 2027,
+    branch: "year",
     loaded: false,
     syncNote: "Loading completions",
     syncError: false,
@@ -120,9 +125,37 @@
     return parts.dateKey >= S.LIVE_START;
   }
 
+  /* Before 1 Oct 2026 every shown day can tick (practice).
+     1 Oct 2026–31 Dec 2026: 2026 days on or before London today tick; later 2026 days
+     and every 2027 day stay locked.
+     From 1 Jan 2027: past and today tick; future days stay locked. */
   function canTick(dateKey, parts) {
-    if (!isLive(parts)) return true;
-    return dateKey <= parts.dateKey;
+    if (!dateKey || !parts || !parts.dateKey) return false;
+    var today = parts.dateKey;
+    if (today < BRIDGE_LOCK_START) return true;
+    if (today < S.LIVE_START) {
+      if (dateKey >= S.LIVE_START) return false;
+      return dateKey <= today;
+    }
+    return dateKey <= today;
+  }
+
+  function syncBranch() {
+    if (state.viewYear !== 2026 && state.viewYear !== 2027) state.viewYear = 2027;
+    state.branch = state.viewYear === 2026 ? "bridge" : "year";
+  }
+
+  function periodMonths() {
+    if (state.viewYear === 2026) return [10, 11, 12];
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  }
+
+  function monthCacheKey(year, mode, month) {
+    return String(year) + ":" + (mode || "full") + ":" + String(month);
+  }
+
+  function clearClientCache() {
+    state.monthCache = {};
   }
 
   function escapeHtml(value) {
@@ -371,15 +404,14 @@
     return '<td class="relics-cell"><div class="relic-stack">' + blocks.join("") + "</div></td>";
   }
 
-  function trainingDaysForMonth(month) {
+  function trainingDaysForMonth(month, year) {
+    var y = year || state.viewYear || 2027;
     var mode = activeMode();
-    if (!state.monthCache || state.monthCacheMode !== mode) {
-      state.monthCache = {};
-      state.monthCacheMode = mode;
-    }
-    if (!state.monthCache[month]) {
+    if (!state.monthCache) state.monthCache = {};
+    var key = monthCacheKey(y, mode, month);
+    if (!state.monthCache[key]) {
       var source = viewingUpper() ? upperSchedule() : S;
-      var days = source.buildMonthDays(2027, month).filter(function (day) {
+      var days = source.buildMonthDays(y, month).filter(function (day) {
         return !day.isRecovery && day.dayIndex < 6;
       });
       days.sort(function (a, b) {
@@ -387,9 +419,9 @@
         if (a.dateKey > b.dateKey) return 1;
         return 0;
       });
-      state.monthCache[month] = days;
+      state.monthCache[key] = days;
     }
-    return state.monthCache[month];
+    return state.monthCache[key];
   }
 
   function activeDaysForWeek(month, week) {
@@ -449,8 +481,10 @@
   function paintYear(score) {
     var badge = $("year-badge");
     if (!badge) return;
+    var label = String(state.viewYear || 2027);
     badge.setAttribute("data-tick-count", String(score.ticks));
     badge.setAttribute("data-year-complete", score.complete ? "true" : "false");
+    badge.setAttribute("data-view-year", label);
     if (!score.complete) {
       badge.hidden = true;
       badge.classList.remove("is-complete");
@@ -461,16 +495,18 @@
     badge.classList.add("is-complete");
     badge.innerHTML = shieldSvg(true) +
       '<span class="shield-count">' + score.ticks + '<span class="sr-only"> ticks</span></span>' +
-      '<span class="year-badge-label">2027</span>';
+      '<span class="year-badge-label">' + label + "</span>";
   }
 
   function applyPeriodMarks(viewedDays) {
-    var monthScores = [];
+    var months = periodMonths();
+    var monthScores = {};
     var yearTicks = 0;
     var yearFull = 0;
     var yearTotal = 0;
     var monthsComplete = 0;
-    for (var month = 1; month <= 12; month++) {
+    for (var i = 0; i < months.length; i++) {
+      var month = months[i];
       var score = scoreDays(trainingDaysForMonth(month));
       monthScores[month] = score;
       yearTicks += score.ticks;
@@ -479,14 +515,15 @@
       if (score.complete) monthsComplete += 1;
     }
     document.querySelectorAll(".mbtn").forEach(function (btn) {
-      paintChip(btn, monthScores[+btn.getAttribute("data-month")] || scoreDays([]));
+      var month = +btn.getAttribute("data-month");
+      paintChip(btn, monthScores[month] || scoreDays([]));
     });
     document.querySelectorAll(".wtab").forEach(function (btn) {
       var week = +btn.getAttribute("data-week");
       var days = week === state.viewWeek ? viewedDays : activeDaysForWeek(state.viewMonth, week);
       paintChip(btn, scoreDays(days));
     });
-    var yearComplete = monthsComplete === 12 && yearTotal >= 6 && yearFull === yearTotal;
+    var yearComplete = monthsComplete === months.length && yearTotal >= 6 && yearFull === yearTotal;
     paintYear({
       total: yearTotal,
       fullDays: yearFull,
@@ -536,18 +573,36 @@
     state.now = getNow();
     var parts = londonParts(state.now);
     var preview = !isLive(parts);
+    syncBranch();
 
     if (!state.userPicked) {
-      if (preview || parts.year < 2027) {
+      if (state.viewYear === 2026) {
+        if (parts.year === 2026 && parts.month >= 10 && parts.month <= 12) {
+          state.viewMonth = parts.month;
+          state.viewWeek = S.weekOfMonth(parts.day);
+        } else {
+          state.viewMonth = 10;
+          state.viewWeek = 1;
+        }
+      } else if (preview || parts.year < 2027) {
+        state.viewYear = 2027;
+        state.branch = "year";
         state.viewMonth = 1;
         state.viewWeek = 1;
       } else if (parts.year === 2027) {
+        state.viewYear = 2027;
+        state.branch = "year";
         state.viewMonth = parts.month;
         state.viewWeek = S.weekOfMonth(parts.day);
       } else {
+        state.viewYear = 2027;
+        state.branch = "year";
         state.viewMonth = 12;
         state.viewWeek = 4;
       }
+    } else if (state.branch === "bridge" && (state.viewMonth < 10 || state.viewMonth > 12)) {
+      state.viewMonth = 10;
+      state.viewWeek = 1;
     }
 
     var phase = S.phaseForMonth(state.viewMonth);
@@ -555,10 +610,15 @@
     var meta = (metaSource.MONTH_META && metaSource.MONTH_META[state.viewMonth]) ||
       S.MONTH_META[state.viewMonth] || { phaseLine: phase.label, blurb: "" };
     paintModeChrome();
+    paintBranchChrome();
     var card = $("relic-card");
     card.setAttribute("data-month", String(state.viewMonth));
+    card.setAttribute("data-year", String(state.viewYear));
+    card.setAttribute("data-branch", state.branch);
     card.setAttribute("data-phase", phase.suffix);
     document.body.setAttribute("data-month", String(state.viewMonth));
+    document.body.setAttribute("data-year", String(state.viewYear));
+    document.body.setAttribute("data-branch", state.branch);
     document.body.setAttribute("data-phase", phase.suffix);
 
     $("banner-live").hidden = preview;
@@ -571,21 +631,38 @@
     }
 
     var phaseShort = String(meta.phaseLine || phase.label).replace(/^PHASE:\s*/i, "");
+    var monthTitle = S.MONTH_NAMES[state.viewMonth] || "";
+    if (state.branch === "bridge") monthTitle += " " + state.viewYear;
     $("identity-line").textContent =
-      S.MONTH_NAMES[state.viewMonth] + " · WEEK " + state.viewWeek + " OF 4 · " + phaseShort;
-    $("month-blurb").textContent = meta.blurb || "";
+      monthTitle + " · WEEK " + state.viewWeek + " OF 4 · " + phaseShort;
+    var blurb = meta.blurb || "";
+    if (state.branch === "bridge") blurb = "Q4 2026 Pre-Recondition · " + blurb;
+    $("month-blurb").textContent = blurb;
     $("meta-today").innerHTML = "TODAY <strong>" + parts.dateKey + "</strong> · " + parts.weekday;
-    $("meta-mode").textContent = preview
-      ? "PREVIEW · live 1 Jan 2027"
-      : "LIVE · " + parts.dateKey;
+    var modeText = "LIVE · " + parts.dateKey;
+    if (parts.dateKey < BRIDGE_LOCK_START) modeText = "PREVIEW · live 1 Jan 2027";
+    else if (parts.dateKey < S.LIVE_START) {
+      modeText = state.branch === "bridge"
+        ? "Q4 2026 · past and today tick"
+        : "2027 LOCKED · until 1 Jan";
+    }
+    $("meta-mode").textContent = modeText;
 
     document.querySelectorAll(".phase").forEach(function (el) {
       el.classList.toggle("is-active", el.getAttribute("data-phase") === phase.suffix);
     });
+    var allowedMonths = periodMonths();
+    var monthBar = document.querySelector(".month-bar");
+    if (monthBar) {
+      monthBar.setAttribute("data-branch", state.branch);
+      monthBar.setAttribute("aria-label", state.branch === "bridge" ? "Q4 2026 Pre-Recondition" : "Months of 2027");
+    }
     document.querySelectorAll(".mbtn").forEach(function (btn) {
       var month = +btn.getAttribute("data-month");
-      btn.classList.toggle("is-selected", month === state.viewMonth);
-      btn.classList.toggle("is-live", !preview && parts.year === 2027 && month === parts.month);
+      var shown = allowedMonths.indexOf(month) !== -1;
+      btn.hidden = !shown;
+      btn.classList.toggle("is-selected", shown && month === state.viewMonth);
+      btn.classList.toggle("is-live", shown && parts.year === state.viewYear && month === parts.month);
     });
     document.querySelectorAll(".wtab").forEach(function (btn) {
       btn.classList.toggle("is-selected", +btn.getAttribute("data-week") === state.viewWeek);
@@ -620,6 +697,7 @@
     });
     tbody.innerHTML = html;
     applyPeriodMarks(weekDays);
+    paintForensic();
     if (state.restoreTickDate) {
       var again = tbody.querySelector('button.tick-hit[data-date="' + state.restoreTickDate + '"]');
       state.restoreTickDate = "";
@@ -655,10 +733,11 @@
   }
 
   function pickMonth(month) {
+    if (periodMonths().indexOf(month) === -1) return;
     state.userPicked = true;
     state.viewMonth = month;
     var parts = londonParts(state.now || getNow());
-    if (isLive(parts) && parts.year === 2027 && month === parts.month) {
+    if (parts.year === state.viewYear && month === parts.month) {
       state.viewWeek = S.weekOfMonth(parts.day);
     } else {
       state.viewWeek = 1;
@@ -697,6 +776,42 @@
 
   function toggleScheduleMode() {
     setScheduleMode(state.mode === "upper" ? "full" : "upper");
+  }
+
+  function paintBranchChrome() {
+    document.querySelectorAll("[data-set-branch]").forEach(function (opt) {
+      var on = opt.getAttribute("data-set-branch") === state.branch;
+      opt.classList.toggle("is-active", on);
+      opt.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+  }
+
+  function setBranch(branch) {
+    var year = branch === "bridge" ? 2026 : 2027;
+    var changing = state.viewYear !== year;
+    clearClientCache();
+    state.viewYear = year;
+    syncBranch();
+    if (changing) {
+      var parts = londonParts(state.now || getNow());
+      if (state.branch === "bridge") {
+        if (parts.year === 2026 && parts.month >= 10 && parts.month <= 12) {
+          state.viewMonth = parts.month;
+          state.viewWeek = S.weekOfMonth(parts.day);
+        } else {
+          state.viewMonth = 10;
+          state.viewWeek = 1;
+        }
+      } else if (parts.year === 2027) {
+        state.viewMonth = parts.month;
+        state.viewWeek = S.weekOfMonth(parts.day);
+      } else if (parts.dateKey < S.LIVE_START) {
+        state.viewMonth = 1;
+        state.viewWeek = 1;
+      }
+    }
+    state.userPicked = true;
+    render();
   }
 
   function setNavOpen(open) {
@@ -851,7 +966,42 @@
 
   function isHudChromeTarget(node) {
     if (!node || !node.closest) return false;
-    return !!node.closest(".player-close, .player-controls, .timer-dock, .start-gate");
+    return !!node.closest(".player-close, .player-controls, .timer-dock, .start-gate, .forensic-tab, .forensic-panel");
+  }
+
+  function paintForensic() {
+    var panel = $("forensic-panel");
+    if (!panel || panel.hidden) return;
+    var credit = player.credit;
+    var dateKey = credit && credit.dateKey ? String(credit.dateKey) : "";
+    var parts = londonParts(state.now || getNow());
+    var mask = dateKey ? (maskFor(dateKey) & 3) : 0;
+    var dateEl = $("forensic-date-key");
+    if (dateEl) dateEl.textContent = dateKey || "—";
+    var tierEl = $("forensic-tier");
+    if (tierEl) tierEl.textContent = dateKey ? String(mask) : "—";
+    var branchEl = $("forensic-branch");
+    if (branchEl) branchEl.textContent = state.branch;
+    var yearEl = $("forensic-year");
+    if (yearEl) yearEl.textContent = String(state.viewYear);
+    var tickEl = $("forensic-cantick");
+    if (tickEl) tickEl.textContent = dateKey ? (canTick(dateKey, parts) ? "true" : "false") : "—";
+  }
+
+  function setForensicOpen(open) {
+    var panel = $("forensic-panel");
+    var tab = $("forensic-tab");
+    if (!panel || !tab) return;
+    var next = !!open;
+    panel.hidden = !next;
+    tab.setAttribute("aria-expanded", next ? "true" : "false");
+    var stage = playerStage();
+    if (stage) stage.classList.toggle("is-forensic-open", next);
+    if (next) paintForensic();
+  }
+
+  function stopForensicEvent(event) {
+    if (event && event.stopPropagation) event.stopPropagation();
   }
 
   function showPlayerHud() {
@@ -1309,6 +1459,12 @@
     stopFlushWatch();
     player.awaitingReveal = false;
     setTimerModsOpen(false);
+    var forensicPanel = $("forensic-panel");
+    var forensicTab = $("forensic-tab");
+    if (forensicPanel) forensicPanel.hidden = true;
+    if (forensicTab) forensicTab.setAttribute("aria-expanded", "false");
+    var forensicStage = playerStage();
+    if (forensicStage) forensicStage.classList.remove("is-forensic-open");
     stopCountdown();
     setTimerModsOpen(false);
     player.armed = false;
@@ -1435,6 +1591,26 @@
         setScheduleMode(opt.getAttribute("data-set-mode"));
       });
     });
+    document.querySelectorAll("[data-set-branch]").forEach(function (opt) {
+      opt.addEventListener("click", function () {
+        setBranch(opt.getAttribute("data-set-branch"));
+      });
+    });
+    var forensicTab = $("forensic-tab");
+    var forensicPanel = $("forensic-panel");
+    if (forensicTab) {
+      forensicTab.addEventListener("pointerdown", stopForensicEvent);
+      forensicTab.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        var panel = $("forensic-panel");
+        setForensicOpen(!(panel && !panel.hidden));
+      });
+    }
+    if (forensicPanel) {
+      forensicPanel.addEventListener("pointerdown", stopForensicEvent);
+      forensicPanel.addEventListener("click", stopForensicEvent);
+    }
     document.addEventListener("keydown", function (event) {
       if (event.key !== "Escape") return;
       if (!document.body.classList.contains("nav-open")) return;
@@ -1603,7 +1779,14 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v14",
+    build: "v15",
+    get viewYear() { return state.viewYear; },
+    get branch() { return state.branch; },
+    setBranch: setBranch,
+    monthCacheKey: monthCacheKey,
+    canTickDate: function (dateKey) {
+      return canTick(dateKey, londonParts(state.now || getNow()));
+    },
     get setSeconds() { return SET_DURATION_SEC; },
     get SET_DURATION_SEC() { return SET_DURATION_SEC; },
     get remaining() { return player.remaining; },
