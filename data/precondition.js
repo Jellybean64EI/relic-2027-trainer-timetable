@@ -3,6 +3,7 @@
    Week buckets: days 1–7 = W1, 8–14 = W2, 15–21 = W3, 22–end = W4.
    Sunday is Rest / Weekly Reset in the month build and stays off the active Mon–Sat list.
    No Hanging and no Target_Weights: no hanging, no failure, no added load.
+   v16: Calisthenics is purged. Those slots are posture, core, or joint alignment.
    Citation phase is Base: 1. {CabinKey}_Trainer_Base
    Requires data/schedule.js first (date helpers and citationLabel only). */
 window.RELIC_PRECONDITION = (function () {
@@ -43,28 +44,28 @@ window.RELIC_PRECONDITION = (function () {
       row("MON", "Chest + Arms", "Chest", "Upper_Arms"),
       row("TUE", "Back + Core", "Back", "Abs_Pelvic"),
       row("WED", "Legs + Bands", "Legs_Glutes", "Resistance_Bands"),
-      row("THU", "Skill + Grip", "Calisthenics", "Hand_Wrist_Forearm"),
+      row("THU", "Posture + Grip", "Posture_Mobility", "Hand_Wrist_Forearm"),
       row("FRI", "Arms + Core", "Upper_Arms", "Abs_Pelvic"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     2: week(
       row("MON", "Back + Chest", "Back", "Chest"),
       row("TUE", "Legs + Arms", "Legs_Glutes", "Upper_Arms"),
-      row("WED", "Bands + Skill", "Resistance_Bands", "Calisthenics"),
+      row("WED", "Bands + Core", "Resistance_Bands", "Abs_Pelvic"),
       row("THU", "Core + Grip", "Abs_Pelvic", "Hand_Wrist_Forearm"),
       row("FRI", "Chest + Legs", "Chest", "Legs_Glutes"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     3: week(
       row("MON", "Arms + Bands", "Upper_Arms", "Resistance_Bands"),
-      row("TUE", "Chest + Skill", "Chest", "Calisthenics"),
+      row("TUE", "Chest + Alignment", "Chest", "Neck"),
       row("WED", "Back + Legs", "Back", "Legs_Glutes"),
       row("THU", "Grip + Core", "Hand_Wrist_Forearm", "Abs_Pelvic"),
       row("FRI", "Legs + Chest", "Legs_Glutes", "Chest"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     4: week(
-      row("MON", "Skill + Arms", "Calisthenics", "Upper_Arms"),
+      row("MON", "Posture + Arms", "Posture_Mobility", "Upper_Arms"),
       row("TUE", "Back + Bands", "Back", "Resistance_Bands"),
       row("WED", "Chest + Core", "Chest", "Abs_Pelvic"),
       row("THU", "Legs + Grip", "Legs_Glutes", "Hand_Wrist_Forearm"),
@@ -79,12 +80,12 @@ window.RELIC_PRECONDITION = (function () {
       row("MON", "Back + Arms", "Back", "Upper_Arms"),
       row("TUE", "Chest + Bands", "Chest", "Resistance_Bands"),
       row("WED", "Legs + Core", "Legs_Glutes", "Abs_Pelvic"),
-      row("THU", "Skill + Grip", "Calisthenics", "Hand_Wrist_Forearm"),
+      row("THU", "Core + Grip", "Abs_Pelvic", "Hand_Wrist_Forearm"),
       row("FRI", "Chest + Back", "Chest", "Back"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     2: week(
-      row("MON", "Legs + Skill", "Legs_Glutes", "Calisthenics"),
+      row("MON", "Legs + Alignment", "Legs_Glutes", "Neck"),
       row("TUE", "Arms + Chest", "Upper_Arms", "Chest"),
       row("WED", "Back + Grip", "Back", "Hand_Wrist_Forearm"),
       row("THU", "Bands + Core", "Resistance_Bands", "Abs_Pelvic"),
@@ -92,7 +93,7 @@ window.RELIC_PRECONDITION = (function () {
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     3: week(
-      row("MON", "Core + Skill", "Abs_Pelvic", "Calisthenics"),
+      row("MON", "Core + Posture", "Abs_Pelvic", "Posture_Mobility"),
       row("TUE", "Back + Chest", "Back", "Chest"),
       row("WED", "Arms + Legs", "Upper_Arms", "Legs_Glutes"),
       row("THU", "Bands + Grip", "Resistance_Bands", "Hand_Wrist_Forearm"),
@@ -102,7 +103,7 @@ window.RELIC_PRECONDITION = (function () {
     4: week(
       row("MON", "Grip + Arms", "Hand_Wrist_Forearm", "Upper_Arms"),
       row("TUE", "Legs + Back", "Legs_Glutes", "Back"),
-      row("WED", "Chest + Skill", "Chest", "Calisthenics"),
+      row("WED", "Chest + Core", "Chest", "Abs_Pelvic"),
       row("THU", "Core + Bands", "Abs_Pelvic", "Resistance_Bands"),
       row("FRI", "Back + Legs", "Back", "Legs_Glutes"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
@@ -115,14 +116,14 @@ window.RELIC_PRECONDITION = (function () {
       row("MON", "Chest + Core", "Chest", "Abs_Pelvic"),
       row("TUE", "Back + Bands", "Back", "Resistance_Bands"),
       row("WED", "Legs + Arms", "Legs_Glutes", "Upper_Arms"),
-      row("THU", "Skill + Grip", "Calisthenics", "Hand_Wrist_Forearm"),
+      row("THU", "Alignment + Grip", "Neck", "Hand_Wrist_Forearm"),
       row("FRI", "Chest + Back", "Chest", "Back"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     2: week(
       row("MON", "Arms + Core", "Upper_Arms", "Abs_Pelvic"),
       row("TUE", "Legs + Bands", "Legs_Glutes", "Resistance_Bands"),
-      row("WED", "Back + Skill", "Back", "Calisthenics"),
+      row("WED", "Back + Posture", "Back", "Posture_Mobility"),
       row("THU", "Chest + Grip", "Chest", "Hand_Wrist_Forearm"),
       row("FRI", "Core + Legs", "Abs_Pelvic", "Legs_Glutes"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
@@ -131,14 +132,14 @@ window.RELIC_PRECONDITION = (function () {
       row("MON", "Bands + Arms", "Resistance_Bands", "Upper_Arms"),
       row("TUE", "Chest + Legs", "Chest", "Legs_Glutes"),
       row("WED", "Back + Core", "Back", "Abs_Pelvic"),
-      row("THU", "Skill + Grip", "Calisthenics", "Hand_Wrist_Forearm"),
+      row("THU", "Core + Grip", "Abs_Pelvic", "Hand_Wrist_Forearm"),
       row("FRI", "Chest + Bands", "Chest", "Resistance_Bands"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     4: week(
       row("MON", "Grip + Core", "Hand_Wrist_Forearm", "Abs_Pelvic"),
       row("TUE", "Back + Arms", "Back", "Upper_Arms"),
-      row("WED", "Legs + Skill", "Legs_Glutes", "Calisthenics"),
+      row("WED", "Legs + Alignment", "Legs_Glutes", "Neck"),
       row("THU", "Chest + Core", "Chest", "Abs_Pelvic"),
       row("FRI", "Bands + Back", "Resistance_Bands", "Back"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
