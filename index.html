@@ -6,9 +6,9 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v2_9" />
+  <meta name="relic-build" content="v2_10" />
   <title>2027 TRAINER TIMETABLE CARD — Relic Architect V2.0</title>
-  <link rel="stylesheet" href="styles.css?v=v2_9" />
+  <link rel="stylesheet" href="styles.css?v=v2_10" />
 </head>
 <body>
   <div class="wrap">
@@ -108,7 +108,8 @@
     <div class="player-stage" role="dialog" aria-modal="true" aria-label="Relic trainer player">
       <video id="relic-active-video" autoplay loop playsinline tabindex="-1"></video>
       <p id="relic-media-note" class="media-note" hidden>This clip is not in relic-videos yet. The set timer still runs.</p>
-      <div class="timer-dock" id="relic-timer-dock">
+      <div class="player-hud" id="relic-player-hud">
+        <div class="timer-dock" id="relic-timer-dock">
         <button type="button" id="relic-set-timer" class="set-timer" data-seconds="1200" data-remaining="1200" aria-expanded="false" aria-controls="relic-timer-mods" aria-haspopup="true" aria-label="Set timer 20:00. Open timer controls.">20:00</button>
         <div id="relic-timer-mods" class="timer-mods" role="group" aria-label="Timer control" hidden>
           <section class="timer-module" aria-labelledby="timer-duration-label">
@@ -130,28 +131,25 @@
             </div>
           </section>
         </div>
+        </div>
+        <button type="button" id="relic-player-close" class="player-close" aria-label="Close player">×</button>
+        <p id="relic-clip-label" class="clip-label"></p>
+        <div class="player-controls" aria-label="Playback">
+          <button type="button" id="btn-prev-clip" class="player-ctrl" aria-label="Previous clip">‹</button>
+          <button type="button" id="btn-play-pause" class="player-ctrl" aria-label="Pause">❚❚</button>
+          <button type="button" id="btn-next-clip" class="player-ctrl" aria-label="Next clip">›</button>
+        </div>
       </div>
       <p id="relic-empty-overlay" class="empty-overlay" hidden>No video file IDs mapped for this cabin.</p>
       <button type="button" id="relic-start-gate" class="start-gate" hidden>TAP TO START · 20 MIN SET</button>
-      <button type="button" id="relic-player-close" class="player-close" aria-label="Close player">×</button>
-      <p id="relic-clip-label" class="clip-label"></p>
-      <div class="player-controls" aria-label="Playback">
-        <button type="button" id="btn-prev-clip" class="player-ctrl" aria-label="Previous clip">‹</button>
-        <button type="button" id="btn-play-pause" class="player-ctrl" aria-label="Pause">❚❚</button>
-        <button type="button" id="btn-next-clip" class="player-ctrl" aria-label="Next clip">›</button>
-      </div>
     </div>
-    <section class="protocols" aria-label="Tempo protocols">
-      <p><span class="protocol-name">Left-Lead Rule</span> Start each bilateral exercise on the left side, then match it on the right.</p>
-      <p><span class="protocol-name">3-Second Negative</span> Lower under control for three seconds on every rep.</p>
-    </section>
   </div>
 
-  <script src="data/schedule.js?v=v2_9"></script>
-  <script src="data/upperBody.js?v=v2_9"></script>
-  <script src="data/citations.js?v=v2_9"></script>
-  <script src="data/videoArchive.js?v=v2_9"></script>
-  <script src="data/supabaseConfig.js?v=v2_9"></script>
-  <script src="app.js?v=v2_9"></script>
+  <script src="data/schedule.js?v=v2_10"></script>
+  <script src="data/upperBody.js?v=v2_10"></script>
+  <script src="data/citations.js?v=v2_10"></script>
+  <script src="data/videoArchive.js?v=v2_10"></script>
+  <script src="data/supabaseConfig.js?v=v2_10"></script>
+  <script src="app.js?v=v2_10"></script>
 </body>
 </html>

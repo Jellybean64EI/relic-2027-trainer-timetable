@@ -12,6 +12,7 @@
   var TZ = "Europe/London";
   var SET_DURATION_SEC = 1200;
   var SET_MODIFIER_MINUTES = [2, 5, 10, 20];
+  var HUD_IDLE_MS = 5000;
   var EMPTY_MSG = "No video file IDs mapped for this cabin.";
 
   var MODE_LABEL = {
@@ -43,7 +44,8 @@
     paused: false,
     armed: false,
     empty: false,
-    historyPushed: false
+    historyPushed: false,
+    hudTimer: null
   };
 
   function $(id) { return document.getElementById(id); }
@@ -582,6 +584,60 @@
     try { video.focus({ preventScroll: true }); } catch (err) { /* viewport focus is optional */ }
   }
 
+  function playerStage() {
+    var root = $("relic-player");
+    return root ? root.querySelector(".player-stage") : null;
+  }
+
+  function showPlayerHud() {
+    var root = $("relic-player");
+    if (!root || root.hidden) return;
+    var stage = playerStage();
+    var hud = $("relic-player-hud");
+    if (hud) hud.classList.add("is-hud-instant");
+    if (stage) stage.classList.remove("is-hud-idle");
+    if (hud) {
+      hud.inert = false;
+      hud.setAttribute("aria-hidden", "false");
+      void hud.offsetWidth;
+      hud.classList.remove("is-hud-instant");
+    }
+    if (player.hudTimer) clearTimeout(player.hudTimer);
+    player.hudTimer = setTimeout(hidePlayerHud, HUD_IDLE_MS);
+  }
+
+  function hidePlayerHud() {
+    player.hudTimer = null;
+    var root = $("relic-player");
+    if (!root || root.hidden) return;
+    var stage = playerStage();
+    var hud = $("relic-player-hud");
+    if (hud && document.activeElement && hud.contains(document.activeElement)) {
+      var video = activeVideo();
+      if (video) {
+        try { video.focus({ preventScroll: true }); } catch (err) { /* viewport focus is optional */ }
+      }
+    }
+    if (stage) stage.classList.add("is-hud-idle");
+    if (hud) {
+      hud.inert = true;
+      hud.setAttribute("aria-hidden", "true");
+    }
+    setTimeout(function () {
+      var live = $("relic-player");
+      var current = playerStage();
+      if (!live || live.hidden) return;
+      if (current && current.classList.contains("is-hud-idle")) setTimerModsOpen(false);
+    }, 420);
+  }
+
+  function stopHudTimer() {
+    if (player.hudTimer) {
+      clearTimeout(player.hudTimer);
+      player.hudTimer = null;
+    }
+  }
+
   function resumeCountdownIfLive() {
     if (!player.armed || player.empty || player.paused) return;
     if ((player.remaining | 0) <= 0) return;
@@ -802,6 +858,7 @@
   }
 
   function closePlayer() {
+    stopHudTimer();
     setTimerModsOpen(false);
     stopCountdown();
     setTimerModsOpen(false);
@@ -858,6 +915,7 @@
     root.hidden = false;
     root.setAttribute("aria-hidden", "false");
     document.body.classList.add("player-open");
+    showPlayerHud();
     if (!player.historyPushed) {
       try {
         history.pushState({ relicPlayer: 1 }, "");
@@ -909,6 +967,12 @@
 
     $("relic-player-close").addEventListener("click", closePlayer);
     $("relic-start-gate").addEventListener("click", togglePlayPause);
+    var stage = playerStage();
+    if (stage) {
+      stage.addEventListener("pointerdown", function () {
+        showPlayerHud();
+      });
+    }
     $("btn-prev-clip").addEventListener("click", playPreviousVideo);
     $("btn-next-clip").addEventListener("click", playNextVideo);
     $("btn-play-pause").addEventListener("click", togglePlayPause);
@@ -955,6 +1019,9 @@
     document.addEventListener("keydown", function (event) {
       var root = $("relic-player");
       if (!root || root.hidden) return;
+      if (event.key === "Escape" || event.key === " " || event.key === "ArrowRight" || event.key === "ArrowLeft") {
+        showPlayerHud();
+      }
       if (event.key === "Escape") {
         var modsPanel = $("relic-timer-mods");
         if (modsPanel && !modsPanel.hidden) {
