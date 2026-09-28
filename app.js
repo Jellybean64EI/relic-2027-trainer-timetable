@@ -3,6 +3,8 @@
    Completions upsert relic_completions. localStorage is not the source of truth.
    Schedule mode (full | upper) swaps the rotation and its own completion namespace.
    Full Body keeps the legacy bare YYYY-MM-DD key. Upper Body uses upper:YYYY-MM-DD.
+   v14: each day has two trainer videos. tier is a bitmask (1 first, 2 second, 3 dual).
+   completed=true is dual/full only. Legacy completed=true with tier 0 still reads as dual.
    Mode preference stays in memory. */
 (function () {
   "use strict";
@@ -26,7 +28,9 @@
     viewWeek: 1,
     userPicked: false,
     coachOverride: null,
-    completes: {},
+    videos: {},
+    monthCache: null,
+    monthCacheMode: "",
     loaded: false,
     syncNote: "Loading completions",
     syncError: false,
@@ -51,8 +55,14 @@
     flushToken: 0,
     flushFallback: null,
     wantsFlushFrame: false,
-    awaitingReveal: false
+    awaitingReveal: false,
+    credit: null
   };
+
+  var SHIELD_SVG_OPEN = '<svg class="shield-tick" viewBox="0 0 24 28" aria-hidden="true" focusable="false">';
+  var SHIELD_BODY = '<path fill="#ff8c00" stroke="#000" stroke-width="1.15" stroke-linejoin="round" d="M12 1.4 21 5v8.6c0 5.7-3.6 9.9-9 12.6-5.4-2.7-9-6.9-9-12.6V5l9-3.6z"/>';
+  var SHIELD_ONE = '<path fill="none" stroke="#000" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round" d="M7.5 14.2 10.6 17.3 16.7 10.1"/>';
+  var SHIELD_TWO = '<path fill="none" stroke="#000" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" d="M6.2 14.15 8.35 16.3 11.9 11.85"/><path fill="none" stroke="#000" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" d="M11.7 15.05 13.9 17.25 18.15 12.05"/>';
 
   function $(id) { return document.getElementById(id); }
 
@@ -195,23 +205,51 @@
     return dateKey;
   }
 
-  function absorbCompletionRow(next, dateKey, completed) {
-    if (!dateKey || !completed) return;
+  function storageKeyFromRow(dateKey) {
+    if (!dateKey) return "";
     var upperMatch = /^upper:(\d{4}-\d{2}-\d{2})$/.exec(dateKey);
-    if (upperMatch) {
-      next["upper:" + upperMatch[1]] = true;
-      return;
-    }
+    if (upperMatch) return "upper:" + upperMatch[1];
     var fullMatch = /^full:(\d{4}-\d{2}-\d{2})$/.exec(dateKey);
-    if (fullMatch) {
-      next[fullMatch[1]] = true;
-      return;
-    }
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) next[dateKey] = true;
+    if (fullMatch) return fullMatch[1];
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return dateKey;
+    return "";
   }
 
-  function isDateComplete(dateKey, mode) {
-    return !!state.completes[completionStorageKey(dateKey, mode)];
+  /* completed=true is always a full day (legacy rows included).
+     Partial days live in tier 1 or 2 with completed=false.
+     A stale tier 3 with completed=false is treated as cleared. */
+  function normalizeMask(completed, tier) {
+    var hasTier = !(tier === undefined || tier === null || tier === "");
+    var mask = hasTier ? (Number(tier) | 0) : 0;
+    if (mask < 0 || mask > 3) mask = 0;
+    if (completed) return 3;
+    if (!hasTier || mask === 3) return 0;
+    return mask & 3;
+  }
+
+  function absorbCompletionRow(next, dateKey, completed, tier) {
+    var storageKey = storageKeyFromRow(dateKey);
+    if (!storageKey) return;
+    var mask = normalizeMask(!!completed, tier);
+    if (!mask) return;
+    next[storageKey] = mask;
+  }
+
+  function maskFor(dateKey, mode) {
+    return state.videos[completionStorageKey(dateKey, mode)] || 0;
+  }
+
+  function popcount(mask) {
+    var bits = mask & 3;
+    return (bits & 1) + ((bits >> 1) & 1);
+  }
+
+  function displayTier(dateKey, mode) {
+    return popcount(maskFor(dateKey, mode));
+  }
+
+  function shieldSvg(doubleTick) {
+    return SHIELD_SVG_OPEN + SHIELD_BODY + (doubleTick ? SHIELD_TWO : SHIELD_ONE) + "</svg>";
   }
 
   function pullCompletions() {
@@ -222,7 +260,7 @@
       return Promise.resolve();
     }
     beginSyncActivity();
-    return fetch(restUrl("/rest/v1/relic_completions?select=date_key,completed"), {
+    return fetch(restUrl("/rest/v1/relic_completions?select=date_key,completed,tier"), {
       headers: restHeaders()
     }).then(function (response) {
       if (!response.ok) throw new Error("load " + response.status);
@@ -231,10 +269,10 @@
       var next = {};
       if (Array.isArray(rows)) {
         rows.forEach(function (row) {
-          if (row) absorbCompletionRow(next, row.date_key, row.completed);
+          if (row) absorbCompletionRow(next, row.date_key, row.completed, row.tier);
         });
       }
-      state.completes = next;
+      state.videos = next;
       state.loaded = true;
       setSync("Synced", false);
     }).catch(function () {
@@ -245,9 +283,10 @@
     });
   }
 
-  function upsertCompletion(storageKey, completed) {
+  function upsertCompletion(storageKey, mask) {
     var cfg = supabaseCfg();
     if (!cfg.url || !cfg.anonKey) return Promise.resolve(false);
+    var bits = mask & 3;
     return fetch(restUrl("/rest/v1/relic_completions?on_conflict=date_key"), {
       method: "POST",
       headers: restHeaders({
@@ -256,13 +295,44 @@
       }),
       body: JSON.stringify({
         date_key: storageKey,
-        completed: !!completed,
+        completed: bits === 3,
+        tier: bits,
         updated_at: new Date().toISOString()
       })
     }).then(function (response) {
       return response.ok;
     }).catch(function () {
       return false;
+    });
+  }
+
+  function saveMask(storageKey, mask, dateKey, restoreFocus) {
+    var bits = mask & 3;
+    var previous = state.videos[storageKey] || 0;
+    if (bits) state.videos[storageKey] = bits;
+    else delete state.videos[storageKey];
+    state.restoreTickDate = restoreFocus ? dateKey : "";
+    render();
+
+    var gen = (state.saveGen[storageKey] || 0) + 1;
+    state.saveGen[storageKey] = gen;
+    beginSyncActivity();
+    setSync("Saving " + dateKey + "…", false);
+    upsertCompletion(storageKey, bits).then(function (ok) {
+      if (state.saveGen[storageKey] !== gen) return;
+      if (!ok) {
+        if (previous) state.videos[storageKey] = previous;
+        else delete state.videos[storageKey];
+        setSync("Could not save " + dateKey + " to relic_completions.", true);
+        state.restoreTickDate = "";
+        render();
+        return;
+      }
+      setSync("Synced", false);
+    }).then(function () {
+      endSyncActivity();
+    }, function () {
+      endSyncActivity();
     });
   }
 
@@ -288,6 +358,8 @@
         blocks.push(
           '<a class="cite-link" data-cabin="' + escapeHtml(cabinKey) +
           '" data-phase="' + escapeHtml(phase) +
+          '" data-date="' + escapeHtml(day.dateKey) +
+          '" data-slot="' + (index === 1 ? "1" : "0") +
           '" href="' + escapeHtml(href || "#") +
           '" target="_blank" rel="noopener noreferrer">' +
           escapeHtml(label || (index === 0 ? day.doc1 : day.doc2) || "") +
@@ -299,71 +371,163 @@
     return '<td class="relics-cell"><div class="relic-stack">' + blocks.join("") + "</div></td>";
   }
 
-  function activeDaysForWeek(month, week) {
-    var source = viewingUpper() ? upperSchedule() : S;
-    return source.daysInWeekOfMonth(2027, month, week)
-      .filter(function (day) { return !day.isRecovery && day.dayIndex < 6; })
-      .sort(function (a, b) {
+  function trainingDaysForMonth(month) {
+    var mode = activeMode();
+    if (!state.monthCache || state.monthCacheMode !== mode) {
+      state.monthCache = {};
+      state.monthCacheMode = mode;
+    }
+    if (!state.monthCache[month]) {
+      var source = viewingUpper() ? upperSchedule() : S;
+      var days = source.buildMonthDays(2027, month).filter(function (day) {
+        return !day.isRecovery && day.dayIndex < 6;
+      });
+      days.sort(function (a, b) {
         if (a.dateKey < b.dateKey) return -1;
         if (a.dateKey > b.dateKey) return 1;
         return 0;
       });
+      state.monthCache[month] = days;
+    }
+    return state.monthCache[month];
+  }
+
+  function activeDaysForWeek(month, week) {
+    return trainingDaysForMonth(month).filter(function (day) {
+      return day.weekOfMonth === week;
+    });
   }
 
   function activeDaysForView() {
     return activeDaysForWeek(state.viewMonth, state.viewWeek);
   }
 
-  /* Every Mon–Sat row in a week bucket. Weeks 1–3 are six days.
-     Week 4 runs through month end, so it completes only when those extra days are done too.
-     Sunday stays out. Completions come from the active mode's relic_completions keys.
-     Each week of the viewed month is scored on its own. The shield stays on every complete chip.
-     Gold checkbox styling applies only to the week currently on screen. */
+  /* Mon–Sat only. Weeks 1–3 are days 1–7 / 8–14 / 15–21. Week 4 is the 22nd through month end.
+     A period lights up only when every training day in it is dual-tier (both videos).
+     Tick count is the number of finished trainer videos (0–2 per day). Sunday stays out. */
 
-  function weekIsGolden(days) {
-    if (!days || days.length < 6) return false;
-    for (var i = 0; i < days.length; i++) {
-      if (!isDateComplete(days[i].dateKey)) return false;
+  function scoreDays(days) {
+    var ticks = 0;
+    var fullDays = 0;
+    var total = days ? days.length : 0;
+    for (var i = 0; i < total; i++) {
+      var mask = maskFor(days[i].dateKey);
+      ticks += popcount(mask);
+      if ((mask & 3) === 3) fullDays += 1;
     }
-    return true;
+    return {
+      total: total,
+      fullDays: fullDays,
+      ticks: ticks,
+      complete: total >= 6 && fullDays === total
+    };
   }
 
-  function applyGoldenLock(viewedDays) {
-    var viewedGolden = weekIsGolden(viewedDays);
-    var card = $("relic-card");
-    if (card) {
-      card.classList.toggle("is-golden-week", viewedGolden);
-      card.setAttribute("data-golden-week", viewedGolden ? "true" : "false");
+  function paintChip(btn, score) {
+    var complete = !!score.complete;
+    btn.classList.toggle("is-complete", complete);
+    btn.classList.remove("is-golden");
+    btn.setAttribute("data-tick-count", String(score.ticks));
+    btn.setAttribute("data-full-days", String(score.fullDays));
+    var badge = btn.querySelector(".shield-complete");
+    if (!badge) {
+      badge = document.createElement("span");
+      badge.className = "shield-complete";
+      badge.hidden = true;
+      btn.appendChild(badge);
     }
+    if (!complete) {
+      badge.hidden = true;
+      badge.innerHTML = "";
+      return;
+    }
+    badge.hidden = false;
+    badge.innerHTML = shieldSvg(true) +
+      '<span class="shield-count">' + score.ticks + '<span class="sr-only"> ticks</span></span>';
+  }
+
+  function paintYear(score) {
+    var badge = $("year-badge");
+    if (!badge) return;
+    badge.setAttribute("data-tick-count", String(score.ticks));
+    badge.setAttribute("data-year-complete", score.complete ? "true" : "false");
+    if (!score.complete) {
+      badge.hidden = true;
+      badge.classList.remove("is-complete");
+      badge.innerHTML = "";
+      return;
+    }
+    badge.hidden = false;
+    badge.classList.add("is-complete");
+    badge.innerHTML = shieldSvg(true) +
+      '<span class="shield-count">' + score.ticks + '<span class="sr-only"> ticks</span></span>' +
+      '<span class="year-badge-label">2027</span>';
+  }
+
+  function applyPeriodMarks(viewedDays) {
+    var monthScores = [];
+    var yearTicks = 0;
+    var yearFull = 0;
+    var yearTotal = 0;
+    var monthsComplete = 0;
+    for (var month = 1; month <= 12; month++) {
+      var score = scoreDays(trainingDaysForMonth(month));
+      monthScores[month] = score;
+      yearTicks += score.ticks;
+      yearFull += score.fullDays;
+      yearTotal += score.total;
+      if (score.complete) monthsComplete += 1;
+    }
+    document.querySelectorAll(".mbtn").forEach(function (btn) {
+      paintChip(btn, monthScores[+btn.getAttribute("data-month")] || scoreDays([]));
+    });
     document.querySelectorAll(".wtab").forEach(function (btn) {
       var week = +btn.getAttribute("data-week");
       var days = week === state.viewWeek ? viewedDays : activeDaysForWeek(state.viewMonth, week);
-      var complete = weekIsGolden(days);
-      btn.classList.toggle("is-golden", complete);
-      var badge = btn.querySelector(".shield-complete");
-      if (!badge) return;
-      badge.hidden = !complete;
+      paintChip(btn, scoreDays(days));
     });
-    document.querySelectorAll("#tt-body .tick-hit").forEach(function (hit) {
-      hit.classList.toggle("is-golden", viewedGolden);
-      var input = hit.querySelector("input.tick");
-      if (!input) return;
-      var dateKey = input.getAttribute("data-date") || "";
-      input.setAttribute("aria-label", "Completed " + dateKey);
+    var yearComplete = monthsComplete === 12 && yearTotal >= 6 && yearFull === yearTotal;
+    paintYear({
+      total: yearTotal,
+      fullDays: yearFull,
+      ticks: yearTicks,
+      complete: yearComplete
     });
+    var viewed = scoreDays(viewedDays);
+    var card = $("relic-card");
+    if (!card) return;
+    var monthScore = monthScores[state.viewMonth];
+    card.setAttribute("data-week-complete", viewed.complete ? "true" : "false");
+    card.setAttribute("data-week-ticks", String(viewed.ticks));
+    card.setAttribute("data-month-complete", monthScore && monthScore.complete ? "true" : "false");
+    card.setAttribute("data-month-ticks", String(monthScore ? monthScore.ticks : 0));
+    card.setAttribute("data-year-complete", yearComplete ? "true" : "false");
+    card.setAttribute("data-year-ticks", String(yearTicks));
+  }
+
+  function tierLabel(dateKey, mask) {
+    var bits = mask & 3;
+    if (bits === 3) return "Both trainer videos done " + dateKey;
+    if (bits === 1) return "First trainer video done " + dateKey;
+    if (bits === 2) return "Second trainer video done " + dateKey;
+    return "No trainer video done " + dateKey;
   }
 
   function doneHtml(day, parts) {
     if (!canTick(day.dateKey, parts)) {
       return '<td class="done-cell"><span class="lock-badge">LOCKED</span></td>';
     }
-    var checked = isDateComplete(day.dateKey) ? " checked" : "";
+    var mask = maskFor(day.dateKey);
+    var tier = popcount(mask);
+    var checked = tier >= 2 ? "true" : (tier === 1 ? "mixed" : "false");
+    var emblem = tier >= 2 ? shieldSvg(true) : (tier === 1 ? shieldSvg(false) : "");
     return (
-      '<td class="done-cell"><label class="tick-hit">' +
-      '<input type="checkbox" class="tick" data-date="' + day.dateKey + '"' + checked +
-      ' aria-label="Completed ' + day.dateKey + '" />' +
-      '<span class="tick-box" aria-hidden="true"></span>' +
-      "</label></td>"
+      '<td class="done-cell"><button type="button" class="tick-hit" data-date="' + day.dateKey +
+      '" data-tier="' + tier + '" data-videos="' + (mask & 3) +
+      '" role="checkbox" aria-checked="' + checked +
+      '" aria-label="' + tierLabel(day.dateKey, mask) + '">' +
+      '<span class="tick-box" aria-hidden="true">' + emblem + "</span>" +
+      "</button></td>"
     );
   }
 
@@ -441,7 +605,9 @@
       var isToday = day.dateKey === parts.dateKey;
       var classes = [];
       if (isToday) classes.push("today");
-      if (isDateComplete(day.dateKey)) classes.push("is-done");
+      var tier = displayTier(day.dateKey);
+      if (tier === 1) classes.push("is-tier-1");
+      if (tier >= 2) classes.push("is-tier-2", "is-done");
       html += '<tr class="' + classes.join(" ") + '">' +
         '<td class="day-cell">' +
           '<span class="day-name">' + day.dayName + "</span>" +
@@ -453,44 +619,39 @@
       "</tr>";
     });
     tbody.innerHTML = html;
-    applyGoldenLock(weekDays);
+    applyPeriodMarks(weekDays);
+    if (state.restoreTickDate) {
+      var again = tbody.querySelector('button.tick-hit[data-date="' + state.restoreTickDate + '"]');
+      state.restoreTickDate = "";
+      if (again) {
+        try { again.focus({ preventScroll: true }); } catch (err) {
+          try { again.focus(); } catch (err2) { /* focus is optional */ }
+        }
+      }
+    }
   }
 
-  function onTick(input) {
-    var dateKey = input.getAttribute("data-date");
+  /* Empty → first video (bit 0). Single shield → both videos. Double shield → clear.
+     A single shield that is only the second video still advances to dual, then a later tap clears. */
+  function onTick(btn) {
+    var dateKey = btn.getAttribute("data-date");
     var parts = londonParts(state.now || getNow());
-    if (!dateKey || !canTick(dateKey, parts)) {
-      input.checked = false;
-      return;
-    }
-    var completed = !!input.checked;
-    var storageKey = completionStorageKey(dateKey);
-    if (completed) state.completes[storageKey] = true;
-    else delete state.completes[storageKey];
-    var row = input.closest("tr");
-    if (row) row.classList.toggle("is-done", completed);
-    applyGoldenLock(activeDaysForView());
+    if (!dateKey || !canTick(dateKey, parts)) return;
+    var tier = displayTier(dateKey);
+    var nextMask = tier <= 0 ? 1 : (tier === 1 ? 3 : 0);
+    saveMask(completionStorageKey(dateKey), nextMask, dateKey, true);
+  }
 
-    var gen = (state.saveGen[storageKey] || 0) + 1;
-    state.saveGen[storageKey] = gen;
-    beginSyncActivity();
-    setSync("Saving " + dateKey + "…", false);
-    upsertCompletion(storageKey, completed).then(function (ok) {
-      if (state.saveGen[storageKey] !== gen) return;
-      if (!ok) {
-        if (completed) delete state.completes[storageKey];
-        else state.completes[storageKey] = true;
-        setSync("Could not save " + dateKey + " to relic_completions.", true);
-        render();
-        return;
-      }
-      setSync("Synced", false);
-      applyGoldenLock(activeDaysForView());
-    }).then(function () {
-      endSyncActivity();
-    }, function () {
-      endSyncActivity();
-    });
+  function noteSetComplete() {
+    var credit = player.credit;
+    if (!credit || !credit.dateKey || !credit.storageKey) return;
+    var parts = londonParts(state.now || getNow());
+    if (!canTick(credit.dateKey, parts)) return;
+    var storageKey = credit.storageKey;
+    var current = state.videos[storageKey] || 0;
+    var bit = credit.slot === 1 ? 2 : 1;
+    if ((current & bit) === bit) return;
+    saveMask(storageKey, (current | bit) & 3, credit.dateKey, false);
   }
 
   function pickMonth(month) {
@@ -1071,6 +1232,7 @@
       player.remaining = 0;
       paintTimer();
       stopCountdown();
+      noteSetComplete();
       setTimeout(playNextVideo, 0);
       return;
     }
@@ -1155,6 +1317,7 @@
     player.clips = [];
     player.index = 0;
     player.cabin = null;
+    player.credit = null;
     setMediaNote(false);
     try {
       var video = activeVideo();
@@ -1182,8 +1345,9 @@
     }
   }
 
-  function openCabin(cabinKey, phase) {
+  function openCabin(cabinKey, phase, dateKey, slot) {
     if (!cabinKey) return;
+    player.credit = null;
     player.cabin = cabinKey;
     player.phase = phase || "Base";
     player.index = 0;
@@ -1200,6 +1364,7 @@
     }
 
     if (!player.clips.length) {
+      player.credit = null;
       player.awaitingReveal = false;
       if (root) {
         root.classList.remove("is-awaiting-frame");
@@ -1224,6 +1389,13 @@
     document.body.classList.add("player-open");
     if (!player.awaitingReveal) showPlayerHud();
 
+    if (dateKey) {
+      player.credit = {
+        dateKey: String(dateKey),
+        slot: String(slot) === "1" ? 1 : 0,
+        storageKey: completionStorageKey(String(dateKey))
+      };
+    }
     player.empty = false;
     player.paused = false;
     setEmptyOverlay(false);
@@ -1273,10 +1445,11 @@
       if (navBtn) navBtn.focus();
     });
     setNavOpen(false);
-    $("tt-body").addEventListener("change", function (event) {
-      var input = event.target.closest("input.tick");
-      if (!input) return;
-      onTick(input);
+    $("tt-body").addEventListener("click", function (event) {
+      var hit = event.target.closest("button.tick-hit");
+      if (!hit) return;
+      event.preventDefault();
+      onTick(hit);
     });
     $("tt-body").addEventListener("pointerover", function (event) {
       var link = event.target.closest("a.cite-link");
@@ -1293,7 +1466,12 @@
       if (!link) return;
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
       event.preventDefault();
-      openCabin(link.getAttribute("data-cabin"), link.getAttribute("data-phase") || "Base");
+      openCabin(
+        link.getAttribute("data-cabin"),
+        link.getAttribute("data-phase") || "Base",
+        link.getAttribute("data-date"),
+        link.getAttribute("data-slot")
+      );
     });
 
     $("relic-player-close").addEventListener("click", closePlayer);
@@ -1425,6 +1603,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
+    build: "v14",
     get setSeconds() { return SET_DURATION_SEC; },
     get SET_DURATION_SEC() { return SET_DURATION_SEC; },
     get remaining() { return player.remaining; },
