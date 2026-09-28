@@ -317,7 +317,7 @@ window.RELIC_FOOD_SHOP = (function () {
   }
 
   return {
-    build: "v18",
+    build: "v19",
     priceBasis: "placeholder-sainsburys-style",
     proteins: ["Chicken", "Turkey Mince", "Beef Mince", "Salmon", "Eggs"],
     carbs: ["Potatoes", "Rice"],

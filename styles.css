@@ -1667,7 +1667,7 @@ table.fuel-table col.col-relics { width: 78%; }
   outline-offset: 2px;
 }
 
-/* v18 Food OS rooms. The training table above keeps its three columns. */
+/* v19 Food OS rooms. The training table above keeps its three columns. */
 .food-date {
   display: flex;
   flex-direction: column;

@@ -13,7 +13,9 @@
    set closes the player and returns to the timetable. Week chips keep a single
    slot and a dual slot. Calisthenics is Q4 2027 only.
    v18: Food OS is four rooms behind the drawer. It does not write
-   relic_completions, move the player timer, or open the CUE panel. */
+   relic_completions, move the player timer, or open the CUE panel.
+   v19: day ticks glow, cabin switches keep their scroll, weekly rows carry
+   portions, and the Sainsbury’s list locks into localStorage only. */
 (function () {
   "use strict";
 
@@ -2405,7 +2407,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v18",
+    build: "v19",
     get nutrition() {
       return {
         shop: foodShop(),

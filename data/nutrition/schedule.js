@@ -93,12 +93,13 @@ window.RELIC_FOOD_SCHEDULE = (function () {
     var proteinG = protein === "Salmon" ? 180 : (protein === "Eggs" ? 180 : 300);
     var carbG = carb === "Rice" ? 200 : (carb === "Pasta" ? 120 : 400);
     var carbName = carb === "Rice" ? "rice" : (carb === "Pasta" ? "pasta" : "potato");
+    var vegG = carb === "Pasta" ? 200 : (protein === "Eggs" ? 80 : 150);
     return {
       proteinG: proteinG,
       proteinName: protein,
       carbG: carbG,
       carbName: carbName,
-      vegG: protein === "Eggs" ? 80 : 150,
+      vegG: vegG,
       vegName: "veg",
       fruitPortions: 2,
       vegPortions: 3
@@ -144,7 +145,7 @@ window.RELIC_FOOD_SCHEDULE = (function () {
       if (!next && basketHas(ids, PROTEIN_SKUS[name] || [])) next = name;
     });
     if (!next) return cue;
-    var carb = next === "Chicken" || next === "Beef Mince" ? "Potatoes" : "Rice";
+    var carb = next === "Beef Mince" && cue.band === "intense" ? "Potatoes" : "Rice";
     if (next === "Turkey Mince" || (next === "Beef Mince" && cue.band !== "intense")) carb = "Pasta";
     cue.protein = next;
     cue.carb = carb;
@@ -165,7 +166,10 @@ window.RELIC_FOOD_SCHEDULE = (function () {
     var picked = resolveProtein(day && day.dayName, band);
     var flex = day && day.dayName === "SAT";
     var mealProtein = flex ? "Eggs" : picked.protein;
-    var mealCarb = flex ? "Pasta" : (picked.protein === "Turkey Mince" || (picked.protein === "Beef Mince" && band !== "intense") ? "Pasta" : picked.carb);
+    var mealCarb = flex ? "Pasta" : (
+      picked.protein === "Chicken" ? "Rice" :
+      (picked.protein === "Turkey Mince" || (picked.protein === "Beef Mince" && band !== "intense") ? "Pasta" : picked.carb)
+    );
     var mealId = mealFor(picked.protein, band, day && day.dayName);
     var extractionId = smoothieFor(day);
     var meal = apiMeals.meals[mealId];
@@ -319,7 +323,7 @@ window.RELIC_FOOD_SCHEDULE = (function () {
   }
 
   return {
-    build: "v18",
+    build: "v19",
     rotation: ROTATION,
     cueForDay: cueForDay,
     composeFromBasket: composeFromBasket,
