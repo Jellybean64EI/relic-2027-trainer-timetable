@@ -435,6 +435,23 @@ h1 {
   color: #d8ffe8;
 }
 
+/* v20.1: selected week chips stay gold until every day is dual.
+   The DUAL slot itself turns green as soon as one day is dual. */
+.wtab .week-slot-dual.is-started,
+.wtab .week-slot-dual.is-full,
+.wtab.is-selected .week-slot-dual.is-started,
+.wtab.is-selected .week-slot-dual.is-full {
+  border-color: #3dff7a;
+  box-shadow: 0 0 12px #3dff7a;
+}
+
+.wtab .week-slot-dual.is-started .week-slot-kicker,
+.wtab.is-selected .week-slot-dual.is-started .week-slot-kicker,
+.wtab .week-slot-dual.is-full .week-slot-kicker,
+.wtab.is-selected .week-slot-dual.is-full .week-slot-kicker {
+  color: #3dff7a;
+}
+
 .wtab .shield-tick {
   width: 16px;
   height: 19px;
@@ -707,7 +724,13 @@ tr.today td {
 }
 
 .tick-hit[data-tier="2"] .tick-box {
-  filter: drop-shadow(0 0 4px #3dff7a) drop-shadow(0 0 12px #19c45a);
+  filter: drop-shadow(0 0 3px #3dff7a) drop-shadow(0 0 10px #3dff7a) drop-shadow(0 0 18px #19c45a);
+  box-shadow: 0 0 12px 3px rgba(61, 255, 122, 0.95);
+}
+
+.tick-hit[data-tier="2"] .shield-tick.is-dual path:first-of-type,
+.tick-hit[data-tier="2"] .tick-box svg path:first-of-type {
+  fill: #3dff7a;
 }
 
 tr.is-tier-1 td {
