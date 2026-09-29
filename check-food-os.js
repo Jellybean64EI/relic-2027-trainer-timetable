@@ -82,10 +82,17 @@ if (app.indexOf('["protein", "veg", "fruit", "dairy", "freezer", "botanical", "o
   process.exit(1);
 }
 const spec = fs.readFileSync("PLATFORM_SPEC.md", "utf8");
-if (spec.indexOf("ZIP plus a manifest is future") === -1 || spec.indexOf("extractionId") === -1 || spec.indexOf("no dinner smoothie") === -1) {
+if (spec.indexOf("ZIP plus a manifest is future") === -1 || spec.indexOf("extractionId") === -1 || spec.indexOf("no dinner smoothie") === -1 || spec.indexOf("docs/FOOD_OS_HANDSHAKE.md") === -1) {
   console.error("FAIL handshake spec");
   process.exit(1);
 }
+const handshake = fs.readFileSync("docs/FOOD_OS_HANDSHAKE.md", "utf8");
+["2026-09-29", "JSON **object**", "not a ZIP", "runtime kind `extraction`", "{ \"notes\": { \"dateKey\": { \"lunch\": \"\", \"mealId\": \"\", \"note\": \"\" } } }", "CARD_FORWARD", "extractionId", "no dinner smoothie", "relic_completions", "eggsPasture", "one a day", "protein", "ZIP plus a manifest", "OCR"].forEach(function (needle) {
+  if (handshake.indexOf(needle) === -1) {
+    console.error("FAIL handshake contract missing " + needle);
+    process.exit(1);
+  }
+});
 const meals = ctx.window.RELIC_FOOD_MEALS;
 const extract = ctx.window.RELIC_FOOD_EXTRACTIONS;
 ["berry-banana-brazil", "cherry-banana-cream", "mango-banana-nut", "berry-oat-almond", "orange-berry-yogurt"].forEach(function (id) {
