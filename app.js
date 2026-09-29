@@ -1827,7 +1827,9 @@
     var sides = rows.filter(function (row) {
       return (row.tag === "veg" || row.tag === "freezer") && fruits.indexOf(row) === -1;
     });
-    var dairy = rows.filter(function (row) { return row.tag === "dairy"; });
+    var dairy = rows.filter(function (row) {
+      return row.tag === "dairy" && /milk|yogurt|kefir/i.test(row.name);
+    });
     var botanicals = rows.filter(function (row) { return row.tag === "botanical"; });
     var staples = rows.filter(function (row) {
       return row.tag === "other" && /rice|potato|pasta|bread/i.test(row.name);
@@ -1926,6 +1928,7 @@
         return '<article class="basket-card">' +
           "<h4>" + escapeHtml(card.name) + "</h4>" +
           "<p>" + escapeHtml(card.tagline || "") + "</p>" +
+          "<p>" + escapeHtml(card.tip || "") + "</p>" +
           "<p>" + escapeHtml(lines) + "</p>" +
           '<ul class="recipe-citations">' + cites + "</ul>" +
           '<button type="button" data-shop-action="save-draft" data-draft-index="' + index + '">Save draft</button>' +
@@ -3574,8 +3577,12 @@
         if (!item) return;
         var fieldName = shopField.getAttribute("data-shop-field");
         if (fieldName === "name") {
-          if (item.customName) item.customName = shopField.value.trim() || item.customName;
-          else item.label = shopField.value.trim();
+          var previous = shopItemLabel(item);
+          var nextName = shopField.value.trim();
+          if (item.customName) item.customName = nextName || item.customName;
+          else if (nextName) item.label = nextName;
+          var cites = normalizeCitations(item.citations);
+          if (!cites.length || (cites.length === 1 && cites[0] === previous)) item.citations = [shopItemLabel(item)];
         }
         if (fieldName === "tag") item.tag = normalizeTag(shopField.value) || "other";
         if (fieldName === "citations") item.citations = linesOf(shopField.value);
