@@ -69,6 +69,10 @@
     hgMonth: 10,
     hgYear: 2026,
     hgWeek: 1,
+    foodGrid: null,
+    foodPackAsk: "",
+    foodLandCell: "",
+    foodOffer: "",
     foodToast: "",
     foodToastUntil: 0,
     foodFlyError: "",
@@ -80,6 +84,10 @@
     smoothieMonth: 10,
     smoothieYear: 2026,
     smoothieWeek: 1,
+    smoothieGrid: null,
+    smoothiePackAsk: "",
+    smoothieLandCell: "",
+    smoothieOffer: "",
     smoothieFlyError: "",
     smoothieToast: "",
     smoothieToastUntil: 0,
@@ -730,8 +738,8 @@
   var FOOD_TITLES = {
     meals: "Meal Recipe Cards",
     cabinet: "Main Meal Cabinet",
-    hg: "Food Schedule HG",
-    final: "Final Meal Prep Scheduled Timetables",
+    hg: "Draft Food Schedule",
+    final: "My 4-Week Food Timetable",
     savelater: "Save later",
     shop: "Monthly Shop",
     extractions: "Smoothie / Extraction Cards"
@@ -2898,6 +2906,11 @@
       render();
       return;
     }
+    if (action === "finished_week" || action === "month_complete") {
+      state.foodFlyError = "Lock the draft into the final timetable. Save later waits until every slot is ticked.";
+      render();
+      return;
+    }
     if (action === "finished_week") {
       var later = readV22(FOOD_V22.later);
       later.cards = later.cards || {};
@@ -2936,12 +2949,8 @@
       ids.forEach(function (id) {
         if (id && hg.pool.indexOf(id) === -1) hg.pool.push(id);
       });
-      if (action === "reuse_hg" && extra.card && extra.card.placements) {
-        hg.placements = hg.placements || {};
-        Object.keys(extra.card.placements).forEach(function (date) {
-          hg.placements[date] = extra.card.placements[date];
-        });
-      }
+      if (action === "add_hg") landFoodCard(hg, cardId);
+      if (action === "reuse_hg" && extra.card) restoreFoodMonth(hg, extra.card);
       writeV22(FOOD_V22.hg, hg);
     }
     if (action === "month_complete") {
@@ -3115,6 +3124,377 @@
     });
   }
 
+  var FOOD_SLOTS = ["breakfast", "lunch", "dinner"];
+  var PACK_ASK = "All 4 weeks complete — add this timetable to Save later?";
+
+  function monthKey(year, month) {
+    return year + "-" + pad2(month);
+  }
+
+  function ensureMonthStore(record) {
+    record.months = record.months || {};
+    if (!record.monthsMigrated && record.placements && Object.keys(record.placements).length) {
+      var legacy = record.months["2026-10"] || { placements: {} };
+      legacy.placements = legacy.placements || {};
+      Object.keys(record.placements).forEach(function (date) {
+        if (!legacy.placements[date]) legacy.placements[date] = record.placements[date];
+      });
+      record.months["2026-10"] = legacy;
+      record.monthsMigrated = true;
+    }
+    return record;
+  }
+
+  function monthBucket(record, year, month) {
+    ensureMonthStore(record);
+    var key = monthKey(year, month);
+    if (!record.months[key]) record.months[key] = { placements: {} };
+    record.months[key].placements = record.months[key].placements || {};
+    return record.months[key];
+  }
+
+  function firstEmptyCell(record, year, month, slots) {
+    var weeks = hgWeeks(year, month);
+    for (var w = 0; w < weeks.length; w++) {
+      for (var d = 0; d < weeks[w].length; d++) {
+        var day = weeks[w][d];
+        var row = monthBucket(record, year, month).placements[day.dateKey] || {};
+        for (var s = 0; s < slots.length; s++) {
+          if (!row[slots[s]]) return { date: day.dateKey, slot: slots[s], week: w + 1 };
+        }
+      }
+    }
+    return null;
+  }
+
+  function requiredTokens(year, month, slots) {
+    var tokens = [];
+    hgWeeks(year, month).forEach(function (week, index) {
+      week.forEach(function (day) {
+        slots.forEach(function (slot) {
+          tokens.push({ date: day.dateKey, slot: slot, week: index + 1 });
+        });
+      });
+    });
+    return tokens;
+  }
+
+  function weekdayShort(dateKey) {
+    return String(londonParts(new Date(dateKey + "T12:00:00Z")).weekday || "").slice(0, 3);
+  }
+
+  function copyPlacementsInto(bucket, card, slots) {
+    function writeRow(date, row) {
+      var next = bucket.placements[date] ? Object.assign({}, bucket.placements[date]) : {};
+      slots.forEach(function (slot) {
+        if (row && row[slot]) next[slot] = row[slot];
+      });
+      bucket.placements[date] = next;
+    }
+    (card.weeks || []).forEach(function (week) {
+      Object.keys(week.placements || {}).forEach(function (date) {
+        writeRow(date, week.placements[date]);
+      });
+    });
+    if (card.placements) {
+      Object.keys(card.placements).forEach(function (date) {
+        writeRow(date, card.placements[date]);
+      });
+    }
+  }
+
+  function landFoodCard(hg, cardId) {
+    ensureMonthStore(hg);
+    var drop = firstEmptyCell(hg, state.hgYear, state.hgMonth, FOOD_SLOTS);
+    if (!drop) return;
+    var row = monthBucket(hg, state.hgYear, state.hgMonth).placements[drop.date] || {};
+    row[drop.slot] = cardId;
+    monthBucket(hg, state.hgYear, state.hgMonth).placements[drop.date] = row;
+    state.foodLandCell = drop.date + "|" + drop.slot;
+    state.hgWeek = drop.week;
+  }
+
+  function restoreFoodMonth(hg, card) {
+    var parts = String(card.month || monthKey(state.hgYear, state.hgMonth)).split("-");
+    var year = +parts[0] || state.hgYear;
+    var month = +parts[1] || state.hgMonth;
+    copyPlacementsInto(monthBucket(hg, year, month), card, FOOD_SLOTS);
+    state.hgYear = year;
+    state.hgMonth = month;
+    state.hgWindow = month >= 10 ? "2026-10" : "2027-01";
+    state.hgWeek = 1;
+  }
+
+  function foodMonthRecord() {
+    var fin = readV22(FOOD_V22.final);
+    fin.months = fin.months || {};
+    return fin;
+  }
+
+  function resetFoodTick(date, slot) {
+    var fin = foodMonthRecord();
+    var pack = fin.months[monthKey(state.hgYear, state.hgMonth)];
+    if (!pack || !pack.ticks) return;
+    delete pack.ticks[date + "|" + slot];
+    writeV22(FOOD_V22.final, fin);
+  }
+
+  function placeFoodCell(date, slot, cardId) {
+    var card = mealById(cardId);
+    if (!card) {
+      state.foodFlyError = "Pick a meal from the pool first.";
+      render();
+      return;
+    }
+    if (slot === "dinner" && card.kind === "extraction") {
+      state.foodFlyError = "Extractions aren't dinner.";
+      render();
+      return;
+    }
+    var hg = readV22(FOOD_V22.hg);
+    var bucket = monthBucket(hg, state.hgYear, state.hgMonth);
+    var row = bucket.placements[date] || {};
+    if (row[slot] && row[slot] !== cardId) resetFoodTick(date, slot);
+    row[slot] = cardId;
+    bucket.placements[date] = row;
+    writeV22(FOOD_V22.hg, hg);
+    state.foodLandCell = date + "|" + slot;
+    state.foodFlyError = "";
+    state.foodGrid = null;
+    render();
+  }
+
+  function clearFoodCell(date, slot) {
+    var hg = readV22(FOOD_V22.hg);
+    var bucket = monthBucket(hg, state.hgYear, state.hgMonth);
+    var row = bucket.placements[date] || {};
+    delete row[slot];
+    bucket.placements[date] = row;
+    writeV22(FOOD_V22.hg, hg);
+    var fin = foodMonthRecord();
+    var key = monthKey(state.hgYear, state.hgMonth);
+    var pack = fin.months[key];
+    if (pack) {
+      if (pack.cards) delete pack.cards[date + "|" + slot];
+      if (pack.ticks) delete pack.ticks[date + "|" + slot];
+      writeV22(FOOD_V22.final, fin);
+    }
+    state.foodGrid = null;
+    state.foodPackAsk = "";
+    render();
+  }
+
+  function copyFoodWeekday(date, slot, cardId, weekday) {
+    var hg = readV22(FOOD_V22.hg);
+    var bucket = monthBucket(hg, state.hgYear, state.hgMonth);
+    hgWeeks(state.hgYear, state.hgMonth).forEach(function (week) {
+      week.forEach(function (day) {
+        if (String(day.weekday || "").slice(0, 3) !== weekday) return;
+        var row = bucket.placements[day.dateKey] || {};
+        if (row[slot] && row[slot] !== cardId) resetFoodTick(day.dateKey, slot);
+        row[slot] = cardId;
+        bucket.placements[day.dateKey] = row;
+      });
+    });
+    writeV22(FOOD_V22.hg, hg);
+    state.foodLandCell = date + "|" + slot;
+    state.foodGrid = null;
+    render();
+  }
+
+  function lockFoodMonth() {
+    var year = state.hgYear;
+    var month = state.hgMonth;
+    var hg = readV22(FOOD_V22.hg);
+    var bucket = monthBucket(hg, year, month);
+    var tokens = requiredTokens(year, month, FOOD_SLOTS);
+    var missing = tokens.some(function (token) {
+      return !((bucket.placements[token.date] || {})[token.slot]);
+    });
+    if (missing) {
+      state.foodFlyError = "Fill every breakfast, lunch, and dinner across Weeks 1–4 before locking.";
+      render();
+      return;
+    }
+    var fin = foodMonthRecord();
+    var key = monthKey(year, month);
+    var prev = fin.months[key] || { cards: {}, ticks: {} };
+    var cards = {};
+    var ticks = {};
+    var weeks = [];
+    hgWeeks(year, month).forEach(function (week, index) {
+      var placements = {};
+      week.forEach(function (day) {
+        var row = bucket.placements[day.dateKey] || {};
+        placements[day.dateKey] = {
+          breakfast: row.breakfast || "",
+          lunch: row.lunch || "",
+          dinner: row.dinner || ""
+        };
+      });
+      weeks.push({ week: index + 1, placements: placements });
+    });
+    tokens.forEach(function (token) {
+      var id = bucket.placements[token.date][token.slot];
+      var mark = token.date + "|" + token.slot;
+      cards[mark] = id;
+      if (prev.cards && prev.cards[mark] === id && prev.ticks && prev.ticks[mark]) ticks[mark] = true;
+    });
+    fin.months[key] = {
+      month: key,
+      title: MONTH_LABEL[month] + " " + year,
+      weeks: weeks,
+      cards: cards,
+      ticks: ticks,
+      locked: true
+    };
+    fin.order = fin.order || [];
+    if (fin.order.indexOf(key) === -1) fin.order.push(key);
+    writeV22(FOOD_V22.final, fin);
+    state.foodGrid = null;
+    state.foodPackAsk = "";
+    state.foodFlyError = "";
+    openFoodRoom("final");
+  }
+
+  function foodAllTicked() {
+    var fin = foodMonthRecord();
+    var pack = fin.months[monthKey(state.hgYear, state.hgMonth)];
+    if (!pack || !pack.locked) return false;
+    return requiredTokens(state.hgYear, state.hgMonth, FOOD_SLOTS).every(function (token) {
+      var mark = token.date + "|" + token.slot;
+      return pack.cards && pack.cards[mark] && pack.ticks && pack.ticks[mark];
+    });
+  }
+
+  function syncFoodPackAsk() {
+    if (!foodAllTicked()) {
+      state.foodPackAsk = "";
+      return;
+    }
+    if (state.foodPackAsk !== "dismissed") state.foodPackAsk = "ask";
+  }
+
+  function rememberFoodToast() {
+    state.foodToastUntil = Date.now() + 4000;
+    setTimeout(function () {
+      if (state.foodToastUntil && Date.now() >= state.foodToastUntil) {
+        state.foodToast = "";
+        render();
+      }
+    }, 4100);
+  }
+
+  function saveFoodPack() {
+    if (!foodAllTicked()) {
+      state.foodFlyError = "Lock the draft into the final timetable. Save later waits until every slot is ticked.";
+      render();
+      return;
+    }
+    var key = monthKey(state.hgYear, state.hgMonth);
+    var id = "pack-" + key;
+    var later = readV22(FOOD_V22.later);
+    later.cards = later.cards || {};
+    later.order = later.order || [];
+    if (later.cards[id]) {
+      state.foodToast = "This card has already been added to save later.";
+      state.foodFlyError = "";
+      state.foodPackAsk = "";
+      rememberFoodToast();
+      render();
+      return;
+    }
+    var pack = foodMonthRecord().months[key];
+    later.cards[id] = {
+      cardId: id,
+      title: pack.title + " timetable",
+      madeOn: londonParts(new Date()).dateKey,
+      month: key,
+      weeks: pack.weeks,
+      cards: pack.cards,
+      ticks: pack.ticks
+    };
+    later.order.push(id);
+    writeV22(FOOD_V22.later, later);
+    state.foodPackAsk = "";
+    state.foodOffer = id;
+    state.foodFlyError = "";
+    openFoodRoom("savelater");
+  }
+
+  function reopenFoodPack(cardId) {
+    var card = (readV22(FOOD_V22.later).cards || {})[cardId];
+    if (!card) return;
+    var hg = readV22(FOOD_V22.hg);
+    restoreFoodMonth(hg, card);
+    writeV22(FOOD_V22.hg, hg);
+    state.foodGrid = null;
+    state.foodOffer = "";
+    openFoodRoom("hg");
+  }
+
+  function cleanFoodMonth() {
+    var hg = readV22(FOOD_V22.hg);
+    var bucket = monthBucket(hg, state.hgYear, state.hgMonth);
+    bucket.placements = {};
+    writeV22(FOOD_V22.hg, hg);
+    state.foodOffer = "";
+    state.foodGrid = null;
+    openFoodRoom("hg");
+  }
+
+  function toggleFoodTick(date, slot) {
+    var fin = foodMonthRecord();
+    var pack = fin.months[monthKey(state.hgYear, state.hgMonth)];
+    if (!pack || !pack.cards || !pack.cards[date + "|" + slot]) return;
+    pack.ticks = pack.ticks || {};
+    var mark = date + "|" + slot;
+    if (pack.ticks[mark]) delete pack.ticks[mark];
+    else pack.ticks[mark] = true;
+    writeV22(FOOD_V22.final, fin);
+    state.foodGrid = null;
+    syncFoodPackAsk();
+    render();
+  }
+
+  function foodFiltersHtml() {
+    var months = hgWindowMonths();
+    var html = '<div class="food-filters">';
+    html += '<button type="button" data-v22="window" data-window="2026-10"' + (state.hgWindow === "2026-10" ? ' aria-pressed="true"' : "") + ">Oct–Dec</button>";
+    html += '<button type="button" data-v22="window" data-window="2027-01"' + (state.hgWindow === "2027-01" ? ' aria-pressed="true"' : "") + ">Jan–Mar</button>";
+    html += "</div><div class=\"food-filters\">";
+    months.forEach(function (entry) {
+      html += '<button type="button" data-v22="month" data-year="' + entry.year + '" data-month="' + entry.month + '"' +
+        (entry.month === state.hgMonth && entry.year === state.hgYear ? ' aria-pressed="true"' : "") + ">" +
+        MONTH_LABEL[entry.month] + "</button>";
+    });
+    html += "</div>";
+    return html;
+  }
+
+  function foodGridHtml() {
+    var grid = state.foodGrid;
+    if (!grid) return "";
+    var card = mealById(grid.cardId);
+    if (!card) return "";
+    var short = weekdayShort(grid.date);
+    var html = '<div class="grid-recipe">';
+    html += '<button type="button" class="food-fly-btn" data-v22="back-grid">Back to grid</button>';
+    html += v22CardHtml(card);
+    html += '<div class="recipe-actions">';
+    if (grid.where === "draft") {
+      html += '<button type="button" class="draft-remove" data-v22="clear-cell" data-date="' + escapeHtml(grid.date) + '" data-slot="' + escapeHtml(grid.slot) + '">Remove</button>';
+      html += '<button type="button" class="food-fly-btn" data-v22="copy-weekday" data-date="' + escapeHtml(grid.date) + '" data-slot="' + escapeHtml(grid.slot) + '" data-card="' + escapeHtml(grid.cardId) + '" data-weekday="' + short + '">Copy to other ' + escapeHtml(WEEKDAY_ALL[short] || "days") + "</button>";
+    } else {
+      var pack = foodMonthRecord().months[monthKey(state.hgYear, state.hgMonth)];
+      var on = pack && pack.ticks && pack.ticks[grid.date + "|" + grid.slot];
+      html += '<button type="button" class="draft-remove" data-v22="clear-final" data-date="' + escapeHtml(grid.date) + '" data-slot="' + escapeHtml(grid.slot) + '">Remove</button>';
+      html += '<button type="button" class="slot-tick" data-v22="tick" data-date="' + escapeHtml(grid.date) + '" data-slot="' + escapeHtml(grid.slot) + '" aria-pressed="' + (on ? "true" : "false") + '">' + (on ? "Done" : "Tick") + "</button>";
+    }
+    html += "</div></div>";
+    return html;
+  }
+
   function v22CardHtml(card) {
     var ingredients = (card.ingredients || []).map(function (item) {
       return "<li>" + escapeHtml(item.text || "") + "</li>";
@@ -3156,7 +3536,7 @@
         '<div class="food-fly-actions">' +
         '<button type="button" class="food-fly-btn" data-v22="edit-meal" data-card="' + escapeHtml(card.cardId) + '">Edit</button>' +
         '<button type="button" class="food-fly-btn" data-v22="fly" data-from="meals" data-action="add_cabinet" data-card="' + escapeHtml(card.cardId) + '">Add to Main Meal Cabinet</button>' +
-        '<button type="button" class="food-fly-btn" data-v22="fly" data-from="meals" data-action="add_hg" data-card="' + escapeHtml(card.cardId) + '">Add to Food Schedule HG</button>' +
+        '<button type="button" class="food-fly-btn" data-v22="fly" data-from="meals" data-action="add_hg" data-card="' + escapeHtml(card.cardId) + '">Add to Draft Food Schedule</button>' +
         "</div>";
     } else {
       html += '<button type="button" class="food-fly-btn" data-v22="new-meal">New meal card</button>';
@@ -3180,7 +3560,7 @@
     if (focus) {
       html += '<button type="button" class="food-fly-btn" data-v22="back-cabinet">Cabinet</button>' + v22CardHtml(focus) +
         '<div class="food-fly-actions"><button type="button" class="food-fly-btn" data-v22="fly" data-from="cabinet" data-action="add_hg" data-card="' +
-        escapeHtml(focus.cardId) + '">Add to Food Schedule HG drafts</button></div>';
+        escapeHtml(focus.cardId) + '">Add to Draft Food Schedule</button></div>';
     } else {
       html += '<div class="food-cabinet-scroller" aria-label="Main Meal Cabinet">';
       order.forEach(function (id) {
@@ -3194,35 +3574,36 @@
     host.innerHTML = html;
   }
 
-  function paintHg() {
-    var host = $("food-hg");
-    if (!host) return;
-    ensureMealSeed();
-    var hg = readV22(FOOD_V22.hg);
-    var pool = hg.pool || [];
+  function syncHgMonth() {
     if (state.hgMonth < 1) state.hgMonth = 10;
     var months = hgWindowMonths();
     var active = months.filter(function (entry) { return entry.year === state.hgYear && entry.month === state.hgMonth; })[0] || months[0];
     state.hgYear = active.year;
     state.hgMonth = active.month;
-    var weeks = hgWeeks(active.year, active.month);
-    var week = weeks[state.hgWeek - 1] || weeks[0];
-    var html = foodBannersHtml();
+    return active;
+  }
+
+  function paintHg() {
+    var host = $("food-hg");
+    if (!host) return;
+    ensureMealSeed();
+    if (state.foodGrid && state.foodGrid.where === "draft") {
+      host.innerHTML = foodBannersHtml() + foodGridHtml();
+      return;
+    }
+    var hg = readV22(FOOD_V22.hg);
+    ensureMonthStore(hg);
+    var pool = hg.pool || [];
+    syncHgMonth();
+    var bucket = monthBucket(hg, state.hgYear, state.hgMonth);
+    var weeks = hgWeeks(state.hgYear, state.hgMonth);
+    var html = foodBannersHtml() + foodFiltersHtml();
     html += '<div class="food-filters">';
-    html += '<button type="button" data-v22="window" data-window="2026-10"' + (state.hgWindow === "2026-10" ? ' aria-pressed="true"' : "") + ">Oct–Dec</button>";
-    html += '<button type="button" data-v22="window" data-window="2027-01"' + (state.hgWindow === "2027-01" ? ' aria-pressed="true"' : "") + ">Jan–Mar</button>";
-    html += "</div><div class=\"food-filters\">";
-    months.forEach(function (entry) {
-      html += '<button type="button" data-v22="month" data-year="' + entry.year + '" data-month="' + entry.month + '"' +
-        (entry.month === state.hgMonth && entry.year === state.hgYear ? ' aria-pressed="true"' : "") + ">" +
-        MONTH_LABEL[entry.month] + "</button>";
-    });
-    html += "</div><div class=\"food-filters\">";
     for (var w = 1; w <= 4; w++) {
       html += '<button type="button" data-v22="hg-week" data-week="' + w + '"' + (state.hgWeek === w ? ' aria-pressed="true"' : "") + ">Week " + w + "</button>";
     }
     html += "</div>";
-    html += '<div class="food-cabinet-scroller" aria-label="HG pool">';
+    html += '<div class="food-cabinet-scroller" aria-label="Draft pool">';
     if (!pool.length) html += '<p class="food-made">Fly a meal here from Meal Recipe Cards or the Cabinet.</p>';
     pool.forEach(function (id) {
       var card = mealById(id);
@@ -3231,55 +3612,72 @@
         (state.hgPick === id ? ' aria-pressed="true"' : "") + "><strong>" + escapeHtml(card.title) + "</strong></button>";
     });
     html += "</div>";
-    week.forEach(function (day) {
-      var placed = (hg.placements && hg.placements[day.dateKey]) || {};
-      var short = String(day.weekday || "").slice(0, 3);
+    (weeks[state.hgWeek - 1] || weeks[0] || []).forEach(function (day) {
+      var placed = bucket.placements[day.dateKey] || {};
       html += '<article class="food-day' + (day.sunday ? " is-sunday" : "") + '">';
       html += "<header class=\"food-day-head\"><h3>" + escapeHtml(day.weekday) + "</h3><p>" + escapeHtml(day.dateKey) + "</p>";
       if (day.sunday) html += '<p class="food-sunday-label">Food Prep + Fuel Day</p>';
       html += "</header>";
-      ["breakfast", "lunch", "dinner"].forEach(function (slot) {
+      FOOD_SLOTS.forEach(function (slot) {
         var chosen = placed[slot] ? mealById(placed[slot]) : null;
-        html += '<div class="food-slot"><span>' + slot + "</span><strong>" + escapeHtml(chosen ? chosen.title : "Empty") + "</strong>" +
-          '<div class="food-hg-actions">' +
-          '<button type="button" data-v22="place" data-mode="all" data-date="' + escapeHtml(day.dateKey) + '" data-slot="' + slot + '" data-weekday="' + short + '">All ' + WEEKDAY_ALL[short] + "</button>" +
-          '<button type="button" data-v22="place" data-mode="once" data-date="' + escapeHtml(day.dateKey) + '" data-slot="' + slot + '" data-weekday="' + short + '">Only once</button>' +
-          "</div></div>";
+        var landed = state.foodLandCell === day.dateKey + "|" + slot ? " is-landed" : "";
+        html += '<div class="draft-cell' + landed + '"><span class="draft-slot">' + slot + "</span>";
+        if (chosen) {
+          html += '<button type="button" class="draft-card" data-v22="open-grid" data-where="draft" data-date="' + escapeHtml(day.dateKey) + '" data-slot="' + slot + '" data-card="' + escapeHtml(chosen.cardId) + '">' + escapeHtml(chosen.title) + "</button>";
+          html += '<button type="button" class="draft-remove" data-v22="clear-cell" data-date="' + escapeHtml(day.dateKey) + '" data-slot="' + slot + '">Remove</button>';
+        } else {
+          html += '<button type="button" class="draft-empty" data-v22="place-cell" data-date="' + escapeHtml(day.dateKey) + '" data-slot="' + slot + '">Empty</button>';
+        }
+        html += "</div>";
       });
       html += "</article>";
     });
-    html += '<button type="button" class="food-fly-btn" data-v22="finish-week" data-week="' + state.hgWeek + '">Finished schedule</button>';
-    html += '<button type="button" class="food-fly-btn" data-v22="finish-month">Month complete</button>';
+    html += '<button type="button" class="food-fly-btn" data-v22="lock-month">Lock into Final Timetable</button>';
     host.innerHTML = html;
   }
 
   function paintFinal() {
     var host = $("food-final");
     if (!host) return;
-    var fin = readV22(FOOD_V22.final);
-    var html = foodBannersHtml();
-    var card = state.foodFocusId && fin.cards ? fin.cards[state.foodFocusId] : null;
-    if (!card && fin.order && fin.order.length) card = fin.cards[fin.order[fin.order.length - 1]];
-    if (card) html += "<h3 class=\"food-subhead\">" + escapeHtml(card.title) + "</h3>";
-    else html += '<p class="food-made">Finished 4-week timetables land here from Food Schedule HG.</p>';
-    var savedWeeks = {};
-    ((card && card.weeks) || []).forEach(function (week) { savedWeeks[week.week] = week; });
+    ensureMealSeed();
+    if (state.foodGrid && state.foodGrid.where === "final") {
+      host.innerHTML = foodBannersHtml() + foodGridHtml();
+      return;
+    }
+    syncHgMonth();
+    syncFoodPackAsk();
+    var fin = foodMonthRecord();
+    var pack = fin.months[monthKey(state.hgYear, state.hgMonth)];
+    var weeks = hgWeeks(state.hgYear, state.hgMonth);
+    var html = foodBannersHtml() + foodFiltersHtml();
+    html += '<button type="button" class="food-fly-btn" data-v22="edit-draft">Edit draft</button>';
+    if (state.foodPackAsk === "ask") {
+      html += '<div class="pack-ask" role="dialog" aria-label="Save later"><p>' + PACK_ASK + '</p>' +
+        '<button type="button" data-v22="save-pack">Add</button>' +
+        '<button type="button" data-v22="dismiss-pack">Not yet</button></div>';
+    }
     for (var w = 1; w <= 4; w++) {
-      var week = savedWeeks[w];
+      var days = weeks[w - 1] || [];
       html += '<section class="food-final-week"><h3>Week ' + w + "</h3>";
-      if (!week || !week.placements || !Object.keys(week.placements).length) {
-        html += '<p class="food-made">Empty until this week is finished in Food Schedule HG.</p>';
-      } else {
-        Object.keys(week.placements).forEach(function (date) {
-          var row = week.placements[date];
-          html += '<article class="food-day"><header class="food-day-head"><h3>' + escapeHtml(date) + "</h3></header>";
-          ["breakfast", "lunch", "dinner"].forEach(function (slot) {
-            var meal = row[slot] ? mealById(row[slot]) : null;
-            html += '<div class="food-slot"><span>' + slot + "</span><strong>" + escapeHtml(meal ? meal.title : "Empty") + "</strong></div>";
-          });
-          html += "</article>";
+      if (!pack || !pack.locked) html += '<p class="food-made">Empty until this month is locked from the Draft Food Schedule.</p>';
+      days.forEach(function (day) {
+        var row = pack && pack.locked ? (((pack.weeks[w - 1] || {}).placements || {})[day.dateKey] || {}) : {};
+        html += '<article class="food-day"><header class="food-day-head"><h3>' + escapeHtml(day.weekday) + "</h3><p>" + escapeHtml(day.dateKey) + "</p></header>";
+        FOOD_SLOTS.forEach(function (slot) {
+          var meal = row[slot] ? mealById(row[slot]) : null;
+          var mark = day.dateKey + "|" + slot;
+          var on = pack && pack.ticks && pack.ticks[mark];
+          html += '<div class="draft-cell"><span class="draft-slot">' + slot + "</span>";
+          if (meal) {
+            html += '<button type="button" class="draft-card" data-v22="open-grid" data-where="final" data-date="' + escapeHtml(day.dateKey) + '" data-slot="' + slot + '" data-card="' + escapeHtml(meal.cardId) + '">' + escapeHtml(meal.title) + "</button>";
+            html += '<button type="button" class="slot-tick" data-v22="tick" data-date="' + escapeHtml(day.dateKey) + '" data-slot="' + slot + '" aria-pressed="' + (on ? "true" : "false") + '" aria-label="Tick ' + slot + '">' + (on ? "✓" : "") + "</button>";
+          } else {
+            html += '<span class="draft-empty">Empty</span>';
+          }
+          html += "</div>";
         });
-      }
+        html += "</article>";
+      });
       html += "</section>";
     }
     host.innerHTML = html;
@@ -3290,23 +3688,19 @@
     if (!host) return;
     var later = readV22(FOOD_V22.later);
     var html = foodBannersHtml();
-    var focus = state.foodFocusId && later.cards ? later.cards[state.foodFocusId] : null;
-    if (focus) {
-      html += '<button type="button" class="food-fly-btn" data-v22="back-later">Save later</button>';
-      html += "<h3 class=\"food-subhead\">" + escapeHtml(focus.title) + "</h3>";
-      html += '<p class="food-made">Made ' + escapeHtml(focus.madeOn || "") + "</p>";
-      html += '<button type="button" class="food-fly-btn" data-v22="fly" data-from="savelater" data-action="reuse_hg" data-card="' +
-        escapeHtml(focus.cardId) + '">Reuse in Food Schedule HG</button>';
-    } else {
-      html += '<div class="food-cabinet-scroller" aria-label="Save later">';
-      (later.order || []).forEach(function (id) {
-        var card = later.cards[id];
-        if (!card) return;
-        html += '<button type="button" class="food-mini" data-v22="open-later" data-card="' + escapeHtml(id) + '"><strong>' +
-          escapeHtml(card.title) + "</strong><span>" + escapeHtml(card.madeOn || "") + "</span></button>";
-      });
-      html += "</div>";
+    if (state.foodOffer && later.cards && later.cards[state.foodOffer]) {
+      html += '<p class="food-made">Saved. Amend this draft, or clear this month and build again.</p>';
+      html += '<button type="button" class="food-fly-btn" data-v22="reopen-pack" data-card="' + escapeHtml(state.foodOffer) + '">Amend in Draft Food Schedule</button>';
+      html += '<button type="button" class="food-fly-btn" data-v22="clean-month">Clean slate</button>';
     }
+    html += '<div class="food-cabinet-scroller" aria-label="Save later">';
+    (later.order || []).forEach(function (id) {
+      var card = later.cards[id];
+      if (!card) return;
+      html += '<button type="button" class="food-mini" data-v22="reopen-pack" data-card="' + escapeHtml(id) + '"><strong>' +
+        escapeHtml(card.title) + "</strong><span>" + escapeHtml(card.madeOn || "") + "</span></button>";
+    });
+    html += "</div>";
     host.innerHTML = html;
   }
 
@@ -3474,13 +3868,66 @@
       render();
       return true;
     }
-    if (kind === "place") {
+    if (kind === "place" || kind === "place-cell") {
       if (!state.hgPick) {
-        state.foodFlyError = "Pick a meal from the HG pool first.";
+        state.foodFlyError = "Pick a meal from the pool first.";
         render();
         return true;
       }
-      placeHg(node.getAttribute("data-date"), node.getAttribute("data-slot"), state.hgPick, node.getAttribute("data-mode"), node.getAttribute("data-weekday"));
+      placeFoodCell(node.getAttribute("data-date"), node.getAttribute("data-slot"), state.hgPick);
+      return true;
+    }
+    if (kind === "open-grid") {
+      state.foodGrid = {
+        cardId: cardId,
+        date: node.getAttribute("data-date"),
+        slot: node.getAttribute("data-slot"),
+        where: node.getAttribute("data-where") || "draft"
+      };
+      render();
+      return true;
+    }
+    if (kind === "back-grid") {
+      state.foodGrid = null;
+      render();
+      return true;
+    }
+    if (kind === "clear-cell" || kind === "clear-final") {
+      clearFoodCell(node.getAttribute("data-date"), node.getAttribute("data-slot"));
+      return true;
+    }
+    if (kind === "copy-weekday") {
+      copyFoodWeekday(node.getAttribute("data-date"), node.getAttribute("data-slot"), cardId, node.getAttribute("data-weekday"));
+      return true;
+    }
+    if (kind === "lock-month") {
+      lockFoodMonth();
+      return true;
+    }
+    if (kind === "tick") {
+      toggleFoodTick(node.getAttribute("data-date"), node.getAttribute("data-slot"));
+      return true;
+    }
+    if (kind === "save-pack") {
+      saveFoodPack();
+      return true;
+    }
+    if (kind === "dismiss-pack") {
+      state.foodPackAsk = "dismissed";
+      render();
+      return true;
+    }
+    if (kind === "reopen-pack") {
+      reopenFoodPack(cardId);
+      return true;
+    }
+    if (kind === "edit-draft") {
+      state.foodGrid = null;
+      openFoodRoom("hg");
+      return true;
+    }
+    if (kind === "clean-month") {
+      cleanFoodMonth();
       return true;
     }
     if (kind === "window") {
@@ -3504,8 +3951,11 @@
       render();
       return true;
     }
-    if (kind === "finish-week") finishWeek(state.hgYear, state.hgMonth, state.hgWeek);
-    if (kind === "finish-month") finishMonth(state.hgYear, state.hgMonth);
+    if (kind === "finish-week" || kind === "finish-month") {
+      state.foodFlyError = "Lock the draft into the final timetable. Save later waits until every slot is ticked.";
+      render();
+      return true;
+    }
     if (kind === "suggest") {
       var suggestion = (state.foodSuggestions || [])[+node.getAttribute("data-index")];
       if (!suggestion) return true;
@@ -3531,8 +3981,8 @@
   var SMOOTHIE_TITLES = {
     meals: "Smoothie Recipe Cards",
     cabinet: "Main Smoothie Cabinet",
-    hg: "Smoothie Schedule HG",
-    final: "Final Smoothie Prep Scheduled Timetables",
+    hg: "Draft Smoothie Schedule",
+    final: "My 4-Week Smoothie Timetable",
     savelater: "Smoothie Save later"
   };
   var SMOOTHIE_SLOTS = ["morning", "lunch"];
@@ -3647,6 +4097,11 @@
       render();
       return;
     }
+    if (action === "finished_week" || action === "month_complete") {
+      state.smoothieFlyError = "Lock the draft into the final timetable. Save later waits until every slot is ticked.";
+      render();
+      return;
+    }
     if (action === "finished_week") {
       var later = readV22(SMOOTHIE_V22.later);
       later.cards = later.cards || {};
@@ -3685,12 +4140,8 @@
       ids.forEach(function (id) {
         if (id && hg.pool.indexOf(id) === -1) hg.pool.push(id);
       });
-      if (action === "reuse_hg" && extra.card && extra.card.placements) {
-        hg.placements = hg.placements || {};
-        Object.keys(extra.card.placements).forEach(function (date) {
-          hg.placements[date] = extra.card.placements[date];
-        });
-      }
+      if (action === "add_hg") landSmoothieCard(hg, cardId);
+      if (action === "reuse_hg" && extra.card) restoreSmoothieMonth(hg, extra.card);
       writeV22(SMOOTHIE_V22.hg, hg);
     }
     if (action === "month_complete") {
@@ -3873,7 +4324,7 @@
         '<div class="food-fly-actions">' +
         '<button type="button" class="food-fly-btn" data-sm22="edit-meal" data-card="' + escapeHtml(card.cardId) + '">Edit</button>' +
         '<button type="button" class="food-fly-btn" data-sm22="fly" data-from="meals" data-action="add_cabinet" data-card="' + escapeHtml(card.cardId) + '">Add to Main Smoothie Cabinet</button>' +
-        '<button type="button" class="food-fly-btn" data-sm22="fly" data-from="meals" data-action="add_hg" data-card="' + escapeHtml(card.cardId) + '">Add to Smoothie Schedule HG</button>' +
+        '<button type="button" class="food-fly-btn" data-sm22="fly" data-from="meals" data-action="add_hg" data-card="' + escapeHtml(card.cardId) + '">Add to Draft Smoothie Schedule</button>' +
         "</div>";
     } else {
       html += '<button type="button" class="food-fly-btn" data-sm22="new-meal">New smoothie card</button>';
@@ -3896,7 +4347,7 @@
     if (focus) {
       html += '<button type="button" class="food-fly-btn" data-sm22="back-cabinet">Cabinet</button>' + smoothieCardHtml(focus) +
         '<div class="food-fly-actions"><button type="button" class="food-fly-btn" data-sm22="fly" data-from="cabinet" data-action="add_hg" data-card="' +
-        escapeHtml(focus.cardId) + '">Add to Smoothie Schedule HG drafts</button></div>';
+        escapeHtml(focus.cardId) + '">Add to Draft Smoothie Schedule</button></div>';
     } else {
       html += '<div class="food-cabinet-scroller" aria-label="Main Smoothie Cabinet">';
       (cab.order || []).forEach(function (id) {
@@ -3910,21 +4361,265 @@
     host.innerHTML = html;
   }
 
-  function paintSmoothieHg() {
-    var host = $("smoothie-hg");
-    if (!host) return;
-    ensureSmoothieSeed();
+  function landSmoothieCard(hg, cardId) {
+    ensureMonthStore(hg);
+    var drop = firstEmptyCell(hg, state.smoothieYear, state.smoothieMonth, SMOOTHIE_SLOTS);
+    if (!drop) return;
+    var bucket = monthBucket(hg, state.smoothieYear, state.smoothieMonth);
+    var row = bucket.placements[drop.date] || {};
+    delete row.dinner;
+    row[drop.slot] = cardId;
+    bucket.placements[drop.date] = row;
+    state.smoothieLandCell = drop.date + "|" + drop.slot;
+    state.smoothieWeek = drop.week;
+  }
+
+  function restoreSmoothieMonth(hg, card) {
+    var parts = String(card.month || monthKey(state.smoothieYear, state.smoothieMonth)).split("-");
+    var year = +parts[0] || state.smoothieYear;
+    var month = +parts[1] || state.smoothieMonth;
+    copyPlacementsInto(monthBucket(hg, year, month), card, SMOOTHIE_SLOTS);
+    var bucket = monthBucket(hg, year, month);
+    Object.keys(bucket.placements).forEach(function (date) { delete bucket.placements[date].dinner; });
+    state.smoothieYear = year;
+    state.smoothieMonth = month;
+    state.smoothieWindow = month >= 10 ? "2026-10" : "2027-01";
+    state.smoothieWeek = 1;
+  }
+
+  function smoothieMonthRecord() {
+    var fin = readV22(SMOOTHIE_V22.final);
+    fin.months = fin.months || {};
+    return fin;
+  }
+
+  function resetSmoothieTick(date, slot) {
+    var fin = smoothieMonthRecord();
+    var pack = fin.months[monthKey(state.smoothieYear, state.smoothieMonth)];
+    if (!pack || !pack.ticks) return;
+    delete pack.ticks[date + "|" + slot];
+    writeV22(SMOOTHIE_V22.final, fin);
+  }
+
+  function placeSmoothieCell(date, slot, cardId) {
+    if (slot === "dinner" || SMOOTHIE_SLOTS.indexOf(slot) === -1) {
+      state.smoothieFlyError = "Extractions aren't dinner.";
+      render();
+      return;
+    }
+    var card = smoothieById(cardId);
+    if (!card) {
+      state.smoothieFlyError = "Pick a smoothie from the pool first.";
+      render();
+      return;
+    }
     var hg = readV22(SMOOTHIE_V22.hg);
-    var pool = hg.pool || [];
-    if (state.smoothieMonth < 1) state.smoothieMonth = 10;
+    var bucket = monthBucket(hg, state.smoothieYear, state.smoothieMonth);
+    var row = bucket.placements[date] || {};
+    delete row.dinner;
+    if (row[slot] && row[slot] !== cardId) resetSmoothieTick(date, slot);
+    row[slot] = cardId;
+    bucket.placements[date] = row;
+    writeV22(SMOOTHIE_V22.hg, hg);
+    state.smoothieLandCell = date + "|" + slot;
+    state.smoothieFlyError = "";
+    state.smoothieGrid = null;
+    render();
+  }
+
+  function clearSmoothieCell(date, slot) {
+    var hg = readV22(SMOOTHIE_V22.hg);
+    var bucket = monthBucket(hg, state.smoothieYear, state.smoothieMonth);
+    var row = bucket.placements[date] || {};
+    delete row[slot];
+    delete row.dinner;
+    bucket.placements[date] = row;
+    writeV22(SMOOTHIE_V22.hg, hg);
+    var fin = smoothieMonthRecord();
+    var pack = fin.months[monthKey(state.smoothieYear, state.smoothieMonth)];
+    if (pack) {
+      if (pack.cards) delete pack.cards[date + "|" + slot];
+      if (pack.ticks) delete pack.ticks[date + "|" + slot];
+      writeV22(SMOOTHIE_V22.final, fin);
+    }
+    state.smoothieGrid = null;
+    state.smoothiePackAsk = "";
+    render();
+  }
+
+  function copySmoothieWeekday(date, slot, cardId, weekday) {
+    if (SMOOTHIE_SLOTS.indexOf(slot) === -1) return;
+    var hg = readV22(SMOOTHIE_V22.hg);
+    var bucket = monthBucket(hg, state.smoothieYear, state.smoothieMonth);
+    hgWeeks(state.smoothieYear, state.smoothieMonth).forEach(function (week) {
+      week.forEach(function (day) {
+        if (String(day.weekday || "").slice(0, 3) !== weekday) return;
+        var row = bucket.placements[day.dateKey] || {};
+        delete row.dinner;
+        if (row[slot] && row[slot] !== cardId) resetSmoothieTick(day.dateKey, slot);
+        row[slot] = cardId;
+        bucket.placements[day.dateKey] = row;
+      });
+    });
+    writeV22(SMOOTHIE_V22.hg, hg);
+    state.smoothieLandCell = date + "|" + slot;
+    state.smoothieGrid = null;
+    render();
+  }
+
+  function lockSmoothieMonth() {
+    var year = state.smoothieYear;
+    var month = state.smoothieMonth;
+    var hg = readV22(SMOOTHIE_V22.hg);
+    var bucket = monthBucket(hg, year, month);
+    var tokens = requiredTokens(year, month, SMOOTHIE_SLOTS);
+    var missing = tokens.some(function (token) {
+      return !((bucket.placements[token.date] || {})[token.slot]);
+    });
+    if (missing) {
+      state.smoothieFlyError = "Fill every morning and lunch across Weeks 1–4 before locking.";
+      render();
+      return;
+    }
+    var fin = smoothieMonthRecord();
+    var key = monthKey(year, month);
+    var prev = fin.months[key] || { cards: {}, ticks: {} };
+    var cards = {};
+    var ticks = {};
+    var weeks = [];
+    hgWeeks(year, month).forEach(function (week, index) {
+      var placements = {};
+      week.forEach(function (day) {
+        var row = bucket.placements[day.dateKey] || {};
+        placements[day.dateKey] = { morning: row.morning || "", lunch: row.lunch || "" };
+      });
+      weeks.push({ week: index + 1, placements: placements });
+    });
+    tokens.forEach(function (token) {
+      var id = bucket.placements[token.date][token.slot];
+      var mark = token.date + "|" + token.slot;
+      cards[mark] = id;
+      if (prev.cards && prev.cards[mark] === id && prev.ticks && prev.ticks[mark]) ticks[mark] = true;
+    });
+    fin.months[key] = {
+      month: key,
+      title: MONTH_LABEL[month] + " " + year,
+      weeks: weeks,
+      cards: cards,
+      ticks: ticks,
+      locked: true
+    };
+    fin.order = fin.order || [];
+    if (fin.order.indexOf(key) === -1) fin.order.push(key);
+    writeV22(SMOOTHIE_V22.final, fin);
+    state.smoothieGrid = null;
+    state.smoothiePackAsk = "";
+    state.smoothieFlyError = "";
+    openSmoothieRoom("final");
+  }
+
+  function smoothieAllTicked() {
+    var pack = smoothieMonthRecord().months[monthKey(state.smoothieYear, state.smoothieMonth)];
+    if (!pack || !pack.locked) return false;
+    return requiredTokens(state.smoothieYear, state.smoothieMonth, SMOOTHIE_SLOTS).every(function (token) {
+      var mark = token.date + "|" + token.slot;
+      return pack.cards && pack.cards[mark] && pack.ticks && pack.ticks[mark];
+    });
+  }
+
+  function syncSmoothiePackAsk() {
+    if (!smoothieAllTicked()) {
+      state.smoothiePackAsk = "";
+      return;
+    }
+    if (state.smoothiePackAsk !== "dismissed") state.smoothiePackAsk = "ask";
+  }
+
+  function rememberSmoothieToast() {
+    state.smoothieToastUntil = Date.now() + 4000;
+    setTimeout(function () {
+      if (state.smoothieToastUntil && Date.now() >= state.smoothieToastUntil) {
+        state.smoothieToast = "";
+        render();
+      }
+    }, 4100);
+  }
+
+  function saveSmoothiePack() {
+    if (!smoothieAllTicked()) {
+      state.smoothieFlyError = "Lock the draft into the final timetable. Save later waits until every slot is ticked.";
+      render();
+      return;
+    }
+    var key = monthKey(state.smoothieYear, state.smoothieMonth);
+    var id = "smoothie-pack-" + key;
+    var later = readV22(SMOOTHIE_V22.later);
+    later.cards = later.cards || {};
+    later.order = later.order || [];
+    if (later.cards[id]) {
+      state.smoothieToast = "This card has already been added to save later.";
+      state.smoothieFlyError = "";
+      state.smoothiePackAsk = "";
+      rememberSmoothieToast();
+      render();
+      return;
+    }
+    var pack = smoothieMonthRecord().months[key];
+    later.cards[id] = {
+      cardId: id,
+      title: pack.title + " smoothie timetable",
+      madeOn: londonParts(new Date()).dateKey,
+      month: key,
+      weeks: pack.weeks,
+      cards: pack.cards,
+      ticks: pack.ticks
+    };
+    later.order.push(id);
+    writeV22(SMOOTHIE_V22.later, later);
+    state.smoothiePackAsk = "";
+    state.smoothieOffer = id;
+    state.smoothieFlyError = "";
+    openSmoothieRoom("savelater");
+  }
+
+  function reopenSmoothiePack(cardId) {
+    var card = (readV22(SMOOTHIE_V22.later).cards || {})[cardId];
+    if (!card) return;
+    var hg = readV22(SMOOTHIE_V22.hg);
+    restoreSmoothieMonth(hg, card);
+    writeV22(SMOOTHIE_V22.hg, hg);
+    state.smoothieGrid = null;
+    state.smoothieOffer = "";
+    openSmoothieRoom("hg");
+  }
+
+  function cleanSmoothieMonth() {
+    var hg = readV22(SMOOTHIE_V22.hg);
+    monthBucket(hg, state.smoothieYear, state.smoothieMonth).placements = {};
+    writeV22(SMOOTHIE_V22.hg, hg);
+    state.smoothieOffer = "";
+    state.smoothieGrid = null;
+    openSmoothieRoom("hg");
+  }
+
+  function toggleSmoothieTick(date, slot) {
+    if (SMOOTHIE_SLOTS.indexOf(slot) === -1) return;
+    var fin = smoothieMonthRecord();
+    var pack = fin.months[monthKey(state.smoothieYear, state.smoothieMonth)];
+    if (!pack || !pack.cards || !pack.cards[date + "|" + slot]) return;
+    pack.ticks = pack.ticks || {};
+    var mark = date + "|" + slot;
+    if (pack.ticks[mark]) delete pack.ticks[mark];
+    else pack.ticks[mark] = true;
+    writeV22(SMOOTHIE_V22.final, fin);
+    state.smoothieGrid = null;
+    syncSmoothiePackAsk();
+    render();
+  }
+
+  function smoothieFiltersHtml() {
     var months = smoothieWindowMonths();
-    var active = months.filter(function (entry) { return entry.year === state.smoothieYear && entry.month === state.smoothieMonth; })[0] || months[0];
-    state.smoothieYear = active.year;
-    state.smoothieMonth = active.month;
-    var weeks = hgWeeks(active.year, active.month);
-    var week = weeks[state.smoothieWeek - 1] || weeks[0];
-    var html = smoothieBannersHtml();
-    html += '<div class="food-filters">';
+    var html = '<div class="food-filters">';
     html += '<button type="button" data-sm22="window" data-window="2026-10"' + (state.smoothieWindow === "2026-10" ? ' aria-pressed="true"' : "") + ">Oct–Dec</button>";
     html += '<button type="button" data-sm22="window" data-window="2027-01"' + (state.smoothieWindow === "2027-01" ? ' aria-pressed="true"' : "") + ">Jan–Mar</button>";
     html += "</div><div class=\"food-filters\">";
@@ -3933,69 +4628,133 @@
         (entry.month === state.smoothieMonth && entry.year === state.smoothieYear ? ' aria-pressed="true"' : "") + ">" +
         MONTH_LABEL[entry.month] + "</button>";
     });
-    html += "</div><div class=\"food-filters\">";
+    html += "</div>";
+    return html;
+  }
+
+  function syncSmoothieMonth() {
+    if (state.smoothieMonth < 1) state.smoothieMonth = 10;
+    var months = smoothieWindowMonths();
+    var active = months.filter(function (entry) { return entry.year === state.smoothieYear && entry.month === state.smoothieMonth; })[0] || months[0];
+    state.smoothieYear = active.year;
+    state.smoothieMonth = active.month;
+  }
+
+  function smoothieGridHtml() {
+    var grid = state.smoothieGrid;
+    if (!grid) return "";
+    var card = smoothieById(grid.cardId);
+    if (!card) return "";
+    var short = weekdayShort(grid.date);
+    var html = '<div class="grid-recipe">';
+    html += '<button type="button" class="food-fly-btn" data-sm22="back-grid">Back to grid</button>';
+    html += smoothieCardHtml(card);
+    html += '<div class="recipe-actions">';
+    if (grid.where === "draft") {
+      html += '<button type="button" class="draft-remove" data-sm22="clear-cell" data-date="' + escapeHtml(grid.date) + '" data-slot="' + escapeHtml(grid.slot) + '">Remove</button>';
+      html += '<button type="button" class="food-fly-btn" data-sm22="copy-weekday" data-date="' + escapeHtml(grid.date) + '" data-slot="' + escapeHtml(grid.slot) + '" data-card="' + escapeHtml(grid.cardId) + '" data-weekday="' + short + '">Copy to other ' + escapeHtml(WEEKDAY_ALL[short] || "days") + "</button>";
+    } else {
+      var pack = smoothieMonthRecord().months[monthKey(state.smoothieYear, state.smoothieMonth)];
+      var on = pack && pack.ticks && pack.ticks[grid.date + "|" + grid.slot];
+      html += '<button type="button" class="draft-remove" data-sm22="clear-final" data-date="' + escapeHtml(grid.date) + '" data-slot="' + escapeHtml(grid.slot) + '">Remove</button>';
+      html += '<button type="button" class="slot-tick" data-sm22="tick" data-date="' + escapeHtml(grid.date) + '" data-slot="' + escapeHtml(grid.slot) + '" aria-pressed="' + (on ? "true" : "false") + '">' + (on ? "Done" : "Tick") + "</button>";
+    }
+    html += "</div></div>";
+    return html;
+  }
+
+  function paintSmoothieHg() {
+    var host = $("smoothie-hg");
+    if (!host) return;
+    ensureSmoothieSeed();
+    if (state.smoothieGrid && state.smoothieGrid.where === "draft") {
+      host.innerHTML = smoothieBannersHtml() + smoothieGridHtml();
+      return;
+    }
+    var hg = readV22(SMOOTHIE_V22.hg);
+    ensureMonthStore(hg);
+    syncSmoothieMonth();
+    var bucket = monthBucket(hg, state.smoothieYear, state.smoothieMonth);
+    var weeks = hgWeeks(state.smoothieYear, state.smoothieMonth);
+    var html = smoothieBannersHtml() + smoothieFiltersHtml();
+    html += '<div class="food-filters">';
     for (var w = 1; w <= 4; w++) {
       html += '<button type="button" data-sm22="hg-week" data-week="' + w + '"' + (state.smoothieWeek === w ? ' aria-pressed="true"' : "") + ">Week " + w + "</button>";
     }
     html += "</div>";
-    html += '<div class="food-cabinet-scroller" aria-label="Smoothie HG pool">';
-    if (!pool.length) html += '<p class="food-made">Fly a smoothie here from Smoothie Recipe Cards or the Cabinet.</p>';
-    pool.forEach(function (id) {
+    html += '<div class="food-cabinet-scroller" aria-label="Smoothie draft pool">';
+    if (!(hg.pool || []).length) html += '<p class="food-made">Fly a smoothie here from Smoothie Recipe Cards or the Cabinet.</p>';
+    (hg.pool || []).forEach(function (id) {
       var card = smoothieById(id);
       if (!card) return;
       html += '<button type="button" class="food-mini" data-sm22="pick" data-card="' + escapeHtml(id) + '"' +
         (state.smoothiePick === id ? ' aria-pressed="true"' : "") + "><strong>" + escapeHtml(card.title) + "</strong></button>";
     });
     html += "</div>";
-    week.forEach(function (day) {
-      var placed = (hg.placements && hg.placements[day.dateKey]) || {};
-      var short = String(day.weekday || "").slice(0, 3);
+    (weeks[state.smoothieWeek - 1] || weeks[0] || []).forEach(function (day) {
+      var placed = bucket.placements[day.dateKey] || {};
       html += '<article class="food-day' + (day.sunday ? " is-sunday" : "") + '">';
       html += "<header class=\"food-day-head\"><h3>" + escapeHtml(day.weekday) + "</h3><p>" + escapeHtml(day.dateKey) + "</p>";
       if (day.sunday) html += '<p class="food-sunday-label">Smoothie Prep Day</p>';
       html += "</header>";
       SMOOTHIE_SLOTS.forEach(function (slot) {
         var chosen = placed[slot] ? smoothieById(placed[slot]) : null;
-        html += '<div class="food-slot"><span>' + slot + "</span><strong>" + escapeHtml(chosen ? chosen.title : "Empty") + "</strong>" +
-          '<div class="food-hg-actions">' +
-          '<button type="button" data-sm22="place" data-mode="all" data-date="' + escapeHtml(day.dateKey) + '" data-slot="' + slot + '" data-weekday="' + short + '">All ' + WEEKDAY_ALL[short] + "</button>" +
-          '<button type="button" data-sm22="place" data-mode="once" data-date="' + escapeHtml(day.dateKey) + '" data-slot="' + slot + '" data-weekday="' + short + '">Only once</button>' +
-          "</div></div>";
+        var landed = state.smoothieLandCell === day.dateKey + "|" + slot ? " is-landed" : "";
+        html += '<div class="draft-cell' + landed + '"><span class="draft-slot">' + slot + "</span>";
+        if (chosen) {
+          html += '<button type="button" class="draft-card" data-sm22="open-grid" data-where="draft" data-date="' + escapeHtml(day.dateKey) + '" data-slot="' + slot + '" data-card="' + escapeHtml(chosen.cardId) + '">' + escapeHtml(chosen.title) + "</button>";
+          html += '<button type="button" class="draft-remove" data-sm22="clear-cell" data-date="' + escapeHtml(day.dateKey) + '" data-slot="' + slot + '">Remove</button>';
+        } else {
+          html += '<button type="button" class="draft-empty" data-sm22="place-cell" data-date="' + escapeHtml(day.dateKey) + '" data-slot="' + slot + '">Empty</button>';
+        }
+        html += "</div>";
       });
       html += "</article>";
     });
-    html += '<button type="button" class="food-fly-btn" data-sm22="finish-week">Finished schedule</button>';
-    html += '<button type="button" class="food-fly-btn" data-sm22="finish-month">Month complete</button>';
+    html += '<button type="button" class="food-fly-btn" data-sm22="lock-month">Lock into Final Timetable</button>';
     host.innerHTML = html;
   }
 
   function paintSmoothieFinal() {
     var host = $("smoothie-final");
     if (!host) return;
-    var fin = readV22(SMOOTHIE_V22.final);
-    var html = smoothieBannersHtml();
-    var card = state.smoothieFocusId && fin.cards ? fin.cards[state.smoothieFocusId] : null;
-    if (!card && fin.order && fin.order.length) card = fin.cards[fin.order[fin.order.length - 1]];
-    if (card) html += "<h3 class=\"food-subhead\">" + escapeHtml(card.title) + "</h3>";
-    else html += '<p class="food-made">Finished 4-week timetables land here from Smoothie Schedule HG.</p>';
-    var savedSmoothieWeeks = {};
-    ((card && card.weeks) || []).forEach(function (week) { savedSmoothieWeeks[week.week] = week; });
+    ensureSmoothieSeed();
+    if (state.smoothieGrid && state.smoothieGrid.where === "final") {
+      host.innerHTML = smoothieBannersHtml() + smoothieGridHtml();
+      return;
+    }
+    syncSmoothieMonth();
+    syncSmoothiePackAsk();
+    var pack = smoothieMonthRecord().months[monthKey(state.smoothieYear, state.smoothieMonth)];
+    var weeks = hgWeeks(state.smoothieYear, state.smoothieMonth);
+    var html = smoothieBannersHtml() + smoothieFiltersHtml();
+    html += '<button type="button" class="food-fly-btn" data-sm22="edit-draft">Edit draft</button>';
+    if (state.smoothiePackAsk === "ask") {
+      html += '<div class="pack-ask" role="dialog" aria-label="Save later"><p>' + PACK_ASK + '</p>' +
+        '<button type="button" data-sm22="save-pack">Add</button>' +
+        '<button type="button" data-sm22="dismiss-pack">Not yet</button></div>';
+    }
     for (var sw = 1; sw <= 4; sw++) {
-      var smoothieWeek = savedSmoothieWeeks[sw];
+      var days = weeks[sw - 1] || [];
       html += '<section class="food-final-week"><h3>Week ' + sw + "</h3>";
-      if (!smoothieWeek || !smoothieWeek.placements || !Object.keys(smoothieWeek.placements).length) {
-        html += '<p class="food-made">Empty until this week is finished in Smoothie Schedule HG.</p>';
-      } else {
-        Object.keys(smoothieWeek.placements).forEach(function (date) {
-          var row = smoothieWeek.placements[date];
-          html += '<article class="food-day"><header class="food-day-head"><h3>' + escapeHtml(date) + "</h3></header>";
-          SMOOTHIE_SLOTS.forEach(function (slot) {
-            var meal = row[slot] ? smoothieById(row[slot]) : null;
-            html += '<div class="food-slot"><span>' + slot + "</span><strong>" + escapeHtml(meal ? meal.title : "Empty") + "</strong></div>";
-          });
-          html += "</article>";
+      if (!pack || !pack.locked) html += '<p class="food-made">Empty until this month is locked from the Draft Smoothie Schedule.</p>';
+      days.forEach(function (day) {
+        var row = pack && pack.locked ? (((pack.weeks[sw - 1] || {}).placements || {})[day.dateKey] || {}) : {};
+        html += '<article class="food-day"><header class="food-day-head"><h3>' + escapeHtml(day.weekday) + "</h3><p>" + escapeHtml(day.dateKey) + "</p></header>";
+        SMOOTHIE_SLOTS.forEach(function (slot) {
+          var meal = row[slot] ? smoothieById(row[slot]) : null;
+          var on = pack && pack.ticks && pack.ticks[day.dateKey + "|" + slot];
+          html += '<div class="draft-cell"><span class="draft-slot">' + slot + "</span>";
+          if (meal) {
+            html += '<button type="button" class="draft-card" data-sm22="open-grid" data-where="final" data-date="' + escapeHtml(day.dateKey) + '" data-slot="' + slot + '" data-card="' + escapeHtml(meal.cardId) + '">' + escapeHtml(meal.title) + "</button>";
+            html += '<button type="button" class="slot-tick" data-sm22="tick" data-date="' + escapeHtml(day.dateKey) + '" data-slot="' + slot + '" aria-pressed="' + (on ? "true" : "false") + '" aria-label="Tick ' + slot + '">' + (on ? "✓" : "") + "</button>";
+          } else {
+            html += '<span class="draft-empty">Empty</span>';
+          }
+          html += "</div>";
         });
-      }
+        html += "</article>";
+      });
       html += "</section>";
     }
     host.innerHTML = html;
@@ -4006,23 +4765,19 @@
     if (!host) return;
     var later = readV22(SMOOTHIE_V22.later);
     var html = smoothieBannersHtml();
-    var focus = state.smoothieFocusId && later.cards ? later.cards[state.smoothieFocusId] : null;
-    if (focus) {
-      html += '<button type="button" class="food-fly-btn" data-sm22="back-later">Smoothie Save later</button>';
-      html += "<h3 class=\"food-subhead\">" + escapeHtml(focus.title) + "</h3>";
-      html += '<p class="food-made">Made ' + escapeHtml(focus.madeOn || "") + "</p>";
-      html += '<button type="button" class="food-fly-btn" data-sm22="fly" data-from="savelater" data-action="reuse_hg" data-card="' +
-        escapeHtml(focus.cardId) + '">Reuse in Smoothie Schedule HG</button>';
-    } else {
-      html += '<div class="food-cabinet-scroller" aria-label="Smoothie Save later">';
-      (later.order || []).forEach(function (id) {
-        var card = later.cards[id];
-        if (!card) return;
-        html += '<button type="button" class="food-mini" data-sm22="open-later" data-card="' + escapeHtml(id) + '"><strong>' +
-          escapeHtml(card.title) + "</strong><span>" + escapeHtml(card.madeOn || "") + "</span></button>";
-      });
-      html += "</div>";
+    if (state.smoothieOffer && later.cards && later.cards[state.smoothieOffer]) {
+      html += '<p class="food-made">Saved. Amend this draft, or clear this month and build again.</p>';
+      html += '<button type="button" class="food-fly-btn" data-sm22="reopen-pack" data-card="' + escapeHtml(state.smoothieOffer) + '">Amend in Draft Smoothie Schedule</button>';
+      html += '<button type="button" class="food-fly-btn" data-sm22="clean-month">Clean slate</button>';
     }
+    html += '<div class="food-cabinet-scroller" aria-label="Smoothie Save later">';
+    (later.order || []).forEach(function (id) {
+      var card = later.cards[id];
+      if (!card) return;
+      html += '<button type="button" class="food-mini" data-sm22="reopen-pack" data-card="' + escapeHtml(id) + '"><strong>' +
+        escapeHtml(card.title) + "</strong><span>" + escapeHtml(card.madeOn || "") + "</span></button>";
+    });
+    html += "</div>";
     host.innerHTML = html;
   }
 
@@ -4107,13 +4862,66 @@
       render();
       return true;
     }
-    if (kind === "place") {
+    if (kind === "place" || kind === "place-cell") {
       if (!state.smoothiePick) {
-        state.smoothieFlyError = "Pick a smoothie from the HG pool first.";
+        state.smoothieFlyError = "Pick a smoothie from the pool first.";
         render();
         return true;
       }
-      placeSmoothie(node.getAttribute("data-date"), node.getAttribute("data-slot"), state.smoothiePick, node.getAttribute("data-mode"), node.getAttribute("data-weekday"));
+      placeSmoothieCell(node.getAttribute("data-date"), node.getAttribute("data-slot"), state.smoothiePick);
+      return true;
+    }
+    if (kind === "open-grid") {
+      state.smoothieGrid = {
+        cardId: cardId,
+        date: node.getAttribute("data-date"),
+        slot: node.getAttribute("data-slot"),
+        where: node.getAttribute("data-where") || "draft"
+      };
+      render();
+      return true;
+    }
+    if (kind === "back-grid") {
+      state.smoothieGrid = null;
+      render();
+      return true;
+    }
+    if (kind === "clear-cell" || kind === "clear-final") {
+      clearSmoothieCell(node.getAttribute("data-date"), node.getAttribute("data-slot"));
+      return true;
+    }
+    if (kind === "copy-weekday") {
+      copySmoothieWeekday(node.getAttribute("data-date"), node.getAttribute("data-slot"), cardId, node.getAttribute("data-weekday"));
+      return true;
+    }
+    if (kind === "lock-month") {
+      lockSmoothieMonth();
+      return true;
+    }
+    if (kind === "tick") {
+      toggleSmoothieTick(node.getAttribute("data-date"), node.getAttribute("data-slot"));
+      return true;
+    }
+    if (kind === "save-pack") {
+      saveSmoothiePack();
+      return true;
+    }
+    if (kind === "dismiss-pack") {
+      state.smoothiePackAsk = "dismissed";
+      render();
+      return true;
+    }
+    if (kind === "reopen-pack") {
+      reopenSmoothiePack(cardId);
+      return true;
+    }
+    if (kind === "edit-draft") {
+      state.smoothieGrid = null;
+      openSmoothieRoom("hg");
+      return true;
+    }
+    if (kind === "clean-month") {
+      cleanSmoothieMonth();
       return true;
     }
     if (kind === "window") {
@@ -4137,8 +4945,11 @@
       render();
       return true;
     }
-    if (kind === "finish-week") finishSmoothieWeek(state.smoothieYear, state.smoothieMonth, state.smoothieWeek);
-    if (kind === "finish-month") finishSmoothieMonth(state.smoothieYear, state.smoothieMonth);
+    if (kind === "finish-week" || kind === "finish-month") {
+      state.smoothieFlyError = "Lock the draft into the final timetable. Save later waits until every slot is ticked.";
+      render();
+      return true;
+    }
     return true;
   }
 
@@ -5784,7 +6595,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v23",
+    build: "v24",
     get nutrition() {
       return {
         shop: foodShop(),

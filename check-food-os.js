@@ -31,7 +31,7 @@ if (html.indexOf("data/nutrition.js") !== -1) {
   console.error("FAIL mashed nutrition.js still linked");
   process.exit(1);
 }
-if (html.indexOf('content="v23"') === -1 || html.indexOf("styles.css?v=v23") === -1) {
+if (html.indexOf('content="v24"') === -1 || html.indexOf("styles.css?v=v24") === -1) {
   console.error("FAIL cache stamp");
   process.exit(1);
 }
@@ -39,7 +39,7 @@ if (html.indexOf("Sunday stays off this list") !== -1) {
   console.error("FAIL Sunday still hidden from the food week");
   process.exit(1);
 }
-if (html.indexOf("data/food/pack001.js?v=v23") === -1) {
+if (html.indexOf("data/food/pack001.js?v=v24") === -1) {
   console.error("FAIL pack 001 script");
   process.exit(1);
 }
@@ -59,11 +59,11 @@ if (html.indexOf("My Food Schedule") === -1 || html.indexOf("My Smoothie Schedul
     process.exit(1);
   }
 });
-if (html.indexOf("Main Smoothie Cabinet") === -1 || html.indexOf("Final Smoothie Prep Scheduled Timetables") === -1 || html.indexOf("Smoothie Schedule HG") === -1) {
+if (html.indexOf("Main Smoothie Cabinet") === -1 || html.indexOf("My 4-Week Smoothie Timetable") === -1 || html.indexOf("Draft Smoothie Schedule") === -1) {
   console.error("FAIL smoothie cabin names");
   process.exit(1);
 }
-if (html.indexOf("Final Meal Prep Scheduled Timetables") === -1 || html.indexOf("Main Meal Cabinet") === -1) {
+if (html.indexOf("My 4-Week Food Timetable") === -1 || html.indexOf("Draft Food Schedule") === -1 || html.indexOf("Main Meal Cabinet") === -1) {
   console.error("FAIL v22 cabin names");
   process.exit(1);
 }
@@ -134,8 +134,12 @@ if (app.indexOf("relic_food_cabinet_v22") === -1 || app.indexOf("relic_food_hg_v
   console.error("FAIL v22 cabin keys");
   process.exit(1);
 }
-if (app.indexOf("This card has already been added to save later.") === -1 || app.indexOf("Only once") === -1) {
-  console.error("FAIL save later or weekday buttons");
+if (app.indexOf("This card has already been added to save later.") === -1 || app.indexOf("All 4 weeks complete — add this timetable to Save later?") === -1 || app.indexOf("Lock into Final Timetable") === -1 || app.indexOf(">Remove<") === -1) {
+  console.error("FAIL save later gate or draft grid");
+  process.exit(1);
+}
+if (app.indexOf("Only once") !== -1) {
+  console.error("FAIL weekday wall still primary");
   process.exit(1);
 }
 if (app.indexOf("relic_smoothie_meals_v22") === -1 || app.indexOf("relic_smoothie_cabinet_v22") === -1 || app.indexOf("relic_smoothie_hg_v22") === -1 || app.indexOf("relic_smoothie_final_v22") === -1 || app.indexOf("relic_smoothie_savelater_v22") === -1 || app.indexOf("relic_smoothie_flylog_v22") === -1) {
