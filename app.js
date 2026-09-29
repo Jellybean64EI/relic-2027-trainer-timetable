@@ -4,7 +4,7 @@
    Schedule mode (full | upper) swaps the rotation and its own completion namespace.
    Full Body keeps the legacy bare YYYY-MM-DD key. Upper Body uses upper:YYYY-MM-DD.
    v14: each day has two trainer videos. tier is a bitmask (1 first, 2 second, 3 dual).
-   completed=true is dual/full only. Legacy completed=true with tier 0 still reads as dual.
+   Badge paint reads normalizeTier(tier) only. completed never invents a shield.
    Mode preference stays in memory.
    v15: viewYear 2026 is the Q4 bridge; 2027 is the year timetable.
    Month-row cache keys are year:mode:month. canTick locks future days from 1 Oct 2026
@@ -289,22 +289,15 @@
     return "";
   }
 
-  /* completed=true is always a full day (legacy rows included).
-     Partial days live in tier 1 or 2 with completed=false.
-     A stale tier 3 with completed=false is treated as cleared. */
-  function normalizeMask(completed, tier) {
-    var hasTier = !(tier === undefined || tier === null || tier === "");
-    var mask = hasTier ? (Number(tier) | 0) : 0;
-    if (mask < 0 || mask > 3) mask = 0;
-    if (completed) return 3;
-    if (!hasTier || mask === 3) return 0;
-    return mask & 3;
+  /* Badge source of truth is the tier bitmask. completed is not a second store. */
+  function normalizeTier(value) {
+    return (Number(value) || 0) & 3;
   }
 
   function absorbCompletionRow(next, dateKey, completed, tier) {
     var storageKey = storageKeyFromRow(dateKey);
     if (!storageKey) return;
-    var mask = normalizeMask(!!completed, tier);
+    var mask = normalizeTier(tier);
     if (!mask) return;
     next[storageKey] = mask;
   }
@@ -363,29 +356,41 @@
 
   function upsertCompletion(storageKey, mask) {
     var cfg = supabaseCfg();
-    if (!cfg.url || !cfg.anonKey) return Promise.resolve(false);
-    var bits = mask & 3;
+    if (!cfg.url || !cfg.anonKey) return Promise.resolve(null);
+    var bits = normalizeTier(mask);
     return fetch(restUrl("/rest/v1/relic_completions?on_conflict=date_key"), {
       method: "POST",
       headers: restHeaders({
         "Content-Type": "application/json",
-        Prefer: "resolution=merge-duplicates,return=minimal"
+        Prefer: "resolution=merge-duplicates,return=representation"
       }),
       body: JSON.stringify({
         date_key: storageKey,
-        completed: bits === 3,
+        completed: bits !== 0,
         tier: bits,
         updated_at: new Date().toISOString()
       })
     }).then(function (response) {
-      return response.ok;
+      if (!response.ok) return null;
+      return response.json().catch(function () { return null; }).then(function (payload) {
+        var row = Array.isArray(payload) ? payload[0] : payload;
+        if (row && row.tier !== undefined && row.tier !== null) return row;
+        return { date_key: storageKey, tier: bits, completed: bits !== 0 };
+      });
     }).catch(function () {
-      return false;
+      return null;
     });
   }
 
+  function applyReturnedCompletion(storageKey, row) {
+    var key = storageKeyFromRow(row && row.date_key) || storageKey;
+    var mask = normalizeTier(row ? row.tier : 0);
+    if (mask) state.videos[key] = mask;
+    else delete state.videos[key];
+  }
+
   function saveMask(storageKey, mask, dateKey, restoreFocus) {
-    var bits = mask & 3;
+    var bits = normalizeTier(mask);
     var previous = state.videos[storageKey] || 0;
     if (bits) state.videos[storageKey] = bits;
     else delete state.videos[storageKey];
@@ -396,9 +401,9 @@
     state.saveGen[storageKey] = gen;
     beginSyncActivity();
     setSync("Saving " + dateKey + "…", false);
-    upsertCompletion(storageKey, bits).then(function (ok) {
+    upsertCompletion(storageKey, bits).then(function (row) {
       if (state.saveGen[storageKey] !== gen) return;
-      if (!ok) {
+      if (!row) {
         if (previous) state.videos[storageKey] = previous;
         else delete state.videos[storageKey];
         setSync("Could not save " + dateKey + " to relic_completions.", true);
@@ -406,6 +411,9 @@
         render();
         return;
       }
+      applyReturnedCompletion(storageKey, row);
+      state.restoreTickDate = restoreFocus ? dateKey : "";
+      render();
       setSync("Synced", false);
     }).then(function () {
       endSyncActivity();
@@ -485,21 +493,24 @@
 
   function scoreDays(days) {
     var ticks = 0;
-    var fullDays = 0;
-    var firstSessions = 0;
+    var dualCount = 0;
+    var singleCount = 0;
     var total = days ? days.length : 0;
     for (var i = 0; i < total; i++) {
-      var mask = maskFor(days[i].dateKey);
-      ticks += popcount(mask);
-      if ((mask & 1) === 1) firstSessions += 1;
-      if ((mask & 3) === 3) fullDays += 1;
+      var tier = normalizeTier(maskFor(days[i].dateKey));
+      var bits = popcount(tier);
+      ticks += bits;
+      if (bits >= 1) singleCount += 1;
+      if (tier === 3) dualCount += 1;
     }
     return {
       total: total,
-      fullDays: fullDays,
-      firstSessions: firstSessions,
+      fullDays: dualCount,
+      dualCount: dualCount,
+      firstSessions: singleCount,
+      singleCount: singleCount,
       ticks: ticks,
-      complete: total > 0 && fullDays === total
+      complete: total > 0 && dualCount === total
     };
   }
 
@@ -526,30 +537,52 @@
       '<span class="shield-count">' + score.ticks + '<span class="sr-only"> ticks</span></span>';
   }
 
-  /* Single slot tracks first-session bits and stays gold.
-     Dual slot tracks full days. Any dual day turns that slot green.
-     The week chip itself is green only when every training day is dual. */
+  /* SINGLE counts any day with at least one tier bit. DUAL counts tier === 3 only.
+     The week chip is rich green only when every training day is tier 3. */
   function paintWeekChip(btn, score) {
-    var complete = !!score.complete;
-    btn.classList.toggle("is-complete", complete);
+    var total = score.total;
+    var singleCount = score.singleCount;
+    var dualCount = score.dualCount;
+    var singleTarget = total > 0 && singleCount === total;
+    var dualTarget = total > 0 && dualCount === total;
+    btn.classList.toggle("is-complete", dualTarget);
+    btn.classList.toggle("is-week-complete", dualTarget);
     btn.classList.remove("is-golden");
     btn.setAttribute("data-tick-count", String(score.ticks));
-    btn.setAttribute("data-full-days", String(score.fullDays));
-    btn.setAttribute("data-first-sessions", String(score.firstSessions));
-    var total = score.total;
-    var singleCount = btn.querySelector("[data-single-count]");
-    var dualCount = btn.querySelector("[data-dual-count]");
-    if (singleCount) singleCount.textContent = score.firstSessions + "/" + total;
-    if (dualCount) dualCount.textContent = complete ? String(score.ticks) : (score.fullDays + "/" + total);
+    btn.setAttribute("data-full-days", String(dualCount));
+    btn.setAttribute("data-first-sessions", String(singleCount));
+    var singleCountEl = btn.querySelector("[data-single-count]");
+    var dualCountEl = btn.querySelector("[data-dual-count]");
+    if (singleCountEl) singleCountEl.textContent = singleCount + "/" + total;
+    if (dualCountEl) dualCountEl.textContent = dualCount + "/" + total;
     var singleSlot = btn.querySelector(".week-slot-single");
     if (singleSlot) {
-      singleSlot.classList.toggle("is-started", score.firstSessions > 0 && !complete);
-      singleSlot.classList.toggle("is-full", total > 0 && score.firstSessions === total);
+      singleSlot.classList.toggle("is-started", singleCount > 0 && !singleTarget);
+      singleSlot.classList.toggle("is-full", singleTarget);
+      singleSlot.classList.toggle("is-target", singleTarget);
+    }
+    var singleBadge = btn.querySelector(".week-slot-single .shield-complete");
+    if (!singleBadge && singleSlot) {
+      singleBadge = document.createElement("span");
+      singleBadge.className = "shield-complete";
+      singleBadge.hidden = true;
+      var singleRow = singleSlot.querySelector(".week-slot-single-row");
+      if (singleRow) singleRow.insertBefore(singleBadge, singleRow.firstChild);
+    }
+    if (singleBadge) {
+      if (!singleTarget) {
+        singleBadge.hidden = true;
+        singleBadge.innerHTML = "";
+      } else {
+        singleBadge.hidden = false;
+        singleBadge.innerHTML = shieldSvg(false);
+      }
     }
     var dualSlot = btn.querySelector(".week-slot-dual");
     if (dualSlot) {
-      dualSlot.classList.toggle("is-started", score.fullDays > 0 && !complete);
-      dualSlot.classList.toggle("is-full", complete);
+      dualSlot.classList.toggle("is-started", dualCount > 0 && !dualTarget);
+      dualSlot.classList.toggle("is-full", dualTarget);
+      dualSlot.classList.toggle("is-target", dualTarget);
     }
     var badge = btn.querySelector(".week-slot-dual .shield-complete");
     if (!badge) {
@@ -559,7 +592,7 @@
       var row = btn.querySelector(".week-slot-dual-row");
       if (row) row.insertBefore(badge, row.firstChild);
     }
-    if (!complete) {
+    if (!dualTarget) {
       badge.hidden = true;
       badge.innerHTML = "";
     } else {
@@ -569,9 +602,9 @@
     var week = btn.getAttribute("data-week") || "";
     btn.setAttribute("aria-label",
       "WEEK " + week +
-      ", single sessions " + score.firstSessions + " of " + total +
-      ", dual " + score.fullDays + " of " + total +
-      (complete ? ", " + score.ticks + " ticks" : ""));
+      ", single sessions " + singleCount + " of " + total +
+      ", dual " + dualCount + " of " + total +
+      (dualTarget ? ", " + score.ticks + " ticks" : ""));
   }
 
   function paintYear(score) {
@@ -650,13 +683,14 @@
     if (!canTick(day.dateKey, parts)) {
       return '<td class="done-cell"><span class="lock-badge">LOCKED</span></td>';
     }
-    var mask = maskFor(day.dateKey);
+    var mask = normalizeTier(maskFor(day.dateKey));
     var tier = popcount(mask);
+    var dayState = tier >= 2 ? "dual" : (tier === 1 ? "partial" : "empty");
     var checked = tier >= 2 ? "true" : (tier === 1 ? "mixed" : "false");
     var emblem = tier >= 2 ? shieldSvg(true) : (tier === 1 ? shieldSvg(false) : "");
     return (
-      '<td class="done-cell"><button type="button" class="tick-hit" data-date="' + day.dateKey +
-      '" data-tier="' + tier + '" data-videos="' + (mask & 3) +
+      '<td class="done-cell"><button type="button" class="tick-hit is-' + dayState + '" data-date="' + day.dateKey +
+      '" data-tier="' + tier + '" data-videos="' + mask +
       '" role="checkbox" aria-checked="' + checked +
       '" aria-label="' + tierLabel(day.dateKey, mask) + '">' +
       '<span class="tick-box" aria-hidden="true">' + emblem + "</span>" +
@@ -3969,7 +4003,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v20.1",
+    build: "v20.2",
     get nutrition() {
       return {
         shop: foodShop(),

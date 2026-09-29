@@ -5,7 +5,7 @@
 **Coach archive:** NiX  
 **Timezone:** Europe/London (always)  
 **Runtime:** static HTML / CSS / JS. No build step. No npm.  
-**Cache bust:** `?v=v20.1` on every stylesheet and script in `index.html`
+**Cache bust:** `?v=v20.2` on every stylesheet and script in `index.html`
 
 Footer motto (exact):
 
@@ -159,7 +159,7 @@ Table: `relic_completions`
 | Column | Type |
 |--------|------|
 | `date_key` | TEXT PRIMARY KEY. Full Body: bare `YYYY-MM-DD` (Europe/London). Upper Body: `upper:YYYY-MM-DD` |
-| `completed` | BOOLEAN. True only for a dual/full day |
+| `completed` | BOOLEAN. Written true when `normalizeTier(tier) !== 0`. Badge colour is never read from this flag. |
 | `tier` | SMALLINT 0–3. Video bitmask added in v14. `1` = first trainer video, `2` = second/final trainer video, `3` = both |
 | `updated_at` | TIMESTAMPTZ |
 
@@ -167,14 +167,14 @@ Table: `relic_completions`
 - Upsert on `date_key` (`Prefer: resolution=merge-duplicates`). The body sends `completed`, `tier`, and `updated_at`.
 - In-memory state is only a mirror of Supabase. Do not persist ticks in `localStorage`.
 - No `mode` column. Existing bare `YYYY-MM-DD` rows are Full Body and are not rewritten. A `full:` prefix, if present, is read as Full Body; new Full Body writes stay on the bare key so older clients keep working.
-- **v14 legacy rule.** `completed=true` is a full day, including rows written before `tier` existed. Those rows were backfilled to `tier=3`. A pre-v14 client that still writes `completed=true` and leaves `tier` at 0 is read as dual (`tier` 3). `completed=false` with `tier` 1 or 2 is a single shield. `tier` 3 with `completed=false` is treated as cleared.
+- **Badge contract.** `normalizeTier(value)` is `(Number(value) || 0) & 3`. Popcount reads the two bits independently, so tier `2` alone is still one video (partial). `{tier:0, completed:true}` renders an empty DONE box. Do not persist `singleCount`, `dualCount`, `weekComplete`, or a badge colour.
 
 ### Two-stage day
 
 Each Mon–Sat row has two trainer citations. Display tier is the number of finished videos (0, 1, or 2).
 
-- Timer `00:00` on the first citation sets bit `1` (single orange shield), closes the player, and returns to the timetable.
-- Timer `00:00` on the second citation sets bit `2`. Both bits are the double orange shield and `completed=true`. That finish also closes the player and returns to the timetable.
+- Timer `00:00` on the first citation sets bit `1` (gold single shield), closes the player, and returns to the timetable.
+- Timer `00:00` on the second citation sets bit `2`. Both bits are the green dual shield. That finish also closes the player and returns to the timetable.
 - The DONE control cycles in the same order: empty box → single shield (bit `1`) → double shield (bits `1` and `2`, `completed=true`) → clear (`tier` 0, `completed=false`). A single shield that is only the second video still advances to dual, then the next tap clears. `aria-checked` is `false`, `mixed`, or `true`.
 
 ### Mode-isolated completions
@@ -187,11 +187,11 @@ Active days in each week bucket are Monday–Saturday (`dayIndex` 0–5). Sunday
 
 Week buckets stay days **1–7**, **8–14**, **15–21**, and **22–end**. A week, month, or year lights up only when every active Mon–Sat day in that period is dual-tier for the active mode. Weeks 1–3 are six days. Week 4 includes every Mon–Sat date from the 22nd through month end. The tick count is the sum of finished videos (2 per dual day).
 
-Each week chip is two slots. **SINGLE** counts days whose first trainer video is done (`bit 1`), as `n/total`. **DUAL** counts fully dual days, as `n/total`, until the week is 100% dual. The slots stay visually separate: the single slot keeps a dark inset, and the dual slot is its own module.
+Each week chip is two slots. **SINGLE** (`singleCount`) counts scheduled training days with `popcount(tier) >= 1`, shown as `n/total`. **DUAL** (`dualCount`) counts scheduled training days with `tier === 3`, shown as `n/total`. When `singleCount === trainingDays`, that slot locks green (`is-target`: `#3dff7a` border, glow, and a single shield) the moment it hits the target. A short SINGLE stays gold. The week chip (`is-week-complete`) is rich green only when every training day is `tier === 3`. A full SINGLE does not paint the chip. Completions stay the Supabase tier bitmask.
 
 While a period is complete for the active mode:
 
-- That week’s chip uses a rich green field. The dual slot shows an orange `#ff8c00` double-tick shield and the aggregate tick count. The single slot stays a separate dark module on that green field. The shield stays while another week is on screen. An incomplete dual slot hides the shield. A fully dual month chip still uses the same green field, shield, and tick count.
+- That week’s chip uses a rich green field. The dual slot shows a green double-tick shield and `n/n`. The single slot is green too, with a single shield, because `n/n` is already true. Those shields stay while another week is on screen. An incomplete dual slot hides its shield. A fully dual month chip still uses the same green field and shield.
 - The year badge (`#year-badge`) uses the same green, shield, and count. On the 2027 branch it stays hidden until all 12 months are dual-complete. On the 2026 bridge it stays hidden until October, November, and December are each dual-complete. The label is `state.viewYear`.
 - Day cells show a compact empty box, a single-tick shield, or a double-tick shield. They do not turn into a large gold checkbox.
 
@@ -201,7 +201,7 @@ Evaluate on each timetable render and whenever a completion is upserted. Do not 
 
 ## 7. Cache
 
-`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v20.1`. The `relic-build` meta is `v20.1`. The in-memory month-row cache key is `{year}:{mode}:{month}`.
+`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v20.2`. The `relic-build` meta is `v20.2`. The in-memory month-row cache key is `{year}:{mode}:{month}`.
 
 ---
 
@@ -247,7 +247,7 @@ index.html?date=2027-01-04&setsec=3   → coach set length 3 seconds. At 00:00 t
 2. Clips stream from Supabase public URLs. At `00:00` the opened citation is credited and, once that set is finished, the player closes and the timetable is showing. Duration overwrites remaining time and `SET_DURATION_SEC`. Add More Time only stacks onto remaining time. Next still advances a clip without crediting it.
 3. The table is exactly DAY / TRAINING RELICS / DONE at 20% / 70% / 10%.
 4. Ticks upsert `relic_completions`.
-5. `vercel.json` no-cache plus `?v=v20.1` on assets. The `relic-build` meta is `v20.1`. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome. A drag past 18px does not. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph. The forensic CUE tab slides up from the bottom, does not reset that timer, and does not reload the video.
+5. `vercel.json` no-cache plus `?v=v20.2` on assets. The `relic-build` meta is `v20.2`. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome. A drag past 18px does not. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph. The forensic CUE tab slides up from the bottom, does not reset that timer, and does not reload the video.
 6. `schedule.js` `MONTH_ROTATIONS` stays the Full Body lock. Upper Body data is additive.
 7. A week chip has a SINGLE slot and a DUAL slot. At 100% dual the chip is rich green, the dual slot shows an orange `#ff8c00` double-tick shield and the aggregate tick count, and the single slot stays a separate dark module. Day DONE cells use a compact box or a single/double shield, with a 44px hit target. Month chips and `#year-badge` use the same score and light up only at 100%. Week 4 labels read `WEEK 4`. The deload hint does not render. Calisthenics appears only in October–December 2027.
 8. The toggle immediately under the timetable swaps Full Body and Upper Body without a reload. The drawer’s Full Body and Upper Body rows call the same `setScheduleMode`. Ambient Hub switches the 2026 bridge and the 2027 year. The motto and metadata stay under that toggle. Each mode shows only its own ticks and shield badges.
@@ -294,7 +294,7 @@ Eyes is a single-document folder. `1. Eye_Sequence_Trainer.docx` is the href for
 
 ### Badge
 
-The shield tick scores each week of the viewed month on its own, for the active mode only: every active Mon–Sat day in that bucket must be dual-tier (`tier` 3 / `completed=true`) under that mode’s key. Week 4 includes every Mon–Sat date from the 22nd through month end. Each week chip has a SINGLE slot and a DUAL slot. A complete chip is rich green; the dual slot carries an orange double-tick shield and the video tick count, and the single slot stays a separate dark module. A week finished in Upper Body does not mark the same week finished in Full Body. Month and year use the same dual rule. Badge state is not stored in `localStorage`.
+The shield tick scores each week of the viewed month on its own, for the active mode only: the chip is rich green only when every active Mon–Sat day in that bucket is `tier === 3`. Week 4 includes every Mon–Sat date from the 22nd through month end. SINGLE locks green at `n/n` of days with at least one bit. DUAL locks green at `n/n` of tier-3 days. A week finished in Upper Body does not mark the same week finished in Full Body. Month and year use the same dual rule. Badge state is not stored in `localStorage`.
 
 ---
 

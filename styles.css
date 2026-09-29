@@ -391,9 +391,12 @@ h1 {
   box-shadow: 0 0 10px rgba(255, 140, 0, 0.45);
 }
 
-.week-slot-single.is-full {
-  border-color: #ff8c00;
-  box-shadow: 0 0 12px rgba(255, 140, 0, 0.7);
+.week-slot-single-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  max-width: 100%;
 }
 
 .wtab.is-complete .week-slot-single {
@@ -457,6 +460,46 @@ h1 {
   height: 19px;
 }
 
+/* v20.2: SINGLE n/n locks green. Partial single stays gold.
+   The week chip stays rich green only when every training day is dual. */
+.wtab .week-slot-single.is-full,
+.wtab.is-complete .week-slot-single.is-full,
+.wtab.is-selected .week-slot-single.is-full {
+  background: #0d3d22;
+  border-color: #3dff7a;
+  box-shadow: 0 0 12px #3dff7a;
+}
+
+.wtab .week-slot-single.is-full .week-slot-kicker,
+.wtab .week-slot-single.is-full .week-slot-count,
+.wtab.is-complete .week-slot-single.is-full .week-slot-kicker,
+.wtab.is-complete .week-slot-single.is-full .week-slot-count,
+.wtab.is-selected .week-slot-single.is-full .week-slot-kicker,
+.wtab.is-selected .week-slot-single.is-full .week-slot-count {
+  color: #3dff7a;
+}
+
+.wtab .week-slot-single.is-full .shield-tick path:first-of-type,
+.wtab .week-slot-single.is-target .shield-tick path:first-of-type {
+  fill: #3dff7a;
+}
+
+.wtab .week-slot-single.is-target,
+.wtab.is-complete .week-slot-single.is-target,
+.wtab.is-week-complete .week-slot-single.is-target,
+.wtab.is-selected .week-slot-single.is-target {
+  background: #0d3d22;
+  border-color: #3dff7a;
+  box-shadow: 0 0 12px #3dff7a;
+}
+
+.wtab .week-slot-single.is-target .week-slot-kicker,
+.wtab .week-slot-single.is-target .week-slot-count,
+.wtab.is-selected .week-slot-single.is-target .week-slot-kicker,
+.wtab.is-selected .week-slot-single.is-target .week-slot-count {
+  color: #3dff7a;
+}
+
 .mbtn {
   display: flex;
   flex-direction: column;
@@ -498,8 +541,10 @@ h1 {
 
 .mbtn.is-complete,
 .wtab.is-complete,
+.wtab.is-week-complete,
 .mbtn.is-complete.is-selected,
-.wtab.is-complete.is-selected {
+.wtab.is-complete.is-selected,
+.wtab.is-week-complete.is-selected {
   background: linear-gradient(180deg, #1c9a48 0%, #0a5c28 100%);
   color: #f4fff6;
   border-color: #ff8c00;
