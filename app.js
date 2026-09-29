@@ -526,7 +526,7 @@
       '<span class="shield-count">' + score.ticks + '<span class="sr-only"> ticks</span></span>';
   }
 
-  /* Single slot tracks first-session bits and stays gold.
+  /* Single slot tracks first-session bits. n/n locks that slot green.
      Dual slot tracks full days. Any dual day turns that slot green.
      The week chip itself is green only when every training day is dual. */
   function paintWeekChip(btn, score) {
@@ -537,14 +537,32 @@
     btn.setAttribute("data-full-days", String(score.fullDays));
     btn.setAttribute("data-first-sessions", String(score.firstSessions));
     var total = score.total;
+    var singleFull = total > 0 && score.firstSessions === total;
     var singleCount = btn.querySelector("[data-single-count]");
     var dualCount = btn.querySelector("[data-dual-count]");
     if (singleCount) singleCount.textContent = score.firstSessions + "/" + total;
     if (dualCount) dualCount.textContent = complete ? String(score.ticks) : (score.fullDays + "/" + total);
     var singleSlot = btn.querySelector(".week-slot-single");
     if (singleSlot) {
-      singleSlot.classList.toggle("is-started", score.firstSessions > 0 && !complete);
-      singleSlot.classList.toggle("is-full", total > 0 && score.firstSessions === total);
+      singleSlot.classList.toggle("is-started", score.firstSessions > 0 && !singleFull);
+      singleSlot.classList.toggle("is-full", singleFull);
+    }
+    var singleBadge = btn.querySelector(".week-slot-single .shield-complete");
+    if (!singleBadge && singleSlot) {
+      singleBadge = document.createElement("span");
+      singleBadge.className = "shield-complete";
+      singleBadge.hidden = true;
+      var singleRow = singleSlot.querySelector(".week-slot-single-row");
+      if (singleRow) singleRow.insertBefore(singleBadge, singleRow.firstChild);
+    }
+    if (singleBadge) {
+      if (!singleFull) {
+        singleBadge.hidden = true;
+        singleBadge.innerHTML = "";
+      } else {
+        singleBadge.hidden = false;
+        singleBadge.innerHTML = shieldSvg(false);
+      }
     }
     var dualSlot = btn.querySelector(".week-slot-dual");
     if (dualSlot) {
@@ -3969,7 +3987,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v20.1",
+    build: "v20.2",
     get nutrition() {
       return {
         shop: foodShop(),

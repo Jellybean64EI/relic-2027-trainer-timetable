@@ -31,7 +31,7 @@ if (html.indexOf("data/nutrition.js") !== -1) {
   console.error("FAIL mashed nutrition.js still linked");
   process.exit(1);
 }
-if (html.indexOf('content="v20.1"') === -1 || html.indexOf("styles.css?v=v20.1") === -1) {
+if (html.indexOf('content="v20.2"') === -1 || html.indexOf("styles.css?v=v20.2") === -1) {
   console.error("FAIL cache stamp");
   process.exit(1);
 }
@@ -52,7 +52,15 @@ if (css.indexOf('.tick-hit[data-tier="2"] .tick-box svg path:first-of-type') ===
   console.error("FAIL dual shield fill");
   process.exit(1);
 }
+if (css.indexOf(".wtab.is-complete .week-slot-single.is-full") === -1 || css.indexOf(".week-slot-single.is-full .shield-tick path:first-of-type") === -1) {
+  console.error("FAIL single slot green");
+  process.exit(1);
+}
 const app = fs.readFileSync("app.js", "utf8");
+if (app.indexOf("var singleFull = total > 0 && score.firstSessions === total") === -1 || app.indexOf('".week-slot-single .shield-complete"') === -1) {
+  console.error("FAIL single slot paint");
+  process.exit(1);
+}
 if (app.indexOf("Export JSON") === -1 || app.indexOf("relic_food_cards_v20") === -1 || app.indexOf("relic_food_week_v20") === -1) {
   console.error("FAIL food editor");
   process.exit(1);
