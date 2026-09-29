@@ -2865,26 +2865,29 @@ body.is-food .schedule-switch {
 .os-doors button {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
   height: 72px;
   min-height: 72px;
-  padding: 10px 14px;
+  padding: 8px 16px;
   overflow: visible;
   border: 2px solid #14061f;
   border-radius: 10px;
   background: #ff8c00;
   color: #14061f;
   font: inherit;
-  font-size: 1rem;
+  font-size: 1.25rem;
   font-weight: 800;
   white-space: normal;
   box-sizing: border-box;
 }
 
 .os-door-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   flex: 0 0 auto;
-  font-size: 1.45rem;
+  font-size: 18px;
   line-height: 1;
   white-space: nowrap;
 }
