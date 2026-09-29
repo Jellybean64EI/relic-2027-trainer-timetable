@@ -58,10 +58,16 @@ button, a, input, label {
 }
 
 .card {
+  position: relative;
   background: var(--container-deep);
   border: 1px solid rgba(255, 140, 0, 0.45);
   border-radius: 10px;
   overflow: hidden;
+}
+
+.card > :not(.ambient-field) {
+  position: relative;
+  z-index: 1;
 }
 
 .header {
@@ -237,7 +243,7 @@ h1 {
   flex-direction: column;
   gap: 1px;
   padding: 8px 12px 0;
-  background: var(--container-deep);
+  background: rgba(18, 5, 29, 0.72);
   text-align: center;
 }
 
@@ -282,7 +288,7 @@ h1 {
   display: grid;
   gap: 6px;
   padding: 8px;
-  background: var(--container-deep);
+  background: rgba(18, 5, 29, 0.72);
 }
 
 .phase-bar { grid-template-columns: 1fr 1fr; }
@@ -1365,15 +1371,111 @@ body.nav-open .nav-scrim {
   width: min(92vw, 420px);
   height: 100dvh;
   margin: 0;
-  padding: 12px 16px calc(20px + env(safe-area-inset-bottom));
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  padding: 0;
+  overflow: hidden;
   background: #12051d;
   border-right: 1px solid rgba(255, 140, 0, 0.5);
   box-shadow: 12px 0 32px rgba(0, 0, 0, 0.35);
   transform: translateX(-100%);
   transition: transform 0.32s ease;
+}
+
+.nav-drawer-scroll {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 12px 16px calc(20px + env(safe-area-inset-bottom));
+}
+
+/* v24.4 — calm NiX bars and circles under the purple field. */
+.ambient-field {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ambient-nix,
+.ambient-orb {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  color: #ff8c00;
+  pointer-events: none;
+  animation-duration: 28s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  animation-delay: var(--d, 0s);
+}
+
+.ambient-nix.is-lilac,
+.ambient-orb.is-lilac { color: #d8b4fe; }
+
+.ambient-nix {
+  width: 3px;
+  height: var(--s, 18px);
+  border-radius: 1px;
+  background: currentColor;
+  box-shadow:
+    calc(var(--s, 18px) * 0.28) 0 0 currentColor,
+    calc(var(--s, 18px) * 0.56) 0 0 currentColor;
+  opacity: 0.22;
+}
+
+.ambient-orb {
+  width: var(--s, 28px);
+  height: var(--s, 28px);
+  border-radius: 50%;
+  opacity: 0.2;
+}
+
+.ambient-orb.is-stroke {
+  background: transparent;
+  border: 1.5px solid currentColor;
+}
+
+.ambient-orb.is-fill {
+  background: currentColor;
+  border: 0;
+  opacity: 0.12;
+}
+
+.drift-a { animation-name: ambient-drift-a; animation-duration: 18s; }
+.drift-b { animation-name: ambient-drift-b; animation-duration: 24s; }
+.drift-c { animation-name: ambient-drift-c; animation-duration: 16s; }
+.drift-d { animation-name: ambient-drift-d; animation-duration: 22s; }
+
+@keyframes ambient-drift-a {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(36px, -48px, 0) scale(1.08); }
+}
+
+@keyframes ambient-drift-b {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(-42px, 32px, 0) scale(0.92); }
+}
+
+@keyframes ambient-drift-c {
+  from { transform: translate3d(0, 0, 0) scale(0.96); }
+  to { transform: translate3d(28px, 40px, 0) scale(1.07); }
+}
+
+@keyframes ambient-drift-d {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-32px, -36px, 0) scale(1.05); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-nix,
+  .ambient-orb {
+    animation: none;
+  }
 }
 
 body.nav-open .nav-drawer {
