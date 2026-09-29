@@ -65,7 +65,12 @@
     mode: "full",
     foodRoom: "",
     foodFocusId: "",
-    foodFocusBand: "moderate"
+    foodFocusBand: "moderate",
+    foodEditing: false,
+    scanPreview: null,
+    shopFilter: "all",
+    basketDrafts: null,
+    basketOpen: false
   };
 
   var player = {
@@ -318,7 +323,8 @@
   }
 
   function shieldSvg(doubleTick) {
-    return SHIELD_SVG_OPEN + SHIELD_BODY + (doubleTick ? SHIELD_TWO : SHIELD_ONE) + "</svg>";
+    var body = doubleTick ? SHIELD_BODY.replace("#ff8c00", "#3dff7a") : SHIELD_BODY;
+    return SHIELD_SVG_OPEN + body + (doubleTick ? SHIELD_TWO : SHIELD_ONE) + "</svg>";
   }
 
   function pullCompletions() {
@@ -517,8 +523,9 @@
       '<span class="shield-count">' + score.ticks + '<span class="sr-only"> ticks</span></span>';
   }
 
-  /* Single slot tracks first-session bits. Dual slot tracks full days.
-     At 100% the dual slot keeps the orange double shield and the tick total. */
+  /* Single slot tracks first-session bits and stays gold.
+     Dual slot tracks full days. Any dual day turns that slot green.
+     The week chip itself is green only when every training day is dual. */
   function paintWeekChip(btn, score) {
     var complete = !!score.complete;
     btn.classList.toggle("is-complete", complete);
@@ -680,6 +687,7 @@
       '<article class="recipe-card" data-kind="' + escapeHtml(card.kind) + '">' +
         '<p class="recipe-kicker">' + (card.kind === "extraction" ? "SMOOTHIE / EXTRACTION" : "MEAL RECIPE") + "</p>" +
         "<h3>" + escapeHtml(card.name) + "</h3>" +
+        (card.scanImage ? '<img class="scan-photo" alt="Label photo" src="' + escapeHtml(card.scanImage) + '">' : "") +
         '<p class="recipe-tagline">' + escapeHtml(card.tagline) + "</p>" +
         '<p class="recipe-script">' + escapeHtml(card.script) + "</p>" +
         '<ul class="recipe-facts">' +
@@ -702,6 +710,7 @@
           "<p><strong>Reheat</strong> " + escapeHtml(card.timetable.reheat) + "</p>" +
         "</section>" +
         '<p class="recipe-tip">Tip: ' + escapeHtml(card.tip) + "</p>" +
+        citationsBlockHtml(card) +
       "</article>"
     );
   }
@@ -725,6 +734,1168 @@
 
   function writeFoodStore(store) {
     try { localStorage.setItem(FOOD_STORE_KEY, JSON.stringify(store)); } catch (err) { /* private mode */ }
+  }
+
+  var FOOD_CARDS_KEY = "relic_food_cards_v20";
+  var FOOD_WEEK_KEY = "relic_food_week_v20";
+
+  function readJsonStore(key) {
+    try {
+      var raw = localStorage.getItem(key);
+      var parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function writeJsonStore(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (err) { /* private mode */ }
+  }
+
+  function readCardStore() {
+    var store = readJsonStore(FOOD_CARDS_KEY);
+    store.meals = store.meals || {};
+    store.extractions = store.extractions || {};
+    store.hiddenMeals = store.hiddenMeals || [];
+    store.hiddenExtractions = store.hiddenExtractions || [];
+    return store;
+  }
+
+  function readWeekNotes() {
+    return readJsonStore(FOOD_WEEK_KEY);
+  }
+
+  function weekNote(dateKey) {
+    var notes = readWeekNotes();
+    return notes[dateKey] || null;
+  }
+
+  function saveWeekNote(dateKey, patch) {
+    var notes = readWeekNotes();
+    var row = notes[dateKey] || {};
+    Object.keys(patch).forEach(function (key) {
+      var value = patch[key];
+      var empty = value == null || value === "" || (Array.isArray(value) && !value.length);
+      if (empty) delete row[key];
+      else row[key] = value;
+    });
+    if (Object.keys(row).length) notes[dateKey] = row;
+    else delete notes[dateKey];
+    writeJsonStore(FOOD_WEEK_KEY, notes);
+  }
+
+  function linesOf(text) {
+    return String(text || "").split("\n").map(function (line) { return line.trim(); }).filter(Boolean);
+  }
+
+  function methodFromLines(text) {
+    return linesOf(text).map(function (line) {
+      var parts = line.split(/\s+/);
+      return { verb: parts.shift() || "Do", detail: parts.join(" ") };
+    });
+  }
+
+  function methodToText(method) {
+    return (method || []).map(function (step) {
+      return (step.verb ? step.verb + " " : "") + (step.detail || "");
+    }).join("\n");
+  }
+
+  function ingredientsToText(items) {
+    return (items || []).map(function (item) { return item.text || ""; }).join("\n");
+  }
+
+  var SHOP_TAG_ORDER = ["protein", "veg", "fruit", "dairy", "freezer", "botanical", "other"];
+  var SHOP_TAGS = {
+    chicken: "protein", turkey: "protein", beef10: "protein", beef5: "protein",
+    salmonFrozen: "protein", salmonFresh: "protein", salmonWaitrose: "protein",
+    eggsPasture: "protein", eggsSo: "protein", eggsOmega: "protein", tuna: "protein",
+    carrots: "veg", cabbage: "veg", mushrooms: "veg", garlic: "veg", onion: "veg",
+    spinachFresh: "veg", tenderstem: "veg", lettuce: "veg", ginger: "veg",
+    avocado: "fruit", lemons: "fruit", berries: "fruit", berriesW: "fruit",
+    banana: "fruit", apples: "fruit", kiwi: "fruit", oranges: "fruit", pears: "fruit", pineapple: "fruit",
+    cheddar: "dairy", cheddarPremium: "dairy", mozzarella: "dairy", butter: "dairy",
+    milk: "dairy", yogurt: "dairy", yogurtW: "dairy", kefir: "dairy",
+    fruit: "freezer", spinachF: "freezer", broccoliF: "freezer", peas: "freezer",
+    mixedVeg: "freezer", greenBeans: "freezer", mango: "freezer", cherries: "freezer",
+    ashwagandha: "botanical", lionsMane: "botanical", spirulina: "botanical", psyllium: "botanical",
+    shilajit: "botanical", hemp: "botanical"
+  };
+
+  function normalizeTag(tag) {
+    var value = String(tag || "").toLowerCase();
+    return SHOP_TAG_ORDER.indexOf(value) === -1 ? "" : value;
+  }
+
+  function shopTag(item) {
+    var chosen = normalizeTag(item && item.tag);
+    if (chosen) return chosen;
+    return SHOP_TAGS[item && item.skuId] || "other";
+  }
+
+  function tagSelectHtml(selected, attrs, allowEmpty) {
+    var current = normalizeTag(selected) || (allowEmpty ? "" : "other");
+    var tags = allowEmpty ? [""].concat(SHOP_TAG_ORDER) : SHOP_TAG_ORDER;
+    return "<select " + attrs + ">" + tags.map(function (tag) {
+      return '<option value="' + tag + '"' + (tag === current ? " selected" : "") + ">" + (tag || "none") + "</option>";
+    }).join("") + "</select>";
+  }
+
+  function normalizeCitations(list) {
+    var rows = list;
+    if (typeof rows === "string") rows = rows.split("\n");
+    if (!Array.isArray(rows)) return [];
+    return rows.map(function (item) {
+      if (typeof item === "string") return item.trim();
+      if (item && item.text) return String(item.text).trim();
+      return "";
+    }).filter(Boolean);
+  }
+
+  function citationsToText(list) {
+    return normalizeCitations(list).join("\n");
+  }
+
+  function derivedCitations(card) {
+    var found = normalizeCitations(card && card.citations);
+    if (found.length) return found;
+    found = [];
+    ((card && card.ingredients) || []).forEach(function (item) {
+      var text = (item && item.text) || "";
+      if (/Sainsbury|Waitrose/i.test(text) && found.indexOf(text) === -1) found.push(text);
+    });
+    var blob = [(card && card.tip) || "", (card && card.tagline) || "", (card && card.script) || ""].join(" ");
+    if (/FOOD_LIVE/.test(blob) && found.indexOf("FOOD_LIVE") === -1) found.push("FOOD_LIVE");
+    if (card && card.seed && found.indexOf("Drive recipe card") === -1) found.push("Drive recipe card");
+    return found;
+  }
+
+  function carriedCitations(card) {
+    var lines = derivedCitations(card);
+    if (lines.length) return lines;
+    ((card && card.ingredients) || []).forEach(function (item) {
+      var text = (item && item.text) || "";
+      if (text && lines.indexOf(text) === -1) lines.push(text);
+    });
+    if (!lines.length) lines.push(card && card.scanImage ? "Label photo" : "FOOD_LIVE");
+    return lines;
+  }
+
+  function citationsBlockHtml(card) {
+    var lines = derivedCitations(card);
+    if (!lines.length) lines = carriedCitations(card);
+    if (!lines.length) return "";
+    return '<h4>Citations</h4><ul class="recipe-citations">' +
+      lines.map(function (line) { return "<li>" + escapeHtml(line) + "</li>"; }).join("") +
+      "</ul>";
+  }
+
+  function importKindRoom(data) {
+    var kind = String((data && data.kind) || "").toLowerCase();
+    if (kind === "smoothie" || kind === "extraction") return "extractions";
+    if (kind === "meal") return "meals";
+    if (kind === "shop") return "shop";
+    if (kind === "weekday" || kind === "week" || kind === "week-day") return "weekly";
+    return "";
+  }
+
+  function shopItemLabel(item) {
+    if (!item) return "";
+    if (item.label || item.customName) return item.label || item.customName;
+    var api = foodShop();
+    var entry = api && item.skuId && api.skus[item.skuId];
+    return entry ? entry.name : (item.skuId || "");
+  }
+
+  function shopItemCitations(item) {
+    var lines = normalizeCitations(item && item.citations);
+    if (lines.length) return lines;
+    var label = shopItemLabel(item);
+    return label ? [label] : ["FOOD_LIVE"];
+  }
+
+  function overlayCard(card, overlay) {
+    var next = {};
+    Object.keys(card).forEach(function (key) { next[key] = card[key]; });
+    ["name", "tagline", "script", "tip"].forEach(function (key) {
+      if (overlay[key]) next[key] = overlay[key];
+    });
+    if (overlay.ingredients && overlay.ingredients.length) next.ingredients = overlay.ingredients;
+    if (overlay.method && overlay.method.length) next.method = overlay.method;
+    if (overlay.scanImage) next.scanImage = overlay.scanImage;
+    if (overlay.citations && overlay.citations.length) next.citations = overlay.citations;
+    if (overlay.tag) next.tag = overlay.tag;
+    return next;
+  }
+
+  function customCardView(raw, kind) {
+    return {
+      id: raw.id,
+      kind: kind,
+      name: raw.name || "Untitled",
+      tagline: raw.tagline || "",
+      script: raw.script || "Your card.",
+      yield: raw.yield || "1",
+      prepMin: raw.prepMin || 10,
+      cookLabel: raw.cookLabel || "Your method",
+      tierFact: "Your card",
+      macros: raw.macros || { kcal: "—", basis: "your portion" },
+      lock: kind === "extraction" ? "Not dinner." : "",
+      sequence: kind === "extraction" ? ["Your blend"] : null,
+      ingredients: raw.ingredients && raw.ingredients.length ? raw.ingredients : [{ text: "Add an ingredient" }],
+      method: raw.method && raw.method.length ? raw.method : [{ verb: "Cook", detail: "until done" }],
+      timetable: raw.timetable || { bestFor: "Your plan", bestEaten: "Fresh", reheat: "Heat until hot" },
+      tip: raw.tip || "",
+      scanImage: raw.scanImage || "",
+      citations: normalizeCitations(raw.citations),
+      tag: normalizeTag(raw.tag)
+    };
+  }
+
+  function cardView(kind, id, tierId) {
+    var store = readCardStore();
+    var bucket = kind === "extraction" ? store.extractions : store.meals;
+    var overlay = bucket[id];
+    var api = kind === "extraction" ? foodExtractions() : foodMeals();
+    var base = null;
+    if (api && api.present) {
+      if (kind === "extraction" && api.cards && api.cards[id]) base = api.present(id, tierId || 1);
+      if (kind !== "extraction" && api.meals && api.meals[id]) base = api.present(id, tierId || 1);
+    }
+    if (overlay && overlay.custom) return customCardView(overlay, kind);
+    if (base && overlay) return overlayCard(base, overlay);
+    return base;
+  }
+
+  function idsForKind(kind) {
+    var store = readCardStore();
+    var api = kind === "extraction" ? foodExtractions() : foodMeals();
+    var hidden = kind === "extraction" ? store.hiddenExtractions : store.hiddenMeals;
+    var bucket = kind === "extraction" ? store.extractions : store.meals;
+    var ids = (api && api.order ? api.order : []).filter(function (id) {
+      return hidden.indexOf(id) === -1;
+    });
+    Object.keys(bucket).forEach(function (id) {
+      if (bucket[id] && bucket[id].custom && ids.indexOf(id) === -1) ids.push(id);
+    });
+    return ids;
+  }
+
+  function saveCardRecord(kind, id, record) {
+    var store = readCardStore();
+    var bucketName = kind === "extraction" ? "extractions" : "meals";
+    store[bucketName][id] = record;
+    writeJsonStore(FOOD_CARDS_KEY, store);
+  }
+
+  function newCardId() {
+    return "custom-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+
+  function foodToolsHtml(room) {
+    return '<div class="food-tools" data-food-room-tools="' + room + '">' +
+      '<button type="button" data-food-tool="export">Export JSON</button>' +
+      '<button type="button" data-food-tool="import">Import JSON</button>' +
+      '<button type="button" data-food-tool="reset">Reset this room</button>' +
+      '<label class="food-json-label">JSON for ChatGPT, Gemini, or NiX' +
+      '<textarea id="food-json-' + room + '" class="food-json" rows="5"></textarea></label>' +
+      "</div>";
+  }
+
+  function roomExport(room) {
+    if (room === "shop") {
+      var shopDraft = draftFor(state.viewYear, state.viewMonth, true);
+      var shopCopy = JSON.parse(JSON.stringify(shopDraft || { items: [] }));
+      (shopCopy.items || []).forEach(function (item) {
+        item.citations = shopItemCitations(item);
+        item.tag = shopTag(item);
+      });
+      return {
+        room: "shop",
+        build: "v20",
+        month: foodMonthKey(state.viewYear, state.viewMonth),
+        draft: shopCopy
+      };
+    }
+    if (room === "weekly") return { room: "weekly", build: "v20", notes: readWeekNotes() };
+    var store = readCardStore();
+    if (room === "extractions") {
+      return { room: "extractions", build: "v20", cards: store.extractions, hidden: store.hiddenExtractions };
+    }
+    return { room: "meals", build: "v20", cards: store.meals, hidden: store.hiddenMeals };
+  }
+
+  function fillFoodJson(room) {
+    var box = $("food-json-" + room);
+    if (!box) return;
+    box.value = JSON.stringify(roomExport(room), null, 2);
+    try { box.focus(); box.select(); } catch (err) { /* selection is optional */ }
+  }
+
+  function importFoodJson(room) {
+    var box = $("food-json-" + room);
+    var text = box ? box.value.trim() : "";
+    if (!text) {
+      state.scanPreview = { room: room, error: "Paste JSON first." };
+      render();
+      return;
+    }
+    if (looksLikeZip(text)) {
+      state.scanPreview = { room: room, error: "Import accepts a JSON object, not a ZIP." };
+      render();
+      return;
+    }
+    if (text.charAt(0) === "[") {
+      state.scanPreview = { room: room, error: "Import accepts a JSON object, not a list." };
+      render();
+      return;
+    }
+    try {
+      state.scanPreview = previewFromJson(JSON.parse(text), room);
+    } catch (err) {
+      state.scanPreview = { room: room, error: "That paste is not JSON yet." };
+    }
+    render();
+  }
+
+  function resetFoodRoom(room) {
+    state.foodJsonHold = JSON.stringify(roomExport(room), null, 2);
+    if (room === "weekly") writeJsonStore(FOOD_WEEK_KEY, {});
+    else if (room === "shop") {
+      var store = readFoodStore();
+      delete store[foodMonthKey(state.viewYear, state.viewMonth)];
+      writeFoodStore(store);
+    } else {
+      var cards = readCardStore();
+      if (room === "extractions") {
+        cards.extractions = {};
+        cards.hiddenExtractions = [];
+      } else {
+        cards.meals = {};
+        cards.hiddenMeals = [];
+      }
+      writeJsonStore(FOOD_CARDS_KEY, cards);
+    }
+    state.foodEditing = false;
+    state.scanPreview = null;
+    render();
+  }
+
+  function scanStripHtml(room) {
+    var pasteLabel = room === "shop" ? "Paste shop notes" : (room === "extractions" ? "Paste smoothie notes" : "Paste meal notes");
+    return '<section class="scan-strip" aria-label="Scan / Import">' +
+      "<h3>Scan / Import</h3>" +
+      '<label class="scan-label">' + pasteLabel +
+      '<textarea id="scan-paste-' + room + '" class="scan-paste" rows="4"></textarea></label>' +
+      '<button type="button" data-scan-action="parse">Parse</button>' +
+      '<label class="scan-file">JSON file<input type="file" accept="application/json,.json" data-scan-file="json" aria-label="Import JSON file"></label>' +
+      '<label class="scan-file">attach label photo; fill fields<input type="file" accept="image/*" capture="environment" data-scan-file="photo" aria-label="attach label photo; fill fields"></label>' +
+      "</section>";
+  }
+
+  function photoMarker(url) {
+    if (!url) return "";
+    if (url.length < 96) return url;
+    return url.slice(0, 48) + "…[label photo attached]";
+  }
+
+  function normalizeIngredients(list) {
+    if (!Array.isArray(list)) return [];
+    return list.map(function (item) { return ingredientRecord(item); }).filter(function (item) { return item.text || item.skuId; });
+  }
+
+  function normalizeMethod(list) {
+    if (!Array.isArray(list)) return [];
+    return list.map(function (step) { return methodRecord(step); }).filter(function (step) { return step.verb || step.detail; });
+  }
+
+  var CARD_FORWARD = ["macros", "tags", "timetable", "band", "lock", "provenance", "citations", "tag", "script", "sequence", "yield", "prepMin", "cookLabel", "protein", "carb"];
+
+  function looksLikeZip(text, name) {
+    if (name && /\.zip$/i.test(name)) return true;
+    var raw = String(text || "");
+    return raw.charCodeAt(0) === 80 && raw.charCodeAt(1) === 75 && raw.charCodeAt(2) === 3 && raw.charCodeAt(3) === 4;
+  }
+
+  function runtimeKind(kind) {
+    var value = String(kind || "").toLowerCase();
+    if (value === "smoothie" || value === "extraction") return "extraction";
+    if (value === "meal") return "meal";
+    return "";
+  }
+
+  function copyForward(target, source, overwrite) {
+    if (!source) return target;
+    CARD_FORWARD.forEach(function (key) {
+      if (key === "citations" || key === "tag") return;
+      var value = source[key];
+      if (value == null || value === "") return;
+      if (Array.isArray(value) && !value.length) return;
+      if (!overwrite) {
+        var current = target[key];
+        if (current != null && current !== "" && !(Array.isArray(current) && !current.length)) return;
+      }
+      target[key] = value;
+    });
+    return target;
+  }
+
+  function ingredientRecord(item, prior) {
+    var text = typeof item === "string" ? item : ((item && item.text) || "");
+    var row = { text: text };
+    var source = item && typeof item === "object" ? item : null;
+    if (source) {
+      Object.keys(source).forEach(function (key) {
+        if (key === "text") return;
+        if (source[key] != null && source[key] !== "") row[key] = source[key];
+      });
+    }
+    if (!row.skuId && prior && prior.skuId && prior.text === text) row.skuId = prior.skuId;
+    return row;
+  }
+
+  function methodRecord(step, prior) {
+    var base = typeof step === "string"
+      ? (methodFromLines(step)[0] || { verb: "Do", detail: step })
+      : { verb: (step && step.verb) || "", detail: (step && step.detail) || "" };
+    if (prior && prior.verb === base.verb && prior.detail === base.detail) {
+      Object.keys(prior).forEach(function (key) {
+        if (key === "verb" || key === "detail") return;
+        if (prior[key] != null && prior[key] !== "") base[key] = prior[key];
+      });
+    }
+    if (step && typeof step === "object") {
+      Object.keys(step).forEach(function (key) {
+        if (key === "verb" || key === "detail") return;
+        if (step[key] != null && step[key] !== "") base[key] = step[key];
+      });
+    }
+    return base;
+  }
+
+  function overlayRecord(data, kind, existing) {
+    var source = data || {};
+    var prior = existing || {};
+    var ingredients = (source.ingredients || []).map(function (item, index) {
+      return ingredientRecord(item, (prior.ingredients || [])[index]);
+    }).filter(function (row) { return row.text || row.skuId; });
+    var method = (source.method || []).map(function (step, index) {
+      return methodRecord(step, (prior.method || [])[index]);
+    }).filter(function (step) { return step.verb || step.detail; });
+    var record = {
+      id: source.id || prior.id || newCardId(),
+      name: source.name || "",
+      tagline: source.tagline || "",
+      ingredients: ingredients,
+      method: method,
+      tip: source.tip || "",
+      scanImage: typeof source.scanImage === "string" ? source.scanImage : (prior.scanImage || "")
+    };
+    if (source.custom || prior.custom) record.custom = true;
+    var storedKind = runtimeKind(source.kind || prior.kind || kind || "");
+    if (storedKind) record.kind = storedKind;
+    copyForward(record, prior, false);
+    copyForward(record, source, true);
+    if (Object.prototype.hasOwnProperty.call(source, "citations")) {
+      var cites = normalizeCitations(source.citations);
+      if (cites.length) record.citations = cites;
+      else delete record.citations;
+    } else if (prior.citations) {
+      var keptCites = normalizeCitations(prior.citations);
+      if (keptCites.length) record.citations = keptCites;
+    }
+    if (Object.prototype.hasOwnProperty.call(source, "tag")) {
+      var tag = normalizeTag(source.tag);
+      if (tag) record.tag = tag;
+      else delete record.tag;
+    } else {
+      var keptTag = normalizeTag(prior.tag);
+      if (keptTag) record.tag = keptTag;
+    }
+    return record;
+  }
+
+  function weekNoteRecord(note) {
+    if (!note || typeof note !== "object" || Array.isArray(note)) return null;
+    var next = {};
+    if (note.lunch) next.lunch = note.lunch;
+    if (note.mealId) next.mealId = note.mealId;
+    if (note.note) next.note = note.note;
+    if (note.evening) next.evening = note.evening;
+    var cites = normalizeCitations(note.citations);
+    if (cites.length) next.citations = cites;
+    return Object.keys(next).length ? next : null;
+  }
+
+  function cardFromRecord(data, kind) {
+    var runtime = runtimeKind(data && data.kind) || runtimeKind(kind) || "meal";
+    var record = overlayRecord(data, runtime, data);
+    record.custom = true;
+    record.kind = runtime;
+    if (!record.ingredients.length) record.ingredients = [{ text: "" }];
+    if (!record.method.length) record.method = [{ verb: "", detail: "" }];
+    return record;
+  }
+
+  function shopLinesFromText(text) {
+    var chunks = String(text || "").split(/\n|;/).map(function (line) {
+      return line.replace(/^[-*•]\s+/, "").replace(/^\d+[\.\)]\s+/, "").trim();
+    }).filter(Boolean);
+    if (chunks.length === 1 && chunks[0].indexOf(",") !== -1) {
+      chunks = chunks[0].split(",").map(function (part) { return part.trim(); }).filter(Boolean);
+    }
+    return chunks.map(function (name) {
+      return { customName: name, qty: 1, ticked: true, pricePence: 0, tag: "other", citations: [name] };
+    });
+  }
+
+  function sectionName(line) {
+    var head = String(line || "").toLowerCase().replace(/:$/, "").trim();
+    if (head === "ingredients" || head.indexOf("ingredient") === 0) return "ingredients";
+    if (head === "method" || head === "steps" || head === "instructions" || head === "directions") return "method";
+    if (head === "tip" || head === "tips" || head === "note" || head === "notes") return "tip";
+    if (head === "citations" || head === "citation" || head === "sources") return "citations";
+    return "";
+  }
+
+  function parseFreeform(text, room) {
+    var raw = String(text || "").trim();
+    if (!raw) return { room: room, error: "Paste a note first." };
+    if (looksLikeZip(raw)) return { room: room, error: "Import accepts a JSON object, not a ZIP." };
+    if (raw.charAt(0) === "[") return { room: room, error: "Import accepts a JSON object, not a list." };
+    if (raw.charAt(0) === "{") {
+      try { return previewFromJson(JSON.parse(raw), room); }
+      catch (err) { return { room: room, error: "That paste is not JSON yet." }; }
+    }
+    if (room === "shop") {
+      var draft = draftFor(state.viewYear, state.viewMonth, true);
+      if (draft && draft.locked) return { room: room, error: "Unlock this month’s shop before importing a list." };
+      var lines = shopLinesFromText(raw);
+      if (!lines.length) return { room: room, error: "No shop lines in that paste." };
+      return { room: room, mode: "shop", lines: lines };
+    }
+    if (room !== "meals" && room !== "extractions") {
+      return { room: room, error: "Open Meal cards, Smoothie cards, or the shop to scan a note." };
+    }
+    var name = "";
+    var tagline = "";
+    var tip = "";
+    var ingredients = [];
+    var method = [];
+    var citations = [];
+    var section = "";
+    raw.split("\n").forEach(function (line) {
+      var trimmed = line.trim();
+      if (!trimmed) return;
+      var bare = trimmed.replace(/^[-*•]\s+/, "").replace(/^\*\*/, "").replace(/\*\*$/, "").replace(/^#+\s*/, "").trim();
+      var headed = sectionName(bare);
+      if (headed) { section = headed; return; }
+      if (/^tip\s*:/i.test(bare)) {
+        tip = bare.replace(/^tip\s*:/i, "").trim();
+        section = "tip";
+        return;
+      }
+      if (/^cite\s*:/i.test(bare) || section === "citations") {
+        citations.push(bare.replace(/^cite\s*:/i, "").trim());
+        section = "citations";
+        return;
+      }
+      if (!name) { name = bare; return; }
+      if (section === "tip") { tip = tip ? tip + " " + bare : bare; return; }
+      if (section === "method" || /^\d+[\.\)]\s+/.test(trimmed)) {
+        method.push(bare.replace(/^\d+[\.\)]\s+/, ""));
+        return;
+      }
+      if (section === "ingredients" || /^[-*•]\s+/.test(trimmed)) {
+        ingredients.push(bare);
+        return;
+      }
+      if (!tagline && !section) { tagline = bare; return; }
+      ingredients.push(bare);
+    });
+    var kind = room === "extractions" ? "extraction" : "meal";
+    return {
+      room: room,
+      mode: "card",
+      card: cardFromRecord({
+        name: name || (kind === "extraction" ? "Scanned smoothie" : "Scanned meal"),
+        tagline: tagline,
+        ingredients: ingredients,
+        method: method,
+        tip: tip,
+        citations: citations
+      }, kind)
+    };
+  }
+
+  function previewFromJson(data, room) {
+    if (Array.isArray(data) || !data || typeof data !== "object") {
+      return { room: room, error: "Import accepts a JSON object, not a list." };
+    }
+    var kindRoom = importKindRoom(data);
+    if ((data.room && data.room !== room) || (kindRoom && kindRoom !== room)) {
+      return { room: room, error: "That JSON belongs to the " + (data.room || kindRoom) + " room." };
+    }
+    if (room === "weekly") {
+      if (kindRoom === "weekly" || (data.dateKey && !data.notes)) {
+        if (!data.dateKey) return { room: room, error: "A week day needs a dateKey." };
+        var dayNote = weekNoteRecord(data);
+        if (!dayNote) return { room: room, error: "Weekly JSON needs lunch, mealId, or note." };
+        var dayNotes = {};
+        dayNotes[data.dateKey] = dayNote;
+        return { room: room, mode: "notes", module: { notes: dayNotes } };
+      }
+      if (!data.notes || typeof data.notes !== "object" || Array.isArray(data.notes)) {
+        return { room: room, error: "Weekly JSON needs a notes object." };
+      }
+      var notes = {};
+      Object.keys(data.notes).forEach(function (key) {
+        var next = weekNoteRecord(data.notes[key]);
+        if (next) notes[key] = next;
+      });
+      return { room: room, mode: "notes", module: { notes: notes } };
+    }
+    if (room === "shop") {
+      var draft = draftFor(state.viewYear, state.viewMonth, true);
+      if (draft && draft.locked) return { room: room, error: "Unlock this month’s shop before importing a list." };
+      var items = data.draft && Array.isArray(data.draft.items) ? data.draft.items : (Array.isArray(data.items) ? data.items : (Array.isArray(data.lines) ? data.lines : null));
+      if (!items) return { room: room, error: "Shop JSON needs a list of lines." };
+      return { room: room, mode: "module", module: data };
+    }
+    if (data.cards && typeof data.cards === "object" && !Array.isArray(data.cards)) {
+      return { room: room, mode: "module", module: data };
+    }
+    if (data.name) {
+      var cardKind = runtimeKind(data.kind) || (room === "extractions" || kindRoom === "extractions" ? "extraction" : "meal");
+      return { room: room, mode: "card", card: cardFromRecord(data, cardKind) };
+    }
+    return { room: room, error: "That JSON has no card." };
+  }
+
+  function previewFromPhoto(dataUrl, room, note) {
+    if (room === "shop") {
+      var draft = draftFor(state.viewYear, state.viewMonth, true);
+      if (draft && draft.locked) return { room: room, error: "Unlock this month’s shop before importing a list." };
+      return {
+        room: room,
+        mode: "shop",
+        scanImage: dataUrl || "",
+        note: note || "attach label photo; fill fields",
+        lines: [{ customName: "", qty: 1, ticked: true, pricePence: 0 }]
+      };
+    }
+    if (room !== "meals" && room !== "extractions") {
+      return { room: room, error: "Open Meal cards or Smoothie cards to attach a label photo." };
+    }
+    var kind = room === "extractions" ? "extraction" : "meal";
+    return {
+      room: room,
+      mode: "photo",
+      note: note || "attach label photo; fill fields",
+      card: cardFromRecord({
+        name: "",
+        tagline: "attach label photo; fill fields",
+        ingredients: [],
+        method: [],
+        tip: "",
+        scanImage: dataUrl || ""
+      }, kind)
+    };
+  }
+
+  function scanExport(preview) {
+    if (!preview) return {};
+    if (preview.mode === "card" || preview.mode === "photo") {
+      var card = preview.card || {};
+      var exported = {
+        id: card.id,
+        name: card.name,
+        tagline: card.tagline,
+        ingredients: card.ingredients,
+        method: card.method,
+        tip: card.tip,
+        scanImage: photoMarker(card.scanImage)
+      };
+      if (card.kind) exported.kind = card.kind;
+      copyForward(exported, card, false);
+      if (card.citations && card.citations.length) exported.citations = card.citations;
+      if (card.tag) exported.tag = card.tag;
+      return exported;
+    }
+    if (preview.mode === "shop") {
+      return { room: "shop", lines: preview.lines || [], scanImage: photoMarker(preview.scanImage) };
+    }
+    return preview.module || {};
+  }
+
+  function scanPreviewHtml(room) {
+    var preview = state.scanPreview;
+    if (!preview || preview.room !== room) return "";
+    if (preview.error) {
+      return '<section class="scan-preview" aria-label="Scan preview">' +
+        "<h3>Preview</h3><p>" + escapeHtml(preview.error) + "</p>" +
+        '<button type="button" data-scan-action="cancel">Cancel</button></section>';
+    }
+    var note = preview.note || ((preview.mode === "module" || preview.mode === "notes")
+      ? "Edit the JSON, then save. Cancel discards this draft."
+      : "Edit the fields, then save. Cancel discards this draft.");
+    var json = escapeHtml(JSON.stringify(scanExport(preview), null, 2));
+    if (preview.mode === "card" || preview.mode === "photo") {
+      var card = preview.card;
+      return '<section class="scan-preview" aria-label="Scan preview">' +
+        "<h3>Preview</h3>" +
+        (card.scanImage ? '<img class="scan-photo" alt="Label photo" src="' + escapeHtml(card.scanImage) + '">' : "") +
+        '<p class="scan-note">' + escapeHtml(note) + "</p>" +
+        '<label>Name <input data-scan-field="name" value="' + escapeHtml(card.name) + '"></label>' +
+        '<label>Tagline <input data-scan-field="tagline" value="' + escapeHtml(card.tagline) + '"></label>' +
+        '<label>Ingredients, one line each <textarea data-scan-field="ingredients" rows="5">' +
+          escapeHtml(ingredientsToText(card.ingredients)) + "</textarea></label>" +
+        '<label>Method, one step each line <textarea data-scan-field="method" rows="5">' +
+          escapeHtml(methodToText(card.method)) + "</textarea></label>" +
+        '<label>Tip <textarea data-scan-field="tip" rows="3">' + escapeHtml(card.tip) + "</textarea></label>" +
+        "<label>Category " + tagSelectHtml(card.tag, 'data-scan-field="tag"', true) + "</label>" +
+        '<label>Citations, one line each <textarea data-scan-field="citations" rows="4">' +
+          escapeHtml(citationsToText(card.citations)) + "</textarea></label>" +
+        '<pre class="scan-json">' + json + "</pre>" +
+        '<button type="button" data-scan-action="save">Save</button>' +
+        '<button type="button" data-scan-action="cancel">Cancel</button>' +
+        "</section>";
+    }
+    if (preview.mode === "shop") {
+      var fields = (preview.lines || []).map(function (line, index) {
+        return "<label>Line " + (index + 1) +
+          '<input data-scan-line="' + index + '" value="' + escapeHtml(line.customName || line.label || "") + '"></label>' +
+          "<label>Category " + tagSelectHtml(line.tag, 'data-scan-tag="' + index + '"') + "</label>" +
+          '<label>Citations <textarea data-scan-cites="' + index + '" rows="2">' +
+            escapeHtml(citationsToText(line.citations)) + "</textarea></label>";
+      }).join("");
+      return '<section class="scan-preview" aria-label="Scan preview">' +
+        "<h3>Preview</h3>" +
+        (preview.scanImage ? '<img class="scan-photo" alt="Label photo" src="' + escapeHtml(preview.scanImage) + '">' : "") +
+        '<p class="scan-note">' + escapeHtml(note) + "</p>" +
+        fields +
+        '<pre class="scan-json">' + json + "</pre>" +
+        '<button type="button" data-scan-action="save">Save</button>' +
+        '<button type="button" data-scan-action="cancel">Cancel</button>' +
+        "</section>";
+    }
+    return '<section class="scan-preview" aria-label="Scan preview">' +
+      "<h3>Preview</h3>" +
+      '<p class="scan-note">' + escapeHtml(note) + "</p>" +
+      '<textarea data-scan-field="module" rows="10">' + json + "</textarea>" +
+      '<button type="button" data-scan-action="save">Save</button>' +
+      '<button type="button" data-scan-action="cancel">Cancel</button>' +
+      "</section>";
+  }
+
+  function readScanForm() {
+    var preview = state.scanPreview;
+    if (!preview || preview.error) return preview;
+    var root = document.querySelector("#food-" + preview.room + " .scan-preview");
+    if (!root) return preview;
+    if (preview.mode === "card" || preview.mode === "photo") {
+      function fieldValue(name) {
+        var el = root.querySelector('[data-scan-field="' + name + '"]');
+        return el ? el.value : "";
+      }
+      var priorIngredients = (preview.card.ingredients || []).slice();
+      var priorMethod = (preview.card.method || []).slice();
+      preview.card.name = fieldValue("name").trim();
+      preview.card.tagline = fieldValue("tagline").trim();
+      preview.card.ingredients = linesOf(fieldValue("ingredients")).map(function (text, index) {
+        return ingredientRecord(text, priorIngredients[index]);
+      });
+      preview.card.method = methodFromLines(fieldValue("method")).map(function (step, index) {
+        return methodRecord(step, priorMethod[index]);
+      });
+      preview.card.tip = fieldValue("tip").trim();
+      preview.card.citations = linesOf(fieldValue("citations"));
+      preview.card.tag = normalizeTag(fieldValue("tag"));
+      return preview;
+    }
+    if (preview.mode === "shop") {
+      root.querySelectorAll("[data-scan-line]").forEach(function (el) {
+        var index = +el.getAttribute("data-scan-line");
+        if (preview.lines[index]) preview.lines[index].customName = el.value.trim();
+      });
+      root.querySelectorAll("[data-scan-tag]").forEach(function (el) {
+        var index = +el.getAttribute("data-scan-tag");
+        if (preview.lines[index]) preview.lines[index].tag = normalizeTag(el.value) || "other";
+      });
+      root.querySelectorAll("[data-scan-cites]").forEach(function (el) {
+        var index = +el.getAttribute("data-scan-cites");
+        if (preview.lines[index]) preview.lines[index].citations = linesOf(el.value);
+      });
+      return preview;
+    }
+    var moduleBox = root.querySelector('[data-scan-field="module"]');
+    if (moduleBox) {
+      try {
+        preview.module = JSON.parse(moduleBox.value);
+        if (preview.note === "That preview is not JSON yet.") preview.note = "";
+      } catch (err) {
+        preview.module = null;
+        preview.note = "That preview is not JSON yet.";
+      }
+    }
+    return preview;
+  }
+
+  function applyFoodModule(room, data) {
+    if (Array.isArray(data) || !data || typeof data !== "object") return "Import accepts a JSON object, not a list.";
+    if (data.room && data.room !== room) return "That JSON belongs to the " + data.room + " room.";
+    if (room === "weekly") {
+      if (!data.notes || typeof data.notes !== "object" || Array.isArray(data.notes)) return "Weekly JSON needs a notes object.";
+      var notes = {};
+      Object.keys(data.notes).forEach(function (key) {
+        var next = weekNoteRecord(data.notes[key]);
+        if (next) notes[key] = next;
+      });
+      writeJsonStore(FOOD_WEEK_KEY, notes);
+      return "";
+    }
+    if (room === "shop") {
+      var draft = draftFor(state.viewYear, state.viewMonth, true);
+      if (draft.locked) return "Unlock this month’s shop before importing a list.";
+      var items = data.draft && Array.isArray(data.draft.items) ? data.draft.items : (Array.isArray(data.items) ? data.items : (Array.isArray(data.lines) ? data.lines : null));
+      if (!items) return "Shop JSON needs a list of lines.";
+      draft.items = items.map(function (item) {
+        var next = {};
+        Object.keys(item).forEach(function (key) { next[key] = item[key]; });
+        var known = foodShop() && next.skuId && foodShop().skus[next.skuId];
+        if (!next.customName && next.name && !known) next.customName = next.name;
+        if (!next.skuId) next.skuId = "custom-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        if (next.qty == null) next.qty = 1;
+        if (next.ticked == null) next.ticked = true;
+        next.citations = shopItemCitations(next);
+        next.tag = shopTag(next);
+        return next;
+      });
+      saveDraft(draft);
+      return "";
+    }
+    var store = readCardStore();
+    var fallbackKind = room === "extractions" ? "extraction" : "meal";
+    var cards = data.cards && typeof data.cards === "object" && !Array.isArray(data.cards) ? data.cards : null;
+    if (!cards && data.name) {
+      var one = overlayRecord(data, runtimeKind(data.kind) || fallbackKind, data);
+      one.custom = true;
+      one.kind = runtimeKind(data.kind) || fallbackKind;
+      cards = {};
+      cards[one.id] = one;
+    }
+    if (!cards) return "That JSON has no card.";
+    var saved = {};
+    Object.keys(cards).forEach(function (key) {
+      var card = cards[key];
+      if (!card || typeof card !== "object" || Array.isArray(card)) return;
+      var runtime = runtimeKind(card.kind) || fallbackKind;
+      var record = overlayRecord(Object.assign({ id: key }, card), runtime, card);
+      record.kind = runtime;
+      if (card.custom) record.custom = true;
+      saved[record.id || key] = record;
+    });
+    if (room === "extractions") {
+      store.extractions = saved;
+      if (Array.isArray(data.hidden)) store.hiddenExtractions = data.hidden;
+    } else {
+      store.meals = saved;
+      if (Array.isArray(data.hidden)) store.hiddenMeals = data.hidden;
+    }
+    writeJsonStore(FOOD_CARDS_KEY, store);
+    return "";
+  }
+
+  function commitScan() {
+    var preview = readScanForm();
+    if (!preview || preview.error) {
+      state.scanPreview = preview;
+      render();
+      return;
+    }
+    if (preview.mode === "card" || preview.mode === "photo") {
+      var card = preview.card;
+      var kind = preview.room === "extractions" ? "extraction" : "meal";
+      if (!card.name) card.name = card.scanImage ? "Label photo" : (kind === "extraction" ? "Scanned smoothie" : "Scanned meal");
+      card.ingredients = (card.ingredients || []).filter(function (row) { return row && (row.text || row.skuId); });
+      card.method = (card.method || []).filter(function (step) { return step && (step.verb || step.detail); });
+      if (!card.ingredients.length) card.ingredients = [{ text: "Add an ingredient" }];
+      if (!card.method.length) {
+        card.method = card.scanImage
+          ? [{ verb: "Fill", detail: "the fields from the label" }]
+          : [{ verb: "Cook", detail: "until done" }];
+      }
+      var savedCard = overlayRecord(card, kind, card);
+      savedCard.custom = true;
+      savedCard.kind = kind;
+      savedCard.id = card.id;
+      saveCardRecord(kind, card.id, savedCard);
+      state.foodFocusId = card.id;
+      state.foodEditing = false;
+    } else if (preview.mode === "shop") {
+      var draft = draftFor(state.viewYear, state.viewMonth, true);
+      if (draft.locked) {
+        preview.error = "Unlock this month’s shop before importing a list.";
+        state.scanPreview = preview;
+        render();
+        return;
+      }
+      var added = 0;
+      (preview.lines || []).forEach(function (line) {
+        if (!line.customName) return;
+        added += 1;
+        draft.items.push({
+          skuId: "custom-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+          qty: line.qty || 1,
+          ticked: line.ticked !== false,
+          customName: line.customName,
+          pricePence: line.pricePence || 0,
+          tag: normalizeTag(line.tag) || "other",
+          citations: normalizeCitations(line.citations).length ? normalizeCitations(line.citations) : [line.customName],
+          scanImage: preview.scanImage || line.scanImage || ""
+        });
+      });
+      if (!added) {
+        preview.note = "Name a shop line before saving.";
+        state.scanPreview = preview;
+        render();
+        return;
+      }
+      saveDraft(draft);
+    } else {
+      if (!preview.module) {
+        preview.note = preview.note || "That preview is not JSON yet.";
+        state.scanPreview = preview;
+        render();
+        return;
+      }
+      var problem = applyFoodModule(preview.room, preview.module);
+      if (problem) {
+        preview.error = problem;
+        state.scanPreview = preview;
+        render();
+        return;
+      }
+    }
+    state.scanPreview = null;
+    render();
+  }
+
+  function onScanAction(btn) {
+    var action = btn.getAttribute("data-scan-action");
+    var room = state.foodRoom;
+    if (action === "cancel") {
+      state.scanPreview = null;
+      render();
+      return;
+    }
+    if (action === "parse") {
+      var box = $("scan-paste-" + room);
+      state.scanPreview = parseFreeform(box ? box.value : "", room);
+      render();
+      return;
+    }
+    if (action === "save") commitScan();
+  }
+
+  function readScanFile(input) {
+    var file = input.files && input.files[0];
+    var kind = input.getAttribute("data-scan-file");
+    var room = state.foodRoom;
+    if (!file) return;
+    if (kind === "photo") {
+      if (file.size > 900000) {
+        state.scanPreview = previewFromPhoto("", room, "That photo is too large to keep on this device. Fill the fields instead.");
+        render();
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function () {
+        state.scanPreview = previewFromPhoto(String(reader.result || ""), room);
+        render();
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+    var textReader = new FileReader();
+    textReader.onload = function () {
+      var text = String(textReader.result || "");
+      if (looksLikeZip(text, file.name)) {
+        state.scanPreview = { room: room, error: "Import accepts a JSON object, not a ZIP." };
+        render();
+        return;
+      }
+      var trimmed = text.trim();
+      if (trimmed.charAt(0) === "[") {
+        state.scanPreview = { room: room, error: "Import accepts a JSON object, not a list." };
+        render();
+        return;
+      }
+      try {
+        state.scanPreview = previewFromJson(JSON.parse(trimmed), room);
+      } catch (err) {
+        state.scanPreview = { room: room, error: "That file is not JSON." };
+      }
+      render();
+    };
+    textReader.readAsText(file);
+  }
+
+  function readShopPhoto(input) {
+    var file = input.files && input.files[0];
+    var index = +input.getAttribute("data-shop-photo");
+    if (!file || file.size > 900000) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      var fresh = draftFor(state.viewYear, state.viewMonth, true);
+      var row = fresh.items[index];
+      if (!row) return;
+      row.scanImage = String(reader.result || "");
+      if (!normalizeCitations(row.citations).length) row.citations = shopItemCitations(row);
+      saveDraft(fresh);
+      render();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function editorHtml(card) {
+    return '<form class="card-editor" data-card-editor="' + escapeHtml(card.id) + '">' +
+      "<label>Name <input data-field=\"name\" value=\"" + escapeHtml(card.name) + "\"></label>" +
+      "<label>Tagline <input data-field=\"tagline\" value=\"" + escapeHtml(card.tagline) + "\"></label>" +
+      "<label>Ingredients, one line each <textarea data-field=\"ingredients\" rows=\"6\">" +
+        escapeHtml(ingredientsToText(card.ingredients)) + "</textarea></label>" +
+      "<label>Method, one step each line <textarea data-field=\"method\" rows=\"6\">" +
+        escapeHtml(methodToText(card.method)) + "</textarea></label>" +
+      "<label>Tip <textarea data-field=\"tip\" rows=\"3\">" + escapeHtml(card.tip) + "</textarea></label>" +
+      "<label>Category " + tagSelectHtml(card.tag, 'data-field="tag"', true) + "</label>" +
+      '<label>Citations, one line each <textarea data-field="citations" rows="4">' +
+        escapeHtml(citationsToText(derivedCitations(card))) +
+        "</textarea></label>" +
+      '<button type="button" data-card-action="save">Save card</button>' +
+      '<button type="button" data-card-action="cancel">Cancel</button>' +
+      "</form>";
+  }
+
+  function cardActionsHtml(id) {
+    return '<div class="card-actions">' +
+      '<button type="button" data-card-action="edit" data-card-id="' + escapeHtml(id) + '">Edit</button>' +
+      '<button type="button" data-card-action="duplicate" data-card-id="' + escapeHtml(id) + '">Duplicate</button>' +
+      '<button type="button" data-card-action="delete" data-card-id="' + escapeHtml(id) + '">Delete</button>' +
+      "</div>";
+  }
+
+  function onCardAction(btn) {
+    var action = btn.getAttribute("data-card-action");
+    var kind = state.foodRoom === "extractions" ? "extraction" : "meal";
+    var id = btn.getAttribute("data-card-id") || state.foodFocusId;
+    var shop = foodShop();
+    var tierId = shop ? shop.tierFor(state.viewYear, state.viewMonth).id : 1;
+    if (action === "add") {
+      id = newCardId();
+      var fresh = overlayRecord({
+        id: id,
+        custom: true,
+        kind: kind,
+        name: kind === "extraction" ? "New smoothie" : "New meal",
+        tagline: "",
+        ingredients: [{ text: "" }],
+        method: [{ verb: "Cook", detail: "" }],
+        tip: "",
+        citations: ["FOOD_LIVE"]
+      }, kind);
+      if (!fresh.ingredients.length) fresh.ingredients = [{ text: "" }];
+      if (!fresh.method.length) fresh.method = [{ verb: "Cook", detail: "" }];
+      fresh.custom = true;
+      fresh.kind = kind;
+      saveCardRecord(kind, id, fresh);
+      state.foodFocusId = id;
+      state.foodEditing = true;
+      render();
+      return;
+    }
+    if (action === "cancel") {
+      state.foodEditing = false;
+      render();
+      return;
+    }
+    if (action === "edit") {
+      state.foodFocusId = id;
+      state.foodEditing = true;
+      render();
+      return;
+    }
+    if (action === "save") {
+      var form = btn.closest("[data-card-editor]");
+      if (!form) return;
+      var nameEl = form.querySelector('[data-field="name"]');
+      var tagEl = form.querySelector('[data-field="tagline"]');
+      var ingEl = form.querySelector('[data-field="ingredients"]');
+      var methodEl = form.querySelector('[data-field="method"]');
+      var tipEl = form.querySelector('[data-field="tip"]');
+      var citeEl = form.querySelector('[data-field="citations"]');
+      var tagField = form.querySelector('[data-field="tag"]');
+      var store = readCardStore();
+      var bucket = kind === "extraction" ? store.extractions : store.meals;
+      var existing = bucket[id] || {};
+      var viewed = cardView(kind, id, tierId) || {};
+      var priorIngredients = (existing.ingredients && existing.ingredients.length) ? existing.ingredients : (viewed.ingredients || []);
+      var priorMethod = (existing.method && existing.method.length) ? existing.method : (viewed.method || []);
+      var form = {
+        id: id,
+        kind: runtimeKind(existing.kind) || kind,
+        name: nameEl ? nameEl.value.trim() : "",
+        tagline: tagEl ? tagEl.value.trim() : "",
+        ingredients: linesOf(ingEl ? ingEl.value : "").map(function (text, index) {
+          return ingredientRecord(text, priorIngredients[index]);
+        }),
+        method: methodFromLines(methodEl ? methodEl.value : "").map(function (step, index) {
+          return methodRecord(step, priorMethod[index]);
+        }),
+        tip: tipEl ? tipEl.value.trim() : "",
+        citations: linesOf(citeEl ? citeEl.value : ""),
+        tag: tagField ? normalizeTag(tagField.value) : "",
+        scanImage: existing.scanImage || ""
+      };
+      if (existing.custom) form.custom = true;
+      if (!existing.custom && !form.name) form.name = existing.name || viewed.name || "";
+      var record = overlayRecord(form, kind, existing);
+      if (!existing.custom) copyForward(record, viewed, false);
+      if (existing.custom) record.custom = true;
+      record.kind = runtimeKind(record.kind) || kind;
+      saveCardRecord(kind, id, record);
+      state.foodEditing = false;
+      render();
+      return;
+    }
+    if (action === "duplicate") {
+      var source = cardView(kind, id, tierId);
+      if (!source) return;
+      var copyId = newCardId();
+      var copy = overlayRecord(source, kind, source);
+      copy.id = copyId;
+      copy.custom = true;
+      copy.kind = runtimeKind(source.kind) || kind;
+      copy.name = (source.name || "") + " copy";
+      saveCardRecord(kind, copyId, copy);
+      state.foodFocusId = copyId;
+      state.foodEditing = true;
+      render();
+      return;
+    }
+    if (action === "delete") {
+      var cards = readCardStore();
+      var bag = kind === "extraction" ? cards.extractions : cards.meals;
+      if (bag[id] && bag[id].custom) delete bag[id];
+      else {
+        var hidden = kind === "extraction" ? cards.hiddenExtractions : cards.hiddenMeals;
+        if (hidden.indexOf(id) === -1) hidden.push(id);
+      }
+      writeJsonStore(FOOD_CARDS_KEY, cards);
+      state.foodFocusId = "";
+      state.foodEditing = false;
+      render();
+    }
   }
 
   function suggestedDraft() {
@@ -776,6 +1947,8 @@
     draft.lockedAt = new Date().toISOString();
     draft.plan = plan;
     saveDraft(draft);
+    state.basketDrafts = draftsFromBasket();
+    state.basketOpen = true;
     render();
   }
 
@@ -785,6 +1958,137 @@
     draft.plan = null;
     saveDraft(draft);
     render();
+  }
+
+  function draftsFromBasket() {
+    var draft = draftFor(state.viewYear, state.viewMonth, true);
+    var rows = [];
+    (draft.items || []).forEach(function (item) {
+      if (!item.ticked || !(item.qty > 0)) return;
+      var name = shopItemLabel(item);
+      if (!name) return;
+      rows.push({
+        name: name,
+        tag: shopTag(item),
+        citations: shopItemCitations(item)
+      });
+    });
+    var fruits = rows.filter(function (row) {
+      return row.tag === "fruit" || (row.tag === "freezer" && /mango|cherr|berr|fruit|pineapple/i.test(row.name));
+    });
+    var proteins = rows.filter(function (row) { return row.tag === "protein"; });
+    var sides = rows.filter(function (row) {
+      return (row.tag === "veg" || row.tag === "freezer") && fruits.indexOf(row) === -1;
+    });
+    var dairy = rows.filter(function (row) {
+      return row.tag === "dairy" && /milk|yogurt|kefir/i.test(row.name);
+    });
+    var botanicals = rows.filter(function (row) { return row.tag === "botanical"; });
+    var staples = rows.filter(function (row) {
+      return row.tag === "other" && /rice|potato|pasta|bread/i.test(row.name);
+    });
+    var stamp = draft.locked ? ["FOOD_LIVE basket", "Locked Sainsbury’s list"] : ["FOOD_LIVE basket"];
+    function withStamp(parts) {
+      var citations = [];
+      parts.forEach(function (row) {
+        (row.citations || []).forEach(function (line) {
+          if (citations.indexOf(line) === -1) citations.push(line);
+        });
+      });
+      stamp.forEach(function (line) {
+        if (citations.indexOf(line) === -1) citations.push(line);
+      });
+      return citations;
+    }
+    function shortName(product) {
+      return String(product || "").replace(/^Sainsbury's /, "").replace(/^Waitrose /, "").split(" ").slice(0, 3).join(" ");
+    }
+    var meals = [];
+    proteins.slice(0, 6).forEach(function (protein, index) {
+      var parts = [protein];
+      if (sides.length) parts.push(sides[index % sides.length]);
+      if (staples.length) parts.push(staples[index % staples.length]);
+      meals.push({
+        id: newCardId(),
+        kind: "meal",
+        name: shortName(protein.name) + " plate",
+        tagline: "Draft from the ticked basket.",
+        ingredients: parts.map(function (row) { return { text: row.name }; }),
+        method: [
+          { verb: "Heat", detail: "the pan or tray." },
+          { verb: "Cook", detail: protein.name + " until hot." },
+          { verb: "Plate", detail: "with the ticked veg and staple." }
+        ],
+        tip: /egg/i.test(protein.name) ? "Cook the whites. Editable draft from the basket." : "Editable draft from the basket.",
+        citations: withStamp(parts),
+        tag: "protein"
+      });
+    });
+    if (!meals.length && sides.length) {
+      meals.push({
+        id: newCardId(),
+        kind: "meal",
+        name: shortName(sides[0].name) + " plate",
+        tagline: "Draft from the ticked basket.",
+        ingredients: sides.slice(0, 3).map(function (row) { return { text: row.name }; }),
+        method: [
+          { verb: "Heat", detail: "the pan." },
+          { verb: "Cook", detail: "the ticked vegetables until hot." }
+        ],
+        tip: "Editable draft from the basket.",
+        citations: withStamp(sides.slice(0, 3)),
+        tag: "veg"
+      });
+    }
+    var smoothies = [];
+    if (fruits.length || dairy.length) {
+      var glass = fruits.concat(dairy).concat(botanicals.filter(function (row) { return /hemp/i.test(row.name); }));
+      var whisk = botanicals.filter(function (row) { return !/hemp/i.test(row.name); });
+      var bowl = glass.length ? glass : whisk;
+      smoothies.push({
+        id: newCardId(),
+        kind: "extraction",
+        name: "Basket morning glass",
+        tagline: "Morning only. Not dinner.",
+        ingredients: bowl.concat(whisk).filter(function (row, index, list) {
+          return list.indexOf(row) === index;
+        }).map(function (row) { return { text: row.name }; }),
+        method: [
+          { verb: "Pour", detail: "the milk or yogurt." },
+          { verb: "Add", detail: "the ticked fruit." },
+          { verb: "Blend", detail: "then strain." },
+          { verb: "Whisk", detail: "botanicals in after the strain." }
+        ],
+        tip: "Not dinner.",
+        citations: withStamp(bowl.concat(whisk)).concat(["Not dinner."]),
+        tag: "fruit"
+      });
+    }
+    return meals.concat(smoothies);
+  }
+
+  function basketDraftsHtml() {
+    if (!state.basketOpen || !state.basketDrafts) return "";
+    if (!state.basketDrafts.length) {
+      return '<section class="basket-drafts"><h3>Drafts from the basket</h3><p>No ticked lines to turn into cards.</p></section>';
+    }
+    return '<section class="basket-drafts" aria-label="Drafts from the basket">' +
+      "<h3>Drafts from the basket</h3>" +
+      "<p>Editable drafts. Save keeps the card. Discard drops it.</p>" +
+      state.basketDrafts.map(function (card, index) {
+        var lines = (card.ingredients || []).map(function (item) { return item.text; }).join(", ");
+        var cites = (card.citations || []).map(function (line) { return "<li>" + escapeHtml(line) + "</li>"; }).join("");
+        return '<article class="basket-card">' +
+          "<h4>" + escapeHtml(card.name) + "</h4>" +
+          "<p>" + escapeHtml(card.tagline || "") + "</p>" +
+          "<p>" + escapeHtml(card.tip || "") + "</p>" +
+          "<p>" + escapeHtml(lines) + "</p>" +
+          '<ul class="recipe-citations">' + cites + "</ul>" +
+          '<button type="button" data-shop-action="save-draft" data-draft-index="' + index + '">Save draft</button>' +
+          '<button type="button" data-shop-action="discard-draft" data-draft-index="' + index + '">Discard</button>' +
+          "</article>";
+      }).join("") +
+      "</section>";
   }
 
   function onShopAction(btn) {
@@ -797,8 +2101,80 @@
       unlockShopMonth();
       return;
     }
+    if (action === "filter") {
+      state.shopFilter = btn.getAttribute("data-shop-tag") || "all";
+      render();
+      return;
+    }
+    if (action === "build-cards") {
+      state.basketDrafts = draftsFromBasket();
+      state.basketOpen = true;
+      render();
+      return;
+    }
+    if (action === "save-draft" || action === "discard-draft") {
+      var draftIndex = +btn.getAttribute("data-draft-index");
+      var picked = state.basketDrafts && state.basketDrafts[draftIndex];
+      if (!picked) return;
+      if (action === "save-draft") {
+        var pickedKind = picked.kind === "extraction" ? "extraction" : "meal";
+        var drafted = overlayRecord(picked, pickedKind, picked);
+        drafted.custom = true;
+        drafted.kind = pickedKind;
+        drafted.id = picked.id;
+        saveCardRecord(pickedKind, picked.id, drafted);
+      }
+      state.basketDrafts.splice(draftIndex, 1);
+      render();
+      return;
+    }
     var draft = draftFor(state.viewYear, state.viewMonth, true);
-    if (draft.locked) return;
+    if (action === "sort-name" || action === "sort-tag") {
+      draft.items.sort(function (a, b) {
+        if (action === "sort-tag") {
+          var tagDelta = SHOP_TAG_ORDER.indexOf(shopTag(a)) - SHOP_TAG_ORDER.indexOf(shopTag(b));
+          if (tagDelta) return tagDelta;
+        }
+        return shopItemLabel(a).localeCompare(shopItemLabel(b));
+      });
+      saveDraft(draft);
+      render();
+      return;
+    }
+    if (action === "move") {
+      var from = +btn.getAttribute("data-shop-index");
+      var delta = +btn.getAttribute("data-shop-delta") || 0;
+      var visible = [];
+      draft.items.forEach(function (item, index) {
+        if (state.shopFilter === "all" || shopTag(item) === state.shopFilter) visible.push(index);
+      });
+      var place = visible.indexOf(from);
+      var target = visible[place + delta];
+      if (place === -1 || target == null) return;
+      var moved = draft.items[from];
+      draft.items[from] = draft.items[target];
+      draft.items[target] = moved;
+      saveDraft(draft);
+      render();
+      return;
+    }
+    if (action === "add-custom") {
+      var nameInput = $("shop-custom-name");
+      var customName = nameInput ? nameInput.value.trim() : "";
+      if (!customName) return;
+      draft.items.push({
+        skuId: "custom-" + Date.now().toString(36),
+        qty: 1,
+        ticked: true,
+        customName: customName,
+        pricePence: 0,
+        tag: "other",
+        citations: [customName]
+      });
+      saveDraft(draft);
+      render();
+      return;
+    }
     if (action === "add") {
       var select = $("shop-add-sku");
       var skuId = select ? select.value : "";
@@ -832,14 +2208,24 @@
     var lockedPlan = draft && draft.locked && draft.plan;
     days.forEach(function (day) {
       var cue = lockedPlan && lockedPlan[day.dateKey] ? lockedPlan[day.dateKey] : api.cueForDay(day);
+      var note = weekNote(day.dateKey) || {};
+      var mealId = cue.mealId;
+      var mealName = cue.mealName;
+      var plate = (cue.portions && cue.portions.label) || "";
+      if (!lockedPlan && note.mealId) {
+        var picked = cardView("meal", note.mealId, cue.tier || 1);
+        if (picked) {
+          mealId = picked.id;
+          mealName = picked.name;
+        }
+      }
+      if (!lockedPlan && note.evening) plate = note.evening;
+      var lunch = note.lunch || cue.lunch || "";
       var cabins = (cue.cabins || []).join(" · ");
-      var portions = cue.portions || {};
-      var plate = portions.label ||
-        ((portions.proteinName || "") + (portions.carbName ? " · " + portions.carbName : ""));
       html += '<tr class="fuel-row is-' + cue.band + '">' +
         '<td class="day-cell">' +
           '<button type="button" class="food-date" data-open-room="meals" data-food-meal="' +
-            escapeHtml(cue.mealId) + '" data-food-band="' + escapeHtml(cue.band) + '">' +
+            escapeHtml(mealId) + '" data-food-band="' + escapeHtml(cue.band) + '">' +
             '<span class="day-name">' + escapeHtml(day.dayName) + "</span>" +
             '<span class="day-key">' + escapeHtml(day.dateKey) + "</span>" +
           "</button>" +
@@ -847,10 +2233,38 @@
         '<td class="relics-cell"><div class="relic-stack">' +
           '<button type="button" class="fuel-morning" data-food-extraction="' + escapeHtml(cue.extractionId) +
             '" data-food-band="' + escapeHtml(cue.band) + '">Morning · ' + escapeHtml(cue.smoothieName || cue.extractionName) + "</button>" +
-          '<button type="button" class="fuel-meal-name" data-food-meal="' + escapeHtml(cue.mealId) +
-            '" data-food-band="' + escapeHtml(cue.band) + '">' + escapeHtml(cue.mealName) + "</button>" +
+          '<button type="button" class="fuel-meal-name" data-food-meal="' + escapeHtml(mealId) +
+            '" data-food-band="' + escapeHtml(cue.band) + '">' + escapeHtml(mealName) + "</button>" +
           '<p class="fuel-meta">' + escapeHtml(plate) + "</p>" +
-          (cue.lunch ? '<p class="fuel-meta">' + escapeHtml("Lunch · " + cue.lunch) + "</p>" : "") +
+          (lunch ? '<p class="fuel-meta">' + escapeHtml("Lunch · " + lunch) + "</p>" : "") +
+          '<label class="food-note">Lunch note' +
+            '<input data-week-date="' + escapeHtml(day.dateKey) + '" data-week-field="lunch" value="' +
+              escapeHtml(note.lunch || "") + '" placeholder="' + escapeHtml(cue.lunch || "Lunch") + '">' +
+          "</label>" +
+          '<label class="food-note">Citations<textarea data-week-date="' + escapeHtml(day.dateKey) +
+            '" data-week-field="citations" rows="2" placeholder="FOOD_LIVE">' +
+            escapeHtml(Array.isArray(note.citations) ? note.citations.join("\n") : (note.citations || "")) +
+            "</textarea></label>" +
+          '<ul class="week-citations">' +
+            (normalizeCitations(note.citations).length ? normalizeCitations(note.citations) : ["FOOD_LIVE"]).map(function (line) {
+              return "<li>" + escapeHtml(line) + "</li>";
+            }).join("") +
+          "</ul>" +
+          (lockedPlan
+            ? '<label class="food-note">Day note<input data-week-date="' + escapeHtml(day.dateKey) +
+              '" data-week-field="note" value="' + escapeHtml(note.note || "") + '"></label>' +
+              (note.note ? '<p class="fuel-meta">' + escapeHtml(note.note) + "</p>" : "")
+            : '<label class="food-note">Evening meal<select data-week-date="' + escapeHtml(day.dateKey) +
+              '" data-week-field="mealId"><option value="">Suggested plate</option>' +
+              idsForKind("meal").map(function (id) {
+                var card = cardView("meal", id, 1);
+                if (!card) return "";
+                return '<option value="' + escapeHtml(id) + '"' + (note.mealId === id ? " selected" : "") + ">" +
+                  escapeHtml(card.name) + "</option>";
+              }).join("") +
+              "</select></label>" +
+              '<label class="food-note">Evening plate<input data-week-date="' + escapeHtml(day.dateKey) +
+              '" data-week-field="evening" value="' + escapeHtml(note.evening || "") + '"></label>') +
           '<p class="fuel-portions"><span>' + (cue.fruitPortions || 2) + " fruit</span><span>" +
             (cue.vegPortions || 3) + " veg</span></p>" +
           (cabins ? '<p class="food-cabin-chip">' + escapeHtml(cabins) + "</p>" : "") +
@@ -858,6 +2272,16 @@
     });
     var body = $("fuel-body");
     if (body) body.innerHTML = html;
+    var weekHost = $("food-weekly");
+    if (weekHost && !weekHost.querySelector(".food-tools")) {
+      weekHost.insertAdjacentHTML("afterbegin", foodToolsHtml("weekly"));
+    }
+    if (weekHost && !weekHost.querySelector(".scan-preview-host")) {
+      var weekTools = weekHost.querySelector(".food-tools");
+      if (weekTools) weekTools.insertAdjacentHTML("afterend", '<div class="scan-preview-host"></div>');
+    }
+    var weekPreview = weekHost && weekHost.querySelector(".scan-preview-host");
+    if (weekPreview) weekPreview.innerHTML = scanPreviewHtml("weekly");
     var sunday = $("fuel-sunday");
     if (sunday) {
       sunday.textContent = lockedPlan
@@ -876,7 +2300,9 @@
     var total = 0;
     (draft.items || []).forEach(function (item) {
       var entry = api.skus[item.skuId];
-      if (item.ticked && entry) total += entry.pricePence * item.qty;
+      if (!item.ticked) return;
+      if (entry) total += entry.pricePence * item.qty;
+      else if (item.customName) total += (item.pricePence || 0) * item.qty;
     });
     var capNote = total <= tier.budgetPence
       ? "Inside " + tier.budgetLabel
@@ -923,20 +2349,49 @@
       api.sundayPrep.forEach(function (line) { html += "<li>" + escapeHtml(line) + "</li>"; });
       html += "</ol>";
     }
+    html += '<div class="shop-sort">' +
+      '<button type="button" data-shop-action="sort-name">Sort by name</button>' +
+      '<button type="button" data-shop-action="sort-tag">Sort by category</button>' +
+      '<button type="button" data-shop-action="build-cards">Build cards from basket</button>' +
+      "</div>";
+    html += '<div class="shop-filters" role="group" aria-label="Category">';
+    ["all"].concat(SHOP_TAG_ORDER).forEach(function (tag) {
+      html += '<button type="button" class="shop-chip' + (state.shopFilter === tag ? " is-on" : "") +
+        '" data-shop-action="filter" data-shop-tag="' + tag + '">' + tag + "</button>";
+    });
+    html += "</div>";
+    html += basketDraftsHtml();
     html += '<h3 class="food-subhead">This month’s list</h3><ul class="fuel-basket-list shop-editor">';
     (draft.items || []).forEach(function (item, index) {
       var entry = api.skus[item.skuId];
-      if (!entry) return;
+      var label = shopItemLabel(item);
+      if (!label) return;
+      var tag = shopTag(item);
+      if (state.shopFilter !== "all" && tag !== state.shopFilter) return;
+      var linePrice = entry ? entry.pricePence * item.qty : (item.pricePence || 0) * item.qty;
+      var cites = shopItemCitations(item).map(function (line) {
+        return "<li>" + escapeHtml(line) + "</li>";
+      }).join("");
       html += '<li class="shop-line' + (item.ticked ? " is-ticked" : "") + '">' +
         '<button type="button" class="shop-tick" data-shop-action="tick" data-shop-index="' + index +
           '" aria-pressed="' + (item.ticked ? "true" : "false") + '">' + (item.ticked ? "In" : "Out") + "</button>" +
-        "<span>" + escapeHtml(entry.name) + "</span>" +
+        '<input class="shop-name" data-shop-index="' + index + '" data-shop-field="name" value="' +
+          escapeHtml(label) + '" aria-label="Rename line">' +
+        tagSelectHtml(tag, 'data-shop-index="' + index + '" data-shop-field="tag" aria-label="Category"') +
+        '<button type="button" data-shop-action="move" data-shop-index="' + index + '" data-shop-delta="-1" aria-label="Move up">Up</button>' +
+        '<button type="button" data-shop-action="move" data-shop-index="' + index + '" data-shop-delta="1" aria-label="Move down">Down</button>' +
+        (item.scanImage ? '<img class="scan-photo" alt="Label photo" src="' + escapeHtml(item.scanImage) + '">' : "") +
+        '<label class="scan-file">attach label photo; fill fields<input type="file" accept="image/*" capture="environment" data-shop-photo="' +
+          index + '" aria-label="attach label photo; fill fields"></label>' +
+        '<ul class="line-citations">' + cites + "</ul>" +
+        '<label class="shop-cites">Citations<textarea data-shop-index="' + index + '" data-shop-field="citations" rows="2">' +
+          escapeHtml(citationsToText(shopItemCitations(item))) + "</textarea></label>" +
         '<span class="shop-qty">' +
           '<button type="button" data-shop-action="qty" data-shop-index="' + index + '" data-shop-delta="-1" aria-label="Fewer">−</button>' +
           "<strong>" + item.qty + "</strong>" +
           '<button type="button" data-shop-action="qty" data-shop-index="' + index + '" data-shop-delta="1" aria-label="More">+</button>' +
         "</span>" +
-        "<span>" + api.formatGbp(entry.pricePence * item.qty) + "</span>" +
+        "<span>" + api.formatGbp(entry ? entry.pricePence * item.qty : linePrice) + "</span>" +
         '<button type="button" data-shop-action="remove" data-shop-index="' + index + '">Remove</button>' +
         "</li>";
     });
@@ -949,11 +2404,13 @@
     });
     html += '<div class="shop-add"><label>Add a Sainsbury’s line <select id="shop-add-sku">' + options +
       '</select></label><button type="button" data-shop-action="add">Add</button></div>';
+    html += '<div class="shop-custom"><label>Custom line<input id="shop-custom-name" placeholder="Name a line"></label>' +
+      '<button type="button" data-shop-action="add-custom">Add custom line</button></div>';
     html += '<p class="fuel-basket-total">Ticked total ' + api.formatGbp(total) + " · " + escapeHtml(capNote) + "</p>";
     html += draft.locked
       ? '<button type="button" class="shop-lock" data-shop-action="unlock">Unlock this month’s shop</button>'
       : '<button type="button" class="shop-lock" data-shop-action="lock">Lock this month’s shop</button>';
-    host.innerHTML = html;
+    host.innerHTML = foodToolsHtml("shop") + scanStripHtml("shop") + scanPreviewHtml("shop") + html;
   }
 
   function paintMeals() {
@@ -963,18 +2420,20 @@
     if (!host || !api || !shop) return;
     var tier = shop.tierFor(state.viewYear, state.viewMonth);
     if (state.foodFocusId) {
-      var card = api.present(state.foodFocusId, tier.id);
-      host.innerHTML = card
-        ? '<button type="button" class="food-back" data-food-index="meals">All meal cards</button>' + magazineCardHtml(card)
-        : "";
+      var card = cardView("meal", state.foodFocusId, tier.id);
+      host.innerHTML = foodToolsHtml("meals") + scanStripHtml("meals") + scanPreviewHtml("meals") +
+        '<button type="button" class="food-back" data-food-index="meals">All meal cards</button>' +
+        (card ? cardActionsHtml(card.id) + (state.foodEditing ? editorHtml(card) : magazineCardHtml(card)) : "");
       return;
     }
-    host.innerHTML = api.order.map(function (id) {
-      var meal = api.meals[id];
-      if (!meal || meal.banned) return "";
-      return '<button type="button" class="food-jump" data-food-meal="' + escapeHtml(id) + '">' +
-        escapeHtml(meal.name) + "<span>" + escapeHtml(meal.tagline) + "</span></button>";
-    }).join("");
+    host.innerHTML = foodToolsHtml("meals") + scanStripHtml("meals") + scanPreviewHtml("meals") +
+      '<button type="button" class="food-jump" data-card-action="add">Add a meal card<span>Name, ingredients, method, tip</span></button>' +
+      idsForKind("meal").map(function (id) {
+        var meal = cardView("meal", id, tier.id);
+        if (!meal) return "";
+        return '<button type="button" class="food-jump" data-food-meal="' + escapeHtml(id) + '">' +
+          escapeHtml(meal.name) + "<span>" + escapeHtml(meal.tagline) + "</span></button>";
+      }).join("");
   }
 
   function paintExtractions() {
@@ -984,15 +2443,18 @@
     if (!host || !api || !shop) return;
     var tier = shop.tierFor(state.viewYear, state.viewMonth);
     if (state.foodFocusId) {
-      var card = api.present(state.foodFocusId, tier.id);
-      host.innerHTML = card
-        ? '<button type="button" class="food-back" data-food-index="extractions">All extraction cards</button>' + magazineCardHtml(card)
-        : "";
+      var card = cardView("extraction", state.foodFocusId, tier.id);
+      host.innerHTML = foodToolsHtml("extractions") + scanStripHtml("extractions") + scanPreviewHtml("extractions") +
+        '<button type="button" class="food-back" data-food-index="extractions">All extraction cards</button>' +
+        (card ? cardActionsHtml(card.id) + (state.foodEditing ? editorHtml(card) : magazineCardHtml(card)) : "");
       return;
     }
-    host.innerHTML = '<p class="fuel-sunday">Morning lock. Liquid, frozen fruit, citrus, hemp, 3000W blend, cheesecloth strain, then botanicals. Not dinner.</p>' +
-      api.order.map(function (id) {
-        var row = api.cards[id];
+    host.innerHTML = foodToolsHtml("extractions") + scanStripHtml("extractions") + scanPreviewHtml("extractions") +
+      '<p class="fuel-sunday">Morning lock. Liquid, frozen fruit, citrus, hemp, 3000W blend, cheesecloth strain, then botanicals. Not dinner.</p>' +
+      '<button type="button" class="food-jump" data-card-action="add">Add a smoothie card<span>Name, ingredients, method, tip</span></button>' +
+      idsForKind("extraction").map(function (id) {
+        var row = cardView("extraction", id, tier.id);
+        if (!row) return "";
         return '<button type="button" class="food-jump" data-food-extraction="' + escapeHtml(id) + '">' +
           escapeHtml(row.name) + "<span>" + escapeHtml(row.tagline) + "</span></button>";
       }).join("");
@@ -1000,9 +2462,11 @@
 
   function openFoodRoom(room, focusId, band) {
     if (!FOOD_TITLES[room]) return;
+    if (state.foodRoom !== room) state.scanPreview = null;
     state.foodRoom = room;
     state.foodFocusId = focusId || "";
     state.foodFocusBand = band || "moderate";
+    state.foodEditing = false;
     render();
     var title = $("food-board-title");
     if (title && title.focus) {
@@ -1015,6 +2479,8 @@
   function closeFoodRoom() {
     state.foodRoom = "";
     state.foodFocusId = "";
+    state.foodEditing = false;
+    state.scanPreview = null;
     render();
   }
 
@@ -1042,6 +2508,11 @@
     if (room === "shop") paintShop();
     if (room === "meals") paintMeals();
     if (room === "extractions") paintExtractions();
+    if (state.foodJsonHold) {
+      var held = $("food-json-" + room);
+      if (held) held.value = state.foodJsonHold;
+      state.foodJsonHold = "";
+    }
   }
 
   function render() {
@@ -2180,9 +3651,29 @@
           closeFoodRoom();
           return;
         }
+        var scanAct = event.target.closest("[data-scan-action]");
+        if (scanAct) {
+          onScanAction(scanAct);
+          return;
+        }
+        var tool = event.target.closest("[data-food-tool]");
+        if (tool) {
+          var room = state.foodRoom;
+          var which = tool.getAttribute("data-food-tool");
+          if (which === "export") fillFoodJson(room);
+          if (which === "import") importFoodJson(room);
+          if (which === "reset") resetFoodRoom(room);
+          return;
+        }
+        var cardAct = event.target.closest("[data-card-action]");
+        if (cardAct) {
+          onCardAction(cardAct);
+          return;
+        }
         var indexBtn = event.target.closest("[data-food-index]");
         if (indexBtn) {
           state.foodFocusId = "";
+          state.foodEditing = false;
           render();
           return;
         }
@@ -2198,6 +3689,53 @@
         }
         var shopAct = event.target.closest("[data-shop-action]");
         if (shopAct) onShopAction(shopAct);
+      });
+      foodBoard.addEventListener("input", function (event) {
+        if (!event.target.closest(".scan-preview")) return;
+        var preview = readScanForm();
+        if (!preview || preview.error) return;
+        var pre = event.target.closest(".scan-preview").querySelector(".scan-json");
+        if (pre) pre.textContent = JSON.stringify(scanExport(preview), null, 2);
+      });
+      foodBoard.addEventListener("change", function (event) {
+        var scanFile = event.target.closest("[data-scan-file]");
+        if (scanFile) {
+          readScanFile(scanFile);
+          return;
+        }
+        var weekField = event.target.closest("[data-week-field]");
+        if (weekField) {
+          var patch = {};
+          var weekName = weekField.getAttribute("data-week-field");
+          patch[weekName] = weekName === "citations" ? linesOf(weekField.value) : weekField.value.trim();
+          saveWeekNote(weekField.getAttribute("data-week-date"), patch);
+          render();
+          return;
+        }
+        var shopPhoto = event.target.closest("[data-shop-photo]");
+        if (shopPhoto) {
+          readShopPhoto(shopPhoto);
+          return;
+        }
+        var shopField = event.target.closest("[data-shop-field]");
+        if (!shopField) return;
+        var draft = draftFor(state.viewYear, state.viewMonth, true);
+        var item = draft.items[+shopField.getAttribute("data-shop-index")];
+        if (!item) return;
+        var fieldName = shopField.getAttribute("data-shop-field");
+        if (fieldName === "name") {
+          var previous = shopItemLabel(item);
+          var nextName = shopField.value.trim();
+          if (item.customName) item.customName = nextName || item.customName;
+          else if (nextName) item.label = nextName;
+          var cites = normalizeCitations(item.citations);
+          if (!cites.length || (cites.length === 1 && cites[0] === previous)) item.citations = [shopItemLabel(item)];
+        }
+        if (fieldName === "tag") item.tag = normalizeTag(shopField.value) || "other";
+        if (fieldName === "citations") item.citations = linesOf(shopField.value);
+        if (!normalizeCitations(item.citations).length) item.citations = shopItemCitations(item);
+        saveDraft(draft);
+        if (fieldName !== "name") render();
       });
     }
     var forensicTab = $("forensic-tab");
@@ -2428,7 +3966,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v19",
+    build: "v20",
     get nutrition() {
       return {
         shop: foodShop(),

@@ -70,7 +70,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
       band: "moderate",
       lock: "Morning only. Not dinner.",
       macros: { kcal: 280, protein: 9, carb: 36, fat: 11 },
-      tip: "FOOD_LIVE lock: one Brazil nut a day. The basin’s 4–5 nuts do not apply.",
+      tip: "FOOD_LIVE lock: one Brazil nut a day. A pile of nuts does not apply.",
       ingredients: [
         { skuId: "milk", qty: 180, text: "180 ml Sainsbury's SO Organic Whole Milk or yogurt (¾ cup)" },
         { skuId: "banana", qty: 120, text: "1 frozen Sainsbury's SO Organic Banana, about 120 g" },
@@ -85,7 +85,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
         "1 frozen Sainsbury's SO Organic Banana (about 120 g) and 150 g mixed berries.",
         "20 g peeled Sainsbury's SO Organic Lemons.",
         "10 g Sainsbury's Hulled Hemp Hearts and a pinch of cinnamon. Leave the Brazil nut out of the jug.",
-        "One Brazil nut maximum is eaten beside the glass after the strain. Do not use 4–5."
+        "One Brazil nut maximum is eaten beside the glass after the strain. Do not use a pile."
       ]
     },
     "cherry-banana-cream": {
@@ -251,8 +251,43 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
         "20 g Sainsbury's Hulled Hemp Hearts.",
         "This is the heavy morning extraction. It is still not dinner. Brazil nut maximum is one a day."
       ]
-    }
+    },
+    "live-mon-banana-blueberry": liveGlass("live-mon-banana-blueberry", "Banana, Blueberry, Spinach, Hemp", "Monday training glass.", "1 banana, a handful of blueberries, spinach, and 1 spoon of hemp."),
+    "live-tue-papaya-pineapple": liveGlass("live-tue-papaya-pineapple", "Papaya and Pineapple", "Tuesday training glass.", "Papaya and pineapple."),
+    "live-wed-mango-cherry": liveGlass("live-wed-mango-cherry", "Mango, Cherry, and Hemp", "Wednesday training glass.", "Mango, cherry, and 1 spoon of hemp."),
+    "live-thu-kiwi-berry": liveGlass("live-thu-kiwi-berry", "Kiwi and Berry", "Thursday training glass.", "Kiwi and a handful of berries."),
+    "live-fri-pineapple-ginger": liveGlass("live-fri-pineapple-ginger", "Pineapple, Spinach, and Ginger", "Friday training glass.", "Pineapple, spinach, and ginger."),
+    "live-sat-banana-blueberry": liveGlass("live-sat-banana-blueberry", "Banana and Blueberry", "Saturday training glass.", "1 banana and a handful of blueberries.")
   };
+
+  function liveGlass(id, name, tagline, fruitLine) {
+    return {
+      id: id,
+      name: name,
+      tagline: tagline,
+      script: fruitLine,
+      yield: "1 glass",
+      prepMin: 5,
+      cookLabel: "3000W · 45 sec, then strain",
+      band: "moderate",
+      lock: "Morning only. Not dinner.",
+      macros: { kcal: "—", protein: "—", carb: "—", fat: "—", basis: "household glass" },
+      tip: "Training-day glass. Morning or a lunch refresh. Not dinner. One Brazil nut a day at most.",
+      ingredients: [
+        { skuId: "milk", qty: 1, text: "Milk or water to move the blades" },
+        { skuId: "fruit", qty: 1, text: fruitLine },
+        { skuId: "lemons", qty: 1, text: "A squeeze of lemon" },
+        { skuId: "hemp", qty: 1, text: "1 spoon hemp when the day asks for it" }
+      ],
+      lines: [
+        "Milk or water into the 3000W jug.",
+        fruitLine,
+        "A squeeze of lemon.",
+        "1 spoon hemp when the day asks for it.",
+        "Morning glass only. Not dinner. One Brazil nut a day at most, beside the glass."
+      ]
+    };
+  }
 
   function present(id, tierId) {
     var card = CARDS[id];

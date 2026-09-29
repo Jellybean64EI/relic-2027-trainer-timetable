@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* v19: four Food OS rooms, portioned cues, and no training binds in food data. */
+/* v20: four Food OS rooms, portioned cues, and no training binds in food data. */
 const fs = require("fs");
 const vm = require("vm");
 const ctx = { window: {} };
@@ -31,8 +31,55 @@ if (html.indexOf("data/nutrition.js") !== -1) {
   console.error("FAIL mashed nutrition.js still linked");
   process.exit(1);
 }
-if (html.indexOf('content="v19"') === -1 || html.indexOf("styles.css?v=v19") === -1) {
+if (html.indexOf('content="v20"') === -1 || html.indexOf("styles.css?v=v20") === -1) {
   console.error("FAIL cache stamp");
+  process.exit(1);
+}
+const css = fs.readFileSync("styles.css", "utf8");
+if (/\.recipe-card li \{[^}]*color:\s*var\(--text\)/.test(css)) {
+  console.error("FAIL ingredient ink still uses --text");
+  process.exit(1);
+}
+if (css.indexOf(".recipe-card .recipe-ingredients li") === -1 || css.indexOf("#1f1812") === -1) {
+  console.error("FAIL dark ingredient ink");
+  process.exit(1);
+}
+if (css.indexOf(".week-slot-dual.is-full") === -1 || css.indexOf("#3dff7a") === -1) {
+  console.error("FAIL dual green glow");
+  process.exit(1);
+}
+const app = fs.readFileSync("app.js", "utf8");
+if (app.indexOf("Export JSON") === -1 || app.indexOf("relic_food_cards_v20") === -1 || app.indexOf("relic_food_week_v20") === -1) {
+  console.error("FAIL food editor");
+  process.exit(1);
+}
+if (app.indexOf("Scan / Import") === -1 || app.indexOf("attach label photo; fill fields") === -1 || app.indexOf('data-scan-action="parse"') === -1) {
+  console.error("FAIL scan strip");
+  process.exit(1);
+}
+if (app.indexOf("Build cards from basket") === -1 || app.indexOf("Sort by category") === -1 || app.indexOf("recipe-citations") === -1) {
+  console.error("FAIL citations or basket drafts");
+  process.exit(1);
+}
+if (css.indexOf(".scan-preview") === -1 || css.indexOf(".scan-preview h3,\n.scan-preview label") === -1) {
+  console.error("FAIL scan preview ink");
+  process.exit(1);
+}
+if (css.indexOf(".recipe-citations") === -1 || css.indexOf(".recipe-citations li") === -1) {
+  console.error("FAIL citation ink");
+  process.exit(1);
+}
+if (app.indexOf("Import accepts a JSON object, not a list.") === -1 || app.indexOf("Import accepts a JSON object, not a ZIP.") === -1) {
+  console.error("FAIL object-only import");
+  process.exit(1);
+}
+if (app.indexOf('["protein", "veg", "fruit", "dairy", "freezer", "botanical", "other"]') === -1) {
+  console.error("FAIL shop sort tags");
+  process.exit(1);
+}
+const spec = fs.readFileSync("PLATFORM_SPEC.md", "utf8");
+if (spec.indexOf("ZIP plus a manifest is future") === -1 || spec.indexOf("extractionId") === -1 || spec.indexOf("no dinner smoothie") === -1) {
+  console.error("FAIL handshake spec");
   process.exit(1);
 }
 const meals = ctx.window.RELIC_FOOD_MEALS;
