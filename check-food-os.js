@@ -52,13 +52,38 @@ if (css.indexOf('.tick-hit[data-tier="2"] .tick-box svg path:first-of-type') ===
   console.error("FAIL dual shield fill");
   process.exit(1);
 }
-if (css.indexOf(".wtab.is-complete .week-slot-single.is-full") === -1 || css.indexOf(".week-slot-single.is-full .shield-tick path:first-of-type") === -1) {
+if (css.indexOf(".wtab.is-complete .week-slot-single.is-full") === -1 || css.indexOf(".week-slot-single.is-target") === -1) {
   console.error("FAIL single slot green");
   process.exit(1);
 }
 const app = fs.readFileSync("app.js", "utf8");
-if (app.indexOf("var singleFull = total > 0 && score.firstSessions === total") === -1 || app.indexOf('".week-slot-single .shield-complete"') === -1) {
+if (app.indexOf("var singleTarget = total > 0 && singleCount === total") === -1 || app.indexOf('".week-slot-single .shield-complete"') === -1) {
   console.error("FAIL single slot paint");
+  process.exit(1);
+}
+if (app.indexOf("function normalizeTier(value)") === -1 || app.indexOf("return (Number(value) || 0) & 3") === -1) {
+  console.error("FAIL normalizeTier");
+  process.exit(1);
+}
+if (app.indexOf("if (bits >= 1) singleCount += 1") === -1 || app.indexOf("if (tier === 3) dualCount += 1") === -1) {
+  console.error("FAIL week counts");
+  process.exit(1);
+}
+if (app.indexOf("is-week-complete") === -1 || app.indexOf('completed: bits !== 0') === -1) {
+  console.error("FAIL week complete or completed write");
+  process.exit(1);
+}
+if (app.indexOf("if (completed) return 3") !== -1) {
+  console.error("FAIL completed still invents a dual badge");
+  process.exit(1);
+}
+function normalizeTier(value) { return (Number(value) || 0) & 3; }
+function popcount(mask) {
+  var bits = mask & 3;
+  return (bits & 1) + ((bits >> 1) & 1);
+}
+if (normalizeTier(2) !== 2 || popcount(normalizeTier(2)) !== 1 || normalizeTier(3) !== 3 || popcount(3) !== 2 || normalizeTier(0) !== 0 || normalizeTier(null) !== 0) {
+  console.error("FAIL tier bit law");
   process.exit(1);
 }
 if (app.indexOf("Export JSON") === -1 || app.indexOf("relic_food_cards_v20") === -1 || app.indexOf("relic_food_week_v20") === -1) {

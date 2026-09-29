@@ -479,8 +479,25 @@ h1 {
   color: #3dff7a;
 }
 
-.wtab .week-slot-single.is-full .shield-tick path:first-of-type {
+.wtab .week-slot-single.is-full .shield-tick path:first-of-type,
+.wtab .week-slot-single.is-target .shield-tick path:first-of-type {
   fill: #3dff7a;
+}
+
+.wtab .week-slot-single.is-target,
+.wtab.is-complete .week-slot-single.is-target,
+.wtab.is-week-complete .week-slot-single.is-target,
+.wtab.is-selected .week-slot-single.is-target {
+  background: #0d3d22;
+  border-color: #3dff7a;
+  box-shadow: 0 0 12px #3dff7a;
+}
+
+.wtab .week-slot-single.is-target .week-slot-kicker,
+.wtab .week-slot-single.is-target .week-slot-count,
+.wtab.is-selected .week-slot-single.is-target .week-slot-kicker,
+.wtab.is-selected .week-slot-single.is-target .week-slot-count {
+  color: #3dff7a;
 }
 
 .mbtn {
@@ -524,8 +541,10 @@ h1 {
 
 .mbtn.is-complete,
 .wtab.is-complete,
+.wtab.is-week-complete,
 .mbtn.is-complete.is-selected,
-.wtab.is-complete.is-selected {
+.wtab.is-complete.is-selected,
+.wtab.is-week-complete.is-selected {
   background: linear-gradient(180deg, #1c9a48 0%, #0a5c28 100%);
   color: #f4fff6;
   border-color: #ff8c00;
