@@ -2791,3 +2791,41 @@ table.fuel-table col.col-relics { width: 78%; }
   font-weight: 800;
   transition: left 0.65s ease, top 0.65s ease, width 0.65s ease, height 0.65s ease;
 }
+
+.smoothie-board .food-mini {
+  border-color: #1f7a62;
+  background: #e7f6ee;
+  color: #14382c;
+}
+
+.nav-row.is-smoothie-target,
+.smoothie-board .food-rooms button.is-smoothie-target {
+  outline: 3px solid #1f7a62;
+  outline-offset: 2px;
+}
+
+.smoothie-fly-ghost {
+  position: fixed;
+  z-index: 1200;
+  left: 36px;
+  top: 180px;
+  display: flex;
+  align-items: center;
+  width: 260px;
+  height: 88px;
+  padding: 8px 14px;
+  overflow: hidden;
+  border: 2px solid #1f7a62;
+  border-radius: 44px 44px 16px 44px;
+  background: #e7f6ee;
+  color: #14382c;
+  font-weight: 800;
+  pointer-events: none;
+  box-shadow: 0 0 0 10px rgba(31, 122, 98, 0.16), 0 16px 32px rgba(20, 90, 70, 0.28);
+  transition: left 0.9s cubic-bezier(0.16, 1.15, 0.3, 1), top 0.9s cubic-bezier(0.16, 1.15, 0.3, 1), width 0.9s cubic-bezier(0.34, 1.4, 0.64, 1), height 0.9s cubic-bezier(0.34, 1.4, 0.64, 1), transform 0.9s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.9s ease;
+}
+
+.smoothie-fly-ghost.is-pouring {
+  transform: scale(0.62) rotate(-14deg);
+  box-shadow: 0 0 0 4px rgba(125, 196, 168, 0.35);
+}

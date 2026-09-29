@@ -72,6 +72,17 @@
     foodToast: "",
     foodToastUntil: 0,
     foodFlyError: "",
+    smoothieRoom: "",
+    smoothieFocusId: "",
+    smoothieEditing: false,
+    smoothiePick: "",
+    smoothieWindow: "2026-10",
+    smoothieMonth: 10,
+    smoothieYear: 2026,
+    smoothieWeek: 1,
+    smoothieFlyError: "",
+    smoothieToast: "",
+    smoothieToastUntil: 0,
     foodRefuse: "",
     foodUndo: null,
     foodFilter: "all",
@@ -2723,6 +2734,7 @@
 
   function openFoodRoom(room, focusId, band) {
     if (!FOOD_TITLES[room]) return;
+    state.smoothieRoom = "";
     if (state.foodRoom !== room) state.scanPreview = null;
     state.foodRoom = room;
     state.foodFocusId = focusId || "";
@@ -3478,6 +3490,681 @@
     return true;
   }
 
+  var SMOOTHIE_V22 = {
+    meals: "relic_smoothie_meals_v22",
+    cabinet: "relic_smoothie_cabinet_v22",
+    hg: "relic_smoothie_hg_v22",
+    final: "relic_smoothie_final_v22",
+    later: "relic_smoothie_savelater_v22",
+    fly: "relic_smoothie_flylog_v22"
+  };
+  var SMOOTHIE_ALLOW = {
+    meals: { add_cabinet: "cabinet", add_hg: "hg" },
+    cabinet: { add_hg: "hg" },
+    hg: { finished_week: "savelater", month_complete: "final" },
+    savelater: { reuse_hg: "hg" }
+  };
+  var SMOOTHIE_TITLES = {
+    meals: "Smoothie Recipe Cards",
+    cabinet: "Main Smoothie Cabinet",
+    hg: "Smoothie Schedule HG",
+    final: "Final Smoothie Prep Scheduled Timetables",
+    savelater: "Smoothie Save later"
+  };
+  var SMOOTHIE_SLOTS = ["morning", "lunch"];
+
+  function smoothieRecord(id, row) {
+    return {
+      cardId: id,
+      title: row.name || row.title || id,
+      madeOn: "2026-10-01",
+      noteCode: "",
+      kind: "extraction",
+      family: "extraction",
+      tagline: row.tagline || "Morning or lunch.",
+      ingredients: (row.ingredients || []).map(function (item) {
+        return { text: item.text || "", skuId: item.skuId || "" };
+      }),
+      method: (row.method || []).map(function (step) {
+        return { verb: step.verb || "Blend", detail: step.detail || "" };
+      }),
+      tip: row.tip || "Morning or lunch only. Extractions aren't dinner.",
+      fresh: true
+    };
+  }
+
+  function ensureSmoothieSeed() {
+    var store = readV22(SMOOTHIE_V22.meals);
+    store.cards = store.cards || {};
+    if (!store.seeded) {
+      var pack = packApi();
+      if (pack && pack.extractions) {
+        Object.keys(pack.extractions).forEach(function (id) {
+          var row = pack.extractions[id];
+          if (!row || row.kind === "collection" || row.visualOnly) return;
+          store.cards[id] = smoothieRecord(id, row);
+        });
+      }
+      var api = foodExtractions();
+      if (api && api.order && api.present) {
+        api.order.forEach(function (id) {
+          if (store.cards[id]) return;
+          var row = api.present(id, 1);
+          if (!row) return;
+          store.cards[id] = smoothieRecord(id, row);
+        });
+      }
+      store.seeded = true;
+      writeV22(SMOOTHIE_V22.meals, store);
+      var cab = readV22(SMOOTHIE_V22.cabinet);
+      if (!cab.order || !cab.order.length) {
+        cab.order = Object.keys(store.cards);
+        writeV22(SMOOTHIE_V22.cabinet, cab);
+      }
+    }
+    return store;
+  }
+
+  function smoothieById(id) {
+    return ensureSmoothieSeed().cards[id] || null;
+  }
+
+  function smoothieBannersHtml() {
+    var html = "";
+    if (state.smoothieFlyError) html += '<p class="food-refuse" role="status">' + escapeHtml(state.smoothieFlyError) + "</p>";
+    if (state.smoothieToast && state.smoothieToastUntil > Date.now()) {
+      html += '<p class="food-toast" role="status">' + escapeHtml(state.smoothieToast) + "</p>";
+    }
+    return html;
+  }
+
+  function logSmoothieFly(entry) {
+    var log = readV22(SMOOTHIE_V22.fly);
+    log.events = log.events || [];
+    log.events.push(entry);
+    if (log.events.length > 40) log.events = log.events.slice(-40);
+    writeV22(SMOOTHIE_V22.fly, log);
+  }
+
+  function runSmoothieFly(toCabin, title, done) {
+    setNavOpen(true);
+    document.querySelectorAll("[data-smoothie-room]").forEach(function (row) {
+      row.classList.toggle("is-smoothie-target", row.getAttribute("data-smoothie-room") === toCabin);
+    });
+    var target = document.querySelector('.nav-drawer [data-smoothie-room="' + toCabin + '"]');
+    var ghost = document.createElement("div");
+    ghost.className = "smoothie-fly-ghost";
+    ghost.setAttribute("data-fly", "smoothie");
+    ghost.textContent = title || "Smoothie";
+    document.body.appendChild(ghost);
+    setTimeout(function () {
+      var rect = target ? target.getBoundingClientRect() : { left: 16, top: 280 };
+      ghost.classList.add("is-pouring");
+      ghost.style.left = rect.left + "px";
+      ghost.style.top = rect.top + "px";
+      ghost.style.width = "44px";
+      ghost.style.height = "44px";
+    }, 340);
+    setTimeout(function () {
+      if (ghost.parentNode) ghost.parentNode.removeChild(ghost);
+      document.querySelectorAll(".is-smoothie-target").forEach(function (row) { row.classList.remove("is-smoothie-target"); });
+      setNavOpen(false);
+      done();
+    }, 1400);
+  }
+
+  function flySmoothie(fromCabin, action, cardId, extra) {
+    extra = extra || {};
+    var toCabin = SMOOTHIE_ALLOW[fromCabin] && SMOOTHIE_ALLOW[fromCabin][action];
+    if (!toCabin) {
+      state.smoothieFlyError = "That move is not allowed.";
+      render();
+      return;
+    }
+    if (action === "finished_week") {
+      var later = readV22(SMOOTHIE_V22.later);
+      later.cards = later.cards || {};
+      later.order = later.order || [];
+      if (later.cards[cardId]) {
+        state.smoothieToast = "This card has already been added to save later.";
+        state.smoothieToastUntil = Date.now() + 4000;
+        state.smoothieFlyError = "";
+        render();
+        setTimeout(function () {
+          if (state.smoothieToastUntil && Date.now() >= state.smoothieToastUntil) {
+            state.smoothieToast = "";
+            render();
+          }
+        }, 4100);
+        return;
+      }
+      later.cards[cardId] = extra.card;
+      later.order.push(cardId);
+      writeV22(SMOOTHIE_V22.later, later);
+      var hgDone = readV22(SMOOTHIE_V22.hg);
+      hgDone.finished = hgDone.finished || {};
+      hgDone.finished[cardId] = true;
+      writeV22(SMOOTHIE_V22.hg, hgDone);
+    }
+    if (action === "add_cabinet") {
+      var cab = readV22(SMOOTHIE_V22.cabinet);
+      cab.order = cab.order || [];
+      if (cab.order.indexOf(cardId) === -1) cab.order.push(cardId);
+      writeV22(SMOOTHIE_V22.cabinet, cab);
+    }
+    if (action === "add_hg" || action === "reuse_hg") {
+      var hg = readV22(SMOOTHIE_V22.hg);
+      hg.pool = hg.pool || [];
+      var ids = action === "reuse_hg" && extra.card ? (extra.card.mealIds || []) : [cardId];
+      ids.forEach(function (id) {
+        if (id && hg.pool.indexOf(id) === -1) hg.pool.push(id);
+      });
+      if (action === "reuse_hg" && extra.card && extra.card.placements) {
+        hg.placements = hg.placements || {};
+        Object.keys(extra.card.placements).forEach(function (date) {
+          hg.placements[date] = extra.card.placements[date];
+        });
+      }
+      writeV22(SMOOTHIE_V22.hg, hg);
+    }
+    if (action === "month_complete") {
+      var fin = readV22(SMOOTHIE_V22.final);
+      fin.cards = fin.cards || {};
+      fin.order = fin.order || [];
+      fin.cards[cardId] = extra.card;
+      if (fin.order.indexOf(cardId) === -1) fin.order.push(cardId);
+      writeV22(SMOOTHIE_V22.final, fin);
+      state.smoothieFocusId = cardId;
+    }
+    logSmoothieFly({
+      fromCabin: fromCabin,
+      toCabin: toCabin,
+      cardId: cardId,
+      action: action,
+      at: new Date().toISOString()
+    });
+    state.smoothieFlyError = "";
+    var label = (extra.card && extra.card.title) || (smoothieById(cardId) && smoothieById(cardId).title) || cardId;
+    runSmoothieFly(toCabin, label, function () {
+      if (action === "month_complete") openSmoothieRoom(toCabin, cardId);
+      else openSmoothieRoom(toCabin, "");
+    });
+  }
+
+  function smoothieWindowMonths() {
+    var start = state.smoothieWindow === "2027-01" ? { year: 2027, month: 1 } : { year: 2026, month: 10 };
+    var out = [];
+    for (var i = 0; i < 3; i++) {
+      var date = new Date(Date.UTC(start.year, start.month - 1 + i, 1, 12));
+      var parts = londonParts(date);
+      out.push({ year: parts.year, month: parts.month });
+    }
+    return out;
+  }
+
+  function placeSmoothie(dateKey, slot, cardId, mode, weekday) {
+    if (slot === "dinner" || SMOOTHIE_SLOTS.indexOf(slot) === -1) {
+      state.smoothieFlyError = "Extractions aren't dinner.";
+      render();
+      return;
+    }
+    var card = smoothieById(cardId);
+    if (!card) {
+      state.smoothieFlyError = "Pick a smoothie from the HG pool first.";
+      render();
+      return;
+    }
+    var hg = readV22(SMOOTHIE_V22.hg);
+    hg.placements = hg.placements || {};
+    var dates = [dateKey];
+    if (mode === "all") {
+      dates = [];
+      smoothieWindowMonths().forEach(function (entry) {
+        hgWeeks(entry.year, entry.month).forEach(function (week) {
+          week.forEach(function (day) {
+            if (String(day.weekday || "").slice(0, 3) === weekday && dates.indexOf(day.dateKey) === -1) dates.push(day.dateKey);
+          });
+        });
+      });
+    }
+    dates.forEach(function (key) {
+      var row = hg.placements[key] || {};
+      row[slot] = cardId;
+      delete row.dinner;
+      hg.placements[key] = row;
+    });
+    writeV22(SMOOTHIE_V22.hg, hg);
+    state.smoothieFlyError = "";
+    render();
+  }
+
+  function smoothieWeekPlacements(year, month, weekIndex) {
+    var days = hgWeeks(year, month)[weekIndex] || [];
+    var hg = readV22(SMOOTHIE_V22.hg);
+    var placements = {};
+    var mealIds = [];
+    var complete = days.length > 0;
+    days.forEach(function (day) {
+      var row = (hg.placements && hg.placements[day.dateKey]) || {};
+      placements[day.dateKey] = { morning: row.morning || "", lunch: row.lunch || "" };
+      SMOOTHIE_SLOTS.forEach(function (slot) {
+        if (!row[slot]) complete = false;
+        else if (mealIds.indexOf(row[slot]) === -1) mealIds.push(row[slot]);
+      });
+    });
+    return { days: days, placements: placements, mealIds: mealIds, complete: complete };
+  }
+
+  function smoothieWeekCardId(year, month, week) {
+    return "smoothie-week-" + year + "-" + pad2(month) + "-w" + week;
+  }
+
+  function finishSmoothieWeek(year, month, week) {
+    var packed = smoothieWeekPlacements(year, month, week - 1);
+    if (!packed.complete) {
+      state.smoothieFlyError = "Fill every morning and lunch in this week first.";
+      render();
+      return;
+    }
+    var id = smoothieWeekCardId(year, month, week);
+    flySmoothie("hg", "finished_week", id, {
+      card: {
+        cardId: id,
+        title: MONTH_LABEL[month] + " " + year + " · Week " + week,
+        madeOn: londonParts(new Date()).dateKey,
+        noteCode: "",
+        month: year + "-" + pad2(month),
+        week: week,
+        placements: packed.placements,
+        mealIds: packed.mealIds
+      }
+    });
+  }
+
+  function finishSmoothieMonth(year, month) {
+    var weeks = [];
+    for (var w = 1; w <= 4; w++) {
+      var id = smoothieWeekCardId(year, month, w);
+      var later = readV22(SMOOTHIE_V22.later);
+      if (!later.cards || !later.cards[id]) {
+        state.smoothieFlyError = "Finish weeks 1 to 4 into Save later before this month can fly to Final.";
+        render();
+        return;
+      }
+      weeks.push(later.cards[id]);
+    }
+    var finalId = "smoothie-final-" + year + "-" + pad2(month);
+    flySmoothie("hg", "month_complete", finalId, {
+      card: {
+        cardId: finalId,
+        title: MONTH_LABEL[month] + " " + year,
+        madeOn: londonParts(new Date()).dateKey,
+        noteCode: "",
+        weeks: weeks
+      }
+    });
+  }
+
+  function smoothieCardHtml(card) {
+    var ingredients = (card.ingredients || []).map(function (item) {
+      return "<li>" + escapeHtml(item.text || "") + "</li>";
+    }).join("");
+    var method = (card.method || []).map(function (step) {
+      return "<li><strong>" + escapeHtml(step.verb || "") + "</strong> " + escapeHtml(step.detail || "") + "</li>";
+    }).join("");
+    return '<article class="recipe-card food-forensic" data-kind="extraction" id="card-' + escapeHtml(card.cardId) + '">' +
+      '<p class="recipe-kicker">SMOOTHIE / EXTRACTION</p>' +
+      "<h3>" + escapeHtml(card.title) + "</h3>" +
+      '<p class="food-made">Made ' + escapeHtml(card.madeOn || "") + (card.noteCode ? " · " + escapeHtml(card.noteCode) : "") + "</p>" +
+      (card.tagline ? '<p class="recipe-tagline">' + escapeHtml(card.tagline) + "</p>" : "") +
+      '<p class="recipe-lock">Morning or lunch only. Extractions aren\'t dinner.</p>' +
+      "<h4>Ingredients</h4><ul class=\"recipe-ingredients\">" + ingredients + "</ul>" +
+      "<h4>Method</h4><ol class=\"recipe-method\">" + method + "</ol>" +
+      (card.tip ? '<p class="recipe-tip">' + escapeHtml(card.tip) + "</p>" : "") +
+      "</article>";
+  }
+
+  function paintSmoothieMeals() {
+    var host = $("smoothie-meals");
+    if (!host) return;
+    var store = ensureSmoothieSeed();
+    var card = state.smoothieFocusId ? store.cards[state.smoothieFocusId] : null;
+    var html = smoothieBannersHtml();
+    if (card && state.smoothieEditing) {
+      html += '<form class="food-editor" data-sm22="editor">' +
+        '<label>Title<input name="title" value="' + escapeHtml(card.title) + '"></label>' +
+        '<label>Note code<input name="noteCode" value="' + escapeHtml(card.noteCode || "") + '"></label>' +
+        '<p class="food-made">Made ' + escapeHtml(card.madeOn) + "</p>" +
+        '<label>Ingredients, one line each<textarea name="ingredients" rows="6">' +
+          escapeHtml((card.ingredients || []).map(function (item) { return item.text; }).join("\n")) + "</textarea></label>" +
+        '<label>Method, one step each line<textarea name="method" rows="6">' +
+          escapeHtml((card.method || []).map(function (step) { return (step.verb || "Blend") + " " + (step.detail || ""); }).join("\n")) + "</textarea></label>" +
+        '<label>Notes<textarea name="tip" rows="3">' + escapeHtml(card.tip || "") + "</textarea></label>" +
+        '<button type="button" data-sm22="save-meal" data-card="' + escapeHtml(card.cardId) + '">Save smoothie</button>' +
+        "</form>";
+    } else if (card) {
+      html += '<button type="button" class="food-fly-btn" data-sm22="back-meals">All smoothie cards</button>' + smoothieCardHtml(card) +
+        '<div class="food-fly-actions">' +
+        '<button type="button" class="food-fly-btn" data-sm22="edit-meal" data-card="' + escapeHtml(card.cardId) + '">Edit</button>' +
+        '<button type="button" class="food-fly-btn" data-sm22="fly" data-from="meals" data-action="add_cabinet" data-card="' + escapeHtml(card.cardId) + '">Add to Main Smoothie Cabinet</button>' +
+        '<button type="button" class="food-fly-btn" data-sm22="fly" data-from="meals" data-action="add_hg" data-card="' + escapeHtml(card.cardId) + '">Add to Smoothie Schedule HG</button>' +
+        "</div>";
+    } else {
+      html += '<button type="button" class="food-fly-btn" data-sm22="new-meal">New smoothie card</button>';
+      Object.keys(store.cards).forEach(function (id) {
+        var row = store.cards[id];
+        html += '<button type="button" class="food-jump" data-sm22="open-meal" data-card="' + escapeHtml(id) + '">' +
+          escapeHtml(row.title) + "<span>Made " + escapeHtml(row.madeOn || "") + "</span></button>";
+      });
+    }
+    host.innerHTML = html;
+  }
+
+  function paintSmoothieCabinet() {
+    var host = $("smoothie-cabinet");
+    if (!host) return;
+    ensureSmoothieSeed();
+    var cab = readV22(SMOOTHIE_V22.cabinet);
+    var html = smoothieBannersHtml();
+    var focus = state.smoothieFocusId ? smoothieById(state.smoothieFocusId) : null;
+    if (focus) {
+      html += '<button type="button" class="food-fly-btn" data-sm22="back-cabinet">Cabinet</button>' + smoothieCardHtml(focus) +
+        '<div class="food-fly-actions"><button type="button" class="food-fly-btn" data-sm22="fly" data-from="cabinet" data-action="add_hg" data-card="' +
+        escapeHtml(focus.cardId) + '">Add to Smoothie Schedule HG drafts</button></div>';
+    } else {
+      html += '<div class="food-cabinet-scroller" aria-label="Main Smoothie Cabinet">';
+      (cab.order || []).forEach(function (id) {
+        var card = smoothieById(id);
+        if (!card) return;
+        html += '<button type="button" class="food-mini" data-sm22="open-cabinet" data-card="' + escapeHtml(id) + '">' +
+          "<strong>" + escapeHtml(card.title) + "</strong><span>" + escapeHtml(card.madeOn || "") + "</span></button>";
+      });
+      html += "</div>";
+    }
+    host.innerHTML = html;
+  }
+
+  function paintSmoothieHg() {
+    var host = $("smoothie-hg");
+    if (!host) return;
+    ensureSmoothieSeed();
+    var hg = readV22(SMOOTHIE_V22.hg);
+    var pool = hg.pool || [];
+    if (state.smoothieMonth < 1) state.smoothieMonth = 10;
+    var months = smoothieWindowMonths();
+    var active = months.filter(function (entry) { return entry.year === state.smoothieYear && entry.month === state.smoothieMonth; })[0] || months[0];
+    state.smoothieYear = active.year;
+    state.smoothieMonth = active.month;
+    var weeks = hgWeeks(active.year, active.month);
+    var week = weeks[state.smoothieWeek - 1] || weeks[0];
+    var html = smoothieBannersHtml();
+    html += '<div class="food-filters">';
+    html += '<button type="button" data-sm22="window" data-window="2026-10"' + (state.smoothieWindow === "2026-10" ? ' aria-pressed="true"' : "") + ">Oct–Dec</button>";
+    html += '<button type="button" data-sm22="window" data-window="2027-01"' + (state.smoothieWindow === "2027-01" ? ' aria-pressed="true"' : "") + ">Jan–Mar</button>";
+    html += "</div><div class=\"food-filters\">";
+    months.forEach(function (entry) {
+      html += '<button type="button" data-sm22="month" data-year="' + entry.year + '" data-month="' + entry.month + '"' +
+        (entry.month === state.smoothieMonth && entry.year === state.smoothieYear ? ' aria-pressed="true"' : "") + ">" +
+        MONTH_LABEL[entry.month] + "</button>";
+    });
+    html += "</div><div class=\"food-filters\">";
+    for (var w = 1; w <= 4; w++) {
+      html += '<button type="button" data-sm22="hg-week" data-week="' + w + '"' + (state.smoothieWeek === w ? ' aria-pressed="true"' : "") + ">Week " + w + "</button>";
+    }
+    html += "</div>";
+    html += '<div class="food-cabinet-scroller" aria-label="Smoothie HG pool">';
+    if (!pool.length) html += '<p class="food-made">Fly a smoothie here from Smoothie Recipe Cards or the Cabinet.</p>';
+    pool.forEach(function (id) {
+      var card = smoothieById(id);
+      if (!card) return;
+      html += '<button type="button" class="food-mini" data-sm22="pick" data-card="' + escapeHtml(id) + '"' +
+        (state.smoothiePick === id ? ' aria-pressed="true"' : "") + "><strong>" + escapeHtml(card.title) + "</strong></button>";
+    });
+    html += "</div>";
+    week.forEach(function (day) {
+      var placed = (hg.placements && hg.placements[day.dateKey]) || {};
+      var short = String(day.weekday || "").slice(0, 3);
+      html += '<article class="food-day' + (day.sunday ? " is-sunday" : "") + '">';
+      html += "<header class=\"food-day-head\"><h3>" + escapeHtml(day.weekday) + "</h3><p>" + escapeHtml(day.dateKey) + "</p>";
+      if (day.sunday) html += '<p class="food-sunday-label">Smoothie Prep Day</p>';
+      html += "</header>";
+      SMOOTHIE_SLOTS.forEach(function (slot) {
+        var chosen = placed[slot] ? smoothieById(placed[slot]) : null;
+        html += '<div class="food-slot"><span>' + slot + "</span><strong>" + escapeHtml(chosen ? chosen.title : "Empty") + "</strong>" +
+          '<div class="food-hg-actions">' +
+          '<button type="button" data-sm22="place" data-mode="all" data-date="' + escapeHtml(day.dateKey) + '" data-slot="' + slot + '" data-weekday="' + short + '">All ' + WEEKDAY_ALL[short] + "</button>" +
+          '<button type="button" data-sm22="place" data-mode="once" data-date="' + escapeHtml(day.dateKey) + '" data-slot="' + slot + '" data-weekday="' + short + '">Only once</button>' +
+          "</div></div>";
+      });
+      html += "</article>";
+    });
+    html += '<button type="button" class="food-fly-btn" data-sm22="finish-week">Finished schedule</button>';
+    html += '<button type="button" class="food-fly-btn" data-sm22="finish-month">Month complete</button>';
+    host.innerHTML = html;
+  }
+
+  function paintSmoothieFinal() {
+    var host = $("smoothie-final");
+    if (!host) return;
+    var fin = readV22(SMOOTHIE_V22.final);
+    var html = smoothieBannersHtml();
+    var card = state.smoothieFocusId && fin.cards ? fin.cards[state.smoothieFocusId] : null;
+    if (!card && fin.order && fin.order.length) card = fin.cards[fin.order[fin.order.length - 1]];
+    if (!card) {
+      html += '<p class="food-made">Finished 4-week timetables land here from Smoothie Schedule HG.</p>';
+    } else {
+      html += "<h3 class=\"food-subhead\">" + escapeHtml(card.title) + "</h3>";
+      (card.weeks || []).forEach(function (week) {
+        html += '<section class="food-final-week"><h3>Week ' + week.week + "</h3>";
+        Object.keys(week.placements || {}).forEach(function (date) {
+          var row = week.placements[date];
+          html += '<article class="food-day"><header class="food-day-head"><h3>' + escapeHtml(date) + "</h3></header>";
+          SMOOTHIE_SLOTS.forEach(function (slot) {
+            var meal = row[slot] ? smoothieById(row[slot]) : null;
+            html += '<div class="food-slot"><span>' + slot + "</span><strong>" + escapeHtml(meal ? meal.title : "Empty") + "</strong></div>";
+          });
+          html += "</article>";
+        });
+        html += "</section>";
+      });
+    }
+    host.innerHTML = html;
+  }
+
+  function paintSmoothieSaveLater() {
+    var host = $("smoothie-savelater");
+    if (!host) return;
+    var later = readV22(SMOOTHIE_V22.later);
+    var html = smoothieBannersHtml();
+    var focus = state.smoothieFocusId && later.cards ? later.cards[state.smoothieFocusId] : null;
+    if (focus) {
+      html += '<button type="button" class="food-fly-btn" data-sm22="back-later">Smoothie Save later</button>';
+      html += "<h3 class=\"food-subhead\">" + escapeHtml(focus.title) + "</h3>";
+      html += '<p class="food-made">Made ' + escapeHtml(focus.madeOn || "") + "</p>";
+      html += '<button type="button" class="food-fly-btn" data-sm22="fly" data-from="savelater" data-action="reuse_hg" data-card="' +
+        escapeHtml(focus.cardId) + '">Reuse in Smoothie Schedule HG</button>';
+    } else {
+      html += '<div class="food-cabinet-scroller" aria-label="Smoothie Save later">';
+      (later.order || []).forEach(function (id) {
+        var card = later.cards[id];
+        if (!card) return;
+        html += '<button type="button" class="food-mini" data-sm22="open-later" data-card="' + escapeHtml(id) + '"><strong>' +
+          escapeHtml(card.title) + "</strong><span>" + escapeHtml(card.madeOn || "") + "</span></button>";
+      });
+      html += "</div>";
+    }
+    host.innerHTML = html;
+  }
+
+  function onSmoothieClick(event) {
+    var node = event.target.closest("[data-sm22]");
+    if (!node) return false;
+    var kind = node.getAttribute("data-sm22");
+    var cardId = node.getAttribute("data-card") || "";
+    if (kind === "open-meal" || kind === "open-cabinet" || kind === "open-later") {
+      state.smoothieFocusId = cardId;
+      state.smoothieEditing = false;
+      render();
+      return true;
+    }
+    if (kind === "back-meals" || kind === "back-cabinet" || kind === "back-later") {
+      state.smoothieFocusId = "";
+      state.smoothieEditing = false;
+      render();
+      return true;
+    }
+    if (kind === "edit-meal") {
+      state.smoothieEditing = true;
+      render();
+      return true;
+    }
+    if (kind === "new-meal") {
+      var id = "smoothie-" + newCardId();
+      var meals = ensureSmoothieSeed();
+      meals.cards[id] = {
+        cardId: id,
+        title: "New smoothie",
+        madeOn: londonParts(new Date()).dateKey,
+        noteCode: "",
+        kind: "extraction",
+        family: "extraction",
+        tagline: "Morning or lunch.",
+        ingredients: [{ text: "" }],
+        method: [{ verb: "Blend", detail: "" }],
+        tip: "Morning or lunch only. Extractions aren't dinner.",
+        fresh: true
+      };
+      writeV22(SMOOTHIE_V22.meals, meals);
+      state.smoothieFocusId = id;
+      state.smoothieEditing = true;
+      render();
+      return true;
+    }
+    if (kind === "save-meal") {
+      var form = node.closest("form");
+      var existing = smoothieById(cardId);
+      if (form && existing) {
+        existing.title = form.querySelector('[name="title"]').value.trim() || existing.title;
+        existing.noteCode = form.querySelector('[name="noteCode"]').value.trim();
+        existing.ingredients = form.querySelector('[name="ingredients"]').value.split("\n").map(function (line) {
+          return { text: line.trim() };
+        }).filter(function (item) { return item.text; });
+        existing.method = form.querySelector('[name="method"]').value.split("\n").map(function (line) {
+          var parts = line.trim().split(/\s+/);
+          return { verb: parts.shift() || "Blend", detail: parts.join(" ") };
+        }).filter(function (step) { return step.verb || step.detail; });
+        existing.tip = form.querySelector('[name="tip"]').value.trim();
+        existing.kind = "extraction";
+        var store = ensureSmoothieSeed();
+        store.cards[cardId] = existing;
+        writeV22(SMOOTHIE_V22.meals, store);
+      }
+      state.smoothieEditing = false;
+      render();
+      return true;
+    }
+    if (kind === "fly") {
+      var from = node.getAttribute("data-from");
+      var action = node.getAttribute("data-action");
+      var extra = {};
+      if (from === "savelater") extra.card = (readV22(SMOOTHIE_V22.later).cards || {})[cardId];
+      flySmoothie(from, action, cardId, extra);
+      return true;
+    }
+    if (kind === "pick") {
+      state.smoothiePick = cardId;
+      state.smoothieFlyError = "";
+      render();
+      return true;
+    }
+    if (kind === "place") {
+      if (!state.smoothiePick) {
+        state.smoothieFlyError = "Pick a smoothie from the HG pool first.";
+        render();
+        return true;
+      }
+      placeSmoothie(node.getAttribute("data-date"), node.getAttribute("data-slot"), state.smoothiePick, node.getAttribute("data-mode"), node.getAttribute("data-weekday"));
+      return true;
+    }
+    if (kind === "window") {
+      state.smoothieWindow = node.getAttribute("data-window");
+      var first = smoothieWindowMonths()[0];
+      state.smoothieYear = first.year;
+      state.smoothieMonth = first.month;
+      state.smoothieWeek = 1;
+      render();
+      return true;
+    }
+    if (kind === "month") {
+      state.smoothieYear = +node.getAttribute("data-year");
+      state.smoothieMonth = +node.getAttribute("data-month");
+      state.smoothieWeek = 1;
+      render();
+      return true;
+    }
+    if (kind === "hg-week") {
+      state.smoothieWeek = +node.getAttribute("data-week") || 1;
+      render();
+      return true;
+    }
+    if (kind === "finish-week") finishSmoothieWeek(state.smoothieYear, state.smoothieMonth, state.smoothieWeek);
+    if (kind === "finish-month") finishSmoothieMonth(state.smoothieYear, state.smoothieMonth);
+    return true;
+  }
+
+  function openSmoothieRoom(room, focusId) {
+    if (!SMOOTHIE_TITLES[room]) return;
+    state.foodRoom = "";
+    state.smoothieRoom = room;
+    state.smoothieFocusId = focusId || "";
+    state.smoothieEditing = false;
+    render();
+    var title = $("smoothie-board-title");
+    if (title && title.focus) {
+      try { title.focus({ preventScroll: true }); } catch (err) {
+        try { title.focus(); } catch (err2) { /* focus is optional */ }
+      }
+    }
+  }
+
+  function closeSmoothieRoom() {
+    state.smoothieRoom = "";
+    state.smoothieFocusId = "";
+    state.smoothieEditing = false;
+    render();
+  }
+
+  function paintSmoothieBoard() {
+    var board = $("smoothie-board");
+    var training = $("training-board");
+    var food = $("food-board");
+    var room = SMOOTHIE_TITLES[state.smoothieRoom] ? state.smoothieRoom : "";
+    var open = !!room;
+    if (board) board.hidden = !open;
+    if (open) {
+      if (food) food.hidden = true;
+      if (training) training.hidden = true;
+      document.body.classList.add("is-food");
+    }
+    document.querySelectorAll("[data-smoothie-room]").forEach(function (row) {
+      var on = row.getAttribute("data-smoothie-room") === room;
+      row.classList.toggle("is-active", on);
+      row.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    ["meals", "cabinet", "hg", "final", "savelater"].forEach(function (name) {
+      var panel = $("smoothie-" + name);
+      if (panel) panel.hidden = name !== room;
+    });
+    if (!open) return;
+    var title = $("smoothie-board-title");
+    if (title) title.textContent = SMOOTHIE_TITLES[room];
+    if (room === "meals") paintSmoothieMeals();
+    if (room === "cabinet") paintSmoothieCabinet();
+    if (room === "hg") paintSmoothieHg();
+    if (room === "final") paintSmoothieFinal();
+    if (room === "savelater") paintSmoothieSaveLater();
+  }
+
   function paintFoodBoard() {
     var board = $("food-board");
     var training = $("training-board");
@@ -3646,6 +4333,7 @@
     applyPeriodMarks(weekDays);
     paintForensic();
     paintFoodBoard();
+    paintSmoothieBoard();
     if (state.restoreTickDate) {
       var again = tbody.querySelector('button.tick-hit[data-date="' + state.restoreTickDate + '"]');
       state.restoreTickDate = "";
@@ -4641,6 +5329,22 @@
         setNavOpen(false);
       });
     });
+    document.querySelectorAll("[data-smoothie-room]").forEach(function (smoothieBtn) {
+      smoothieBtn.addEventListener("click", function () {
+        openSmoothieRoom(smoothieBtn.getAttribute("data-smoothie-room"));
+        setNavOpen(false);
+      });
+    });
+    var smoothieBoard = $("smoothie-board");
+    if (smoothieBoard) {
+      smoothieBoard.addEventListener("click", function (event) {
+        if (event.target.closest("#btn-smoothie-close")) {
+          closeSmoothieRoom();
+          return;
+        }
+        onSmoothieClick(event);
+      });
+    }
     var foodBoard = $("food-board");
     if (foodBoard) {
       var dragTimer = 0;
@@ -5029,7 +5733,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v22",
+    build: "v22.1",
     get nutrition() {
       return {
         shop: foodShop(),

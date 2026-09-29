@@ -20,7 +20,7 @@ if (!audit.ok) {
   process.exit(1);
 }
 const html = fs.readFileSync("index.html", "utf8");
-const rooms = ["meals", "cabinet", "hg", "final", "savelater", "shop", "extractions"];
+const rooms = ["meals", "cabinet", "hg", "final", "savelater", "shop"];
 rooms.forEach(function (room) {
   if (html.indexOf('data-food-room="' + room + '"') === -1) {
     console.error("FAIL missing drawer room " + room);
@@ -31,7 +31,7 @@ if (html.indexOf("data/nutrition.js") !== -1) {
   console.error("FAIL mashed nutrition.js still linked");
   process.exit(1);
 }
-if (html.indexOf('content="v22"') === -1 || html.indexOf("styles.css?v=v22") === -1) {
+if (html.indexOf('content="v22.1"') === -1 || html.indexOf("styles.css?v=v22.1") === -1) {
   console.error("FAIL cache stamp");
   process.exit(1);
 }
@@ -39,8 +39,18 @@ if (html.indexOf("Sunday stays off this list") !== -1) {
   console.error("FAIL Sunday still hidden from the food week");
   process.exit(1);
 }
-if (html.indexOf("data/food/pack001.js?v=v22") === -1) {
+if (html.indexOf("data/food/pack001.js?v=v22.1") === -1) {
   console.error("FAIL pack 001 script");
+  process.exit(1);
+}
+["meals", "cabinet", "hg", "final", "savelater"].forEach(function (room) {
+  if (html.indexOf('data-smoothie-room="' + room + '"') === -1) {
+    console.error("FAIL missing smoothie room " + room);
+    process.exit(1);
+  }
+});
+if (html.indexOf("Main Smoothie Cabinet") === -1 || html.indexOf("Final Smoothie Prep Scheduled Timetables") === -1 || html.indexOf("Smoothie Schedule HG") === -1) {
+  console.error("FAIL smoothie cabin names");
   process.exit(1);
 }
 if (html.indexOf("Final Meal Prep Scheduled Timetables") === -1 || html.indexOf("Main Meal Cabinet") === -1) {
@@ -112,6 +122,18 @@ if (app.indexOf("relic_food_cabinet_v22") === -1 || app.indexOf("relic_food_hg_v
 }
 if (app.indexOf("This card has already been added to save later.") === -1 || app.indexOf("Only once") === -1) {
   console.error("FAIL save later or weekday buttons");
+  process.exit(1);
+}
+if (app.indexOf("relic_smoothie_meals_v22") === -1 || app.indexOf("relic_smoothie_cabinet_v22") === -1 || app.indexOf("relic_smoothie_hg_v22") === -1 || app.indexOf("relic_smoothie_final_v22") === -1 || app.indexOf("relic_smoothie_savelater_v22") === -1 || app.indexOf("relic_smoothie_flylog_v22") === -1) {
+  console.error("FAIL smoothie cabin keys");
+  process.exit(1);
+}
+if (app.indexOf('var SMOOTHIE_SLOTS = ["morning", "lunch"]') === -1 || app.indexOf("Fill every morning and lunch in this week first.") === -1) {
+  console.error("FAIL smoothie morning lunch law");
+  process.exit(1);
+}
+if (css.indexOf(".smoothie-fly-ghost") === -1 || css.indexOf("cubic-bezier(0.34, 1.56, 0.64, 1)") === -1 || css.indexOf("transition: left 0.65s ease, top 0.65s ease, width 0.65s ease, height 0.65s ease;") === -1) {
+  console.error("FAIL smoothie pour or food fly curve");
   process.exit(1);
 }
 if (app.indexOf("relic_food_cards_v20") === -1 || app.indexOf("relic_food_week_v20") === -1) {
