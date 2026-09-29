@@ -362,6 +362,10 @@ Each Food room has Export JSON, Import JSON, and Reset this room. Meal and smoot
 
 Meal cards, smoothie cards, and the monthly shop also have a Scan / Import strip. Paste a freeform note and press Parse to preview a card or shop lines. Import JSON, from the paste box or a JSON file, validates and previews before it writes. Save stores the preview in the same overlay. Cancel discards it. A label photo uses the device camera or a file, is kept as `scanImage` on the draft, and the control reads “attach label photo; fill fields”. The preview fields use dark ink on a cream ground. No API key and no server route is involved.
 
+Meal, smoothie, shop, and week edits carry `citations[]`. Seed cards show Sainsbury’s product lines, `FOOD_LIVE` when the card says so, and `Drive recipe card` on Drive seeds. Shop lines show the product name as a citation until a line is edited. Imported JSON may use kind `meal`, `smoothie`, `shop`, or `weekDay`, and may include `citations` and a sort tag (`protein`, `veg`, `fruit`, `dairy`, `freezer`, `botanical`, `other`).
+
+The shop list can be filtered by those tags, sorted by name or category, and moved up or down. Each line can attach a label photo. Lock this month’s shop still freezes the weekly prep plan. It also builds editable meal and smoothie drafts from the ticked lines. Build cards from basket does the same on demand. Save draft writes a card. Discard drops that draft.
+
 ### Next
 
 Vercel AI Gateway routes for `openai/*` and `google/gemini-*` can generate a card from a prompt or read a label photo. Canva export URLs can become card hero art. Those stay out of v20.

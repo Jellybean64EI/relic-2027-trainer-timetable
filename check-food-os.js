@@ -57,8 +57,16 @@ if (app.indexOf("Scan / Import") === -1 || app.indexOf("attach label photo; fill
   console.error("FAIL scan strip");
   process.exit(1);
 }
+if (app.indexOf("Build cards from basket") === -1 || app.indexOf("Sort by category") === -1 || app.indexOf("recipe-citations") === -1) {
+  console.error("FAIL citations or basket drafts");
+  process.exit(1);
+}
 if (css.indexOf(".scan-preview") === -1 || css.indexOf(".scan-preview h3,\n.scan-preview label") === -1) {
   console.error("FAIL scan preview ink");
+  process.exit(1);
+}
+if (css.indexOf(".recipe-citations") === -1 || css.indexOf(".recipe-citations li") === -1) {
+  console.error("FAIL citation ink");
   process.exit(1);
 }
 const meals = ctx.window.RELIC_FOOD_MEALS;

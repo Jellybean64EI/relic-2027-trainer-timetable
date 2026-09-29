@@ -67,7 +67,10 @@
     foodFocusId: "",
     foodFocusBand: "moderate",
     foodEditing: false,
-    scanPreview: null
+    scanPreview: null,
+    shopFilter: "all",
+    basketDrafts: null,
+    basketOpen: false
   };
 
   var player = {
@@ -707,6 +710,7 @@
           "<p><strong>Reheat</strong> " + escapeHtml(card.timetable.reheat) + "</p>" +
         "</section>" +
         '<p class="recipe-tip">Tip: ' + escapeHtml(card.tip) + "</p>" +
+        citationsBlockHtml(card) +
       "</article>"
     );
   }
@@ -771,8 +775,10 @@
     var notes = readWeekNotes();
     var row = notes[dateKey] || {};
     Object.keys(patch).forEach(function (key) {
-      if (patch[key]) row[key] = patch[key];
-      else delete row[key];
+      var value = patch[key];
+      var empty = value == null || value === "" || (Array.isArray(value) && !value.length);
+      if (empty) delete row[key];
+      else row[key] = value;
     });
     if (Object.keys(row).length) notes[dateKey] = row;
     else delete notes[dateKey];
@@ -800,6 +806,114 @@
     return (items || []).map(function (item) { return item.text || ""; }).join("\n");
   }
 
+  var SHOP_TAG_ORDER = ["protein", "veg", "fruit", "dairy", "freezer", "botanical", "other"];
+  var SHOP_TAGS = {
+    chicken: "protein", turkey: "protein", beef10: "protein", beef5: "protein",
+    salmonFrozen: "protein", salmonFresh: "protein", salmonWaitrose: "protein",
+    eggsPasture: "protein", eggsSo: "protein", eggsOmega: "protein", tuna: "protein",
+    carrots: "veg", cabbage: "veg", mushrooms: "veg", garlic: "veg", onion: "veg",
+    spinachFresh: "veg", tenderstem: "veg", lettuce: "veg", ginger: "veg",
+    avocado: "fruit", lemons: "fruit", berries: "fruit", berriesW: "fruit",
+    banana: "fruit", apples: "fruit", kiwi: "fruit", oranges: "fruit", pears: "fruit", pineapple: "fruit",
+    cheddar: "dairy", cheddarPremium: "dairy", mozzarella: "dairy", butter: "dairy",
+    milk: "dairy", yogurt: "dairy", yogurtW: "dairy", kefir: "dairy",
+    fruit: "freezer", spinachF: "freezer", broccoliF: "freezer", peas: "freezer",
+    mixedVeg: "freezer", greenBeans: "freezer", mango: "freezer", cherries: "freezer",
+    ashwagandha: "botanical", lionsMane: "botanical", spirulina: "botanical", psyllium: "botanical",
+    shilajit: "botanical", hemp: "botanical"
+  };
+
+  function normalizeTag(tag) {
+    var value = String(tag || "").toLowerCase();
+    return SHOP_TAG_ORDER.indexOf(value) === -1 ? "" : value;
+  }
+
+  function shopTag(item) {
+    var chosen = normalizeTag(item && item.tag);
+    if (chosen) return chosen;
+    return SHOP_TAGS[item && item.skuId] || "other";
+  }
+
+  function tagSelectHtml(selected, attrs) {
+    var current = normalizeTag(selected) || "other";
+    return "<select " + attrs + ">" + SHOP_TAG_ORDER.map(function (tag) {
+      return '<option value="' + tag + '"' + (tag === current ? " selected" : "") + ">" + tag + "</option>";
+    }).join("") + "</select>";
+  }
+
+  function normalizeCitations(list) {
+    var rows = list;
+    if (typeof rows === "string") rows = rows.split("\n");
+    if (!Array.isArray(rows)) return [];
+    return rows.map(function (item) {
+      if (typeof item === "string") return item.trim();
+      if (item && item.text) return String(item.text).trim();
+      return "";
+    }).filter(Boolean);
+  }
+
+  function citationsToText(list) {
+    return normalizeCitations(list).join("\n");
+  }
+
+  function derivedCitations(card) {
+    var found = normalizeCitations(card && card.citations);
+    if (found.length) return found;
+    found = [];
+    ((card && card.ingredients) || []).forEach(function (item) {
+      var text = (item && item.text) || "";
+      if (/Sainsbury|Waitrose/i.test(text) && found.indexOf(text) === -1) found.push(text);
+    });
+    var blob = [(card && card.tip) || "", (card && card.tagline) || "", (card && card.script) || ""].join(" ");
+    if (/FOOD_LIVE/.test(blob) && found.indexOf("FOOD_LIVE") === -1) found.push("FOOD_LIVE");
+    if (card && card.seed && found.indexOf("Drive recipe card") === -1) found.push("Drive recipe card");
+    return found;
+  }
+
+  function carriedCitations(card) {
+    var lines = derivedCitations(card);
+    if (lines.length) return lines;
+    ((card && card.ingredients) || []).forEach(function (item) {
+      var text = (item && item.text) || "";
+      if (text && lines.indexOf(text) === -1) lines.push(text);
+    });
+    if (!lines.length) lines.push(card && card.scanImage ? "Label photo" : "FOOD_LIVE");
+    return lines;
+  }
+
+  function citationsBlockHtml(card) {
+    var lines = derivedCitations(card);
+    if (!lines.length) lines = carriedCitations(card);
+    if (!lines.length) return "";
+    return '<h4>Citations</h4><ul class="recipe-citations">' +
+      lines.map(function (line) { return "<li>" + escapeHtml(line) + "</li>"; }).join("") +
+      "</ul>";
+  }
+
+  function importKindRoom(data) {
+    var kind = String((data && data.kind) || "").toLowerCase();
+    if (kind === "smoothie" || kind === "extraction") return "extractions";
+    if (kind === "meal") return "meals";
+    if (kind === "shop") return "shop";
+    if (kind === "weekday" || kind === "week" || kind === "week-day") return "weekly";
+    return "";
+  }
+
+  function shopItemLabel(item) {
+    if (!item) return "";
+    if (item.label || item.customName) return item.label || item.customName;
+    var api = foodShop();
+    var entry = api && item.skuId && api.skus[item.skuId];
+    return entry ? entry.name : (item.skuId || "");
+  }
+
+  function shopItemCitations(item) {
+    var lines = normalizeCitations(item && item.citations);
+    if (lines.length) return lines;
+    var label = shopItemLabel(item);
+    return label ? [label] : ["FOOD_LIVE"];
+  }
+
   function overlayCard(card, overlay) {
     var next = {};
     Object.keys(card).forEach(function (key) { next[key] = card[key]; });
@@ -809,6 +923,8 @@
     if (overlay.ingredients && overlay.ingredients.length) next.ingredients = overlay.ingredients;
     if (overlay.method && overlay.method.length) next.method = overlay.method;
     if (overlay.scanImage) next.scanImage = overlay.scanImage;
+    if (overlay.citations && overlay.citations.length) next.citations = overlay.citations;
+    if (overlay.tag) next.tag = overlay.tag;
     return next;
   }
 
@@ -830,7 +946,9 @@
       method: raw.method && raw.method.length ? raw.method : [{ verb: "Cook", detail: "until done" }],
       timetable: raw.timetable || { bestFor: "Your plan", bestEaten: "Fresh", reheat: "Heat until hot" },
       tip: raw.tip || "",
-      scanImage: raw.scanImage || ""
+      scanImage: raw.scanImage || "",
+      citations: normalizeCitations(raw.citations),
+      tag: normalizeTag(raw.tag)
     };
   }
 
@@ -871,7 +989,7 @@
   }
 
   function newCardId() {
-    return "custom-" + Date.now().toString(36);
+    return "custom-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   }
 
   function foodToolsHtml(room) {
@@ -886,11 +1004,17 @@
 
   function roomExport(room) {
     if (room === "shop") {
+      var shopDraft = draftFor(state.viewYear, state.viewMonth, true);
+      var shopCopy = JSON.parse(JSON.stringify(shopDraft || { items: [] }));
+      (shopCopy.items || []).forEach(function (item) {
+        item.citations = shopItemCitations(item);
+        item.tag = shopTag(item);
+      });
       return {
         room: "shop",
         build: "v20",
         month: foodMonthKey(state.viewYear, state.viewMonth),
-        draft: draftFor(state.viewYear, state.viewMonth, true)
+        draft: shopCopy
       };
     }
     if (room === "weekly") return { room: "weekly", build: "v20", notes: readWeekNotes() };
@@ -993,7 +1117,9 @@
       ingredients: ingredients.length ? ingredients : [{ text: "" }],
       method: method.length ? method : [{ verb: "", detail: "" }],
       tip: data.tip || "",
-      scanImage: typeof data.scanImage === "string" ? data.scanImage : ""
+      scanImage: typeof data.scanImage === "string" ? data.scanImage : "",
+      citations: normalizeCitations(data.citations),
+      tag: normalizeTag(data.tag)
     };
   }
 
@@ -1005,7 +1131,7 @@
       chunks = chunks[0].split(",").map(function (part) { return part.trim(); }).filter(Boolean);
     }
     return chunks.map(function (name) {
-      return { customName: name, qty: 1, ticked: true, pricePence: 0 };
+      return { customName: name, qty: 1, ticked: true, pricePence: 0, tag: "other", citations: [name] };
     });
   }
 
@@ -1014,6 +1140,7 @@
     if (head === "ingredients" || head.indexOf("ingredient") === 0) return "ingredients";
     if (head === "method" || head === "steps" || head === "instructions" || head === "directions") return "method";
     if (head === "tip" || head === "tips" || head === "note" || head === "notes") return "tip";
+    if (head === "citations" || head === "citation" || head === "sources") return "citations";
     return "";
   }
 
@@ -1038,6 +1165,7 @@
     var tip = "";
     var ingredients = [];
     var method = [];
+    var citations = [];
     var section = "";
     raw.split("\n").forEach(function (line) {
       var trimmed = line.trim();
@@ -1048,6 +1176,11 @@
       if (/^tip\s*:/i.test(bare)) {
         tip = bare.replace(/^tip\s*:/i, "").trim();
         section = "tip";
+        return;
+      }
+      if (/^cite\s*:/i.test(bare) || section === "citations") {
+        citations.push(bare.replace(/^cite\s*:/i, "").trim());
+        section = "citations";
         return;
       }
       if (!name) { name = bare; return; }
@@ -1072,7 +1205,8 @@
         tagline: tagline,
         ingredients: ingredients,
         method: method,
-        tip: tip
+        tip: tip,
+        citations: citations
       }, kind)
     };
   }
@@ -1081,10 +1215,25 @@
     if (!data || typeof data !== "object" || Array.isArray(data)) {
       return { room: room, error: "That paste is not Relic JSON." };
     }
-    if (data.room && data.room !== room) {
-      return { room: room, error: "That JSON belongs to the " + data.room + " room." };
+    var kindRoom = importKindRoom(data);
+    if ((data.room && data.room !== room) || (kindRoom && kindRoom !== room)) {
+      return { room: room, error: "That JSON belongs to the " + (data.room || kindRoom) + " room." };
     }
     if (room === "weekly") {
+      if (kindRoom === "weekly" || (data.dateKey && !data.notes)) {
+        if (!data.dateKey) return { room: room, error: "A week day needs a dateKey." };
+        var dayNote = {
+          lunch: data.lunch || "",
+          mealId: data.mealId || "",
+          evening: data.evening || "",
+          note: data.note || "",
+          citations: normalizeCitations(data.citations)
+        };
+        if (!dayNote.citations.length) dayNote.citations = ["FOOD_LIVE"];
+        var dayNotes = {};
+        dayNotes[data.dateKey] = dayNote;
+        return { room: room, mode: "notes", module: { room: "weekly", notes: dayNotes } };
+      }
       if (!data.notes || typeof data.notes !== "object" || Array.isArray(data.notes)) {
         return { room: room, error: "Weekly JSON needs a notes object." };
       }
@@ -1093,7 +1242,7 @@
     if (room === "shop") {
       var draft = draftFor(state.viewYear, state.viewMonth, true);
       if (draft && draft.locked) return { room: room, error: "Unlock this month’s shop before importing a list." };
-      var items = data.draft && Array.isArray(data.draft.items) ? data.draft.items : (Array.isArray(data.items) ? data.items : null);
+      var items = data.draft && Array.isArray(data.draft.items) ? data.draft.items : (Array.isArray(data.items) ? data.items : (Array.isArray(data.lines) ? data.lines : null));
       if (!items) return { room: room, error: "Shop JSON needs a list of lines." };
       return { room: room, mode: "module", module: data };
     }
@@ -1101,7 +1250,8 @@
       return { room: room, mode: "module", module: data };
     }
     if (data.name) {
-      return { room: room, mode: "card", card: cardFromRecord(data, room === "extractions" ? "extraction" : "meal") };
+      var cardKind = room === "extractions" || kindRoom === "extractions" ? "extraction" : "meal";
+      return { room: room, mode: "card", card: cardFromRecord(data, cardKind) };
     }
     return { room: room, error: "That JSON has no card." };
   }
@@ -1148,6 +1298,8 @@
         ingredients: card.ingredients,
         method: card.method,
         tip: card.tip,
+        citations: card.citations || [],
+        tag: card.tag || "",
         scanImage: photoMarker(card.scanImage)
       };
     }
@@ -1182,6 +1334,9 @@
         '<label>Method, one step each line <textarea data-scan-field="method" rows="5">' +
           escapeHtml(methodToText(card.method)) + "</textarea></label>" +
         '<label>Tip <textarea data-scan-field="tip" rows="3">' + escapeHtml(card.tip) + "</textarea></label>" +
+        "<label>Category " + tagSelectHtml(card.tag, 'data-scan-field="tag"') + "</label>" +
+        '<label>Citations, one line each <textarea data-scan-field="citations" rows="4">' +
+          escapeHtml(citationsToText(card.citations)) + "</textarea></label>" +
         '<pre class="scan-json">' + json + "</pre>" +
         '<button type="button" data-scan-action="save">Save</button>' +
         '<button type="button" data-scan-action="cancel">Cancel</button>' +
@@ -1190,7 +1345,10 @@
     if (preview.mode === "shop") {
       var fields = (preview.lines || []).map(function (line, index) {
         return "<label>Line " + (index + 1) +
-          '<input data-scan-line="' + index + '" value="' + escapeHtml(line.customName || line.label || "") + '"></label>';
+          '<input data-scan-line="' + index + '" value="' + escapeHtml(line.customName || line.label || "") + '"></label>' +
+          "<label>Category " + tagSelectHtml(line.tag, 'data-scan-tag="' + index + '"') + "</label>" +
+          '<label>Citations <textarea data-scan-cites="' + index + '" rows="2">' +
+            escapeHtml(citationsToText(line.citations)) + "</textarea></label>";
       }).join("");
       return '<section class="scan-preview" aria-label="Scan preview">' +
         "<h3>Preview</h3>" +
@@ -1226,12 +1384,22 @@
       preview.card.ingredients = linesOf(fieldValue("ingredients")).map(function (text) { return { text: text }; });
       preview.card.method = methodFromLines(fieldValue("method"));
       preview.card.tip = fieldValue("tip").trim();
+      preview.card.citations = linesOf(fieldValue("citations"));
+      preview.card.tag = normalizeTag(fieldValue("tag"));
       return preview;
     }
     if (preview.mode === "shop") {
       root.querySelectorAll("[data-scan-line]").forEach(function (el) {
         var index = +el.getAttribute("data-scan-line");
         if (preview.lines[index]) preview.lines[index].customName = el.value.trim();
+      });
+      root.querySelectorAll("[data-scan-tag]").forEach(function (el) {
+        var index = +el.getAttribute("data-scan-tag");
+        if (preview.lines[index]) preview.lines[index].tag = normalizeTag(el.value) || "other";
+      });
+      root.querySelectorAll("[data-scan-cites]").forEach(function (el) {
+        var index = +el.getAttribute("data-scan-cites");
+        if (preview.lines[index]) preview.lines[index].citations = linesOf(el.value);
       });
       return preview;
     }
@@ -1253,15 +1421,32 @@
     if (data.room && data.room !== room) return "That JSON belongs to the " + data.room + " room.";
     if (room === "weekly") {
       if (!data.notes || typeof data.notes !== "object" || Array.isArray(data.notes)) return "Weekly JSON needs a notes object.";
+      Object.keys(data.notes).forEach(function (key) {
+        var note = data.notes[key];
+        if (!note || typeof note !== "object") return;
+        note.citations = normalizeCitations(note.citations);
+        if (!note.citations.length) note.citations = ["FOOD_LIVE"];
+      });
       writeJsonStore(FOOD_WEEK_KEY, data.notes);
       return "";
     }
     if (room === "shop") {
       var draft = draftFor(state.viewYear, state.viewMonth, true);
       if (draft.locked) return "Unlock this month’s shop before importing a list.";
-      var items = data.draft && Array.isArray(data.draft.items) ? data.draft.items : (Array.isArray(data.items) ? data.items : null);
+      var items = data.draft && Array.isArray(data.draft.items) ? data.draft.items : (Array.isArray(data.items) ? data.items : (Array.isArray(data.lines) ? data.lines : null));
       if (!items) return "Shop JSON needs a list of lines.";
-      draft.items = items;
+      draft.items = items.map(function (item) {
+        var next = {};
+        Object.keys(item).forEach(function (key) { next[key] = item[key]; });
+        var known = foodShop() && next.skuId && foodShop().skus[next.skuId];
+        if (!next.customName && next.name && !known) next.customName = next.name;
+        if (!next.skuId) next.skuId = "custom-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        if (next.qty == null) next.qty = 1;
+        if (next.ticked == null) next.ticked = true;
+        next.citations = shopItemCitations(next);
+        next.tag = shopTag(next);
+        return next;
+      });
       saveDraft(draft);
       return "";
     }
@@ -1308,6 +1493,8 @@
         ingredients: card.ingredients,
         method: card.method,
         tip: card.tip,
+        citations: carriedCitations(card),
+        tag: normalizeTag(card.tag),
         scanImage: card.scanImage || ""
       });
       state.foodFocusId = card.id;
@@ -1330,7 +1517,9 @@
           ticked: line.ticked !== false,
           customName: line.customName,
           pricePence: line.pricePence || 0,
-          scanImage: preview.scanImage || ""
+          tag: normalizeTag(line.tag) || "other",
+          citations: normalizeCitations(line.citations).length ? normalizeCitations(line.citations) : [line.customName],
+          scanImage: preview.scanImage || line.scanImage || ""
         });
       });
       if (!added) {
@@ -1407,6 +1596,23 @@
     textReader.readAsText(file);
   }
 
+  function readShopPhoto(input) {
+    var file = input.files && input.files[0];
+    var index = +input.getAttribute("data-shop-photo");
+    if (!file || file.size > 900000) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      var fresh = draftFor(state.viewYear, state.viewMonth, true);
+      var row = fresh.items[index];
+      if (!row) return;
+      row.scanImage = String(reader.result || "");
+      if (!normalizeCitations(row.citations).length) row.citations = shopItemCitations(row);
+      saveDraft(fresh);
+      render();
+    };
+    reader.readAsDataURL(file);
+  }
+
   function editorHtml(card) {
     return '<form class="card-editor" data-card-editor="' + escapeHtml(card.id) + '">' +
       "<label>Name <input data-field=\"name\" value=\"" + escapeHtml(card.name) + "\"></label>" +
@@ -1416,6 +1622,10 @@
       "<label>Method, one step each line <textarea data-field=\"method\" rows=\"6\">" +
         escapeHtml(methodToText(card.method)) + "</textarea></label>" +
       "<label>Tip <textarea data-field=\"tip\" rows=\"3\">" + escapeHtml(card.tip) + "</textarea></label>" +
+      "<label>Category " + tagSelectHtml(card.tag, 'data-field="tag"') + "</label>" +
+      '<label>Citations, one line each <textarea data-field="citations" rows="4">' +
+        escapeHtml(citationsToText(derivedCitations(card).length ? derivedCitations(card) : carriedCitations(card))) +
+        "</textarea></label>" +
       '<button type="button" data-card-action="save">Save card</button>' +
       '<button type="button" data-card-action="cancel">Cancel</button>' +
       "</form>";
@@ -1444,7 +1654,9 @@
         tagline: "",
         ingredients: [{ text: "" }],
         method: [{ verb: "Cook", detail: "" }],
-        tip: ""
+        tip: "",
+        citations: ["FOOD_LIVE"],
+        tag: ""
       });
       state.foodFocusId = id;
       state.foodEditing = true;
@@ -1470,6 +1682,8 @@
       var ingEl = form.querySelector('[data-field="ingredients"]');
       var methodEl = form.querySelector('[data-field="method"]');
       var tipEl = form.querySelector('[data-field="tip"]');
+      var citeEl = form.querySelector('[data-field="citations"]');
+      var tagField = form.querySelector('[data-field="tag"]');
       var store = readCardStore();
       var bucket = kind === "extraction" ? store.extractions : store.meals;
       var existing = bucket[id] || {};
@@ -1480,8 +1694,11 @@
         tagline: tagEl ? tagEl.value.trim() : "",
         ingredients: linesOf(ingEl ? ingEl.value : "").map(function (text) { return { text: text }; }),
         method: methodFromLines(methodEl ? methodEl.value : ""),
-        tip: tipEl ? tipEl.value.trim() : ""
+        tip: tipEl ? tipEl.value.trim() : "",
+        citations: linesOf(citeEl ? citeEl.value : ""),
+        tag: tagField ? normalizeTag(tagField.value) : ""
       };
+      record.citations = carriedCitations(record);
       if (!existing.custom && !record.name) record.name = existing.name || "";
       if (existing.custom) record.custom = true;
       if (existing.scanImage) record.scanImage = existing.scanImage;
@@ -1504,7 +1721,9 @@
         method: source.method,
         tip: source.tip,
         timetable: source.timetable,
-        scanImage: source.scanImage || ""
+        scanImage: source.scanImage || "",
+        citations: carriedCitations(source),
+        tag: normalizeTag(source.tag)
       });
       state.foodFocusId = copyId;
       state.foodEditing = true;
@@ -1575,6 +1794,8 @@
     draft.lockedAt = new Date().toISOString();
     draft.plan = plan;
     saveDraft(draft);
+    state.basketDrafts = draftsFromBasket();
+    state.basketOpen = true;
     render();
   }
 
@@ -1584,6 +1805,134 @@
     draft.plan = null;
     saveDraft(draft);
     render();
+  }
+
+  function draftsFromBasket() {
+    var draft = draftFor(state.viewYear, state.viewMonth, true);
+    var rows = [];
+    (draft.items || []).forEach(function (item) {
+      if (!item.ticked || !(item.qty > 0)) return;
+      var name = shopItemLabel(item);
+      if (!name) return;
+      rows.push({
+        name: name,
+        tag: shopTag(item),
+        citations: shopItemCitations(item)
+      });
+    });
+    var fruits = rows.filter(function (row) {
+      return row.tag === "fruit" || (row.tag === "freezer" && /mango|cherr|berr|fruit|pineapple/i.test(row.name));
+    });
+    var proteins = rows.filter(function (row) { return row.tag === "protein"; });
+    var sides = rows.filter(function (row) {
+      return (row.tag === "veg" || row.tag === "freezer") && fruits.indexOf(row) === -1;
+    });
+    var dairy = rows.filter(function (row) { return row.tag === "dairy"; });
+    var botanicals = rows.filter(function (row) { return row.tag === "botanical"; });
+    var staples = rows.filter(function (row) {
+      return row.tag === "other" && /rice|potato|pasta|bread/i.test(row.name);
+    });
+    var stamp = draft.locked ? ["FOOD_LIVE basket", "Locked Sainsbury’s list"] : ["FOOD_LIVE basket"];
+    function withStamp(parts) {
+      var citations = [];
+      parts.forEach(function (row) {
+        (row.citations || []).forEach(function (line) {
+          if (citations.indexOf(line) === -1) citations.push(line);
+        });
+      });
+      stamp.forEach(function (line) {
+        if (citations.indexOf(line) === -1) citations.push(line);
+      });
+      return citations;
+    }
+    function shortName(product) {
+      return String(product || "").replace(/^Sainsbury's /, "").replace(/^Waitrose /, "").split(" ").slice(0, 3).join(" ");
+    }
+    var meals = [];
+    proteins.slice(0, 6).forEach(function (protein, index) {
+      var parts = [protein];
+      if (sides.length) parts.push(sides[index % sides.length]);
+      if (staples.length) parts.push(staples[index % staples.length]);
+      meals.push({
+        id: newCardId(),
+        kind: "meal",
+        name: shortName(protein.name) + " plate",
+        tagline: "Draft from the ticked basket.",
+        ingredients: parts.map(function (row) { return { text: row.name }; }),
+        method: [
+          { verb: "Heat", detail: "the pan or tray." },
+          { verb: "Cook", detail: protein.name + " until hot." },
+          { verb: "Plate", detail: "with the ticked veg and staple." }
+        ],
+        tip: /egg/i.test(protein.name) ? "Cook the whites. Editable draft from the basket." : "Editable draft from the basket.",
+        citations: withStamp(parts),
+        tag: "protein"
+      });
+    });
+    if (!meals.length && sides.length) {
+      meals.push({
+        id: newCardId(),
+        kind: "meal",
+        name: shortName(sides[0].name) + " plate",
+        tagline: "Draft from the ticked basket.",
+        ingredients: sides.slice(0, 3).map(function (row) { return { text: row.name }; }),
+        method: [
+          { verb: "Heat", detail: "the pan." },
+          { verb: "Cook", detail: "the ticked vegetables until hot." }
+        ],
+        tip: "Editable draft from the basket.",
+        citations: withStamp(sides.slice(0, 3)),
+        tag: "veg"
+      });
+    }
+    var smoothies = [];
+    if (fruits.length || dairy.length) {
+      var glass = fruits.concat(dairy).concat(botanicals.filter(function (row) { return /hemp/i.test(row.name); }));
+      var whisk = botanicals.filter(function (row) { return !/hemp/i.test(row.name); });
+      var bowl = glass.length ? glass : whisk;
+      smoothies.push({
+        id: newCardId(),
+        kind: "extraction",
+        name: "Basket morning glass",
+        tagline: "Morning only. Not dinner.",
+        ingredients: bowl.concat(whisk).filter(function (row, index, list) {
+          return list.indexOf(row) === index;
+        }).map(function (row) { return { text: row.name }; }),
+        method: [
+          { verb: "Pour", detail: "the milk or yogurt." },
+          { verb: "Add", detail: "the ticked fruit." },
+          { verb: "Blend", detail: "then strain." },
+          { verb: "Whisk", detail: "botanicals in after the strain." }
+        ],
+        tip: "Not dinner.",
+        citations: withStamp(bowl.concat(whisk)).concat(["Not dinner."]),
+        tag: "fruit"
+      });
+    }
+    return meals.concat(smoothies);
+  }
+
+  function basketDraftsHtml() {
+    if (!state.basketOpen || !state.basketDrafts) return "";
+    if (!state.basketDrafts.length) {
+      return '<section class="basket-drafts"><h3>Drafts from the basket</h3><p>No ticked lines to turn into cards.</p></section>';
+    }
+    return '<section class="basket-drafts" aria-label="Drafts from the basket">' +
+      "<h3>Drafts from the basket</h3>" +
+      "<p>Editable drafts. Save keeps the card. Discard drops it.</p>" +
+      state.basketDrafts.map(function (card, index) {
+        var lines = (card.ingredients || []).map(function (item) { return item.text; }).join(", ");
+        var cites = (card.citations || []).map(function (line) { return "<li>" + escapeHtml(line) + "</li>"; }).join("");
+        return '<article class="basket-card">' +
+          "<h4>" + escapeHtml(card.name) + "</h4>" +
+          "<p>" + escapeHtml(card.tagline || "") + "</p>" +
+          "<p>" + escapeHtml(lines) + "</p>" +
+          '<ul class="recipe-citations">' + cites + "</ul>" +
+          '<button type="button" data-shop-action="save-draft" data-draft-index="' + index + '">Save draft</button>' +
+          '<button type="button" data-shop-action="discard-draft" data-draft-index="' + index + '">Discard</button>' +
+          "</article>";
+      }).join("") +
+      "</section>";
   }
 
   function onShopAction(btn) {
@@ -1596,8 +1945,69 @@
       unlockShopMonth();
       return;
     }
+    if (action === "filter") {
+      state.shopFilter = btn.getAttribute("data-shop-tag") || "all";
+      render();
+      return;
+    }
+    if (action === "build-cards") {
+      state.basketDrafts = draftsFromBasket();
+      state.basketOpen = true;
+      render();
+      return;
+    }
+    if (action === "save-draft" || action === "discard-draft") {
+      var draftIndex = +btn.getAttribute("data-draft-index");
+      var picked = state.basketDrafts && state.basketDrafts[draftIndex];
+      if (!picked) return;
+      if (action === "save-draft") {
+        var pickedKind = picked.kind === "extraction" ? "extraction" : "meal";
+        saveCardRecord(pickedKind, picked.id, {
+          id: picked.id,
+          custom: true,
+          name: picked.name,
+          tagline: picked.tagline,
+          ingredients: picked.ingredients,
+          method: picked.method,
+          tip: picked.tip,
+          citations: carriedCitations(picked),
+          tag: normalizeTag(picked.tag)
+        });
+      }
+      state.basketDrafts.splice(draftIndex, 1);
+      render();
+      return;
+    }
     var draft = draftFor(state.viewYear, state.viewMonth, true);
-    if (draft.locked) return;
+    if (action === "sort-name" || action === "sort-tag") {
+      draft.items.sort(function (a, b) {
+        if (action === "sort-tag") {
+          var tagDelta = SHOP_TAG_ORDER.indexOf(shopTag(a)) - SHOP_TAG_ORDER.indexOf(shopTag(b));
+          if (tagDelta) return tagDelta;
+        }
+        return shopItemLabel(a).localeCompare(shopItemLabel(b));
+      });
+      saveDraft(draft);
+      render();
+      return;
+    }
+    if (action === "move") {
+      var from = +btn.getAttribute("data-shop-index");
+      var delta = +btn.getAttribute("data-shop-delta") || 0;
+      var visible = [];
+      draft.items.forEach(function (item, index) {
+        if (state.shopFilter === "all" || shopTag(item) === state.shopFilter) visible.push(index);
+      });
+      var place = visible.indexOf(from);
+      var target = visible[place + delta];
+      if (place === -1 || target == null) return;
+      var moved = draft.items[from];
+      draft.items[from] = draft.items[target];
+      draft.items[target] = moved;
+      saveDraft(draft);
+      render();
+      return;
+    }
     if (action === "add-custom") {
       var nameInput = $("shop-custom-name");
       var customName = nameInput ? nameInput.value.trim() : "";
@@ -1607,7 +2017,9 @@
         qty: 1,
         ticked: true,
         customName: customName,
-        pricePence: 0
+        pricePence: 0,
+        tag: "other",
+        citations: [customName]
       });
       saveDraft(draft);
       render();
@@ -1679,6 +2091,15 @@
             '<input data-week-date="' + escapeHtml(day.dateKey) + '" data-week-field="lunch" value="' +
               escapeHtml(note.lunch || "") + '" placeholder="' + escapeHtml(cue.lunch || "Lunch") + '">' +
           "</label>" +
+          '<label class="food-note">Citations<textarea data-week-date="' + escapeHtml(day.dateKey) +
+            '" data-week-field="citations" rows="2" placeholder="FOOD_LIVE">' +
+            escapeHtml(Array.isArray(note.citations) ? note.citations.join("\n") : (note.citations || "")) +
+            "</textarea></label>" +
+          '<ul class="week-citations">' +
+            (normalizeCitations(note.citations).length ? normalizeCitations(note.citations) : ["FOOD_LIVE"]).map(function (line) {
+              return "<li>" + escapeHtml(line) + "</li>";
+            }).join("") +
+          "</ul>" +
           (lockedPlan
             ? '<label class="food-note">Day note<input data-week-date="' + escapeHtml(day.dateKey) +
               '" data-week-field="note" value="' + escapeHtml(note.note || "") + '"></label>' +
@@ -1778,19 +2199,43 @@
       api.sundayPrep.forEach(function (line) { html += "<li>" + escapeHtml(line) + "</li>"; });
       html += "</ol>";
     }
+    html += '<div class="shop-sort">' +
+      '<button type="button" data-shop-action="sort-name">Sort by name</button>' +
+      '<button type="button" data-shop-action="sort-tag">Sort by category</button>' +
+      '<button type="button" data-shop-action="build-cards">Build cards from basket</button>' +
+      "</div>";
+    html += '<div class="shop-filters" role="group" aria-label="Category">';
+    ["all"].concat(SHOP_TAG_ORDER).forEach(function (tag) {
+      html += '<button type="button" class="shop-chip' + (state.shopFilter === tag ? " is-on" : "") +
+        '" data-shop-action="filter" data-shop-tag="' + tag + '">' + tag + "</button>";
+    });
+    html += "</div>";
+    html += basketDraftsHtml();
     html += '<h3 class="food-subhead">This month’s list</h3><ul class="fuel-basket-list shop-editor">';
     (draft.items || []).forEach(function (item, index) {
       var entry = api.skus[item.skuId];
-      var label = item.label || item.customName || (entry ? entry.name : "");
+      var label = shopItemLabel(item);
       if (!label) return;
+      var tag = shopTag(item);
+      if (state.shopFilter !== "all" && tag !== state.shopFilter) return;
       var linePrice = entry ? entry.pricePence * item.qty : (item.pricePence || 0) * item.qty;
+      var cites = shopItemCitations(item).map(function (line) {
+        return "<li>" + escapeHtml(line) + "</li>";
+      }).join("");
       html += '<li class="shop-line' + (item.ticked ? " is-ticked" : "") + '">' +
         '<button type="button" class="shop-tick" data-shop-action="tick" data-shop-index="' + index +
           '" aria-pressed="' + (item.ticked ? "true" : "false") + '">' + (item.ticked ? "In" : "Out") + "</button>" +
         '<input class="shop-name" data-shop-index="' + index + '" data-shop-field="name" value="' +
           escapeHtml(label) + '" aria-label="Rename line">' +
-        (item.scanImage ? '<span class="scan-flag">Label photo</span>' : "") +
-        "<span class=\"sr-only\">" + escapeHtml(label) + "</span>" +
+        tagSelectHtml(tag, 'data-shop-index="' + index + '" data-shop-field="tag" aria-label="Category"') +
+        '<button type="button" data-shop-action="move" data-shop-index="' + index + '" data-shop-delta="-1" aria-label="Move up">Up</button>' +
+        '<button type="button" data-shop-action="move" data-shop-index="' + index + '" data-shop-delta="1" aria-label="Move down">Down</button>' +
+        (item.scanImage ? '<img class="scan-photo" alt="Label photo" src="' + escapeHtml(item.scanImage) + '">' : "") +
+        '<label class="scan-file">attach label photo; fill fields<input type="file" accept="image/*" capture="environment" data-shop-photo="' +
+          index + '" aria-label="attach label photo; fill fields"></label>' +
+        '<ul class="line-citations">' + cites + "</ul>" +
+        '<label class="shop-cites">Citations<textarea data-shop-index="' + index + '" data-shop-field="citations" rows="2">' +
+          escapeHtml(citationsToText(shopItemCitations(item))) + "</textarea></label>" +
         '<span class="shop-qty">' +
           '<button type="button" data-shop-action="qty" data-shop-index="' + index + '" data-shop-delta="-1" aria-label="Fewer">−</button>' +
           "<strong>" + item.qty + "</strong>" +
@@ -3111,20 +3556,32 @@
         var weekField = event.target.closest("[data-week-field]");
         if (weekField) {
           var patch = {};
-          patch[weekField.getAttribute("data-week-field")] = weekField.value.trim();
+          var weekName = weekField.getAttribute("data-week-field");
+          patch[weekName] = weekName === "citations" ? linesOf(weekField.value) : weekField.value.trim();
           saveWeekNote(weekField.getAttribute("data-week-date"), patch);
           render();
           return;
         }
-        var shopName = event.target.closest("[data-shop-field='name']");
-        if (!shopName) return;
+        var shopPhoto = event.target.closest("[data-shop-photo]");
+        if (shopPhoto) {
+          readShopPhoto(shopPhoto);
+          return;
+        }
+        var shopField = event.target.closest("[data-shop-field]");
+        if (!shopField) return;
         var draft = draftFor(state.viewYear, state.viewMonth, true);
-        if (draft.locked) return;
-        var item = draft.items[+shopName.getAttribute("data-shop-index")];
+        var item = draft.items[+shopField.getAttribute("data-shop-index")];
         if (!item) return;
-        if (item.customName) item.customName = shopName.value.trim() || item.customName;
-        else item.label = shopName.value.trim();
+        var fieldName = shopField.getAttribute("data-shop-field");
+        if (fieldName === "name") {
+          if (item.customName) item.customName = shopField.value.trim() || item.customName;
+          else item.label = shopField.value.trim();
+        }
+        if (fieldName === "tag") item.tag = normalizeTag(shopField.value) || "other";
+        if (fieldName === "citations") item.citations = linesOf(shopField.value);
+        if (!normalizeCitations(item.citations).length) item.citations = shopItemCitations(item);
         saveDraft(draft);
+        if (fieldName !== "name") render();
       });
     }
     var forensicTab = $("forensic-tab");

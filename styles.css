@@ -2225,6 +2225,108 @@ table.fuel-table col.col-relics { width: 78%; }
   font-weight: 800;
 }
 
+.recipe-citations,
+.recipe-citations li,
+.line-citations,
+.line-citations li,
+.week-citations,
+.week-citations li,
+.basket-drafts,
+.basket-drafts h3,
+.basket-drafts h4,
+.basket-drafts p,
+.basket-drafts li {
+  color: #1f1812;
+}
+
+.recipe-citations,
+.line-citations,
+.week-citations,
+.basket-drafts {
+  background: #fcf5e8;
+}
+
+.recipe-citations,
+.line-citations,
+.week-citations {
+  margin: 8px 0 0;
+  padding: 8px 8px 8px 1.4rem;
+  border: 1px solid #c9a227;
+}
+
+.shop-line.is-ticked .line-citations,
+.shop-line.is-ticked .line-citations li,
+.shop-line.is-ticked .shop-cites {
+  color: #1f1812;
+}
+
+.shop-sort,
+.shop-filters,
+.basket-drafts,
+.shop-cites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px;
+}
+
+.shop-sort button,
+.shop-chip,
+.shop-line select,
+.shop-line textarea,
+.shop-cites textarea,
+.basket-drafts button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 10px;
+  border: 1px solid #c9a227;
+  border-radius: 8px;
+  background: #1f1812;
+  color: #fcf5e8;
+  font: inherit;
+  font-weight: 800;
+}
+
+.shop-chip.is-on {
+  background: #c9a227;
+  color: #1f1812;
+}
+
+.shop-line select,
+.shop-line textarea,
+.shop-cites textarea {
+  background: #fff;
+  color: #1f1812;
+  font-weight: 700;
+}
+
+.shop-cites {
+  flex-direction: column;
+  flex: 1 1 100%;
+  color: #1f1812;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.basket-drafts {
+  padding: 12px;
+  border: 8px solid #1f1812;
+}
+
+.basket-card {
+  flex: 1 1 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.shop-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
 @media (max-width: 412px) {
   .recipe-facts {
     grid-template-columns: 1fr;
