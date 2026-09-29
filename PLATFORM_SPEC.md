@@ -173,8 +173,8 @@ Table: `relic_completions`
 
 Each Mon–Sat row has two trainer citations. Display tier is the number of finished videos (0, 1, or 2).
 
-- Timer `00:00` on the first citation sets bit `1` (single orange shield), closes the player, and returns to the timetable.
-- Timer `00:00` on the second citation sets bit `2`. Both bits are the double orange shield and `completed=true`. That finish also closes the player and returns to the timetable.
+- Timer `00:00` on the first citation sets bit `1` (gold single shield), closes the player, and returns to the timetable.
+- Timer `00:00` on the second citation sets bit `2`. Both bits are the green dual shield. That finish also closes the player and returns to the timetable.
 - The DONE control cycles in the same order: empty box → single shield (bit `1`) → double shield (bits `1` and `2`, `completed=true`) → clear (`tier` 0, `completed=false`). A single shield that is only the second video still advances to dual, then the next tap clears. `aria-checked` is `false`, `mixed`, or `true`.
 
 ### Mode-isolated completions
