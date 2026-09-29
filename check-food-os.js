@@ -53,6 +53,14 @@ if (app.indexOf("Export JSON") === -1 || app.indexOf("relic_food_cards_v20") ===
   console.error("FAIL food editor");
   process.exit(1);
 }
+if (app.indexOf("Scan / Import") === -1 || app.indexOf("attach label photo; fill fields") === -1 || app.indexOf('data-scan-action="parse"') === -1) {
+  console.error("FAIL scan strip");
+  process.exit(1);
+}
+if (css.indexOf(".scan-preview") === -1 || css.indexOf(".scan-preview h3,\n.scan-preview label") === -1) {
+  console.error("FAIL scan preview ink");
+  process.exit(1);
+}
 const meals = ctx.window.RELIC_FOOD_MEALS;
 const extract = ctx.window.RELIC_FOOD_EXTRACTIONS;
 ["berry-banana-brazil", "cherry-banana-cream", "mango-banana-nut", "berry-oat-almond", "orange-berry-yogurt"].forEach(function (id) {

@@ -2100,6 +2100,131 @@ table.fuel-table col.col-relics { width: 78%; }
   color: #1f1812;
 }
 
+.scan-strip,
+.scan-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px;
+}
+
+.scan-strip h3 {
+  flex: 1 1 100%;
+  margin: 0;
+  color: #f6eefe;
+  font-size: 0.95rem;
+}
+
+.scan-label,
+.scan-file {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 100%;
+  color: #f6eefe;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.scan-strip button,
+.scan-strip textarea,
+.scan-strip input,
+.scan-file input,
+.scan-preview button,
+.scan-preview input,
+.scan-preview textarea {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 10px;
+  border: 1px solid #c9a227;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 700;
+}
+
+.scan-strip button,
+.scan-preview button {
+  background: #1f1812;
+  color: #fcf5e8;
+  font-weight: 800;
+}
+
+.scan-strip textarea,
+.scan-file input {
+  width: 100%;
+  background: #fcf5e8;
+  color: #1f1812;
+}
+
+.scan-preview {
+  padding: 12px;
+  background: #fcf5e8;
+  color: #1f1812;
+  border: 8px solid #1f1812;
+}
+
+.scan-preview h3,
+.scan-preview label,
+.scan-preview p,
+.scan-preview .scan-note,
+.scan-json {
+  color: #1f1812;
+}
+
+.scan-preview h3 {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+.scan-preview label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 100%;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.scan-preview input,
+.scan-preview textarea,
+.scan-json {
+  width: 100%;
+  background: #fff;
+  color: #1f1812;
+  border: 1px solid #c9a227;
+}
+
+.scan-json {
+  flex: 1 1 100%;
+  margin: 0;
+  padding: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 180px;
+  overflow: auto;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.scan-photo {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid #1f1812;
+}
+
+.scan-flag {
+  color: #1f1812;
+  background: #fcf5e8;
+  border: 1px solid #c9a227;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
 @media (max-width: 412px) {
   .recipe-facts {
     grid-template-columns: 1fr;

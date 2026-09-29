@@ -360,6 +360,12 @@ Meal cards stay warm parchment with a gold rule. Smoothie cards use a mint groun
 
 Each Food room has Export JSON, Import JSON, and Reset this room. Meal and smoothie cards can be added, edited, duplicated, or deleted. Custom cards and edits live in `relic_food_cards_v20`. Weekly lunch notes, unlocked evening picks, and locked day notes live in `relic_food_week_v20`. The shop can rename a line and add a custom line. None of these keys is `relic_completions`. Defaults in `data/nutrition/*` stay the base. An overlay wins until that room is reset.
 
+Meal cards, smoothie cards, and the monthly shop also have a Scan / Import strip. Paste a freeform note and press Parse to preview a card or shop lines. Import JSON, from the paste box or a JSON file, validates and previews before it writes. Save stores the preview in the same overlay. Cancel discards it. A label photo uses the device camera or a file, is kept as `scanImage` on the draft, and the control reads “attach label photo; fill fields”. The preview fields use dark ink on a cream ground. No API key and no server route is involved.
+
+### Next
+
+Vercel AI Gateway routes for `openai/*` and `google/gemini-*` can generate a card from a prompt or read a label photo. Canva export URLs can become card hero art. Those stay out of v20.
+
 ---
 
 *Relic Architect V2.0 · NiX coach archive · Europe/London*

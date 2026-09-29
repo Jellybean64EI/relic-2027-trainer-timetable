@@ -66,7 +66,8 @@
     foodRoom: "",
     foodFocusId: "",
     foodFocusBand: "moderate",
-    foodEditing: false
+    foodEditing: false,
+    scanPreview: null
   };
 
   var player = {
@@ -683,6 +684,7 @@
       '<article class="recipe-card" data-kind="' + escapeHtml(card.kind) + '">' +
         '<p class="recipe-kicker">' + (card.kind === "extraction" ? "SMOOTHIE / EXTRACTION" : "MEAL RECIPE") + "</p>" +
         "<h3>" + escapeHtml(card.name) + "</h3>" +
+        (card.scanImage ? '<img class="scan-photo" alt="Label photo" src="' + escapeHtml(card.scanImage) + '">' : "") +
         '<p class="recipe-tagline">' + escapeHtml(card.tagline) + "</p>" +
         '<p class="recipe-script">' + escapeHtml(card.script) + "</p>" +
         '<ul class="recipe-facts">' +
@@ -806,6 +808,7 @@
     });
     if (overlay.ingredients && overlay.ingredients.length) next.ingredients = overlay.ingredients;
     if (overlay.method && overlay.method.length) next.method = overlay.method;
+    if (overlay.scanImage) next.scanImage = overlay.scanImage;
     return next;
   }
 
@@ -826,7 +829,8 @@
       ingredients: raw.ingredients && raw.ingredients.length ? raw.ingredients : [{ text: "Add an ingredient" }],
       method: raw.method && raw.method.length ? raw.method : [{ verb: "Cook", detail: "until done" }],
       timetable: raw.timetable || { bestFor: "Your plan", bestEaten: "Fresh", reheat: "Heat until hot" },
-      tip: raw.tip || ""
+      tip: raw.tip || "",
+      scanImage: raw.scanImage || ""
     };
   }
 
@@ -906,37 +910,16 @@
 
   function importFoodJson(room) {
     var box = $("food-json-" + room);
-    var text = box ? box.value : "";
-    var data;
-    try { data = JSON.parse(text); } catch (err) {
-      if (box) box.value = "That paste is not JSON yet.\n\n" + text;
+    var text = box ? box.value.trim() : "";
+    if (!text) {
+      state.scanPreview = { room: room, error: "Paste JSON first." };
+      render();
       return;
     }
-    if (data.room && data.room !== room) return;
-    if (room === "weekly") {
-      writeJsonStore(FOOD_WEEK_KEY, data.notes || {});
-    } else if (room === "shop") {
-      var draft = draftFor(state.viewYear, state.viewMonth, true);
-      if (draft.locked) {
-        if (box) box.value = "Unlock this month’s shop before importing a list.\n\n" + text;
-        return;
-      }
-      if (data.draft && data.draft.items) {
-        draft.items = data.draft.items;
-        saveDraft(draft);
-      }
-    } else {
-      var store = readCardStore();
-      var cards = data.cards || {};
-      if (data.id && data.name) cards[data.id] = data;
-      if (room === "extractions") {
-        store.extractions = cards;
-        if (data.hidden) store.hiddenExtractions = data.hidden;
-      } else {
-        store.meals = cards;
-        if (data.hidden) store.hiddenMeals = data.hidden;
-      }
-      writeJsonStore(FOOD_CARDS_KEY, store);
+    try {
+      state.scanPreview = previewFromJson(JSON.parse(text), room);
+    } catch (err) {
+      state.scanPreview = { room: room, error: "That paste is not JSON yet." };
     }
     render();
   }
@@ -960,7 +943,466 @@
       writeJsonStore(FOOD_CARDS_KEY, cards);
     }
     state.foodEditing = false;
+    state.scanPreview = null;
     render();
+  }
+
+  function scanStripHtml(room) {
+    var pasteLabel = room === "shop" ? "Paste shop notes" : (room === "extractions" ? "Paste smoothie notes" : "Paste meal notes");
+    return '<section class="scan-strip" aria-label="Scan / Import">' +
+      "<h3>Scan / Import</h3>" +
+      '<label class="scan-label">' + pasteLabel +
+      '<textarea id="scan-paste-' + room + '" class="scan-paste" rows="4"></textarea></label>' +
+      '<button type="button" data-scan-action="parse">Parse</button>' +
+      '<label class="scan-file">JSON file<input type="file" accept="application/json,.json" data-scan-file="json" aria-label="Import JSON file"></label>' +
+      '<label class="scan-file">attach label photo; fill fields<input type="file" accept="image/*" capture="environment" data-scan-file="photo" aria-label="attach label photo; fill fields"></label>' +
+      "</section>";
+  }
+
+  function photoMarker(url) {
+    if (!url) return "";
+    if (url.length < 96) return url;
+    return url.slice(0, 48) + "…[label photo attached]";
+  }
+
+  function normalizeIngredients(list) {
+    if (!Array.isArray(list)) return [];
+    return list.map(function (item) {
+      if (typeof item === "string") return { text: item };
+      return { text: (item && item.text) || "" };
+    }).filter(function (item) { return item.text; });
+  }
+
+  function normalizeMethod(list) {
+    if (!Array.isArray(list)) return [];
+    return list.map(function (step) {
+      if (typeof step === "string") return methodFromLines(step)[0] || { verb: "Do", detail: step };
+      return { verb: (step && step.verb) || "Do", detail: (step && step.detail) || "" };
+    }).filter(function (step) { return step.verb || step.detail; });
+  }
+
+  function cardFromRecord(data, kind) {
+    var ingredients = normalizeIngredients(data.ingredients);
+    var method = normalizeMethod(data.method);
+    return {
+      id: data.id || newCardId(),
+      custom: true,
+      kind: kind,
+      name: data.name || "",
+      tagline: data.tagline || "",
+      ingredients: ingredients.length ? ingredients : [{ text: "" }],
+      method: method.length ? method : [{ verb: "", detail: "" }],
+      tip: data.tip || "",
+      scanImage: typeof data.scanImage === "string" ? data.scanImage : ""
+    };
+  }
+
+  function shopLinesFromText(text) {
+    var chunks = String(text || "").split(/\n|;/).map(function (line) {
+      return line.replace(/^[-*•]\s+/, "").replace(/^\d+[\.\)]\s+/, "").trim();
+    }).filter(Boolean);
+    if (chunks.length === 1 && chunks[0].indexOf(",") !== -1) {
+      chunks = chunks[0].split(",").map(function (part) { return part.trim(); }).filter(Boolean);
+    }
+    return chunks.map(function (name) {
+      return { customName: name, qty: 1, ticked: true, pricePence: 0 };
+    });
+  }
+
+  function sectionName(line) {
+    var head = String(line || "").toLowerCase().replace(/:$/, "").trim();
+    if (head === "ingredients" || head.indexOf("ingredient") === 0) return "ingredients";
+    if (head === "method" || head === "steps" || head === "instructions" || head === "directions") return "method";
+    if (head === "tip" || head === "tips" || head === "note" || head === "notes") return "tip";
+    return "";
+  }
+
+  function parseFreeform(text, room) {
+    var raw = String(text || "").trim();
+    if (!raw) return { room: room, error: "Paste a note first." };
+    if (raw.charAt(0) === "{" || raw.charAt(0) === "[") {
+      try { return previewFromJson(JSON.parse(raw), room); } catch (err) { /* keep reading it as notes */ }
+    }
+    if (room === "shop") {
+      var draft = draftFor(state.viewYear, state.viewMonth, true);
+      if (draft && draft.locked) return { room: room, error: "Unlock this month’s shop before importing a list." };
+      var lines = shopLinesFromText(raw);
+      if (!lines.length) return { room: room, error: "No shop lines in that paste." };
+      return { room: room, mode: "shop", lines: lines };
+    }
+    if (room !== "meals" && room !== "extractions") {
+      return { room: room, error: "Open Meal cards, Smoothie cards, or the shop to scan a note." };
+    }
+    var name = "";
+    var tagline = "";
+    var tip = "";
+    var ingredients = [];
+    var method = [];
+    var section = "";
+    raw.split("\n").forEach(function (line) {
+      var trimmed = line.trim();
+      if (!trimmed) return;
+      var bare = trimmed.replace(/^[-*•]\s+/, "").replace(/^\*\*/, "").replace(/\*\*$/, "").replace(/^#+\s*/, "").trim();
+      var headed = sectionName(bare);
+      if (headed) { section = headed; return; }
+      if (/^tip\s*:/i.test(bare)) {
+        tip = bare.replace(/^tip\s*:/i, "").trim();
+        section = "tip";
+        return;
+      }
+      if (!name) { name = bare; return; }
+      if (section === "tip") { tip = tip ? tip + " " + bare : bare; return; }
+      if (section === "method" || /^\d+[\.\)]\s+/.test(trimmed)) {
+        method.push(bare.replace(/^\d+[\.\)]\s+/, ""));
+        return;
+      }
+      if (section === "ingredients" || /^[-*•]\s+/.test(trimmed)) {
+        ingredients.push(bare);
+        return;
+      }
+      if (!tagline && !section) { tagline = bare; return; }
+      ingredients.push(bare);
+    });
+    var kind = room === "extractions" ? "extraction" : "meal";
+    return {
+      room: room,
+      mode: "card",
+      card: cardFromRecord({
+        name: name || (kind === "extraction" ? "Scanned smoothie" : "Scanned meal"),
+        tagline: tagline,
+        ingredients: ingredients,
+        method: method,
+        tip: tip
+      }, kind)
+    };
+  }
+
+  function previewFromJson(data, room) {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      return { room: room, error: "That paste is not Relic JSON." };
+    }
+    if (data.room && data.room !== room) {
+      return { room: room, error: "That JSON belongs to the " + data.room + " room." };
+    }
+    if (room === "weekly") {
+      if (!data.notes || typeof data.notes !== "object" || Array.isArray(data.notes)) {
+        return { room: room, error: "Weekly JSON needs a notes object." };
+      }
+      return { room: room, mode: "notes", module: data };
+    }
+    if (room === "shop") {
+      var draft = draftFor(state.viewYear, state.viewMonth, true);
+      if (draft && draft.locked) return { room: room, error: "Unlock this month’s shop before importing a list." };
+      var items = data.draft && Array.isArray(data.draft.items) ? data.draft.items : (Array.isArray(data.items) ? data.items : null);
+      if (!items) return { room: room, error: "Shop JSON needs a list of lines." };
+      return { room: room, mode: "module", module: data };
+    }
+    if (data.cards && typeof data.cards === "object" && !Array.isArray(data.cards)) {
+      return { room: room, mode: "module", module: data };
+    }
+    if (data.name) {
+      return { room: room, mode: "card", card: cardFromRecord(data, room === "extractions" ? "extraction" : "meal") };
+    }
+    return { room: room, error: "That JSON has no card." };
+  }
+
+  function previewFromPhoto(dataUrl, room, note) {
+    if (room === "shop") {
+      var draft = draftFor(state.viewYear, state.viewMonth, true);
+      if (draft && draft.locked) return { room: room, error: "Unlock this month’s shop before importing a list." };
+      return {
+        room: room,
+        mode: "shop",
+        scanImage: dataUrl || "",
+        note: note || "attach label photo; fill fields",
+        lines: [{ customName: "", qty: 1, ticked: true, pricePence: 0 }]
+      };
+    }
+    if (room !== "meals" && room !== "extractions") {
+      return { room: room, error: "Open Meal cards or Smoothie cards to attach a label photo." };
+    }
+    var kind = room === "extractions" ? "extraction" : "meal";
+    return {
+      room: room,
+      mode: "photo",
+      note: note || "attach label photo; fill fields",
+      card: cardFromRecord({
+        name: "",
+        tagline: "attach label photo; fill fields",
+        ingredients: [],
+        method: [],
+        tip: "",
+        scanImage: dataUrl || ""
+      }, kind)
+    };
+  }
+
+  function scanExport(preview) {
+    if (!preview) return {};
+    if (preview.mode === "card" || preview.mode === "photo") {
+      var card = preview.card || {};
+      return {
+        id: card.id,
+        name: card.name,
+        tagline: card.tagline,
+        ingredients: card.ingredients,
+        method: card.method,
+        tip: card.tip,
+        scanImage: photoMarker(card.scanImage)
+      };
+    }
+    if (preview.mode === "shop") {
+      return { room: "shop", lines: preview.lines || [], scanImage: photoMarker(preview.scanImage) };
+    }
+    return preview.module || {};
+  }
+
+  function scanPreviewHtml(room) {
+    var preview = state.scanPreview;
+    if (!preview || preview.room !== room) return "";
+    if (preview.error) {
+      return '<section class="scan-preview" aria-label="Scan preview">' +
+        "<h3>Preview</h3><p>" + escapeHtml(preview.error) + "</p>" +
+        '<button type="button" data-scan-action="cancel">Cancel</button></section>';
+    }
+    var note = preview.note || "Edit the fields, then save. Cancel discards this draft.";
+    var json = escapeHtml(JSON.stringify(scanExport(preview), null, 2));
+    if (preview.mode === "card" || preview.mode === "photo") {
+      var card = preview.card;
+      return '<section class="scan-preview" aria-label="Scan preview">' +
+        "<h3>Preview</h3>" +
+        (card.scanImage ? '<img class="scan-photo" alt="Label photo" src="' + escapeHtml(card.scanImage) + '">' : "") +
+        '<p class="scan-note">' + escapeHtml(note) + "</p>" +
+        '<label>Name <input data-scan-field="name" value="' + escapeHtml(card.name) + '"></label>' +
+        '<label>Tagline <input data-scan-field="tagline" value="' + escapeHtml(card.tagline) + '"></label>' +
+        '<label>Ingredients, one line each <textarea data-scan-field="ingredients" rows="5">' +
+          escapeHtml(ingredientsToText(card.ingredients)) + "</textarea></label>" +
+        '<label>Method, one step each line <textarea data-scan-field="method" rows="5">' +
+          escapeHtml(methodToText(card.method)) + "</textarea></label>" +
+        '<label>Tip <textarea data-scan-field="tip" rows="3">' + escapeHtml(card.tip) + "</textarea></label>" +
+        '<pre class="scan-json">' + json + "</pre>" +
+        '<button type="button" data-scan-action="save">Save</button>' +
+        '<button type="button" data-scan-action="cancel">Cancel</button>' +
+        "</section>";
+    }
+    if (preview.mode === "shop") {
+      var fields = (preview.lines || []).map(function (line, index) {
+        return "<label>Line " + (index + 1) +
+          '<input data-scan-line="' + index + '" value="' + escapeHtml(line.customName || line.label || "") + '"></label>';
+      }).join("");
+      return '<section class="scan-preview" aria-label="Scan preview">' +
+        "<h3>Preview</h3>" +
+        (preview.scanImage ? '<img class="scan-photo" alt="Label photo" src="' + escapeHtml(preview.scanImage) + '">' : "") +
+        '<p class="scan-note">' + escapeHtml(note) + "</p>" +
+        fields +
+        '<pre class="scan-json">' + json + "</pre>" +
+        '<button type="button" data-scan-action="save">Save</button>' +
+        '<button type="button" data-scan-action="cancel">Cancel</button>' +
+        "</section>";
+    }
+    return '<section class="scan-preview" aria-label="Scan preview">' +
+      "<h3>Preview</h3>" +
+      '<p class="scan-note">' + escapeHtml(note) + "</p>" +
+      '<textarea data-scan-field="module" rows="10">' + json + "</textarea>" +
+      '<button type="button" data-scan-action="save">Save</button>' +
+      '<button type="button" data-scan-action="cancel">Cancel</button>' +
+      "</section>";
+  }
+
+  function readScanForm() {
+    var preview = state.scanPreview;
+    if (!preview || preview.error) return preview;
+    var root = document.querySelector("#food-" + preview.room + " .scan-preview");
+    if (!root) return preview;
+    if (preview.mode === "card" || preview.mode === "photo") {
+      function fieldValue(name) {
+        var el = root.querySelector('[data-scan-field="' + name + '"]');
+        return el ? el.value : "";
+      }
+      preview.card.name = fieldValue("name").trim();
+      preview.card.tagline = fieldValue("tagline").trim();
+      preview.card.ingredients = linesOf(fieldValue("ingredients")).map(function (text) { return { text: text }; });
+      preview.card.method = methodFromLines(fieldValue("method"));
+      preview.card.tip = fieldValue("tip").trim();
+      return preview;
+    }
+    if (preview.mode === "shop") {
+      root.querySelectorAll("[data-scan-line]").forEach(function (el) {
+        var index = +el.getAttribute("data-scan-line");
+        if (preview.lines[index]) preview.lines[index].customName = el.value.trim();
+      });
+      return preview;
+    }
+    var moduleBox = root.querySelector('[data-scan-field="module"]');
+    if (moduleBox) {
+      try {
+        preview.module = JSON.parse(moduleBox.value);
+        if (preview.note === "That preview is not JSON yet.") preview.note = "";
+      } catch (err) {
+        preview.module = null;
+        preview.note = "That preview is not JSON yet.";
+      }
+    }
+    return preview;
+  }
+
+  function applyFoodModule(room, data) {
+    if (!data || typeof data !== "object" || Array.isArray(data)) return "That paste is not Relic JSON.";
+    if (data.room && data.room !== room) return "That JSON belongs to the " + data.room + " room.";
+    if (room === "weekly") {
+      if (!data.notes || typeof data.notes !== "object" || Array.isArray(data.notes)) return "Weekly JSON needs a notes object.";
+      writeJsonStore(FOOD_WEEK_KEY, data.notes);
+      return "";
+    }
+    if (room === "shop") {
+      var draft = draftFor(state.viewYear, state.viewMonth, true);
+      if (draft.locked) return "Unlock this month’s shop before importing a list.";
+      var items = data.draft && Array.isArray(data.draft.items) ? data.draft.items : (Array.isArray(data.items) ? data.items : null);
+      if (!items) return "Shop JSON needs a list of lines.";
+      draft.items = items;
+      saveDraft(draft);
+      return "";
+    }
+    var store = readCardStore();
+    var cards = data.cards && typeof data.cards === "object" && !Array.isArray(data.cards) ? data.cards : null;
+    if (!cards && data.name) {
+      cards = {};
+      cards[data.id || newCardId()] = data;
+    }
+    if (!cards) return "That JSON has no card.";
+    if (room === "extractions") {
+      store.extractions = cards;
+      if (Array.isArray(data.hidden)) store.hiddenExtractions = data.hidden;
+    } else {
+      store.meals = cards;
+      if (Array.isArray(data.hidden)) store.hiddenMeals = data.hidden;
+    }
+    writeJsonStore(FOOD_CARDS_KEY, store);
+    return "";
+  }
+
+  function commitScan() {
+    var preview = readScanForm();
+    if (!preview || preview.error) {
+      state.scanPreview = preview;
+      render();
+      return;
+    }
+    if (preview.mode === "card" || preview.mode === "photo") {
+      var card = preview.card;
+      var kind = preview.room === "extractions" ? "extraction" : "meal";
+      if (!card.name) card.name = card.scanImage ? "Label photo" : (kind === "extraction" ? "Scanned smoothie" : "Scanned meal");
+      if (!card.ingredients.length) card.ingredients = [{ text: "Add an ingredient" }];
+      if (!card.method.length) {
+        card.method = card.scanImage
+          ? [{ verb: "Fill", detail: "the fields from the label" }]
+          : [{ verb: "Cook", detail: "until done" }];
+      }
+      saveCardRecord(kind, card.id, {
+        id: card.id,
+        custom: true,
+        name: card.name,
+        tagline: card.tagline,
+        ingredients: card.ingredients,
+        method: card.method,
+        tip: card.tip,
+        scanImage: card.scanImage || ""
+      });
+      state.foodFocusId = card.id;
+      state.foodEditing = false;
+    } else if (preview.mode === "shop") {
+      var draft = draftFor(state.viewYear, state.viewMonth, true);
+      if (draft.locked) {
+        preview.error = "Unlock this month’s shop before importing a list.";
+        state.scanPreview = preview;
+        render();
+        return;
+      }
+      var added = 0;
+      (preview.lines || []).forEach(function (line) {
+        if (!line.customName) return;
+        added += 1;
+        draft.items.push({
+          skuId: "custom-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+          qty: line.qty || 1,
+          ticked: line.ticked !== false,
+          customName: line.customName,
+          pricePence: line.pricePence || 0,
+          scanImage: preview.scanImage || ""
+        });
+      });
+      if (!added) {
+        preview.note = "Name a shop line before saving.";
+        state.scanPreview = preview;
+        render();
+        return;
+      }
+      saveDraft(draft);
+    } else {
+      if (!preview.module) {
+        preview.note = preview.note || "That preview is not JSON yet.";
+        state.scanPreview = preview;
+        render();
+        return;
+      }
+      var problem = applyFoodModule(preview.room, preview.module);
+      if (problem) {
+        preview.error = problem;
+        state.scanPreview = preview;
+        render();
+        return;
+      }
+    }
+    state.scanPreview = null;
+    render();
+  }
+
+  function onScanAction(btn) {
+    var action = btn.getAttribute("data-scan-action");
+    var room = state.foodRoom;
+    if (action === "cancel") {
+      state.scanPreview = null;
+      render();
+      return;
+    }
+    if (action === "parse") {
+      var box = $("scan-paste-" + room);
+      state.scanPreview = parseFreeform(box ? box.value : "", room);
+      render();
+      return;
+    }
+    if (action === "save") commitScan();
+  }
+
+  function readScanFile(input) {
+    var file = input.files && input.files[0];
+    var kind = input.getAttribute("data-scan-file");
+    var room = state.foodRoom;
+    if (!file) return;
+    if (kind === "photo") {
+      if (file.size > 900000) {
+        state.scanPreview = previewFromPhoto("", room, "That photo is too large to keep on this device. Fill the fields instead.");
+        render();
+        return;
+      }
+      var reader = new FileReader();
+      reader.onload = function () {
+        state.scanPreview = previewFromPhoto(String(reader.result || ""), room);
+        render();
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+    var textReader = new FileReader();
+    textReader.onload = function () {
+      try {
+        state.scanPreview = previewFromJson(JSON.parse(String(textReader.result || "")), room);
+      } catch (err) {
+        state.scanPreview = { room: room, error: "That file is not JSON." };
+      }
+      render();
+    };
+    textReader.readAsText(file);
   }
 
   function editorHtml(card) {
@@ -1040,6 +1482,7 @@
       };
       if (!existing.custom && !record.name) record.name = existing.name || "";
       if (existing.custom) record.custom = true;
+      if (existing.scanImage) record.scanImage = existing.scanImage;
       saveCardRecord(kind, id, record);
       state.foodEditing = false;
       render();
@@ -1058,7 +1501,8 @@
         ingredients: source.ingredients,
         method: source.method,
         tip: source.tip,
-        timetable: source.timetable
+        timetable: source.timetable,
+        scanImage: source.scanImage || ""
       });
       state.foodFocusId = copyId;
       state.foodEditing = true;
@@ -1259,6 +1703,12 @@
     if (weekHost && !weekHost.querySelector(".food-tools")) {
       weekHost.insertAdjacentHTML("afterbegin", foodToolsHtml("weekly"));
     }
+    if (weekHost && !weekHost.querySelector(".scan-preview-host")) {
+      var weekTools = weekHost.querySelector(".food-tools");
+      if (weekTools) weekTools.insertAdjacentHTML("afterend", '<div class="scan-preview-host"></div>');
+    }
+    var weekPreview = weekHost && weekHost.querySelector(".scan-preview-host");
+    if (weekPreview) weekPreview.innerHTML = scanPreviewHtml("weekly");
     var sunday = $("fuel-sunday");
     if (sunday) {
       sunday.textContent = lockedPlan
@@ -1337,6 +1787,7 @@
           '" aria-pressed="' + (item.ticked ? "true" : "false") + '">' + (item.ticked ? "In" : "Out") + "</button>" +
         '<input class="shop-name" data-shop-index="' + index + '" data-shop-field="name" value="' +
           escapeHtml(label) + '" aria-label="Rename line">' +
+        (item.scanImage ? '<span class="scan-flag">Label photo</span>' : "") +
         "<span class=\"sr-only\">" + escapeHtml(label) + "</span>" +
         '<span class="shop-qty">' +
           '<button type="button" data-shop-action="qty" data-shop-index="' + index + '" data-shop-delta="-1" aria-label="Fewer">−</button>' +
@@ -1362,7 +1813,7 @@
     html += draft.locked
       ? '<button type="button" class="shop-lock" data-shop-action="unlock">Unlock this month’s shop</button>'
       : '<button type="button" class="shop-lock" data-shop-action="lock">Lock this month’s shop</button>';
-    host.innerHTML = foodToolsHtml("shop") + html;
+    host.innerHTML = foodToolsHtml("shop") + scanStripHtml("shop") + scanPreviewHtml("shop") + html;
   }
 
   function paintMeals() {
@@ -1373,12 +1824,12 @@
     var tier = shop.tierFor(state.viewYear, state.viewMonth);
     if (state.foodFocusId) {
       var card = cardView("meal", state.foodFocusId, tier.id);
-      host.innerHTML = foodToolsHtml("meals") +
+      host.innerHTML = foodToolsHtml("meals") + scanStripHtml("meals") + scanPreviewHtml("meals") +
         '<button type="button" class="food-back" data-food-index="meals">All meal cards</button>' +
         (card ? cardActionsHtml(card.id) + (state.foodEditing ? editorHtml(card) : magazineCardHtml(card)) : "");
       return;
     }
-    host.innerHTML = foodToolsHtml("meals") +
+    host.innerHTML = foodToolsHtml("meals") + scanStripHtml("meals") + scanPreviewHtml("meals") +
       '<button type="button" class="food-jump" data-card-action="add">Add a meal card<span>Name, ingredients, method, tip</span></button>' +
       idsForKind("meal").map(function (id) {
         var meal = cardView("meal", id, tier.id);
@@ -1396,12 +1847,12 @@
     var tier = shop.tierFor(state.viewYear, state.viewMonth);
     if (state.foodFocusId) {
       var card = cardView("extraction", state.foodFocusId, tier.id);
-      host.innerHTML = foodToolsHtml("extractions") +
+      host.innerHTML = foodToolsHtml("extractions") + scanStripHtml("extractions") + scanPreviewHtml("extractions") +
         '<button type="button" class="food-back" data-food-index="extractions">All extraction cards</button>' +
         (card ? cardActionsHtml(card.id) + (state.foodEditing ? editorHtml(card) : magazineCardHtml(card)) : "");
       return;
     }
-    host.innerHTML = foodToolsHtml("extractions") +
+    host.innerHTML = foodToolsHtml("extractions") + scanStripHtml("extractions") + scanPreviewHtml("extractions") +
       '<p class="fuel-sunday">Morning lock. Liquid, frozen fruit, citrus, hemp, 3000W blend, cheesecloth strain, then botanicals. Not dinner.</p>' +
       '<button type="button" class="food-jump" data-card-action="add">Add a smoothie card<span>Name, ingredients, method, tip</span></button>' +
       idsForKind("extraction").map(function (id) {
@@ -1414,6 +1865,7 @@
 
   function openFoodRoom(room, focusId, band) {
     if (!FOOD_TITLES[room]) return;
+    if (state.foodRoom !== room) state.scanPreview = null;
     state.foodRoom = room;
     state.foodFocusId = focusId || "";
     state.foodFocusBand = band || "moderate";
@@ -1431,6 +1883,7 @@
     state.foodRoom = "";
     state.foodFocusId = "";
     state.foodEditing = false;
+    state.scanPreview = null;
     render();
   }
 
@@ -2601,6 +3054,11 @@
           closeFoodRoom();
           return;
         }
+        var scanAct = event.target.closest("[data-scan-action]");
+        if (scanAct) {
+          onScanAction(scanAct);
+          return;
+        }
         var tool = event.target.closest("[data-food-tool]");
         if (tool) {
           var room = state.foodRoom;
@@ -2635,7 +3093,19 @@
         var shopAct = event.target.closest("[data-shop-action]");
         if (shopAct) onShopAction(shopAct);
       });
+      foodBoard.addEventListener("input", function (event) {
+        if (!event.target.closest(".scan-preview")) return;
+        var preview = readScanForm();
+        if (!preview || preview.error) return;
+        var pre = event.target.closest(".scan-preview").querySelector(".scan-json");
+        if (pre) pre.textContent = JSON.stringify(scanExport(preview), null, 2);
+      });
       foodBoard.addEventListener("change", function (event) {
+        var scanFile = event.target.closest("[data-scan-file]");
+        if (scanFile) {
+          readScanFile(scanFile);
+          return;
+        }
         var weekField = event.target.closest("[data-week-field]");
         if (weekField) {
           var patch = {};
