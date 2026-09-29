@@ -356,6 +356,8 @@ Monthly Foods edits a Sainsbury’s list in `localStorage` key `relic_food_shop_
 
 ### v20 ink, glow, and food authorship
 
+The canonical Food OS contract is [`docs/FOOD_OS_HANDSHAKE.md`](docs/FOOD_OS_HANDSHAKE.md) (NiX ↔ ChatGPT, 2026-09-29). Follow that file. Do not reinterpret it, and do not add a ZIP importer, an AI Gateway route, OCR, or a new Food schema.
+
 Meal cards stay warm parchment with a gold rule. Smoothie cards use a mint ground and a teal rule. Ingredient lines, method steps, tips, and facts on those cards use dark ink (`#1f1812` / `#2c2118`). Cream cards do not use `--text`.
 
 Each Food room has Export JSON, Import JSON, and Reset this room. Meal and smoothie cards can be added, edited, duplicated, or deleted. Custom cards and edits live in `relic_food_cards_v20`. Weekly lunch notes, unlocked evening picks, and locked day notes live in `relic_food_week_v20`. The shop can rename a line and add a custom line. None of these keys is `relic_completions`. Defaults in `data/nutrition/*` stay the base. An overlay wins until that room is reset.
@@ -374,7 +376,7 @@ A training day is morning `extractionId`, a lunch string, and an evening `mealId
 
 ### Next
 
-ZIP plus a manifest is future. Vercel AI Gateway routes for `openai/*` and `google/gemini-*` can generate a card from a prompt or read a label photo. Canva export URLs can become card hero art. Those stay out of v20.
+ZIP plus a manifest is future. Shop sort tags `protein`, `veg`, `fruit`, `dairy`, `freezer`, `botanical`, and `other` stay a future contract item beyond the v20 filter chips. Vercel AI Gateway routes for `openai/*` and `google/gemini-*`, OCR, and Canva export URLs as card hero art stay out of scope. v20 does not add an API key or a server route.
 
 ---
 
