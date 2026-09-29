@@ -6613,7 +6613,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v24.2",
+    build: "v24.3",
     get nutrition() {
       return {
         shop: foodShop(),
