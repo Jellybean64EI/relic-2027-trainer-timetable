@@ -6,9 +6,9 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v22" />
+  <meta name="relic-build" content="v22.1" />
   <title>NiX Training Schedules</title>
-  <link rel="stylesheet" href="styles.css?v=v22" />
+  <link rel="stylesheet" href="styles.css?v=v22.1" />
 </head>
 <body>
   <div class="wrap">
@@ -197,6 +197,23 @@
         <div class="food-room" id="food-weekly" hidden></div>
       </section>
 
+      <section class="food-board smoothie-board" id="smoothie-board" hidden aria-labelledby="smoothie-board-title">
+        <button type="button" class="food-back" id="btn-smoothie-close">Training timetable</button>
+        <nav class="food-rooms" aria-label="Smoothies">
+          <button type="button" data-smoothie-room="meals">Smoothie Recipe Cards</button>
+          <button type="button" data-smoothie-room="cabinet">Main Smoothie Cabinet</button>
+          <button type="button" data-smoothie-room="hg">Smoothie Schedule HG</button>
+          <button type="button" data-smoothie-room="final">Final Smoothie Prep Scheduled Timetables</button>
+          <button type="button" data-smoothie-room="savelater">Smoothie Save later</button>
+        </nav>
+        <h2 id="smoothie-board-title" class="food-title" tabindex="-1">Smoothie Recipe Cards</h2>
+        <div class="food-room" id="smoothie-meals" hidden></div>
+        <div class="food-room" id="smoothie-cabinet" hidden></div>
+        <div class="food-room" id="smoothie-hg" hidden></div>
+        <div class="food-room" id="smoothie-final" hidden></div>
+        <div class="food-room" id="smoothie-savelater" hidden></div>
+      </section>
+
       <div class="schedule-switch">
         <button type="button" class="mode-btn" id="btn-schedule-mode" data-mode="full" aria-label="Show Upper Body Trainer Schedules">Upper Body Trainer Schedules</button>
       </div>
@@ -267,9 +284,30 @@
             <span class="nav-row-label">Monthly Shop</span>
             <span class="nav-row-tag">SHOP</span>
           </button>
-          <button type="button" class="nav-row" data-food-room="extractions" aria-pressed="false" aria-controls="food-extractions">
-            <span class="nav-row-label">Smoothie / Extraction Cards</span>
+        </div>
+      </section>
+      <section class="nav-section" aria-labelledby="nav-smoothie-label">
+        <h3 id="nav-smoothie-label" class="nav-kicker">Smoothies</h3>
+        <div class="nav-rows" role="group" aria-label="Smoothies">
+          <button type="button" class="nav-row" data-smoothie-room="meals" aria-pressed="false" aria-controls="smoothie-meals">
+            <span class="nav-row-label">Smoothie Recipe Cards</span>
             <span class="nav-row-tag">BLEND</span>
+          </button>
+          <button type="button" class="nav-row" data-smoothie-room="cabinet" aria-pressed="false" aria-controls="smoothie-cabinet">
+            <span class="nav-row-label">Main Smoothie Cabinet</span>
+            <span class="nav-row-tag">CAB</span>
+          </button>
+          <button type="button" class="nav-row" data-smoothie-room="hg" aria-pressed="false" aria-controls="smoothie-hg">
+            <span class="nav-row-label">Smoothie Schedule HG</span>
+            <span class="nav-row-tag">HG</span>
+          </button>
+          <button type="button" class="nav-row" data-smoothie-room="final" aria-pressed="false" aria-controls="smoothie-final">
+            <span class="nav-row-label">Final Smoothie Prep Scheduled Timetables</span>
+            <span class="nav-row-tag">FINAL</span>
+          </button>
+          <button type="button" class="nav-row" data-smoothie-room="savelater" aria-pressed="false" aria-controls="smoothie-savelater">
+            <span class="nav-row-label">Smoothie Save later</span>
+            <span class="nav-row-tag">LATER</span>
           </button>
         </div>
       </section>
@@ -343,18 +381,18 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v22"></script>
-  <script src="data/precondition.js?v=v22"></script>
-  <script src="data/upperBody.js?v=v22"></script>
-  <script src="data/citations.js?v=v22"></script>
-  <script src="data/forensic.js?v=v22"></script>
-  <script src="data/videoArchive.js?v=v22"></script>
-  <script src="data/nutrition/shop.js?v=v22"></script>
-  <script src="data/nutrition/meals.js?v=v22"></script>
-  <script src="data/nutrition/extractions.js?v=v22"></script>
-  <script src="data/nutrition/schedule.js?v=v22"></script>
-  <script src="data/food/pack001.js?v=v22"></script>
-  <script src="data/supabaseConfig.js?v=v22"></script>
-  <script src="app.js?v=v22"></script>
+  <script src="data/schedule.js?v=v22.1"></script>
+  <script src="data/precondition.js?v=v22.1"></script>
+  <script src="data/upperBody.js?v=v22.1"></script>
+  <script src="data/citations.js?v=v22.1"></script>
+  <script src="data/forensic.js?v=v22.1"></script>
+  <script src="data/videoArchive.js?v=v22.1"></script>
+  <script src="data/nutrition/shop.js?v=v22.1"></script>
+  <script src="data/nutrition/meals.js?v=v22.1"></script>
+  <script src="data/nutrition/extractions.js?v=v22.1"></script>
+  <script src="data/nutrition/schedule.js?v=v22.1"></script>
+  <script src="data/food/pack001.js?v=v22.1"></script>
+  <script src="data/supabaseConfig.js?v=v22.1"></script>
+  <script src="app.js?v=v22.1"></script>
 </body>
 </html>
