@@ -6,9 +6,9 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v21" />
+  <meta name="relic-build" content="v22" />
   <title>NiX Training Schedules</title>
-  <link rel="stylesheet" href="styles.css?v=v21" />
+  <link rel="stylesheet" href="styles.css?v=v22" />
 </head>
 <body>
   <div class="wrap">
@@ -179,35 +179,22 @@
       <section class="food-board" id="food-board" hidden aria-labelledby="food-board-title">
         <button type="button" class="food-back" id="btn-food-close">Training timetable</button>
         <nav class="food-rooms" aria-label="Food and Prep">
-          <button type="button" data-food-room="weekly">01 Weekly Food Schedule</button>
-          <button type="button" data-food-room="shop">02 Monthly Sainsbury's Shop</button>
-          <button type="button" data-food-room="meals">03 Meal Recipe Cards</button>
-          <button type="button" data-food-room="extractions">04 Smoothie / Extraction Cards</button>
+          <button type="button" data-food-room="meals">Meal Recipe Cards</button>
+          <button type="button" data-food-room="cabinet">Main Meal Cabinet</button>
+          <button type="button" data-food-room="hg">Food Schedule HG</button>
+          <button type="button" data-food-room="final">Final Meal Prep Scheduled Timetables</button>
+          <button type="button" data-food-room="savelater">Save later</button>
+          <button type="button" data-food-room="shop">Monthly Shop</button>
         </nav>
-        <h2 id="food-board-title" class="food-title" tabindex="-1">Weekly Food Schedule</h2>
-        <div class="food-room" id="food-weekly" hidden>
-          <div id="food-week-days"></div>
-          <div class="table-wrap">
-            <table class="timetable fuel-table" id="fuel-table">
-              <caption class="sr-only">Monday to Sunday food. Sunday is Food Prep and Fuel Day, with the same morning, lunch, evening, and notes as every other day.</caption>
-              <colgroup>
-                <col class="col-day" />
-                <col class="col-relics" />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th scope="col">DAY</th>
-                  <th scope="col">FUEL</th>
-                </tr>
-              </thead>
-              <tbody id="fuel-body"></tbody>
-            </table>
-          </div>
-          <p class="fuel-sunday" id="fuel-sunday"></p>
-        </div>
-        <div class="food-room" id="food-shop" hidden></div>
+        <h2 id="food-board-title" class="food-title" tabindex="-1">Meal Recipe Cards</h2>
         <div class="food-room" id="food-meals" hidden></div>
+        <div class="food-room" id="food-cabinet" hidden></div>
+        <div class="food-room" id="food-hg" hidden></div>
+        <div class="food-room" id="food-final" hidden></div>
+        <div class="food-room" id="food-savelater" hidden></div>
+        <div class="food-room" id="food-shop" hidden></div>
         <div class="food-room" id="food-extractions" hidden></div>
+        <div class="food-room" id="food-weekly" hidden></div>
       </section>
 
       <div class="schedule-switch">
@@ -256,17 +243,29 @@
       <section class="nav-section" aria-labelledby="nav-food-label">
         <h3 id="nav-food-label" class="nav-kicker">Food and Prep</h3>
         <div class="nav-rows" role="group" aria-label="Food and Prep">
-          <button type="button" class="nav-row" data-food-room="weekly" aria-pressed="false" aria-controls="food-weekly">
-            <span class="nav-row-label">Weekly Food Schedule</span>
-            <span class="nav-row-tag">WEEK</span>
-          </button>
-          <button type="button" class="nav-row" data-food-room="shop" aria-pressed="false" aria-controls="food-shop">
-            <span class="nav-row-label">Monthly Foods (Sainsbury’s)</span>
-            <span class="nav-row-tag">SHOP</span>
-          </button>
           <button type="button" class="nav-row" data-food-room="meals" aria-pressed="false" aria-controls="food-meals">
             <span class="nav-row-label">Meal Recipe Cards</span>
             <span class="nav-row-tag">MEAL</span>
+          </button>
+          <button type="button" class="nav-row" data-food-room="cabinet" aria-pressed="false" aria-controls="food-cabinet">
+            <span class="nav-row-label">Main Meal Cabinet</span>
+            <span class="nav-row-tag">CAB</span>
+          </button>
+          <button type="button" class="nav-row" data-food-room="hg" aria-pressed="false" aria-controls="food-hg">
+            <span class="nav-row-label">Food Schedule HG</span>
+            <span class="nav-row-tag">HG</span>
+          </button>
+          <button type="button" class="nav-row" data-food-room="final" aria-pressed="false" aria-controls="food-final">
+            <span class="nav-row-label">Final Meal Prep Scheduled Timetables</span>
+            <span class="nav-row-tag">FINAL</span>
+          </button>
+          <button type="button" class="nav-row" data-food-room="savelater" aria-pressed="false" aria-controls="food-savelater">
+            <span class="nav-row-label">Save later</span>
+            <span class="nav-row-tag">LATER</span>
+          </button>
+          <button type="button" class="nav-row" data-food-room="shop" aria-pressed="false" aria-controls="food-shop">
+            <span class="nav-row-label">Monthly Shop</span>
+            <span class="nav-row-tag">SHOP</span>
           </button>
           <button type="button" class="nav-row" data-food-room="extractions" aria-pressed="false" aria-controls="food-extractions">
             <span class="nav-row-label">Smoothie / Extraction Cards</span>
@@ -344,18 +343,18 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v21"></script>
-  <script src="data/precondition.js?v=v21"></script>
-  <script src="data/upperBody.js?v=v21"></script>
-  <script src="data/citations.js?v=v21"></script>
-  <script src="data/forensic.js?v=v21"></script>
-  <script src="data/videoArchive.js?v=v21"></script>
-  <script src="data/nutrition/shop.js?v=v21"></script>
-  <script src="data/nutrition/meals.js?v=v21"></script>
-  <script src="data/nutrition/extractions.js?v=v21"></script>
-  <script src="data/nutrition/schedule.js?v=v21"></script>
-  <script src="data/food/pack001.js?v=v21"></script>
-  <script src="data/supabaseConfig.js?v=v21"></script>
-  <script src="app.js?v=v21"></script>
+  <script src="data/schedule.js?v=v22"></script>
+  <script src="data/precondition.js?v=v22"></script>
+  <script src="data/upperBody.js?v=v22"></script>
+  <script src="data/citations.js?v=v22"></script>
+  <script src="data/forensic.js?v=v22"></script>
+  <script src="data/videoArchive.js?v=v22"></script>
+  <script src="data/nutrition/shop.js?v=v22"></script>
+  <script src="data/nutrition/meals.js?v=v22"></script>
+  <script src="data/nutrition/extractions.js?v=v22"></script>
+  <script src="data/nutrition/schedule.js?v=v22"></script>
+  <script src="data/food/pack001.js?v=v22"></script>
+  <script src="data/supabaseConfig.js?v=v22"></script>
+  <script src="app.js?v=v22"></script>
 </body>
 </html>

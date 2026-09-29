@@ -5,7 +5,7 @@
 **Coach archive:** NiX  
 **Timezone:** Europe/London (always)  
 **Runtime:** static HTML / CSS / JS. No build step. No npm.  
-**Cache bust:** `?v=v21` on every stylesheet and script in `index.html`
+**Cache bust:** `?v=v22` on every stylesheet and script in `index.html`
 
 Footer motto (exact):
 
@@ -201,7 +201,7 @@ Evaluate on each timetable render and whenever a completion is upserted. Do not 
 
 ## 7. Cache
 
-`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v21`. The `relic-build` meta is `v21`. The in-memory month-row cache key is `{year}:{mode}:{month}`.
+`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v22`. The `relic-build` meta is `v22`. The in-memory month-row cache key is `{year}:{mode}:{month}`.
 
 ---
 
@@ -247,7 +247,7 @@ index.html?date=2027-01-04&setsec=3   → coach set length 3 seconds. At 00:00 t
 2. Clips stream from Supabase public URLs. At `00:00` the opened citation is credited and, once that set is finished, the player closes and the timetable is showing. Duration overwrites remaining time and `SET_DURATION_SEC`. Add More Time only stacks onto remaining time. Next still advances a clip without crediting it.
 3. The table is exactly DAY / TRAINING RELICS / DONE at 20% / 70% / 10%.
 4. Ticks upsert `relic_completions`.
-5. `vercel.json` no-cache plus `?v=v21` on assets. The `relic-build` meta is `v21`. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome. A drag past 18px does not. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph. The forensic CUE tab slides up from the bottom, does not reset that timer, and does not reload the video.
+5. `vercel.json` no-cache plus `?v=v22` on assets. The `relic-build` meta is `v22`. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome. A drag past 18px does not. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph. The forensic CUE tab slides up from the bottom, does not reset that timer, and does not reload the video.
 6. `schedule.js` `MONTH_ROTATIONS` stays the Full Body lock. Upper Body data is additive.
 7. A week chip has a SINGLE slot and a DUAL slot. At 100% dual the chip is rich green, the dual slot shows an orange `#ff8c00` double-tick shield and the aggregate tick count, and the single slot stays a separate dark module. Day DONE cells use a compact box or a single/double shield, with a 44px hit target. Month chips and `#year-badge` use the same score and light up only at 100%. Week 4 labels read `WEEK 4`. The deload hint does not render. Calisthenics appears only in October–December 2027.
 8. The toggle immediately under the timetable swaps Full Body and Upper Body without a reload. The drawer’s Full Body and Upper Body rows call the same `setScheduleMode`. Ambient Hub switches the 2026 bridge and the 2027 year. The motto and metadata stay under that toggle. Each mode shows only its own ticks and shield badges.
@@ -324,7 +324,7 @@ Shopping lists: `2026-10`, `2026-11`, `2026-12`, `2027-01`, and the February-onw
 
 ### Dietary baseline
 
-Allowed proteins: Chicken, Turkey Mince, Beef Mince, Salmon, Eggs. Allowed carbs: Potatoes and Rice. The food week is always Monday–Sunday, including Sunday on a training rest day. Pack 001 lives in `data/food/pack001.js` and the object-root JSON under `data/food/pack001/`. Sunday prep stays in the day note until first-class prep fields exist. Egg whites are cooked. Taste the Difference free-range eggs come first, then SO Organic free-range, then standard free-range. Brazil nuts are capped at one a day. Smoothies are morning or a lunch refresh only. An evening extraction is refused with `Extractions aren't dinner.`
+Allowed proteins: Chicken, Turkey Mince, Beef Mince, Salmon, Eggs. Allowed carbs: Potatoes and Rice. The food week is always Monday–Sunday, including Sunday on a training rest day. Pack 001 lives in `data/food/pack001.js` and the object-root JSON under `data/food/pack001/`. v22 Food cabins are Meal Recipe Cards, Main Meal Cabinet, Food Schedule HG, Final Meal Prep Scheduled Timetables, Save later, and Monthly Shop. Moves between them use the fly allowlist and each cabin’s own `relic_food_*_v22` key. Export JSON and Import JSON are retired from Food screens. Smoothie cabins stay a Phase F follow-up; Extraction Cards remain morning or lunch only. Sunday prep stays in the day note until first-class prep fields exist. Egg whites are cooked. Taste the Difference free-range eggs come first, then SO Organic free-range, then standard free-range. Brazil nuts are capped at one a day. Smoothies are morning or a lunch refresh only. An evening extraction is refused with `Extractions aren't dinner.`
 
 ### NPQ laws
 
@@ -360,7 +360,7 @@ The canonical Food OS contract is [`docs/FOOD_OS_HANDSHAKE.md`](docs/FOOD_OS_HAN
 
 Meal cards stay warm parchment with a gold rule. Smoothie cards use a mint ground and a teal rule. Ingredient lines, method steps, tips, and facts on those cards use dark ink (`#1f1812` / `#2c2118`). Cream cards do not use `--text`.
 
-Each Food room has Export JSON, Import JSON, and Reset this room. Meal and smoothie cards can be added, edited, duplicated, or deleted. Custom cards and edits live in `relic_food_cards_v20`. Weekly lunch notes, unlocked evening picks, and locked day notes live in `relic_food_week_v20`. The shop can rename a line and add a custom line. None of these keys is `relic_completions`. Defaults in `data/nutrition/*` stay the base. An overlay wins until that room is reset.
+v20 rooms offered Export JSON, Import JSON, and Reset this room. v22 retires those buttons. Meal and smoothie cards can be added, edited, duplicated, or deleted. Custom cards and edits live in `relic_food_cards_v20`. Weekly lunch notes, unlocked evening picks, and locked day notes live in `relic_food_week_v20`. The shop can rename a line and add a custom line. None of these keys is `relic_completions`. Defaults in `data/nutrition/*` stay the base. An overlay wins until that room is reset.
 
 Meal cards, smoothie cards, and the monthly shop also have a Scan / Import strip. Paste a freeform note and press Parse to preview a card or shop lines. Import JSON, from the paste box or a JSON file, validates and previews before it writes. Save stores the preview in the same overlay. Cancel discards it. A label photo uses the device camera or a file, is kept as `scanImage` on the draft, and the control reads “attach label photo; fill fields”. The preview fields use dark ink on a cream ground. No API key and no server route is involved.
 
@@ -373,6 +373,10 @@ Meal, smoothie, shop, and week edits can carry `citations[]`. Seed cards show Sa
 The shop list can be filtered and sorted by the desired tags `protein`, `veg`, `fruit`, `dairy`, `freezer`, `botanical`, and `other`, and also by name, and moved up or down. Each line can attach a label photo. Lock this month’s shop still freezes the weekly prep plan. It also builds editable meal and smoothie drafts from the ticked lines. Build cards from basket does the same on demand. Save draft writes a card. Discard drops that draft.
 
 A training day is morning `extractionId`, a lunch string, and an evening `mealId`. There is no dinner smoothie.
+
+### v22 fly and shrink
+
+Food Schedule HG is the schedule. The old weekly fuel table is not a cabin. A move writes only the target cabin key after the allowlist accepts the action: meals `add_cabinet` to cabinet, meals or cabinet `add_hg` to hg, hg `finished_week` to savelater, hg `month_complete` to final, savelater `reuse_hg` to hg, shop `create_meal` to meals. The drawer opens, the target row highlights, the card shrinks onto that row, then that cabin opens on the new item. Save later inserts a finished week once. A duplicate shows `This card has already been added to save later.` for four seconds. Monthly Shop is three panels: this month’s trolley with soft lock £200, Gaps marked ESTIMATE, and six meal suggestions. Keys are `relic_food_meals_v22`, `relic_food_cabinet_v22`, `relic_food_hg_v22`, `relic_food_final_v22`, `relic_food_savelater_v22`, `relic_food_shop_v22`, and `relic_food_flylog_v22`. None of those keys is a Training key. Parallel smoothie cabins are a follow-up. Extraction Cards stay morning or lunch only.
 
 ### Next
 
