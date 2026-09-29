@@ -31,7 +31,7 @@ if (html.indexOf("data/nutrition.js") !== -1) {
   console.error("FAIL mashed nutrition.js still linked");
   process.exit(1);
 }
-if (html.indexOf('content="v20"') === -1 || html.indexOf("styles.css?v=v20") === -1) {
+if (html.indexOf('content="v20.1"') === -1 || html.indexOf("styles.css?v=v20.1") === -1) {
   console.error("FAIL cache stamp");
   process.exit(1);
 }
@@ -46,6 +46,10 @@ if (css.indexOf(".recipe-card .recipe-ingredients li") === -1 || css.indexOf("#1
 }
 if (css.indexOf(".week-slot-dual.is-full") === -1 || css.indexOf("#3dff7a") === -1) {
   console.error("FAIL dual green glow");
+  process.exit(1);
+}
+if (css.indexOf('.tick-hit[data-tier="2"] .tick-box svg path:first-of-type') === -1 || css.indexOf("fill: #3dff7a") === -1) {
+  console.error("FAIL dual shield fill");
   process.exit(1);
 }
 const app = fs.readFileSync("app.js", "utf8");

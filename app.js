@@ -323,8 +323,11 @@
   }
 
   function shieldSvg(doubleTick) {
+    var open = doubleTick
+      ? SHIELD_SVG_OPEN.replace('class="shield-tick"', 'class="shield-tick is-dual"')
+      : SHIELD_SVG_OPEN;
     var body = doubleTick ? SHIELD_BODY.replace("#ff8c00", "#3dff7a") : SHIELD_BODY;
-    return SHIELD_SVG_OPEN + body + (doubleTick ? SHIELD_TWO : SHIELD_ONE) + "</svg>";
+    return open + body + (doubleTick ? SHIELD_TWO : SHIELD_ONE) + "</svg>";
   }
 
   function pullCompletions() {
@@ -3966,7 +3969,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v20",
+    build: "v20.1",
     get nutrition() {
       return {
         shop: foodShop(),
