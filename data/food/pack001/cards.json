@@ -1,0 +1,1024 @@
+{
+  "schema": "relic_food_cards_v20",
+  "meals": {
+    "pack001-cheesy-roasted-garlic-bread": {
+      "id": "pack001-cheesy-roasted-garlic-bread",
+      "kind": "meal",
+      "family": "side",
+      "name": "Cheesy Roasted Garlic Bread",
+      "tagline": "Garlicky. Cheesy. Irresistible.",
+      "script": "Lunch side, dinner side, weekend treat.",
+      "yield": "4–6",
+      "prepMin": 10,
+      "cookLabel": "Roast 35–45 · Bake 8–10",
+      "timetable": {
+        "bestFor": "Lunch, dinner side, weekend",
+        "bestEaten": "Fresh",
+        "reheat": "5–7 mins oven or air fryer"
+      },
+      "tip": "Cathedral City stands in for mozzarella, Flora for butter, and the smoked bulb for roast garlic. Brioche is a last-resort base. Gaps still out of the cart: baguette, olive oil, parsley.",
+      "ingredients": [
+        {
+          "text": "Taste the Difference large smoked garlic, 4 bulbs",
+          "skuId": "sainsburys-sku-TBD-123"
+        },
+        {
+          "text": "Flora Buttery spread",
+          "skuId": "sainsburys-sku-TBD-105"
+        },
+        {
+          "text": "Cathedral City cheddar",
+          "skuId": "sainsburys-sku-TBD-101"
+        },
+        {
+          "text": "Taste the Difference stonebaked baguette — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-207"
+        },
+        {
+          "text": "Extra virgin olive oil — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-209"
+        },
+        {
+          "text": "Flat leaf parsley — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-217"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Roast",
+          "detail": "the Taste the Difference smoked garlic in a little oil until the cloves are soft and sweet."
+        },
+        {
+          "verb": "Mash",
+          "detail": "the cloves with Flora Buttery and spread them over a split baguette. Use a brioche bun only if the baguette has not landed."
+        },
+        {
+          "verb": "Top",
+          "detail": "with Cathedral City cheddar. Mozzarella is optional and is not on the receipt."
+        },
+        {
+          "verb": "Bake",
+          "detail": "8–10 minutes in a hot oven or air fryer until the cheese bubbles, then finish with parsley if that bunch was bought."
+        }
+      ],
+      "pack001": true
+    },
+    "pack001-cheesy-potato-toast": {
+      "id": "pack001-cheesy-potato-toast",
+      "kind": "meal",
+      "family": "snack",
+      "name": "Cheesy Potato Toast",
+      "tagline": "Weekend potato cakes.",
+      "blockedWithoutAdds": true,
+      "yield": "3 large potatoes",
+      "prepMin": 15,
+      "cookLabel": "Boil then pan-toast",
+      "timetable": {
+        "bestFor": "Weekend treat, lunch",
+        "bestEaten": "Hot",
+        "reheat": "Pan or air fryer until crisp"
+      },
+      "tip": "Blocked until potatoes and cornflour are in the cupboard. Flora and Cathedral City are already on the receipt. Oil or spray is an ESTIMATE add.",
+      "ingredients": [
+        {
+          "text": "Maris Piper potatoes, about 3 large — ESTIMATE, not in the Oct 1 cart",
+          "skuId": "sainsburys-sku-TBD-201"
+        },
+        {
+          "text": "Cornflour — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-202"
+        },
+        {
+          "text": "Flora Buttery spread",
+          "skuId": "sainsburys-sku-TBD-105"
+        },
+        {
+          "text": "Cathedral City cheddar",
+          "skuId": "sainsburys-sku-TBD-101"
+        },
+        {
+          "text": "Cooking oil spray — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-210"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Boil",
+          "detail": "about three large potatoes, then mash them with Flora Buttery."
+        },
+        {
+          "verb": "Bind",
+          "detail": "the mash with cornflour, salt, and pepper."
+        },
+        {
+          "verb": "Toast",
+          "detail": "cakes in a pan, or with a light spray, until both sides are golden."
+        },
+        {
+          "verb": "Melt",
+          "detail": "Cathedral City on top. Mozzarella is optional and is not required."
+        }
+      ],
+      "pack001": true
+    },
+    "pack001-paprika-potato-egg-skillet": {
+      "id": "pack001-paprika-potato-egg-skillet",
+      "kind": "meal",
+      "family": "meal",
+      "name": "Paprika Potato Egg Skillet",
+      "tagline": "Friday brunch. Cook the whites.",
+      "cookEggWhites": true,
+      "yield": "1",
+      "prepMin": 10,
+      "cookLabel": "Skillet",
+      "timetable": {
+        "bestFor": "Friday brunch, light dinner, lunch",
+        "bestEaten": "Hot",
+        "reheat": "Skillet until the whites set"
+      },
+      "tip": "Cook the egg whites through. Taste the Difference golden yolk eggs stay at the top of the ladder. Potatoes, paprika, tomato, and chives are still gaps.",
+      "ingredients": [
+        {
+          "text": "Taste the Difference free-range golden yolk eggs, cook the whites",
+          "skuId": "sainsburys-sku-TBD-109"
+        },
+        {
+          "text": "Taste the Difference smoked garlic",
+          "skuId": "sainsburys-sku-TBD-123"
+        },
+        {
+          "text": "Maris Piper potatoes — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-201"
+        },
+        {
+          "text": "Smoked paprika — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-203"
+        },
+        {
+          "text": "Paprika — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-204"
+        },
+        {
+          "text": "Tomatoes on the vine — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-213"
+        },
+        {
+          "text": "Fresh chives — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-218"
+        },
+        {
+          "text": "Cathedral City cheddar",
+          "skuId": "sainsburys-sku-TBD-101"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Slice",
+          "detail": "the potatoes and start them in the skillet with Flora or oil and smoked garlic from the cart."
+        },
+        {
+          "verb": "Dust",
+          "detail": "with smoked paprika. Plain paprika can stand in. Skipping the spice drops the name of the dish."
+        },
+        {
+          "verb": "Crack",
+          "detail": "two Taste the Difference eggs and cook the whites through."
+        },
+        {
+          "verb": "Finish",
+          "detail": "with tomato and chives if those adds landed, then melt Cathedral City over the top."
+        }
+      ],
+      "pack001": true
+    },
+    "pack001-beef-stuffed-potato-boats": {
+      "id": "pack001-beef-stuffed-potato-boats",
+      "kind": "meal",
+      "family": "meal",
+      "name": "Beef-Stuffed Potato Boats",
+      "tagline": "Wednesday dinner. Burger crumble stands in for mince.",
+      "yield": "3 potatoes",
+      "prepMin": 15,
+      "cookLabel": "Bake then fill",
+      "timetable": {
+        "bestFor": "Wednesday dinner, meal prep",
+        "bestEaten": "Hot",
+        "reheat": "Oven until the cheese melts"
+      },
+      "tip": "Crumble about 300 g of the Taste the Difference steak burgers as the beef. True mince is optional. Potatoes, onion, tomato, paprika, and onion powder are still gaps.",
+      "ingredients": [
+        {
+          "text": "Taste the Difference British beef steak burgers, crumble about 300 g",
+          "skuId": "sainsburys-sku-TBD-106"
+        },
+        {
+          "text": "Maris Piper potatoes — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-201"
+        },
+        {
+          "text": "Taste the Difference smoked garlic",
+          "skuId": "sainsburys-sku-TBD-123"
+        },
+        {
+          "text": "Brown onions — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-214"
+        },
+        {
+          "text": "Tomatoes on the vine — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-213"
+        },
+        {
+          "text": "Onion powder — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-212"
+        },
+        {
+          "text": "Cathedral City cheddar",
+          "skuId": "sainsburys-sku-TBD-101"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Bake",
+          "detail": "the potatoes and scoop the centres."
+        },
+        {
+          "verb": "Crumble",
+          "detail": "about 300 g of cooked Taste the Difference steak burger with smoked garlic and onion. That stands in for mince."
+        },
+        {
+          "verb": "Fill",
+          "detail": "the skins, add tomato if it landed, and top with Cathedral City."
+        },
+        {
+          "verb": "Reheat",
+          "detail": "until the filling is hot and the cheese has melted."
+        }
+      ],
+      "pack001": true
+    },
+    "pack001-bread-egg-pan-pizza": {
+      "id": "pack001-bread-egg-pan-pizza",
+      "kind": "meal",
+      "family": "meal",
+      "name": "Bread & Egg Pan Pizza",
+      "tagline": "Monday lunch. Cook the whites.",
+      "cookEggWhites": true,
+      "yield": "6 slices",
+      "prepMin": 10,
+      "cookLabel": "Pan or grill",
+      "timetable": {
+        "bestFor": "Monday lunch",
+        "bestEaten": "Fresh",
+        "reheat": "Pan until the cheese melts"
+      },
+      "tip": "Cook the egg whites. Brioche is a sweet, soft stand-in for one lunch. Sliced bread, passata, tomato, red onion, and spring onion are the fidelity adds.",
+      "ingredients": [
+        {
+          "text": "Taste the Difference free-range golden yolk eggs, cook the whites",
+          "skuId": "sainsburys-sku-TBD-109"
+        },
+        {
+          "text": "Thick sliced soft white bread — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-206"
+        },
+        {
+          "text": "Taste the Difference brioche buns, temporary base only",
+          "skuId": "sainsburys-sku-TBD-107"
+        },
+        {
+          "text": "Passata — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-205"
+        },
+        {
+          "text": "Red onion — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-215"
+        },
+        {
+          "text": "Spring onion — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-216"
+        },
+        {
+          "text": "Cathedral City cheddar",
+          "skuId": "sainsburys-sku-TBD-101"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Lay",
+          "detail": "sliced bread in the pan. Use a brioche bun only for this one lunch if the loaf has not landed."
+        },
+        {
+          "verb": "Spread",
+          "detail": "passata when it is in the cupboard. With no sauce, keep it a cheese-only white pizza."
+        },
+        {
+          "verb": "Add",
+          "detail": "egg and cook the whites through, then Cathedral City, tomato, red onion, and spring onion."
+        },
+        {
+          "verb": "Grill",
+          "detail": "or cover the pan until the top sets and the cheese melts."
+        }
+      ],
+      "pack001": true
+    },
+    "pack001-crispy-potato-bites": {
+      "id": "pack001-crispy-potato-bites",
+      "kind": "meal",
+      "family": "snack",
+      "name": "Low-Calorie Crispy Potato Bites",
+      "tagline": "About 35–40 bites. About 375 kcal for the batch.",
+      "blockedWithoutAdds": true,
+      "yield": "35–40 bites",
+      "prepMin": 15,
+      "cookLabel": "Microwave 9–12 · air fry 200°C 12–15",
+      "timetable": {
+        "bestFor": "Saturday snack, afternoon",
+        "bestEaten": "Hot and crisp",
+        "reheat": "3–5 mins air fryer"
+      },
+      "tip": "Cannot cook from the trolley alone. Keep bites small so they crisp evenly. Potatoes, cornflour, garlic powder, smoked paprika, and cooking spray are ESTIMATE adds.",
+      "ingredients": [
+        {
+          "text": "400 g Maris Piper potatoes — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-201"
+        },
+        {
+          "text": "15 g cornflour — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-202"
+        },
+        {
+          "text": "Smoked paprika — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-203"
+        },
+        {
+          "text": "Garlic powder — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-211"
+        },
+        {
+          "text": "Cooking spray — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-210"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Dice",
+          "detail": "400 g potato and microwave it 9–12 minutes, then mash and cool."
+        },
+        {
+          "verb": "Mix",
+          "detail": "in 15 g cornflour, garlic powder, smoked paprika, salt, and pepper."
+        },
+        {
+          "verb": "Roll",
+          "detail": "about 35–40 small bites and spray them lightly."
+        },
+        {
+          "verb": "Air-fry",
+          "detail": "at 200°C for 12–15 minutes until crisp. Reheat 3–5 minutes if they cool."
+        }
+      ],
+      "pack001": true
+    },
+    "plate-chicken-mixed-veg": {
+      "id": "plate-chicken-mixed-veg",
+      "kind": "meal",
+      "family": "plate",
+      "name": "Chicken & Mixed Vegetables",
+      "tagline": "Monday evening plate from the trolley.",
+      "yield": "1",
+      "prepMin": 10,
+      "cookLabel": "Pan",
+      "timetable": {
+        "bestFor": "Monday evening",
+        "bestEaten": "Hot",
+        "reheat": "Until piping hot"
+      },
+      "tip": "Thaw one portion from the 2 kg chicken packs. Mixed vegetables are on the receipt.",
+      "ingredients": [
+        {
+          "text": "British chicken breast",
+          "skuId": "sainsburys-sku-TBD-110"
+        },
+        {
+          "text": "Mixed vegetables 1 kg",
+          "skuId": "sainsburys-sku-TBD-122"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Cook",
+          "detail": "the chicken through."
+        },
+        {
+          "verb": "Heat",
+          "detail": "a portion of mixed vegetables beside it."
+        }
+      ],
+      "pack001": true
+    },
+    "plate-chicken-leftover-spinach": {
+      "id": "plate-chicken-leftover-spinach",
+      "kind": "meal",
+      "family": "plate",
+      "name": "Chicken, Leftover Spinach",
+      "tagline": "Tuesday lunch plate.",
+      "yield": "1",
+      "prepMin": 5,
+      "cookLabel": "Reheat",
+      "timetable": {
+        "bestFor": "Tuesday lunch",
+        "bestEaten": "Hot",
+        "reheat": "Until piping hot"
+      },
+      "tip": "Use Monday chicken. Spinach is on the receipt.",
+      "ingredients": [
+        {
+          "text": "Leftover chicken breast",
+          "skuId": "sainsburys-sku-TBD-110"
+        },
+        {
+          "text": "Baby leaf spinach",
+          "skuId": "sainsburys-sku-TBD-121"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Reheat",
+          "detail": "the chicken."
+        },
+        {
+          "verb": "Wilt",
+          "detail": "a handful of spinach beside it."
+        }
+      ],
+      "pack001": true
+    },
+    "plate-turkey-mince-mixed-veg": {
+      "id": "plate-turkey-mince-mixed-veg",
+      "kind": "meal",
+      "family": "plate",
+      "name": "Turkey Mince & Mixed Vegetables",
+      "tagline": "Evening plate. 7% fat turkey mince.",
+      "yield": "1",
+      "prepMin": 10,
+      "cookLabel": "Pan",
+      "timetable": {
+        "bestFor": "Tuesday or Friday evening",
+        "bestEaten": "Hot",
+        "reheat": "Until piping hot"
+      },
+      "tip": "Batch the 750 g packs so Friday can repeat this plate.",
+      "ingredients": [
+        {
+          "text": "7% fat British turkey mince",
+          "skuId": "sainsburys-sku-TBD-108"
+        },
+        {
+          "text": "Mixed vegetables",
+          "skuId": "sainsburys-sku-TBD-122"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Brown",
+          "detail": "the turkey mince."
+        },
+        {
+          "verb": "Stir",
+          "detail": "through mixed vegetables until hot."
+        }
+      ],
+      "pack001": true
+    },
+    "plate-cheese-mini-fruit": {
+      "id": "plate-cheese-mini-fruit",
+      "kind": "meal",
+      "family": "plate",
+      "name": "Cheese & Mini Fruit Plate",
+      "tagline": "Wednesday light lunch.",
+      "yield": "1",
+      "prepMin": 2,
+      "cookLabel": "No cook",
+      "timetable": {
+        "bestFor": "Wednesday lunch",
+        "bestEaten": "Cold",
+        "reheat": "Not needed"
+      },
+      "tip": "Cathedral City minis from the receipt. Fruit from the frozen packs, thawed.",
+      "ingredients": [
+        {
+          "text": "Cathedral City mini mature cheddar",
+          "skuId": "sainsburys-sku-TBD-101"
+        },
+        {
+          "text": "Frozen summer fruits, thawed",
+          "skuId": "sainsburys-sku-TBD-115"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Plate",
+          "detail": "a few cheese minis and a handful of fruit."
+        }
+      ],
+      "pack001": true
+    },
+    "plate-turkey-leftover-bowl": {
+      "id": "plate-turkey-leftover-bowl",
+      "kind": "meal",
+      "family": "plate",
+      "name": "Turkey Leftover Bowl",
+      "tagline": "Thursday lunch from Tuesday's mince.",
+      "yield": "1",
+      "prepMin": 5,
+      "cookLabel": "Reheat",
+      "timetable": {
+        "bestFor": "Thursday lunch",
+        "bestEaten": "Hot",
+        "reheat": "Until piping hot"
+      },
+      "tip": "Same turkey mince, next day.",
+      "ingredients": [
+        {
+          "text": "Leftover turkey mince",
+          "skuId": "sainsburys-sku-TBD-108"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Reheat",
+          "detail": "until piping hot."
+        }
+      ],
+      "pack001": true
+    },
+    "plate-chicken-tray-veg": {
+      "id": "plate-chicken-tray-veg",
+      "kind": "meal",
+      "family": "plate",
+      "name": "Chicken Tray with Vegetables",
+      "tagline": "Thursday evening tray.",
+      "yield": "1",
+      "prepMin": 10,
+      "cookLabel": "Tray",
+      "timetable": {
+        "bestFor": "Thursday evening",
+        "bestEaten": "Hot",
+        "reheat": "Oven until hot"
+      },
+      "tip": "Batch-cook the remaining chicken on this tray so Friday through Sunday still have a plate.",
+      "ingredients": [
+        {
+          "text": "British chicken breast",
+          "skuId": "sainsburys-sku-TBD-110"
+        },
+        {
+          "text": "Mixed vegetables",
+          "skuId": "sainsburys-sku-TBD-122"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Roast",
+          "detail": "chicken and vegetables together until the chicken is cooked through."
+        }
+      ],
+      "pack001": true
+    },
+    "plate-ttd-burger-brioche": {
+      "id": "plate-ttd-burger-brioche",
+      "kind": "meal",
+      "family": "plate",
+      "name": "TtD Beef Burger & Brioche",
+      "tagline": "Saturday evening. Keep some burgers for the potato boats.",
+      "yield": "1",
+      "prepMin": 5,
+      "cookLabel": "Pan or grill",
+      "timetable": {
+        "bestFor": "Saturday evening",
+        "bestEaten": "Hot",
+        "reheat": "Not ideal"
+      },
+      "tip": "The 600 g pack also feeds the beef boats. Do not use the whole pack here.",
+      "ingredients": [
+        {
+          "text": "Taste the Difference beef steak burger",
+          "skuId": "sainsburys-sku-TBD-106"
+        },
+        {
+          "text": "Taste the Difference brioche bun",
+          "skuId": "sainsburys-sku-TBD-107"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Cook",
+          "detail": "one burger through."
+        },
+        {
+          "verb": "Serve",
+          "detail": "on a brioche bun."
+        }
+      ],
+      "pack001": true
+    },
+    "plate-leftover-roast": {
+      "id": "plate-leftover-roast",
+      "kind": "meal",
+      "family": "plate",
+      "name": "Leftover Roast Plate",
+      "tagline": "Sunday lunch from the week’s chicken.",
+      "yield": "1",
+      "prepMin": 5,
+      "cookLabel": "Reheat",
+      "timetable": {
+        "bestFor": "Sunday lunch",
+        "bestEaten": "Hot",
+        "reheat": "Until piping hot"
+      },
+      "tip": "Food Prep day still gets a real lunch plate.",
+      "ingredients": [
+        {
+          "text": "Leftover roast chicken",
+          "skuId": "sainsburys-sku-TBD-110"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Reheat",
+          "detail": "until piping hot."
+        }
+      ],
+      "pack001": true
+    },
+    "plate-batch-chicken-veg": {
+      "id": "plate-batch-chicken-veg",
+      "kind": "meal",
+      "family": "plate",
+      "name": "Batch Chicken & Vegetables",
+      "tagline": "Sunday evening batch for the next days.",
+      "yield": "Several portions",
+      "prepMin": 15,
+      "cookLabel": "Tray",
+      "timetable": {
+        "bestFor": "Sunday evening",
+        "bestEaten": "Hot, then chilled",
+        "reheat": "Until piping hot"
+      },
+      "tip": "Cook extra chicken and veg while the prep list runs.",
+      "ingredients": [
+        {
+          "text": "British chicken breast",
+          "skuId": "sainsburys-sku-TBD-110"
+        },
+        {
+          "text": "Mixed vegetables",
+          "skuId": "sainsburys-sku-TBD-122"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Batch",
+          "detail": "chicken and vegetables for the coming days."
+        },
+        {
+          "verb": "Cool",
+          "detail": "what you will not eat tonight."
+        }
+      ],
+      "pack001": true
+    }
+  },
+  "extractions": {
+    "extract-summer-spinach-date": {
+      "id": "extract-summer-spinach-date",
+      "kind": "extraction",
+      "family": "extraction",
+      "name": "Summer Fruit, Spinach, and Date",
+      "tagline": "Monday morning.",
+      "yield": "1 glass",
+      "prepMin": 8,
+      "cookLabel": "Blend",
+      "lock": "Not dinner.",
+      "band": "morning",
+      "notDinner": true,
+      "timetable": {
+        "bestFor": "Morning or lunch",
+        "bestEaten": "Straight away",
+        "reheat": "Do not reheat"
+      },
+      "tip": "Morning or lunch only.",
+      "ingredients": [
+        {
+          "text": "Frozen summer fruits",
+          "skuId": "sainsburys-sku-TBD-115"
+        },
+        {
+          "text": "Baby leaf spinach",
+          "skuId": "sainsburys-sku-TBD-121"
+        },
+        {
+          "text": "Taste the Difference Medjool dates",
+          "skuId": "sainsburys-sku-TBD-114"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Pour",
+          "detail": "water. Milk or Greek yogurt is an ESTIMATE add and is not on the receipt."
+        },
+        {
+          "verb": "Add",
+          "detail": "Frozen summer fruits; Baby leaf spinach; Taste the Difference Medjool dates."
+        },
+        {
+          "verb": "Blend",
+          "detail": "until smooth. One Brazil nut a day only if that tin was purchased. Leave it out otherwise."
+        },
+        {
+          "verb": "Drink",
+          "detail": "at morning or lunch. Extractions aren't dinner."
+        }
+      ],
+      "pack001": true
+    },
+    "extract-cherry-cream": {
+      "id": "extract-cherry-cream",
+      "kind": "extraction",
+      "family": "extraction",
+      "name": "Cherry Dark Sweet",
+      "tagline": "Tuesday morning. Yogurt is an ESTIMATE add.",
+      "yield": "1 glass",
+      "prepMin": 8,
+      "cookLabel": "Blend",
+      "lock": "Not dinner.",
+      "band": "morning",
+      "notDinner": true,
+      "timetable": {
+        "bestFor": "Morning or lunch",
+        "bestEaten": "Straight away",
+        "reheat": "Do not reheat"
+      },
+      "tip": "Morning or lunch only. Not dinner.",
+      "ingredients": [
+        {
+          "text": "Frozen dark sweet cherries",
+          "skuId": "sainsburys-sku-TBD-116"
+        },
+        {
+          "text": "Greek style yogurt — ESTIMATE, not on the receipt",
+          "skuId": "sainsburys-sku-TBD-222"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Pour",
+          "detail": "water. Milk or Greek yogurt is an ESTIMATE add and is not on the receipt."
+        },
+        {
+          "verb": "Add",
+          "detail": "Frozen dark sweet cherries; Greek style yogurt — ESTIMATE, not on the receipt."
+        },
+        {
+          "verb": "Blend",
+          "detail": "until smooth. One Brazil nut a day only if that tin was purchased. Leave it out otherwise."
+        },
+        {
+          "verb": "Drink",
+          "detail": "at morning or lunch. Extractions aren't dinner."
+        }
+      ],
+      "pack001": true
+    },
+    "extract-blueberry-mango": {
+      "id": "extract-blueberry-mango",
+      "kind": "extraction",
+      "family": "extraction",
+      "name": "Blueberry Mango",
+      "tagline": "Wednesday morning.",
+      "yield": "1 glass",
+      "prepMin": 8,
+      "cookLabel": "Blend",
+      "lock": "Not dinner.",
+      "band": "morning",
+      "notDinner": true,
+      "timetable": {
+        "bestFor": "Morning or lunch",
+        "bestEaten": "Straight away",
+        "reheat": "Do not reheat"
+      },
+      "tip": "Morning or lunch only.",
+      "ingredients": [
+        {
+          "text": "Frozen blueberries",
+          "skuId": "sainsburys-sku-TBD-120"
+        },
+        {
+          "text": "Frozen mango chunks",
+          "skuId": "sainsburys-sku-TBD-117"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Pour",
+          "detail": "water. Milk or Greek yogurt is an ESTIMATE add and is not on the receipt."
+        },
+        {
+          "verb": "Add",
+          "detail": "Frozen blueberries; Frozen mango chunks."
+        },
+        {
+          "verb": "Blend",
+          "detail": "until smooth. One Brazil nut a day only if that tin was purchased. Leave it out otherwise."
+        },
+        {
+          "verb": "Drink",
+          "detail": "at morning or lunch. Extractions aren't dinner."
+        }
+      ],
+      "pack001": true
+    },
+    "extract-raspberry-spinach": {
+      "id": "extract-raspberry-spinach",
+      "kind": "extraction",
+      "family": "extraction",
+      "name": "Raspberry Spinach",
+      "tagline": "Thursday morning.",
+      "yield": "1 glass",
+      "prepMin": 8,
+      "cookLabel": "Blend",
+      "lock": "Not dinner.",
+      "band": "morning",
+      "notDinner": true,
+      "timetable": {
+        "bestFor": "Morning or lunch",
+        "bestEaten": "Straight away",
+        "reheat": "Do not reheat"
+      },
+      "tip": "Morning or lunch only.",
+      "ingredients": [
+        {
+          "text": "Frozen raspberries",
+          "skuId": "sainsburys-sku-TBD-119"
+        },
+        {
+          "text": "Baby leaf spinach",
+          "skuId": "sainsburys-sku-TBD-121"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Pour",
+          "detail": "water. Milk or Greek yogurt is an ESTIMATE add and is not on the receipt."
+        },
+        {
+          "verb": "Add",
+          "detail": "Frozen raspberries; Baby leaf spinach."
+        },
+        {
+          "verb": "Blend",
+          "detail": "until smooth. One Brazil nut a day only if that tin was purchased. Leave it out otherwise."
+        },
+        {
+          "verb": "Drink",
+          "detail": "at morning or lunch. Extractions aren't dinner."
+        }
+      ],
+      "pack001": true
+    },
+    "extract-black-forest-spinach": {
+      "id": "extract-black-forest-spinach",
+      "kind": "extraction",
+      "family": "extraction",
+      "name": "Black Forest Spinach",
+      "tagline": "Friday morning.",
+      "yield": "1 glass",
+      "prepMin": 8,
+      "cookLabel": "Blend",
+      "lock": "Not dinner.",
+      "band": "morning",
+      "notDinner": true,
+      "timetable": {
+        "bestFor": "Morning or lunch",
+        "bestEaten": "Straight away",
+        "reheat": "Do not reheat"
+      },
+      "tip": "Morning or lunch only.",
+      "ingredients": [
+        {
+          "text": "Frozen black forest fruits",
+          "skuId": "sainsburys-sku-TBD-118"
+        },
+        {
+          "text": "Baby leaf spinach",
+          "skuId": "sainsburys-sku-TBD-121"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Pour",
+          "detail": "water. Milk or Greek yogurt is an ESTIMATE add and is not on the receipt."
+        },
+        {
+          "verb": "Add",
+          "detail": "Frozen black forest fruits; Baby leaf spinach."
+        },
+        {
+          "verb": "Blend",
+          "detail": "until smooth. One Brazil nut a day only if that tin was purchased. Leave it out otherwise."
+        },
+        {
+          "verb": "Drink",
+          "detail": "at morning or lunch. Extractions aren't dinner."
+        }
+      ],
+      "pack001": true
+    },
+    "extract-mango-date": {
+      "id": "extract-mango-date",
+      "kind": "extraction",
+      "family": "extraction",
+      "name": "Mango Date",
+      "tagline": "Sunday morning.",
+      "yield": "1 glass",
+      "prepMin": 8,
+      "cookLabel": "Blend",
+      "lock": "Not dinner.",
+      "band": "morning",
+      "notDinner": true,
+      "timetable": {
+        "bestFor": "Morning or lunch",
+        "bestEaten": "Straight away",
+        "reheat": "Do not reheat"
+      },
+      "tip": "Morning or lunch only. One Brazil nut a day only if purchased.",
+      "ingredients": [
+        {
+          "text": "Frozen mango chunks",
+          "skuId": "sainsburys-sku-TBD-117"
+        },
+        {
+          "text": "Taste the Difference Medjool dates",
+          "skuId": "sainsburys-sku-TBD-114"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Pour",
+          "detail": "water. Milk or Greek yogurt is an ESTIMATE add and is not on the receipt."
+        },
+        {
+          "verb": "Add",
+          "detail": "Frozen mango chunks; Taste the Difference Medjool dates."
+        },
+        {
+          "verb": "Blend",
+          "detail": "until smooth. One Brazil nut a day only if that tin was purchased. Leave it out otherwise."
+        },
+        {
+          "verb": "Drink",
+          "detail": "at morning or lunch. Extractions aren't dinner."
+        }
+      ],
+      "pack001": true
+    }
+  },
+  "collections": {
+    "collection-potato-pan-pack001": {
+      "id": "collection-potato-pan-pack001",
+      "kind": "collection",
+      "family": "collection",
+      "name": "4 Easy Potato and Pan Recipe Ideas",
+      "tagline": "Visual roundup. Not a plate you can schedule.",
+      "visualOnly": true,
+      "yield": "4 recipes",
+      "prepMin": 0,
+      "cookLabel": "See the child cards",
+      "childCardIds": [
+        "pack001-cheesy-potato-toast",
+        "pack001-paprika-potato-egg-skillet",
+        "pack001-beef-stuffed-potato-boats",
+        "pack001-bread-egg-pan-pizza"
+      ],
+      "timetable": {
+        "bestFor": "Poster only",
+        "bestEaten": "",
+        "reheat": ""
+      },
+      "tip": "Drop the child cards into the week. This poster stays on the library wall.",
+      "ingredients": [
+        {
+          "text": "Four separate cards, not one blob"
+        }
+      ],
+      "method": [
+        {
+          "verb": "Open",
+          "detail": "a child card. Do not schedule this poster."
+        }
+      ],
+      "pack001": true
+    }
+  }
+}

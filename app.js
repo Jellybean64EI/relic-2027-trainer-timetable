@@ -64,6 +64,10 @@
     saveGen: {},
     mode: "full",
     foodRoom: "",
+    foodRefuse: "",
+    foodUndo: null,
+    foodFilter: "all",
+    foodDrag: null,
     foodFocusId: "",
     foodFocusBand: "moderate",
     foodEditing: false,
@@ -721,9 +725,11 @@
     var kcal = card.macros.kcal === "—" || card.macros.kcal === "-" ? "—" : card.macros.kcal + " kcal";
     if (card.macros.basis) kcal += " · " + card.macros.basis;
     return (
-      '<article class="recipe-card" data-kind="' + escapeHtml(card.kind) + '">' +
-        '<p class="recipe-kicker">' + (card.kind === "extraction" ? "SMOOTHIE / EXTRACTION" : "MEAL RECIPE") + "</p>" +
+      '<article class="recipe-card food-forensic" data-kind="' + escapeHtml(card.kind) + '">' +
+        '<p class="recipe-kicker">' + (card.kind === "extraction" ? "SMOOTHIE / EXTRACTION" : (card.family ? String(card.family).toUpperCase() : "MEAL RECIPE")) + "</p>" +
         "<h3>" + escapeHtml(card.name) + "</h3>" +
+        '<p class="food-quick"><span>' + escapeHtml(card.yield || "1") + '</span><span>' +
+          (card.prepMin ? card.prepMin + " min" : "Prep") + "</span><span>" + escapeHtml(card.cookLabel || "Cook") + "</span></p>" +
         (card.scanImage ? '<img class="scan-photo" alt="Label photo" src="' + escapeHtml(card.scanImage) + '">' : "") +
         '<p class="recipe-tagline">' + escapeHtml(card.tagline) + "</p>" +
         '<p class="recipe-script">' + escapeHtml(card.script) + "</p>" +
@@ -738,8 +744,10 @@
         (card.sequence ? '<ol class="extract-sequence">' + card.sequence.map(function (item) {
           return "<li>" + escapeHtml(item) + "</li>";
         }).join("") + "</ol>" : "") +
-        "<h4>Ingredients</h4><ul class=\"recipe-ingredients\">" + ingredients + "</ul>" +
-        "<h4>Method</h4><ol class=\"recipe-method\">" + method + "</ol>" +
+        '<div class="food-body">' +
+          '<div class="food-col"><h4>Ingredients</h4><ul class="recipe-ingredients">' + ingredients + "</ul></div>" +
+          '<div class="food-col"><h4>Method</h4><ol class="recipe-method">' + method + "</ol></div>" +
+        "</div>" +
         '<section class="recipe-weekbox">' +
           "<h4>Weekly Timetable</h4>" +
           "<p><strong>Best for</strong> " + escapeHtml(card.timetable.bestFor) + "</p>" +
@@ -990,6 +998,42 @@
     };
   }
 
+  function packApi() {
+    return window.RELIC_FOOD_PACK001 || null;
+  }
+
+  function presentPack(record) {
+    if (!record) return null;
+    var kind = record.kind === "extraction" ? "extraction" : (record.kind === "collection" ? "collection" : "meal");
+    return {
+      id: record.id,
+      kind: kind,
+      name: record.name,
+      tagline: record.tagline || "",
+      script: record.script || "",
+      yield: record.yield || "",
+      prepMin: record.prepMin || 0,
+      cookLabel: record.cookLabel || "",
+      protein: record.protein || "",
+      carb: record.carb || "",
+      timetable: record.timetable || { bestFor: "", bestEaten: "Fresh", reheat: "" },
+      tip: record.tip || "",
+      macros: record.macros || { kcal: "—", basis: "Pack 001" },
+      ingredients: record.ingredients || [],
+      method: record.method || [],
+      lock: record.lock || (kind === "extraction" ? "Not dinner." : ""),
+      tierFact: record.tierFact || "Pack 001",
+      family: record.family || kind,
+      blockedWithoutAdds: !!record.blockedWithoutAdds,
+      cookEggWhites: !!record.cookEggWhites,
+      visualOnly: !!record.visualOnly,
+      childCardIds: record.childCardIds || null,
+      pack001: true,
+      seed: true,
+      citations: normalizeCitations(record.citations)
+    };
+  }
+
   function cardView(kind, id, tierId) {
     var store = readCardStore();
     var bucket = kind === "extraction" ? store.extractions : store.meals;
@@ -999,6 +1043,14 @@
     if (api && api.present) {
       if (kind === "extraction" && api.cards && api.cards[id]) base = api.present(id, tierId || 1);
       if (kind !== "extraction" && api.meals && api.meals[id]) base = api.present(id, tierId || 1);
+    }
+    if (!base) {
+      var pack = packApi();
+      var seeded = null;
+      if (pack && kind === "extraction") seeded = pack.extractions[id];
+      else if (pack && kind === "collection") seeded = pack.collections[id];
+      else if (pack) seeded = pack.meals[id];
+      if (seeded) base = presentPack(seeded);
     }
     if (overlay && overlay.custom) return customCardView(overlay, kind);
     if (base && overlay) return overlayCard(base, overlay);
@@ -1013,6 +1065,13 @@
     var ids = (api && api.order ? api.order : []).filter(function (id) {
       return hidden.indexOf(id) === -1;
     });
+    var pack = packApi();
+    var seeded = pack ? (kind === "extraction" ? pack.extractions : pack.meals) : null;
+    if (seeded) {
+      Object.keys(seeded).forEach(function (id) {
+        if (hidden.indexOf(id) === -1 && ids.indexOf(id) === -1) ids.push(id);
+      });
+    }
     Object.keys(bucket).forEach(function (id) {
       if (bucket[id] && bucket[id].custom && ids.indexOf(id) === -1) ids.push(id);
     });
@@ -1256,10 +1315,11 @@
   function weekNoteRecord(note) {
     if (!note || typeof note !== "object" || Array.isArray(note)) return null;
     var next = {};
-    if (note.lunch) next.lunch = note.lunch;
-    if (note.mealId) next.mealId = note.mealId;
-    if (note.note) next.note = note.note;
-    if (note.evening) next.evening = note.evening;
+    ["lunch", "mealId", "note", "evening", "extractionId", "morning", "snack"].forEach(function (key) {
+      if (note[key]) next[key] = note[key];
+    });
+    if (note.pinned) next.pinned = true;
+    if (note.cleared) next.cleared = true;
     var cites = normalizeCitations(note.citations);
     if (cites.length) next.citations = cites;
     return Object.keys(next).length ? next : null;
@@ -2130,6 +2190,21 @@
 
   function onShopAction(btn) {
     var action = btn.getAttribute("data-shop-action");
+    if (action === "pack001") {
+      var packDraft = draftFor(state.viewYear, state.viewMonth, true);
+      if (packDraft.locked) return;
+      var pack = packApi();
+      if (!pack) return;
+      var seen = {};
+      (packDraft.items || []).forEach(function (item) { if (item.skuId) seen[item.skuId] = true; });
+      pack.shop.items.forEach(function (item) {
+        if (seen[item.skuId]) return;
+        packDraft.items.push(JSON.parse(JSON.stringify(item)));
+      });
+      saveDraft(packDraft);
+      render();
+      return;
+    }
     if (action === "lock") {
       lockShopMonth();
       return;
@@ -2237,78 +2312,193 @@
     render();
   }
 
-  function paintFuelWeek() {
-    var api = foodSchedule();
-    var days = activeDaysForView();
-    var html = "";
-    var draft = draftFor(state.viewYear, state.viewMonth, false);
-    var lockedPlan = draft && draft.locked && draft.plan;
-    days.forEach(function (day) {
-      var cue = lockedPlan && lockedPlan[day.dateKey] ? lockedPlan[day.dateKey] : api.cueForDay(day);
-      var note = weekNote(day.dateKey) || {};
-      var mealId = cue.mealId;
-      var mealName = cue.mealName;
-      var plate = (cue.portions && cue.portions.label) || "";
-      if (!lockedPlan && note.mealId) {
-        var picked = cardView("meal", note.mealId, cue.tier || 1);
-        if (picked) {
-          mealId = picked.id;
-          mealName = picked.name;
-        }
+  function foodWeekDays() {
+    var year = state.viewYear || 2027;
+    var month = state.viewMonth || 1;
+    var week = state.viewWeek || 1;
+    var last = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    var startDay = week <= 1 ? 1 : week === 2 ? 8 : week === 3 ? 15 : 22;
+    if (startDay > last) startDay = last;
+    var anchor = londonParts(new Date(Date.UTC(year, month - 1, startDay, 12, 0, 0)));
+    var names = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+    var index = names[String(anchor.weekday || "").slice(0, 3)];
+    if (index == null) index = 0;
+    var monday = Date.UTC(anchor.year, anchor.month - 1, anchor.day, 12, 0, 0) - index * 86400000;
+    var days = [];
+    for (var i = 0; i < 7; i++) {
+      var parts = londonParts(new Date(monday + i * 86400000));
+      parts.sunday = i === 6;
+      days.push(parts);
+    }
+    return days;
+  }
+
+  function foodDayModel(dateKey) {
+    var note = weekNote(dateKey) || {};
+    var pack = packApi();
+    var seed = !note.cleared && pack && pack.week ? (pack.week[dateKey] || {}) : {};
+    function pick(key) {
+      if (note.cleared) return note[key] || "";
+      if (note[key]) return note[key];
+      return seed[key] || "";
+    }
+    return {
+      extractionId: pick("extractionId"),
+      morning: pick("morning"),
+      lunch: pick("lunch"),
+      mealId: pick("mealId"),
+      snack: pick("snack"),
+      note: pick("note"),
+      pinned: !!note.pinned
+    };
+  }
+
+  function foodSlotLabel(slot, model) {
+    if (slot === "morning") {
+      if (model.morning && !model.extractionId) return model.morning;
+      var glass = model.extractionId ? cardView("extraction", model.extractionId, 1) : null;
+      return glass ? glass.name : "Add an extraction";
+    }
+    if (slot === "lunch") {
+      var lunchCard = model.lunch ? (cardView("meal", model.lunch, 1) || cardView("extraction", model.lunch, 1)) : null;
+      return lunchCard ? lunchCard.name : (model.lunch || "Add lunch");
+    }
+    var evening = model.mealId ? cardView("meal", model.mealId, 1) : null;
+    return evening ? evening.name : "Add an evening meal";
+  }
+
+  function onFoodWeekAction(btn) {
+    var action = btn.getAttribute("data-week-action");
+    if (action === "pack-week") {
+      state.viewYear = 2026;
+      state.viewMonth = 10;
+      state.viewWeek = 1;
+      state.branch = "bridge";
+      state.userPicked = true;
+      state.foodRefuse = "";
+      render();
+      return;
+    }
+    if (action === "undo" && state.foodUndo) {
+      writeJsonStore(FOOD_WEEK_KEY, state.foodUndo);
+      state.foodUndo = null;
+      state.foodRefuse = "";
+      render();
+      return;
+    }
+    var date = btn.getAttribute("data-date");
+    if (!date) return;
+    if (action === "pin") {
+      var pinned = !!foodDayModel(date).pinned;
+      saveWeekNote(date, { pinned: pinned ? false : true });
+      render();
+      return;
+    }
+    if (action === "copy-lunch") {
+      var days = foodWeekDays();
+      var index = -1;
+      days.forEach(function (day, i) { if (day.dateKey === date) index = i; });
+      if (index <= 0) {
+        state.foodRefuse = "No yesterday in this food week.";
+        render();
+        return;
       }
-      if (!lockedPlan && note.evening) plate = note.evening;
-      var lunch = note.lunch || cue.lunch || "";
-      var cabins = (cue.cabins || []).join(" · ");
-      html += '<tr class="fuel-row is-' + cue.band + '">' +
-        '<td class="day-cell">' +
-          '<button type="button" class="food-date" data-open-room="meals" data-food-meal="' +
-            escapeHtml(mealId) + '" data-food-band="' + escapeHtml(cue.band) + '">' +
-            '<span class="day-name">' + escapeHtml(day.dayName) + "</span>" +
-            '<span class="day-key">' + escapeHtml(day.dateKey) + "</span>" +
-          "</button>" +
-        "</td>" +
-        '<td class="relics-cell"><div class="relic-stack">' +
-          '<button type="button" class="fuel-morning" data-food-extraction="' + escapeHtml(cue.extractionId) +
-            '" data-food-band="' + escapeHtml(cue.band) + '">Morning · ' + escapeHtml(cue.smoothieName || cue.extractionName) + "</button>" +
-          '<button type="button" class="fuel-meal-name" data-food-meal="' + escapeHtml(mealId) +
-            '" data-food-band="' + escapeHtml(cue.band) + '">' + escapeHtml(mealName) + "</button>" +
-          '<p class="fuel-meta">' + escapeHtml(plate) + "</p>" +
-          (lunch ? '<p class="fuel-meta">' + escapeHtml("Lunch · " + lunch) + "</p>" : "") +
-          '<label class="food-note">Lunch note' +
-            '<input data-week-date="' + escapeHtml(day.dateKey) + '" data-week-field="lunch" value="' +
-              escapeHtml(note.lunch || "") + '" placeholder="' + escapeHtml(cue.lunch || "Lunch") + '">' +
-          "</label>" +
-          '<label class="food-note">Citations<textarea data-week-date="' + escapeHtml(day.dateKey) +
-            '" data-week-field="citations" rows="2" placeholder="FOOD_LIVE">' +
-            escapeHtml(Array.isArray(note.citations) ? note.citations.join("\n") : (note.citations || "")) +
-            "</textarea></label>" +
-          '<ul class="week-citations">' +
-            (normalizeCitations(note.citations).length ? normalizeCitations(note.citations) : ["FOOD_LIVE"]).map(function (line) {
-              return "<li>" + escapeHtml(line) + "</li>";
-            }).join("") +
-          "</ul>" +
-          (lockedPlan
-            ? '<label class="food-note">Day note<input data-week-date="' + escapeHtml(day.dateKey) +
-              '" data-week-field="note" value="' + escapeHtml(note.note || "") + '"></label>' +
-              (note.note ? '<p class="fuel-meta">' + escapeHtml(note.note) + "</p>" : "")
-            : '<label class="food-note">Evening meal<select data-week-date="' + escapeHtml(day.dateKey) +
-              '" data-week-field="mealId"><option value="">Suggested plate</option>' +
-              idsForKind("meal").map(function (id) {
-                var card = cardView("meal", id, 1);
-                if (!card) return "";
-                return '<option value="' + escapeHtml(id) + '"' + (note.mealId === id ? " selected" : "") + ">" +
-                  escapeHtml(card.name) + "</option>";
-              }).join("") +
-              "</select></label>" +
-              '<label class="food-note">Evening plate<input data-week-date="' + escapeHtml(day.dateKey) +
-              '" data-week-field="evening" value="' + escapeHtml(note.evening || "") + '"></label>') +
-          '<p class="fuel-portions"><span>' + (cue.fruitPortions || 2) + " fruit</span><span>" +
-            (cue.vegPortions || 3) + " veg</span></p>" +
-          (cabins ? '<p class="food-cabin-chip">' + escapeHtml(cabins) + "</p>" : "") +
-        "</div></td></tr>";
+      saveWeekNote(date, { lunch: foodDayModel(days[index - 1].dateKey).lunch, cleared: "" });
+      state.foodRefuse = "";
+      render();
+      return;
+    }
+    if (action === "fav-evening") {
+      var pins = readCardStore().pins || {};
+      if (!pins.evening) {
+        state.foodRefuse = "Pin a meal first.";
+        render();
+        return;
+      }
+      saveWeekNote(date, { mealId: pins.evening, cleared: "" });
+      state.foodRefuse = "";
+      render();
+      return;
+    }
+    if (action === "clear") {
+      state.foodUndo = readWeekNotes();
+      var notes = readWeekNotes();
+      notes[date] = { cleared: true };
+      writeJsonStore(FOOD_WEEK_KEY, notes);
+      state.foodRefuse = "";
+      render();
+    }
+  }
+
+  function dropFoodCard(date, slot, kind, id) {
+    if (kind === "collection") {
+      state.foodRefuse = "Collections are visual only.";
+      return;
+    }
+    if (slot === "evening" && kind === "extraction") {
+      state.foodRefuse = "Extractions aren't dinner.";
+      return;
+    }
+    if (slot === "morning" && kind !== "extraction") {
+      state.foodRefuse = "Morning wants an extraction.";
+      return;
+    }
+    state.foodRefuse = "";
+    if (slot === "morning") saveWeekNote(date, { extractionId: id, morning: "", cleared: "" });
+    if (slot === "lunch") saveWeekNote(date, { lunch: id, cleared: "" });
+    if (slot === "evening") saveWeekNote(date, { mealId: id, cleared: "" });
+  }
+
+  function paintFuelWeek() {
+    var days = foodWeekDays();
+    var html = "";
+    if (state.foodRefuse) {
+      html += '<p class="food-refuse" role="status">' + escapeHtml(state.foodRefuse) + "</p>";
+    }
+    if (state.foodUndo) {
+      html += '<p class="food-undo"><button type="button" data-week-action="undo">Undo clear notes</button></p>';
+    }
+    html += '<p class="food-week-range">' + escapeHtml(days[0].dateKey) + " → " + escapeHtml(days[6].dateKey) +
+      ' · Monday to Sunday</p>';
+    html += '<button type="button" class="food-pack-jump" data-week-action="pack-week">Pack 001 week</button>';
+    days.forEach(function (day) {
+      var model = foodDayModel(day.dateKey);
+      var snackCard = model.snack ? cardView("meal", model.snack, 1) : null;
+      html += '<article class="food-day' + (day.sunday ? " is-sunday" : "") + (model.pinned ? " is-pinned" : "") + '" data-date="' + escapeHtml(day.dateKey) + '">' +
+        '<header class="food-day-head"><h3>' + escapeHtml(day.weekday) + "</h3>" +
+        "<p>" + escapeHtml(day.dateKey) + "</p>" +
+        (day.sunday ? '<p class="food-sunday-label">Food Prep + Fuel Day</p>' : "") +
+        "</header>" +
+        '<div class="food-slot" data-food-slot="morning" data-date="' + escapeHtml(day.dateKey) + '"><span>Morning</span><strong>' + escapeHtml(foodSlotLabel("morning", model)) + "</strong></div>" +
+        '<div class="food-slot" data-food-slot="lunch" data-date="' + escapeHtml(day.dateKey) + '"><span>Lunch</span><strong>' + escapeHtml(foodSlotLabel("lunch", model)) + "</strong></div>" +
+        '<div class="food-slot" data-food-slot="evening" data-date="' + escapeHtml(day.dateKey) + '"><span>Evening</span><strong>' + escapeHtml(foodSlotLabel("evening", model)) + "</strong></div>" +
+        '<label class="food-note">Notes<textarea data-week-date="' + escapeHtml(day.dateKey) +
+          '" data-week-field="note" rows="2">' + escapeHtml(model.note || "") + "</textarea></label>" +
+        (snackCard ? '<p class="food-snack">Snack · ' + escapeHtml(snackCard.name) +
+          (snackCard.blockedWithoutAdds ? " · if ESTIMATE adds landed" : "") + "</p>" : "") +
+        '<div class="food-day-actions">' +
+          '<button type="button" data-week-action="pin" data-date="' + escapeHtml(day.dateKey) + '">' + (model.pinned ? "Unpin" : "Pin") + "</button>" +
+          '<button type="button" data-week-action="copy-lunch" data-date="' + escapeHtml(day.dateKey) + '">Copy yesterday lunch</button>' +
+          '<button type="button" data-week-action="fav-evening" data-date="' + escapeHtml(day.dateKey) + '">Favourite evening</button>' +
+          '<button type="button" data-week-action="clear" data-date="' + escapeHtml(day.dateKey) + '">Clear notes</button>' +
+        "</div></article>";
     });
+    html += '<div class="food-library" aria-label="Pack 001 library">';
+    idsForKind("extraction").forEach(function (id) {
+      var row = cardView("extraction", id, 1);
+      if (!row || !row.pack001) return;
+      html += '<button type="button" class="food-chip" data-drag-kind="extraction" data-drag-id="' + escapeHtml(id) + '">' + escapeHtml(row.name) + "</button>";
+    });
+    idsForKind("meal").forEach(function (id) {
+      var row = cardView("meal", id, 1);
+      if (!row || !row.pack001) return;
+      html += '<button type="button" class="food-chip" data-drag-kind="meal" data-drag-id="' + escapeHtml(id) + '">' + escapeHtml(row.name) + "</button>";
+    });
+    html += "</div>";
+    var host = $("food-week-days");
+    if (host) host.innerHTML = html;
     var body = $("fuel-body");
-    if (body) body.innerHTML = html;
+    if (body) body.innerHTML = "";
     var weekHost = $("food-weekly");
     if (weekHost && !weekHost.querySelector(".food-tools")) {
       weekHost.insertAdjacentHTML("afterbegin", foodToolsHtml("weekly"));
@@ -2320,11 +2510,7 @@
     var weekPreview = weekHost && weekHost.querySelector(".scan-preview-host");
     if (weekPreview) weekPreview.innerHTML = scanPreviewHtml("weekly");
     var sunday = $("fuel-sunday");
-    if (sunday) {
-      sunday.textContent = lockedPlan
-        ? "Locked prep plan. Sunday is a 45-minute prep, not a plate on this list. Boil eggs for two days and cook the whites. Seven Brazil nuts, one a day. Cabin names are read-only."
-        : "Suggested rotation until you lock the Sainsbury’s list. Sunday is a 45-minute prep, not a plate on this list. Boil eggs for two days and cook the whites. Seven Brazil nuts, one a day. Cabin names are read-only.";
-    }
+    if (sunday) sunday.textContent = "";
   }
 
   function paintShop() {
@@ -2344,7 +2530,21 @@
     var capNote = total <= tier.budgetPence
       ? "Inside " + tier.budgetLabel
       : (total <= stretch ? "Soft stretch to " + (tier.stretchLabel || api.formatGbp(stretch)) : "Over the stretch cap");
-    var html = '<section class="fuel-tier" data-tier="' + tier.id + '">' +
+    var pack = packApi();
+    var budget = pack && pack.budget ? pack.budget : null;
+    var html = "";
+    if (budget) {
+      html += '<section class="food-budget">' +
+        "<p>Trolley £" + budget.trolleyGbp.toFixed(2) + " RECEIPT_TRUE</p>" +
+        "<p>Household £" + budget.householdGbp.toFixed(2) + " out</p>" +
+        "<p>Meal + water £" + budget.mealWaterGbp.toFixed(2) + "</p>" +
+        "<p>Critical Pack 001 adds ESTIMATE ~£" + budget.criticalAddsGbp.toFixed(2) + " → ~£" + budget.mealPlusCriticalGbp.toFixed(2) + "</p>" +
+        (budget.softLockGbp != null ? "<p>Meal-engine soft lock £" + budget.softLockGbp.toFixed(2) + "</p>" : "") +
+        (budget.fullAddsGbp != null ? "<p>Full recommended adds ESTIMATE ~£" + budget.fullAddsGbp.toFixed(2) + "</p>" : "") +
+        '<button type="button" data-shop-action="pack001">Add Pack 001 trolley</button>' +
+        "</section>";
+    }
+    html += '<section class="fuel-tier" data-tier="' + tier.id + '">' +
       '<p class="fuel-tier-label">TIER ' + tier.id + " · " + escapeHtml(tier.budgetLabel) + "/MONTH</p>" +
       '<p class="fuel-tier-range">' + escapeHtml(tier.rangeLabel) + " · " + escapeHtml(tier.stores.join(" / ")) + "</p>" +
       '<p class="fuel-tier-basket">Ticked ' + api.formatGbp(total) + " · " + escapeHtml(capNote) +
@@ -2428,7 +2628,9 @@
           "<strong>" + item.qty + "</strong>" +
           '<button type="button" data-shop-action="qty" data-shop-index="' + index + '" data-shop-delta="1" aria-label="More">+</button>' +
         "</span>" +
-        "<span>" + api.formatGbp(entry ? entry.pricePence * item.qty : linePrice) + "</span>" +
+        "<span>" + api.formatGbp(entry ? entry.pricePence * item.qty : linePrice) +
+          (item.priceStatus ? " " + escapeHtml(item.priceStatus) : "") +
+          (item.household ? " household" : "") + "</span>" +
         '<button type="button" data-shop-action="remove" data-shop-index="' + index + '">Remove</button>' +
         "</li>";
     });
@@ -2463,13 +2665,37 @@
         (card ? cardActionsHtml(card.id) + (state.foodEditing ? editorHtml(card) : magazineCardHtml(card)) : "");
       return;
     }
+    var filter = state.foodFilter || "all";
+    var filters = ["all", "meal", "plate", "side", "snack"];
+    var pack = packApi();
+    var posters = "";
+    if (pack && pack.collections) {
+      Object.keys(pack.collections).forEach(function (id) {
+        var poster = presentPack(pack.collections[id]);
+        posters += '<article class="food-forensic food-collection"><h3>' + escapeHtml(poster.name) +
+          "</h3><p>Visual only. Not a schedule slot.</p>" +
+          (poster.childCardIds || []).map(function (child) {
+            var kid = cardView("meal", child, 1);
+            return '<button type="button" class="food-jump" data-food-meal="' + escapeHtml(child) + '">' +
+              escapeHtml(kid ? kid.name : child) + "</button>";
+          }).join("") + "</article>";
+      });
+    }
     host.innerHTML = foodToolsHtml("meals") + scanStripHtml("meals") + scanPreviewHtml("meals") +
+      '<div class="food-filters">' + filters.map(function (name) {
+        return '<button type="button" data-food-filter="' + name + '"' + (filter === name ? ' aria-pressed="true"' : "") + ">" + name + "</button>";
+      }).join("") + "</div>" +
       '<button type="button" class="food-jump" data-card-action="add">Add a meal card<span>Name, ingredients, method, tip</span></button>' +
+      posters +
       idsForKind("meal").map(function (id) {
         var meal = cardView("meal", id, tier.id);
         if (!meal) return "";
-        return '<button type="button" class="food-jump" data-food-meal="' + escapeHtml(id) + '">' +
-          escapeHtml(meal.name) + "<span>" + escapeHtml(meal.tagline) + "</span></button>";
+        var family = meal.family || "meal";
+        if (filter !== "all" && family !== filter) return "";
+        return '<div class="food-lib-row"><button type="button" class="food-jump" data-drag-kind="meal" data-drag-id="' +
+          escapeHtml(id) + '" data-food-meal="' + escapeHtml(id) + '">' +
+          escapeHtml(meal.name) + "<span>" + escapeHtml(meal.tagline) + "</span></button>" +
+          '<button type="button" data-card-pin="' + escapeHtml(id) + '">Pin evening</button></div>';
       }).join("");
   }
 
@@ -2492,7 +2718,8 @@
       idsForKind("extraction").map(function (id) {
         var row = cardView("extraction", id, tier.id);
         if (!row) return "";
-        return '<button type="button" class="food-jump" data-food-extraction="' + escapeHtml(id) + '">' +
+        return '<button type="button" class="food-jump" data-drag-kind="extraction" data-drag-id="' +
+          escapeHtml(id) + '" data-food-extraction="' + escapeHtml(id) + '">' +
           escapeHtml(row.name) + "<span>" + escapeHtml(row.tagline) + "</span></button>";
       }).join("");
   }
@@ -3683,7 +3910,72 @@
     });
     var foodBoard = $("food-board");
     if (foodBoard) {
+      var dragTimer = 0;
+      foodBoard.addEventListener("pointerdown", function (event) {
+        var chip = event.target.closest("[data-drag-kind]");
+        if (!chip) return;
+        clearTimeout(dragTimer);
+        dragTimer = setTimeout(function () {
+          state.foodDrag = {
+            kind: chip.getAttribute("data-drag-kind"),
+            id: chip.getAttribute("data-drag-id")
+          };
+          foodBoard.classList.add("is-food-drag");
+          document.querySelectorAll("[data-food-slot]").forEach(function (slot) {
+            var name = slot.getAttribute("data-food-slot");
+            var kind = state.foodDrag.kind;
+            var ok = !(name === "evening" && kind === "extraction") && !(name === "morning" && kind !== "extraction");
+            slot.classList.toggle("is-valid", ok);
+            slot.classList.toggle("is-invalid", !ok);
+          });
+        }, 420);
+      });
+      foodBoard.addEventListener("pointerup", function (event) {
+        clearTimeout(dragTimer);
+        if (!state.foodDrag) return;
+        state.foodDragMoved = true;
+        var slot = document.elementFromPoint(event.clientX, event.clientY);
+        var target = slot && slot.closest ? slot.closest("[data-food-slot]") : null;
+        if (target) dropFoodCard(target.getAttribute("data-date"), target.getAttribute("data-food-slot"), state.foodDrag.kind, state.foodDrag.id);
+        state.foodDrag = null;
+        foodBoard.classList.remove("is-food-drag");
+        document.querySelectorAll("[data-food-slot]").forEach(function (node) {
+          node.classList.remove("is-valid");
+          node.classList.remove("is-invalid");
+        });
+        render();
+      });
+      foodBoard.addEventListener("pointercancel", function () {
+        clearTimeout(dragTimer);
+        state.foodDrag = null;
+        foodBoard.classList.remove("is-food-drag");
+      });
       foodBoard.addEventListener("click", function (event) {
+        if (state.foodDragMoved) {
+          state.foodDragMoved = false;
+          event.preventDefault();
+          return;
+        }
+        var weekAct = event.target.closest("[data-week-action]");
+        if (weekAct) {
+          onFoodWeekAction(weekAct);
+          return;
+        }
+        var filterBtn = event.target.closest("[data-food-filter]");
+        if (filterBtn) {
+          state.foodFilter = filterBtn.getAttribute("data-food-filter") || "all";
+          render();
+          return;
+        }
+        var pinBtn = event.target.closest("[data-card-pin]");
+        if (pinBtn) {
+          var store = readCardStore();
+          store.pins = { evening: pinBtn.getAttribute("data-card-pin") };
+          writeJsonStore(FOOD_CARDS_KEY, store);
+          state.foodRefuse = "";
+          render();
+          return;
+        }
         if (event.target.closest("#btn-food-close")) {
           closeFoodRoom();
           return;
@@ -4003,7 +4295,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v20.2",
+    build: "v21",
     get nutrition() {
       return {
         shop: foodShop(),

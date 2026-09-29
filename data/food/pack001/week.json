@@ -1,0 +1,44 @@
+{
+  "room": "weekly",
+  "build": "v21",
+  "notes": {
+    "2026-09-28": {
+      "extractionId": "extract-summer-spinach-date",
+      "lunch": "pack001-bread-egg-pan-pizza",
+      "mealId": "plate-chicken-mixed-veg"
+    },
+    "2026-09-29": {
+      "extractionId": "extract-cherry-cream",
+      "lunch": "plate-chicken-leftover-spinach",
+      "mealId": "plate-turkey-mince-mixed-veg"
+    },
+    "2026-09-30": {
+      "extractionId": "extract-blueberry-mango",
+      "lunch": "plate-cheese-mini-fruit",
+      "mealId": "pack001-beef-stuffed-potato-boats"
+    },
+    "2026-10-01": {
+      "extractionId": "extract-raspberry-spinach",
+      "lunch": "plate-turkey-leftover-bowl",
+      "mealId": "plate-chicken-tray-veg"
+    },
+    "2026-10-02": {
+      "extractionId": "extract-black-forest-spinach",
+      "lunch": "pack001-paprika-potato-egg-skillet",
+      "mealId": "plate-turkey-mince-mixed-veg"
+    },
+    "2026-10-03": {
+      "morning": "Coffee · Nescafé Gold, syrup optional",
+      "lunch": "pack001-cheesy-roasted-garlic-bread",
+      "mealId": "plate-ttd-burger-brioche",
+      "snack": "pack001-crispy-potato-bites",
+      "note": "Saturday morning is coffee, not an extraction. Snack only if the ESTIMATE potato adds landed."
+    },
+    "2026-10-04": {
+      "extractionId": "extract-mango-date",
+      "lunch": "plate-leftover-roast",
+      "mealId": "plate-batch-chicken-veg",
+      "note": "Prep: bag_7_extraction_kits. Boil eggs for 2 days and cook the whites. Brazil tin ×7 if purchased. One Brazil nut a day."
+    }
+  }
+}

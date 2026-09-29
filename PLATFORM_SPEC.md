@@ -5,7 +5,7 @@
 **Coach archive:** NiX  
 **Timezone:** Europe/London (always)  
 **Runtime:** static HTML / CSS / JS. No build step. No npm.  
-**Cache bust:** `?v=v20.2` on every stylesheet and script in `index.html`
+**Cache bust:** `?v=v21` on every stylesheet and script in `index.html`
 
 Footer motto (exact):
 
@@ -201,7 +201,7 @@ Evaluate on each timetable render and whenever a completion is upserted. Do not 
 
 ## 7. Cache
 
-`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v20.2`. The `relic-build` meta is `v20.2`. The in-memory month-row cache key is `{year}:{mode}:{month}`.
+`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v21`. The `relic-build` meta is `v21`. The in-memory month-row cache key is `{year}:{mode}:{month}`.
 
 ---
 
@@ -247,7 +247,7 @@ index.html?date=2027-01-04&setsec=3   → coach set length 3 seconds. At 00:00 t
 2. Clips stream from Supabase public URLs. At `00:00` the opened citation is credited and, once that set is finished, the player closes and the timetable is showing. Duration overwrites remaining time and `SET_DURATION_SEC`. Add More Time only stacks onto remaining time. Next still advances a clip without crediting it.
 3. The table is exactly DAY / TRAINING RELICS / DONE at 20% / 70% / 10%.
 4. Ticks upsert `relic_completions`.
-5. `vercel.json` no-cache plus `?v=v20.2` on assets. The `relic-build` meta is `v20.2`. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome. A drag past 18px does not. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph. The forensic CUE tab slides up from the bottom, does not reset that timer, and does not reload the video.
+5. `vercel.json` no-cache plus `?v=v21` on assets. The `relic-build` meta is `v21`. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome. A drag past 18px does not. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph. The forensic CUE tab slides up from the bottom, does not reset that timer, and does not reload the video.
 6. `schedule.js` `MONTH_ROTATIONS` stays the Full Body lock. Upper Body data is additive.
 7. A week chip has a SINGLE slot and a DUAL slot. At 100% dual the chip is rich green, the dual slot shows an orange `#ff8c00` double-tick shield and the aggregate tick count, and the single slot stays a separate dark module. Day DONE cells use a compact box or a single/double shield, with a 44px hit target. Month chips and `#year-badge` use the same score and light up only at 100%. Week 4 labels read `WEEK 4`. The deload hint does not render. Calisthenics appears only in October–December 2027.
 8. The toggle immediately under the timetable swaps Full Body and Upper Body without a reload. The drawer’s Full Body and Upper Body rows call the same `setScheduleMode`. Ambient Hub switches the 2026 bridge and the 2027 year. The motto and metadata stay under that toggle. Each mode shows only its own ticks and shield badges.
@@ -306,7 +306,7 @@ Four drawer rows sit under Food and Prep. Each opens one board:
 
 | Row | Board |
 |-----|--------|
-| Weekly Food Schedule | Mon–Sat rows for the month and week already on screen. Each row names the morning smoothie, the dinner as a household portion (or a Drive card gram where the card states one), lunch, and 2 fruit + 3 veg. Sunday stays off the list. Cabin names are read-only text. |
+| Weekly Food Schedule | Monday–Sunday day cards for the ISO week of the month bucket on screen. Sunday is labelled Food Prep + Fuel Day and keeps Morning, Lunch, Evening, and Notes. Training rest never hides Sunday. |
 | Monthly Foods (Sainsbury’s) | Editable Sainsbury’s list (tick, quantity, add, remove), NPQ laws, and Lock. |
 | Meal Recipe Cards | Forensic magazine cards. Cream `#FCF5E8` interior, oak `#1F1812` panels, brass `#C9A227` accents. |
 | Smoothie / Extraction Cards | Morning 3000W card only. Order is liquid, frozen fruit, citrus, hemp, blend, cheesecloth strain, then botanicals. |
@@ -324,7 +324,7 @@ Shopping lists: `2026-10`, `2026-11`, `2026-12`, `2027-01`, and the February-onw
 
 ### Dietary baseline
 
-Allowed proteins: Chicken, Turkey Mince, Beef Mince, Salmon, Eggs. Allowed carbs: Potatoes and Rice. The FOOD_LIVE week is Mon eggs at lunch and chicken in the evening, Tue salmon, Wed eggs with mushrooms and greens, Thu chicken thigh tray, Fri eggs at lunch and salmon or white fish in the evening, Sat a cooked breakfast with eggs and beef boats. Sunday stays off the food grid and holds a 45-minute prep note, including boiled eggs for two days. Egg whites are cooked. Taste the Difference free-range eggs come first, then SO Organic free-range, then standard free-range. Brazil nuts are capped at one a day. Smoothies are morning or a lunch refresh only.
+Allowed proteins: Chicken, Turkey Mince, Beef Mince, Salmon, Eggs. Allowed carbs: Potatoes and Rice. The food week is always Monday–Sunday, including Sunday on a training rest day. Pack 001 lives in `data/food/pack001.js` and the object-root JSON under `data/food/pack001/`. Sunday prep stays in the day note until first-class prep fields exist. Egg whites are cooked. Taste the Difference free-range eggs come first, then SO Organic free-range, then standard free-range. Brazil nuts are capped at one a day. Smoothies are morning or a lunch refresh only. An evening extraction is refused with `Extractions aren't dinner.`
 
 ### NPQ laws
 
