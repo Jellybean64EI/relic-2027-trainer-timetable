@@ -1165,7 +1165,9 @@
         "<h3>Preview</h3><p>" + escapeHtml(preview.error) + "</p>" +
         '<button type="button" data-scan-action="cancel">Cancel</button></section>';
     }
-    var note = preview.note || "Edit the fields, then save. Cancel discards this draft.";
+    var note = preview.note || ((preview.mode === "module" || preview.mode === "notes")
+      ? "Edit the JSON, then save. Cancel discards this draft."
+      : "Edit the fields, then save. Cancel discards this draft.");
     var json = escapeHtml(JSON.stringify(scanExport(preview), null, 2));
     if (preview.mode === "card" || preview.mode === "photo") {
       var card = preview.card;
