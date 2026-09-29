@@ -6160,11 +6160,13 @@
     document.querySelectorAll("[data-set-mode]").forEach(function (opt) {
       opt.addEventListener("click", function () {
         setScheduleMode(opt.getAttribute("data-set-mode"));
+        setNavOpen(false);
       });
     });
     document.querySelectorAll("[data-set-branch]").forEach(function (opt) {
       opt.addEventListener("click", function () {
         setBranch(opt.getAttribute("data-set-branch"));
+        setNavOpen(false);
       });
     });
     document.querySelectorAll("[data-os-door]").forEach(function (doorBtn) {
@@ -6595,7 +6597,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v24",
+    build: "v24.1",
     get nutrition() {
       return {
         shop: foodShop(),
