@@ -834,10 +834,11 @@
     return SHOP_TAGS[item && item.skuId] || "other";
   }
 
-  function tagSelectHtml(selected, attrs) {
-    var current = normalizeTag(selected) || "other";
-    return "<select " + attrs + ">" + SHOP_TAG_ORDER.map(function (tag) {
-      return '<option value="' + tag + '"' + (tag === current ? " selected" : "") + ">" + tag + "</option>";
+  function tagSelectHtml(selected, attrs, allowEmpty) {
+    var current = normalizeTag(selected) || (allowEmpty ? "" : "other");
+    var tags = allowEmpty ? [""].concat(SHOP_TAG_ORDER) : SHOP_TAG_ORDER;
+    return "<select " + attrs + ">" + tags.map(function (tag) {
+      return '<option value="' + tag + '"' + (tag === current ? " selected" : "") + ">" + (tag || "none") + "</option>";
     }).join("") + "</select>";
   }
 
@@ -1040,6 +1041,16 @@
       render();
       return;
     }
+    if (looksLikeZip(text)) {
+      state.scanPreview = { room: room, error: "Import accepts a JSON object, not a ZIP." };
+      render();
+      return;
+    }
+    if (text.charAt(0) === "[") {
+      state.scanPreview = { room: room, error: "Import accepts a JSON object, not a list." };
+      render();
+      return;
+    }
     try {
       state.scanPreview = previewFromJson(JSON.parse(text), room);
     } catch (err) {
@@ -1091,36 +1102,140 @@
 
   function normalizeIngredients(list) {
     if (!Array.isArray(list)) return [];
-    return list.map(function (item) {
-      if (typeof item === "string") return { text: item };
-      return { text: (item && item.text) || "" };
-    }).filter(function (item) { return item.text; });
+    return list.map(function (item) { return ingredientRecord(item); }).filter(function (item) { return item.text || item.skuId; });
   }
 
   function normalizeMethod(list) {
     if (!Array.isArray(list)) return [];
-    return list.map(function (step) {
-      if (typeof step === "string") return methodFromLines(step)[0] || { verb: "Do", detail: step };
-      return { verb: (step && step.verb) || "Do", detail: (step && step.detail) || "" };
+    return list.map(function (step) { return methodRecord(step); }).filter(function (step) { return step.verb || step.detail; });
+  }
+
+  var CARD_FORWARD = ["macros", "tags", "timetable", "band", "lock", "provenance", "citations", "tag", "script", "sequence", "yield", "prepMin", "cookLabel", "protein", "carb"];
+
+  function looksLikeZip(text, name) {
+    if (name && /\.zip$/i.test(name)) return true;
+    var raw = String(text || "");
+    return raw.charCodeAt(0) === 80 && raw.charCodeAt(1) === 75 && raw.charCodeAt(2) === 3 && raw.charCodeAt(3) === 4;
+  }
+
+  function runtimeKind(kind) {
+    var value = String(kind || "").toLowerCase();
+    if (value === "smoothie" || value === "extraction") return "extraction";
+    if (value === "meal") return "meal";
+    return "";
+  }
+
+  function copyForward(target, source, overwrite) {
+    if (!source) return target;
+    CARD_FORWARD.forEach(function (key) {
+      if (key === "citations" || key === "tag") return;
+      var value = source[key];
+      if (value == null || value === "") return;
+      if (Array.isArray(value) && !value.length) return;
+      if (!overwrite) {
+        var current = target[key];
+        if (current != null && current !== "" && !(Array.isArray(current) && !current.length)) return;
+      }
+      target[key] = value;
+    });
+    return target;
+  }
+
+  function ingredientRecord(item, prior) {
+    var text = typeof item === "string" ? item : ((item && item.text) || "");
+    var row = { text: text };
+    var source = item && typeof item === "object" ? item : null;
+    if (source) {
+      Object.keys(source).forEach(function (key) {
+        if (key === "text") return;
+        if (source[key] != null && source[key] !== "") row[key] = source[key];
+      });
+    }
+    if (!row.skuId && prior && prior.skuId && prior.text === text) row.skuId = prior.skuId;
+    return row;
+  }
+
+  function methodRecord(step, prior) {
+    var base = typeof step === "string"
+      ? (methodFromLines(step)[0] || { verb: "Do", detail: step })
+      : { verb: (step && step.verb) || "", detail: (step && step.detail) || "" };
+    if (prior && prior.verb === base.verb && prior.detail === base.detail) {
+      Object.keys(prior).forEach(function (key) {
+        if (key === "verb" || key === "detail") return;
+        if (prior[key] != null && prior[key] !== "") base[key] = prior[key];
+      });
+    }
+    if (step && typeof step === "object") {
+      Object.keys(step).forEach(function (key) {
+        if (key === "verb" || key === "detail") return;
+        if (step[key] != null && step[key] !== "") base[key] = step[key];
+      });
+    }
+    return base;
+  }
+
+  function overlayRecord(data, kind, existing) {
+    var source = data || {};
+    var prior = existing || {};
+    var ingredients = (source.ingredients || []).map(function (item, index) {
+      return ingredientRecord(item, (prior.ingredients || [])[index]);
+    }).filter(function (row) { return row.text || row.skuId; });
+    var method = (source.method || []).map(function (step, index) {
+      return methodRecord(step, (prior.method || [])[index]);
     }).filter(function (step) { return step.verb || step.detail; });
+    var record = {
+      id: source.id || prior.id || newCardId(),
+      name: source.name || "",
+      tagline: source.tagline || "",
+      ingredients: ingredients,
+      method: method,
+      tip: source.tip || "",
+      scanImage: typeof source.scanImage === "string" ? source.scanImage : (prior.scanImage || "")
+    };
+    if (source.custom || prior.custom) record.custom = true;
+    var storedKind = runtimeKind(source.kind || prior.kind || kind || "");
+    if (storedKind) record.kind = storedKind;
+    copyForward(record, prior, false);
+    copyForward(record, source, true);
+    if (Object.prototype.hasOwnProperty.call(source, "citations")) {
+      var cites = normalizeCitations(source.citations);
+      if (cites.length) record.citations = cites;
+      else delete record.citations;
+    } else if (prior.citations) {
+      var keptCites = normalizeCitations(prior.citations);
+      if (keptCites.length) record.citations = keptCites;
+    }
+    if (Object.prototype.hasOwnProperty.call(source, "tag")) {
+      var tag = normalizeTag(source.tag);
+      if (tag) record.tag = tag;
+      else delete record.tag;
+    } else {
+      var keptTag = normalizeTag(prior.tag);
+      if (keptTag) record.tag = keptTag;
+    }
+    return record;
+  }
+
+  function weekNoteRecord(note) {
+    if (!note || typeof note !== "object" || Array.isArray(note)) return null;
+    var next = {};
+    if (note.lunch) next.lunch = note.lunch;
+    if (note.mealId) next.mealId = note.mealId;
+    if (note.note) next.note = note.note;
+    if (note.evening) next.evening = note.evening;
+    var cites = normalizeCitations(note.citations);
+    if (cites.length) next.citations = cites;
+    return Object.keys(next).length ? next : null;
   }
 
   function cardFromRecord(data, kind) {
-    var ingredients = normalizeIngredients(data.ingredients);
-    var method = normalizeMethod(data.method);
-    return {
-      id: data.id || newCardId(),
-      custom: true,
-      kind: kind,
-      name: data.name || "",
-      tagline: data.tagline || "",
-      ingredients: ingredients.length ? ingredients : [{ text: "" }],
-      method: method.length ? method : [{ verb: "", detail: "" }],
-      tip: data.tip || "",
-      scanImage: typeof data.scanImage === "string" ? data.scanImage : "",
-      citations: normalizeCitations(data.citations),
-      tag: normalizeTag(data.tag)
-    };
+    var runtime = runtimeKind(data && data.kind) || runtimeKind(kind) || "meal";
+    var record = overlayRecord(data, runtime, data);
+    record.custom = true;
+    record.kind = runtime;
+    if (!record.ingredients.length) record.ingredients = [{ text: "" }];
+    if (!record.method.length) record.method = [{ verb: "", detail: "" }];
+    return record;
   }
 
   function shopLinesFromText(text) {
@@ -1147,8 +1262,11 @@
   function parseFreeform(text, room) {
     var raw = String(text || "").trim();
     if (!raw) return { room: room, error: "Paste a note first." };
-    if (raw.charAt(0) === "{" || raw.charAt(0) === "[") {
-      try { return previewFromJson(JSON.parse(raw), room); } catch (err) { /* keep reading it as notes */ }
+    if (looksLikeZip(raw)) return { room: room, error: "Import accepts a JSON object, not a ZIP." };
+    if (raw.charAt(0) === "[") return { room: room, error: "Import accepts a JSON object, not a list." };
+    if (raw.charAt(0) === "{") {
+      try { return previewFromJson(JSON.parse(raw), room); }
+      catch (err) { return { room: room, error: "That paste is not JSON yet." }; }
     }
     if (room === "shop") {
       var draft = draftFor(state.viewYear, state.viewMonth, true);
@@ -1212,8 +1330,8 @@
   }
 
   function previewFromJson(data, room) {
-    if (!data || typeof data !== "object" || Array.isArray(data)) {
-      return { room: room, error: "That paste is not Relic JSON." };
+    if (Array.isArray(data) || !data || typeof data !== "object") {
+      return { room: room, error: "Import accepts a JSON object, not a list." };
     }
     var kindRoom = importKindRoom(data);
     if ((data.room && data.room !== room) || (kindRoom && kindRoom !== room)) {
@@ -1222,22 +1340,21 @@
     if (room === "weekly") {
       if (kindRoom === "weekly" || (data.dateKey && !data.notes)) {
         if (!data.dateKey) return { room: room, error: "A week day needs a dateKey." };
-        var dayNote = {
-          lunch: data.lunch || "",
-          mealId: data.mealId || "",
-          evening: data.evening || "",
-          note: data.note || "",
-          citations: normalizeCitations(data.citations)
-        };
-        if (!dayNote.citations.length) dayNote.citations = ["FOOD_LIVE"];
+        var dayNote = weekNoteRecord(data);
+        if (!dayNote) return { room: room, error: "Weekly JSON needs lunch, mealId, or note." };
         var dayNotes = {};
         dayNotes[data.dateKey] = dayNote;
-        return { room: room, mode: "notes", module: { room: "weekly", notes: dayNotes } };
+        return { room: room, mode: "notes", module: { notes: dayNotes } };
       }
       if (!data.notes || typeof data.notes !== "object" || Array.isArray(data.notes)) {
         return { room: room, error: "Weekly JSON needs a notes object." };
       }
-      return { room: room, mode: "notes", module: data };
+      var notes = {};
+      Object.keys(data.notes).forEach(function (key) {
+        var next = weekNoteRecord(data.notes[key]);
+        if (next) notes[key] = next;
+      });
+      return { room: room, mode: "notes", module: { notes: notes } };
     }
     if (room === "shop") {
       var draft = draftFor(state.viewYear, state.viewMonth, true);
@@ -1250,7 +1367,7 @@
       return { room: room, mode: "module", module: data };
     }
     if (data.name) {
-      var cardKind = room === "extractions" || kindRoom === "extractions" ? "extraction" : "meal";
+      var cardKind = runtimeKind(data.kind) || (room === "extractions" || kindRoom === "extractions" ? "extraction" : "meal");
       return { room: room, mode: "card", card: cardFromRecord(data, cardKind) };
     }
     return { room: room, error: "That JSON has no card." };
@@ -1291,17 +1408,20 @@
     if (!preview) return {};
     if (preview.mode === "card" || preview.mode === "photo") {
       var card = preview.card || {};
-      return {
+      var exported = {
         id: card.id,
         name: card.name,
         tagline: card.tagline,
         ingredients: card.ingredients,
         method: card.method,
         tip: card.tip,
-        citations: card.citations || [],
-        tag: card.tag || "",
         scanImage: photoMarker(card.scanImage)
       };
+      if (card.kind) exported.kind = card.kind;
+      copyForward(exported, card, false);
+      if (card.citations && card.citations.length) exported.citations = card.citations;
+      if (card.tag) exported.tag = card.tag;
+      return exported;
     }
     if (preview.mode === "shop") {
       return { room: "shop", lines: preview.lines || [], scanImage: photoMarker(preview.scanImage) };
@@ -1334,7 +1454,7 @@
         '<label>Method, one step each line <textarea data-scan-field="method" rows="5">' +
           escapeHtml(methodToText(card.method)) + "</textarea></label>" +
         '<label>Tip <textarea data-scan-field="tip" rows="3">' + escapeHtml(card.tip) + "</textarea></label>" +
-        "<label>Category " + tagSelectHtml(card.tag, 'data-scan-field="tag"') + "</label>" +
+        "<label>Category " + tagSelectHtml(card.tag, 'data-scan-field="tag"', true) + "</label>" +
         '<label>Citations, one line each <textarea data-scan-field="citations" rows="4">' +
           escapeHtml(citationsToText(card.citations)) + "</textarea></label>" +
         '<pre class="scan-json">' + json + "</pre>" +
@@ -1379,10 +1499,16 @@
         var el = root.querySelector('[data-scan-field="' + name + '"]');
         return el ? el.value : "";
       }
+      var priorIngredients = (preview.card.ingredients || []).slice();
+      var priorMethod = (preview.card.method || []).slice();
       preview.card.name = fieldValue("name").trim();
       preview.card.tagline = fieldValue("tagline").trim();
-      preview.card.ingredients = linesOf(fieldValue("ingredients")).map(function (text) { return { text: text }; });
-      preview.card.method = methodFromLines(fieldValue("method"));
+      preview.card.ingredients = linesOf(fieldValue("ingredients")).map(function (text, index) {
+        return ingredientRecord(text, priorIngredients[index]);
+      });
+      preview.card.method = methodFromLines(fieldValue("method")).map(function (step, index) {
+        return methodRecord(step, priorMethod[index]);
+      });
       preview.card.tip = fieldValue("tip").trim();
       preview.card.citations = linesOf(fieldValue("citations"));
       preview.card.tag = normalizeTag(fieldValue("tag"));
@@ -1417,17 +1543,16 @@
   }
 
   function applyFoodModule(room, data) {
-    if (!data || typeof data !== "object" || Array.isArray(data)) return "That paste is not Relic JSON.";
+    if (Array.isArray(data) || !data || typeof data !== "object") return "Import accepts a JSON object, not a list.";
     if (data.room && data.room !== room) return "That JSON belongs to the " + data.room + " room.";
     if (room === "weekly") {
       if (!data.notes || typeof data.notes !== "object" || Array.isArray(data.notes)) return "Weekly JSON needs a notes object.";
+      var notes = {};
       Object.keys(data.notes).forEach(function (key) {
-        var note = data.notes[key];
-        if (!note || typeof note !== "object") return;
-        note.citations = normalizeCitations(note.citations);
-        if (!note.citations.length) note.citations = ["FOOD_LIVE"];
+        var next = weekNoteRecord(data.notes[key]);
+        if (next) notes[key] = next;
       });
-      writeJsonStore(FOOD_WEEK_KEY, data.notes);
+      writeJsonStore(FOOD_WEEK_KEY, notes);
       return "";
     }
     if (room === "shop") {
@@ -1451,17 +1576,31 @@
       return "";
     }
     var store = readCardStore();
+    var fallbackKind = room === "extractions" ? "extraction" : "meal";
     var cards = data.cards && typeof data.cards === "object" && !Array.isArray(data.cards) ? data.cards : null;
     if (!cards && data.name) {
+      var one = overlayRecord(data, runtimeKind(data.kind) || fallbackKind, data);
+      one.custom = true;
+      one.kind = runtimeKind(data.kind) || fallbackKind;
       cards = {};
-      cards[data.id || newCardId()] = data;
+      cards[one.id] = one;
     }
     if (!cards) return "That JSON has no card.";
+    var saved = {};
+    Object.keys(cards).forEach(function (key) {
+      var card = cards[key];
+      if (!card || typeof card !== "object" || Array.isArray(card)) return;
+      var runtime = runtimeKind(card.kind) || fallbackKind;
+      var record = overlayRecord(Object.assign({ id: key }, card), runtime, card);
+      record.kind = runtime;
+      if (card.custom) record.custom = true;
+      saved[record.id || key] = record;
+    });
     if (room === "extractions") {
-      store.extractions = cards;
+      store.extractions = saved;
       if (Array.isArray(data.hidden)) store.hiddenExtractions = data.hidden;
     } else {
-      store.meals = cards;
+      store.meals = saved;
       if (Array.isArray(data.hidden)) store.hiddenMeals = data.hidden;
     }
     writeJsonStore(FOOD_CARDS_KEY, store);
@@ -1479,24 +1618,19 @@
       var card = preview.card;
       var kind = preview.room === "extractions" ? "extraction" : "meal";
       if (!card.name) card.name = card.scanImage ? "Label photo" : (kind === "extraction" ? "Scanned smoothie" : "Scanned meal");
+      card.ingredients = (card.ingredients || []).filter(function (row) { return row && (row.text || row.skuId); });
+      card.method = (card.method || []).filter(function (step) { return step && (step.verb || step.detail); });
       if (!card.ingredients.length) card.ingredients = [{ text: "Add an ingredient" }];
       if (!card.method.length) {
         card.method = card.scanImage
           ? [{ verb: "Fill", detail: "the fields from the label" }]
           : [{ verb: "Cook", detail: "until done" }];
       }
-      saveCardRecord(kind, card.id, {
-        id: card.id,
-        custom: true,
-        name: card.name,
-        tagline: card.tagline,
-        ingredients: card.ingredients,
-        method: card.method,
-        tip: card.tip,
-        citations: carriedCitations(card),
-        tag: normalizeTag(card.tag),
-        scanImage: card.scanImage || ""
-      });
+      var savedCard = overlayRecord(card, kind, card);
+      savedCard.custom = true;
+      savedCard.kind = kind;
+      savedCard.id = card.id;
+      saveCardRecord(kind, card.id, savedCard);
       state.foodFocusId = card.id;
       state.foodEditing = false;
     } else if (preview.mode === "shop") {
@@ -1586,8 +1720,20 @@
     }
     var textReader = new FileReader();
     textReader.onload = function () {
+      var text = String(textReader.result || "");
+      if (looksLikeZip(text, file.name)) {
+        state.scanPreview = { room: room, error: "Import accepts a JSON object, not a ZIP." };
+        render();
+        return;
+      }
+      var trimmed = text.trim();
+      if (trimmed.charAt(0) === "[") {
+        state.scanPreview = { room: room, error: "Import accepts a JSON object, not a list." };
+        render();
+        return;
+      }
       try {
-        state.scanPreview = previewFromJson(JSON.parse(String(textReader.result || "")), room);
+        state.scanPreview = previewFromJson(JSON.parse(trimmed), room);
       } catch (err) {
         state.scanPreview = { room: room, error: "That file is not JSON." };
       }
@@ -1622,9 +1768,9 @@
       "<label>Method, one step each line <textarea data-field=\"method\" rows=\"6\">" +
         escapeHtml(methodToText(card.method)) + "</textarea></label>" +
       "<label>Tip <textarea data-field=\"tip\" rows=\"3\">" + escapeHtml(card.tip) + "</textarea></label>" +
-      "<label>Category " + tagSelectHtml(card.tag, 'data-field="tag"') + "</label>" +
+      "<label>Category " + tagSelectHtml(card.tag, 'data-field="tag"', true) + "</label>" +
       '<label>Citations, one line each <textarea data-field="citations" rows="4">' +
-        escapeHtml(citationsToText(derivedCitations(card).length ? derivedCitations(card) : carriedCitations(card))) +
+        escapeHtml(citationsToText(derivedCitations(card))) +
         "</textarea></label>" +
       '<button type="button" data-card-action="save">Save card</button>' +
       '<button type="button" data-card-action="cancel">Cancel</button>' +
@@ -1647,17 +1793,22 @@
     var tierId = shop ? shop.tierFor(state.viewYear, state.viewMonth).id : 1;
     if (action === "add") {
       id = newCardId();
-      saveCardRecord(kind, id, {
+      var fresh = overlayRecord({
         id: id,
         custom: true,
+        kind: kind,
         name: kind === "extraction" ? "New smoothie" : "New meal",
         tagline: "",
         ingredients: [{ text: "" }],
         method: [{ verb: "Cook", detail: "" }],
         tip: "",
-        citations: ["FOOD_LIVE"],
-        tag: ""
-      });
+        citations: ["FOOD_LIVE"]
+      }, kind);
+      if (!fresh.ingredients.length) fresh.ingredients = [{ text: "" }];
+      if (!fresh.method.length) fresh.method = [{ verb: "Cook", detail: "" }];
+      fresh.custom = true;
+      fresh.kind = kind;
+      saveCardRecord(kind, id, fresh);
       state.foodFocusId = id;
       state.foodEditing = true;
       render();
@@ -1687,21 +1838,31 @@
       var store = readCardStore();
       var bucket = kind === "extraction" ? store.extractions : store.meals;
       var existing = bucket[id] || {};
-      var record = {
+      var viewed = cardView(kind, id, tierId) || {};
+      var priorIngredients = (existing.ingredients && existing.ingredients.length) ? existing.ingredients : (viewed.ingredients || []);
+      var priorMethod = (existing.method && existing.method.length) ? existing.method : (viewed.method || []);
+      var form = {
         id: id,
-        custom: !!existing.custom,
+        kind: runtimeKind(existing.kind) || kind,
         name: nameEl ? nameEl.value.trim() : "",
         tagline: tagEl ? tagEl.value.trim() : "",
-        ingredients: linesOf(ingEl ? ingEl.value : "").map(function (text) { return { text: text }; }),
-        method: methodFromLines(methodEl ? methodEl.value : ""),
+        ingredients: linesOf(ingEl ? ingEl.value : "").map(function (text, index) {
+          return ingredientRecord(text, priorIngredients[index]);
+        }),
+        method: methodFromLines(methodEl ? methodEl.value : "").map(function (step, index) {
+          return methodRecord(step, priorMethod[index]);
+        }),
         tip: tipEl ? tipEl.value.trim() : "",
         citations: linesOf(citeEl ? citeEl.value : ""),
-        tag: tagField ? normalizeTag(tagField.value) : ""
+        tag: tagField ? normalizeTag(tagField.value) : "",
+        scanImage: existing.scanImage || ""
       };
-      record.citations = carriedCitations(record);
-      if (!existing.custom && !record.name) record.name = existing.name || "";
+      if (existing.custom) form.custom = true;
+      if (!existing.custom && !form.name) form.name = existing.name || viewed.name || "";
+      var record = overlayRecord(form, kind, existing);
+      if (!existing.custom) copyForward(record, viewed, false);
       if (existing.custom) record.custom = true;
-      if (existing.scanImage) record.scanImage = existing.scanImage;
+      record.kind = runtimeKind(record.kind) || kind;
       saveCardRecord(kind, id, record);
       state.foodEditing = false;
       render();
@@ -1711,20 +1872,12 @@
       var source = cardView(kind, id, tierId);
       if (!source) return;
       var copyId = newCardId();
-      saveCardRecord(kind, copyId, {
-        id: copyId,
-        custom: true,
-        name: source.name + " copy",
-        tagline: source.tagline,
-        script: source.script,
-        ingredients: source.ingredients,
-        method: source.method,
-        tip: source.tip,
-        timetable: source.timetable,
-        scanImage: source.scanImage || "",
-        citations: carriedCitations(source),
-        tag: normalizeTag(source.tag)
-      });
+      var copy = overlayRecord(source, kind, source);
+      copy.id = copyId;
+      copy.custom = true;
+      copy.kind = runtimeKind(source.kind) || kind;
+      copy.name = (source.name || "") + " copy";
+      saveCardRecord(kind, copyId, copy);
       state.foodFocusId = copyId;
       state.foodEditing = true;
       render();
@@ -1965,17 +2118,11 @@
       if (!picked) return;
       if (action === "save-draft") {
         var pickedKind = picked.kind === "extraction" ? "extraction" : "meal";
-        saveCardRecord(pickedKind, picked.id, {
-          id: picked.id,
-          custom: true,
-          name: picked.name,
-          tagline: picked.tagline,
-          ingredients: picked.ingredients,
-          method: picked.method,
-          tip: picked.tip,
-          citations: carriedCitations(picked),
-          tag: normalizeTag(picked.tag)
-        });
+        var drafted = overlayRecord(picked, pickedKind, picked);
+        drafted.custom = true;
+        drafted.kind = pickedKind;
+        drafted.id = picked.id;
+        saveCardRecord(pickedKind, picked.id, drafted);
       }
       state.basketDrafts.splice(draftIndex, 1);
       render();

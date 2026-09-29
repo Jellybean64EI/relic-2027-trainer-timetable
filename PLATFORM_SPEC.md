@@ -362,13 +362,19 @@ Each Food room has Export JSON, Import JSON, and Reset this room. Meal and smoot
 
 Meal cards, smoothie cards, and the monthly shop also have a Scan / Import strip. Paste a freeform note and press Parse to preview a card or shop lines. Import JSON, from the paste box or a JSON file, validates and previews before it writes. Save stores the preview in the same overlay. Cancel discards it. A label photo uses the device camera or a file, is kept as `scanImage` on the draft, and the control reads “attach label photo; fill fields”. The preview fields use dark ink on a cream ground. No API key and no server route is involved.
 
-Meal, smoothie, shop, and week edits carry `citations[]`. Seed cards show Sainsbury’s product lines, `FOOD_LIVE` when the card says so, and `Drive recipe card` on Drive seeds. Shop lines show the product name as a citation until a line is edited. Imported JSON may use kind `meal`, `smoothie`, `shop`, or `weekDay`, and may include `citations` and a sort tag (`protein`, `veg`, `fruit`, `dairy`, `freezer`, `botanical`, `other`).
+Import accepts a JSON object. A root array and a ZIP are refused. Weekly import is `{notes:{dateKey:{lunch?,mealId?,note?}}}`. A single `weekDay` object is folded into that notes map. Empty lunch, mealId, note, and invented `FOOD_LIVE` lines are not written. A smoothie card’s runtime kind stays `extraction`.
 
-The shop list can be filtered by those tags, sorted by name or category, and moved up or down. Each line can attach a label photo. Lock this month’s shop still freezes the weekly prep plan. It also builds editable meal and smoothie drafts from the ticked lines. Build cards from basket does the same on demand. Save draft writes a card. Discard drops that draft.
+The saved card overlay stays slim: `id`, `name`, `tagline`, `ingredients[{text}]`, `method[{verb,detail}]`, `tip`, `scanImage`. When a card already has `macros`, `skuId` on an ingredient, `tags`, `timetable`, `band`, `lock`, or `provenance`, the save keeps those fields. `citations` and a sort `tag` stay when they are present.
+
+Meal, smoothie, shop, and week edits can carry `citations[]`. Seed cards show Sainsbury’s product lines, `FOOD_LIVE` when the card says so, and `Drive recipe card` on Drive seeds. Shop lines show the product name as a citation until a line is edited. Imported JSON may use kind `meal`, `smoothie`, or `extraction` (stored as `extraction`), `shop`, or `weekDay`, and may include `citations` and a sort tag.
+
+The shop list can be filtered and sorted by the desired tags `protein`, `veg`, `fruit`, `dairy`, `freezer`, `botanical`, and `other`, and also by name, and moved up or down. Each line can attach a label photo. Lock this month’s shop still freezes the weekly prep plan. It also builds editable meal and smoothie drafts from the ticked lines. Build cards from basket does the same on demand. Save draft writes a card. Discard drops that draft.
+
+A training day is morning `extractionId`, a lunch string, and an evening `mealId`. There is no dinner smoothie.
 
 ### Next
 
-Vercel AI Gateway routes for `openai/*` and `google/gemini-*` can generate a card from a prompt or read a label photo. Canva export URLs can become card hero art. Those stay out of v20.
+ZIP plus a manifest is future. Vercel AI Gateway routes for `openai/*` and `google/gemini-*` can generate a card from a prompt or read a label photo. Canva export URLs can become card hero art. Those stay out of v20.
 
 ---
 

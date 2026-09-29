@@ -69,6 +69,19 @@ if (css.indexOf(".recipe-citations") === -1 || css.indexOf(".recipe-citations li
   console.error("FAIL citation ink");
   process.exit(1);
 }
+if (app.indexOf("Import accepts a JSON object, not a list.") === -1 || app.indexOf("Import accepts a JSON object, not a ZIP.") === -1) {
+  console.error("FAIL object-only import");
+  process.exit(1);
+}
+if (app.indexOf('["protein", "veg", "fruit", "dairy", "freezer", "botanical", "other"]') === -1) {
+  console.error("FAIL shop sort tags");
+  process.exit(1);
+}
+const spec = fs.readFileSync("PLATFORM_SPEC.md", "utf8");
+if (spec.indexOf("ZIP plus a manifest is future") === -1 || spec.indexOf("extractionId") === -1 || spec.indexOf("no dinner smoothie") === -1) {
+  console.error("FAIL handshake spec");
+  process.exit(1);
+}
 const meals = ctx.window.RELIC_FOOD_MEALS;
 const extract = ctx.window.RELIC_FOOD_EXTRACTIONS;
 ["berry-banana-brazil", "cherry-banana-cream", "mango-banana-nut", "berry-oat-almond", "orange-berry-yogurt"].forEach(function (id) {
