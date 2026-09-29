@@ -5,7 +5,7 @@
 **Coach archive:** NiX  
 **Timezone:** Europe/London (always)  
 **Runtime:** static HTML / CSS / JS. No build step. No npm.  
-**Cache bust:** `?v=v19` on every stylesheet and script in `index.html`
+**Cache bust:** `?v=v20` on every stylesheet and script in `index.html`
 
 Footer motto (exact):
 
@@ -201,7 +201,7 @@ Evaluate on each timetable render and whenever a completion is upserted. Do not 
 
 ## 7. Cache
 
-`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v19`. The `relic-build` meta is `v19`. The in-memory month-row cache key is `{year}:{mode}:{month}`.
+`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v20`. The `relic-build` meta is `v20`. The in-memory month-row cache key is `{year}:{mode}:{month}`.
 
 ---
 
@@ -247,7 +247,7 @@ index.html?date=2027-01-04&setsec=3   → coach set length 3 seconds. At 00:00 t
 2. Clips stream from Supabase public URLs. At `00:00` the opened citation is credited and, once that set is finished, the player closes and the timetable is showing. Duration overwrites remaining time and `SET_DURATION_SEC`. Add More Time only stacks onto remaining time. Next still advances a clip without crediting it.
 3. The table is exactly DAY / TRAINING RELICS / DONE at 20% / 70% / 10%.
 4. Ticks upsert `relic_completions`.
-5. `vercel.json` no-cache plus `?v=v19` on assets. The `relic-build` meta is `v19`. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome. A drag past 18px does not. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph. The forensic CUE tab slides up from the bottom, does not reset that timer, and does not reload the video.
+5. `vercel.json` no-cache plus `?v=v20` on assets. The `relic-build` meta is `v20`. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome. A drag past 18px does not. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph. The forensic CUE tab slides up from the bottom, does not reset that timer, and does not reload the video.
 6. `schedule.js` `MONTH_ROTATIONS` stays the Full Body lock. Upper Body data is additive.
 7. A week chip has a SINGLE slot and a DUAL slot. At 100% dual the chip is rich green, the dual slot shows an orange `#ff8c00` double-tick shield and the aggregate tick count, and the single slot stays a separate dark module. Day DONE cells use a compact box or a single/double shield, with a 44px hit target. Month chips and `#year-badge` use the same score and light up only at 100%. Week 4 labels read `WEEK 4`. The deload hint does not render. Calisthenics appears only in October–December 2027.
 8. The toggle immediately under the timetable swaps Full Body and Upper Body without a reload. The drawer’s Full Body and Upper Body rows call the same `setScheduleMode`. Ambient Hub switches the 2026 bridge and the 2027 year. The motto and metadata stay under that toggle. Each mode shows only its own ticks and shield badges.
@@ -348,11 +348,17 @@ Ashwagandha 600 mg, Lion’s Mane 1000 mg (1500 mg on the recovery card), Spirul
 
 ### v19 depth and lock
 
-A single DONE tick glows gold. A dual tick glows green. The week chip turns green only when every Mon–Sat day in that week is dual. SINGLE and DUAL slots show an orange edge while that slot has progress and is not yet complete. Full Body and Upper Body keep separate `{year}:{mode}:{month}` caches and restore that mode’s scroll. A pointer move past 18px does not change month, week, cabin, or the player HUD.
+A single DONE tick glows gold. A dual tick is a green shield with a green glow. The week chip turns green only when every Mon–Sat day in that week is dual. The DUAL slot turns green as soon as a day in that week is dual, and it stays green when the week is complete. The SINGLE slot stays gold. Full Body and Upper Body keep separate `{year}:{mode}:{month}` caches and restore that mode’s scroll. A pointer move past 18px does not change month, week, cabin, or the player HUD.
 
 Weekly rows follow the FOOD_LIVE training-day smoothie week: Monday banana, blueberry, spinach, and hemp; Tuesday papaya and pineapple; Wednesday mango, cherry, and hemp; Thursday kiwi and berry; Friday pineapple, spinach, and ginger; Saturday banana and blueberry. Sunday’s papaya, pineapple, kiwi, and berry glass is a prep note, not a row. The five basin kitchen cards stay beside that week: Berry Banana Brazil (one Brazil nut), Cherry Banana Cream, Mango Banana Nut, Berry Oat Almond, Orange Berry Yogurt. Dinner rows use a household portion. Wednesday evening is eggs, mushrooms, and greens. Saturday’s beef boats keep the card line of 300 g ground beef and 3 potatoes. Each row also shows lunch and 2 fruit + 3 veg. Monday, Friday, and Saturday lunch include eggs.
 
 Monthly Foods edits a Sainsbury’s list in `localStorage` key `relic_food_shop_v19`. That store is not `relic_completions`. The board shows the aisle table, the fruit-first buys, and the Sunday 45-minute prep. Egg lines stay on the list: Taste the Difference free-range, then SO Organic free-range, then standard free-range. Tier 1 stays £150 with a visible soft stretch to £200. Tier 2 stays £300. Lock this month’s shop runs `composeFromBasket` and freezes the weekly prep plan. Before lock, the week is the suggested FOOD_LIVE rotation. Prices stay placeholders. A basket that only ticks an egg SKU plates eggs and cooks the whites.
+
+### v20 ink, glow, and food authorship
+
+Meal cards stay warm parchment with a gold rule. Smoothie cards use a mint ground and a teal rule. Ingredient lines, method steps, tips, and facts on those cards use dark ink (`#1f1812` / `#2c2118`). Cream cards do not use `--text`.
+
+Each Food room has Export JSON, Import JSON, and Reset this room. Meal and smoothie cards can be added, edited, duplicated, or deleted. Custom cards and edits live in `relic_food_cards_v20`. Weekly lunch notes, unlocked evening picks, and locked day notes live in `relic_food_week_v20`. The shop can rename a line and add a custom line. None of these keys is `relic_completions`. Defaults in `data/nutrition/*` stay the base. An overlay wins until that room is reset.
 
 ---
 

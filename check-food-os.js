@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* v19: four Food OS rooms, portioned cues, and no training binds in food data. */
+/* v20: four Food OS rooms, portioned cues, and no training binds in food data. */
 const fs = require("fs");
 const vm = require("vm");
 const ctx = { window: {} };
@@ -31,8 +31,26 @@ if (html.indexOf("data/nutrition.js") !== -1) {
   console.error("FAIL mashed nutrition.js still linked");
   process.exit(1);
 }
-if (html.indexOf('content="v19"') === -1 || html.indexOf("styles.css?v=v19") === -1) {
+if (html.indexOf('content="v20"') === -1 || html.indexOf("styles.css?v=v20") === -1) {
   console.error("FAIL cache stamp");
+  process.exit(1);
+}
+const css = fs.readFileSync("styles.css", "utf8");
+if (/\.recipe-card li \{[^}]*color:\s*var\(--text\)/.test(css)) {
+  console.error("FAIL ingredient ink still uses --text");
+  process.exit(1);
+}
+if (css.indexOf(".recipe-card .recipe-ingredients li") === -1 || css.indexOf("#1f1812") === -1) {
+  console.error("FAIL dark ingredient ink");
+  process.exit(1);
+}
+if (css.indexOf(".week-slot-dual.is-full") === -1 || css.indexOf("#3dff7a") === -1) {
+  console.error("FAIL dual green glow");
+  process.exit(1);
+}
+const app = fs.readFileSync("app.js", "utf8");
+if (app.indexOf("Export JSON") === -1 || app.indexOf("relic_food_cards_v20") === -1 || app.indexOf("relic_food_week_v20") === -1) {
+  console.error("FAIL food editor");
   process.exit(1);
 }
 const meals = ctx.window.RELIC_FOOD_MEALS;

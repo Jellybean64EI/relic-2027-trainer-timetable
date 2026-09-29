@@ -410,6 +410,31 @@ h1 {
   color: #ff8c00;
 }
 
+/* v20: a dual day is a green achievement. The week chip stays green only at 100% dual. */
+.week-slot-dual.is-started,
+.week-slot-dual.is-full {
+  border-color: #3dff7a;
+  box-shadow: 0 0 12px rgba(61, 255, 122, 0.75);
+}
+
+.week-slot-dual.is-started .week-slot-kicker,
+.week-slot-dual.is-full .week-slot-kicker,
+.week-slot-dual.is-full .week-slot-count {
+  color: #b8ffd0;
+}
+
+.week-slot-dual.is-full,
+.wtab.is-complete .week-slot-dual {
+  background: #0d3d22;
+  border-color: #3dff7a;
+  box-shadow: 0 0 16px rgba(61, 255, 122, 0.9);
+}
+
+.wtab.is-complete .week-slot-dual .week-slot-count,
+.wtab.is-complete .week-slot-dual .week-slot-kicker {
+  color: #d8ffe8;
+}
+
 .wtab .shield-tick {
   width: 16px;
   height: 19px;
@@ -682,7 +707,7 @@ tr.today td {
 }
 
 .tick-hit[data-tier="2"] .tick-box {
-  filter: drop-shadow(0 0 8px #3dff7a);
+  filter: drop-shadow(0 0 4px #3dff7a) drop-shadow(0 0 12px #19c45a);
 }
 
 tr.is-tier-1 td {
@@ -1398,7 +1423,10 @@ table.timetable td {
   background-color: #150724;
 }
 table.timetable tr.is-tier-1 td { background-color: #1a0c2e; }
-table.timetable tr.is-tier-2 td { background-color: #1c1032; }
+table.timetable tr.is-tier-2 td {
+  background-color: #102818;
+  box-shadow: inset 3px 0 0 #3dff7a, inset 0 0 0 1px rgba(61, 255, 122, 0.4);
+}
 
 /* v17 fuel board. Training column law above stays on the three-column timetable. */
 table.fuel-table col.col-day { width: 22%; }
@@ -1624,7 +1652,9 @@ table.fuel-table col.col-relics { width: 78%; }
 
 .recipe-card h4 {
   margin: 12px 0 6px;
-  color: var(--gold);
+  padding-bottom: 4px;
+  border-bottom: 2px solid #c9a227;
+  color: #1f1812;
   font-size: 0.84rem;
 }
 
@@ -1636,10 +1666,14 @@ table.fuel-table col.col-relics { width: 78%; }
 
 .recipe-card li {
   margin: 0 0 6px;
-  color: var(--text);
+  color: #1f1812;
   font-size: 0.78rem;
   line-height: 1.35;
   overflow-wrap: anywhere;
+}
+
+.recipe-card .recipe-ingredients li {
+  color: #1f1812;
 }
 
 .macro-tag {
@@ -1837,6 +1871,21 @@ table.fuel-table col.col-relics { width: 78%; }
   box-shadow: inset 0 0 0 2px #c9a227;
 }
 
+.recipe-card[data-kind="extraction"] {
+  background: #e7f4f1;
+  border-color: #12332e;
+  box-shadow: inset 0 0 0 2px #1a7a6d;
+}
+
+.recipe-card[data-kind="extraction"] h4 {
+  color: #0e4f48;
+  border-bottom-color: #1a7a6d;
+}
+
+.recipe-card[data-kind="extraction"] .recipe-kicker {
+  color: #0e4f48;
+}
+
 .recipe-kicker,
 .recipe-card h4,
 .recipe-tip {
@@ -1969,8 +2018,86 @@ table.fuel-table col.col-relics { width: 78%; }
 
 .recipe-tip {
   margin: 10px 0 0;
+  color: #1f1812;
   font-size: 0.78rem;
   font-weight: 700;
+}
+
+.food-tools,
+.card-actions,
+.card-editor,
+.food-note,
+.shop-custom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px;
+}
+
+.food-tools button,
+.card-actions button,
+.card-editor button,
+.shop-custom button,
+.food-note input,
+.food-note select,
+.food-note textarea,
+.card-editor input,
+.card-editor textarea,
+.shop-name,
+.shop-custom input,
+.food-json {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 10px;
+  border: 1px solid #c9a227;
+  border-radius: 8px;
+  background: #fcf5e8;
+  color: #1f1812;
+  font: inherit;
+  font-weight: 700;
+}
+
+.food-tools button,
+.card-actions button,
+.card-editor button,
+.shop-custom button {
+  background: #1f1812;
+  color: #fcf5e8;
+  font-weight: 800;
+}
+
+.food-json-label,
+.card-editor label,
+.food-note {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 100%;
+  color: #f6eefe;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.food-json,
+.card-editor textarea {
+  width: 100%;
+  min-height: 88px;
+}
+
+.shop-name {
+  flex: 1 1 180px;
+}
+
+.card-editor {
+  margin: 8px;
+  padding: 12px;
+  background: #fcf5e8;
+  color: #1f1812;
+  border: 8px solid #1f1812;
+}
+
+.card-editor label {
+  color: #1f1812;
 }
 
 @media (max-width: 412px) {
