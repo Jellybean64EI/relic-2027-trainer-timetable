@@ -31,7 +31,7 @@ if (html.indexOf("data/nutrition.js") !== -1) {
   console.error("FAIL mashed nutrition.js still linked");
   process.exit(1);
 }
-if (html.indexOf('content="v22.1"') === -1 || html.indexOf("styles.css?v=v22.1") === -1) {
+if (html.indexOf('content="v23"') === -1 || html.indexOf("styles.css?v=v23") === -1) {
   console.error("FAIL cache stamp");
   process.exit(1);
 }
@@ -39,8 +39,18 @@ if (html.indexOf("Sunday stays off this list") !== -1) {
   console.error("FAIL Sunday still hidden from the food week");
   process.exit(1);
 }
-if (html.indexOf("data/food/pack001.js?v=v22.1") === -1) {
+if (html.indexOf("data/food/pack001.js?v=v23") === -1) {
   console.error("FAIL pack 001 script");
+  process.exit(1);
+}
+["training", "food", "smoothies"].forEach(function (door) {
+  if (html.indexOf('data-os-door="' + door + '"') === -1) {
+    console.error("FAIL missing OS door " + door);
+    process.exit(1);
+  }
+});
+if (html.indexOf("My Food Schedule") === -1 || html.indexOf("My Smoothie Schedule") === -1) {
+  console.error("FAIL schedule quick jump");
   process.exit(1);
 }
 ["meals", "cabinet", "hg", "final", "savelater"].forEach(function (room) {
@@ -62,6 +72,10 @@ if (html.indexOf("Export JSON") !== -1 || html.indexOf("Import JSON") !== -1) {
   process.exit(1);
 }
 const css = fs.readFileSync("styles.css", "utf8");
+if (css.indexOf("body.is-food .week-tabs") === -1) {
+  console.error("FAIL training chrome still sits on food");
+  process.exit(1);
+}
 if (/\.recipe-card li \{[^}]*color:\s*var\(--text\)/.test(css)) {
   console.error("FAIL ingredient ink still uses --text");
   process.exit(1);

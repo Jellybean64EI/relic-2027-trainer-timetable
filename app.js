@@ -83,6 +83,7 @@
     smoothieFlyError: "",
     smoothieToast: "",
     smoothieToastUntil: 0,
+    osDoor: "training",
     foodRefuse: "",
     foodUndo: null,
     foodFilter: "all",
@@ -2735,6 +2736,7 @@
   function openFoodRoom(room, focusId, band) {
     if (!FOOD_TITLES[room]) return;
     state.smoothieRoom = "";
+    state.osDoor = "food";
     if (state.foodRoom !== room) state.scanPreview = null;
     state.foodRoom = room;
     state.foodFocusId = focusId || "";
@@ -2754,7 +2756,23 @@
     state.foodFocusId = "";
     state.foodEditing = false;
     state.scanPreview = null;
+    state.osDoor = "training";
     render();
+  }
+
+  function paintOsDoors() {
+    var door = state.osDoor === "food" || state.osDoor === "smoothies" ? state.osDoor : "training";
+    state.osDoor = door;
+    var titles = { training: "NiX Training Schedules", food: "Food", smoothies: "Smoothies" };
+    var title = $("nav-drawer-title");
+    if (title) title.textContent = titles[door];
+    document.querySelectorAll("[data-os-door]").forEach(function (btn) {
+      var on = btn.getAttribute("data-os-door") === door;
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    document.querySelectorAll("[data-os-panel]").forEach(function (panel) {
+      panel.hidden = panel.getAttribute("data-os-panel") !== door;
+    });
   }
 
   var FOOD_V22 = {
@@ -2846,6 +2864,8 @@
   }
 
   function runFlyVisual(toCabin, title, done) {
+    state.osDoor = "food";
+    paintOsDoors();
     setNavOpen(true);
     document.querySelectorAll("[data-food-room]").forEach(function (row) {
       row.classList.toggle("is-fly-target", row.getAttribute("data-food-room") === toCabin);
@@ -3240,13 +3260,17 @@
     var html = foodBannersHtml();
     var card = state.foodFocusId && fin.cards ? fin.cards[state.foodFocusId] : null;
     if (!card && fin.order && fin.order.length) card = fin.cards[fin.order[fin.order.length - 1]];
-    if (!card) {
-      html += '<p class="food-made">Finished 4-week timetables land here from Food Schedule HG.</p>';
-    } else {
-      html += "<h3 class=\"food-subhead\">" + escapeHtml(card.title) + "</h3>";
-      (card.weeks || []).forEach(function (week) {
-        html += '<section class="food-final-week"><h3>Week ' + week.week + "</h3>";
-        Object.keys(week.placements || {}).forEach(function (date) {
+    if (card) html += "<h3 class=\"food-subhead\">" + escapeHtml(card.title) + "</h3>";
+    else html += '<p class="food-made">Finished 4-week timetables land here from Food Schedule HG.</p>';
+    var savedWeeks = {};
+    ((card && card.weeks) || []).forEach(function (week) { savedWeeks[week.week] = week; });
+    for (var w = 1; w <= 4; w++) {
+      var week = savedWeeks[w];
+      html += '<section class="food-final-week"><h3>Week ' + w + "</h3>";
+      if (!week || !week.placements || !Object.keys(week.placements).length) {
+        html += '<p class="food-made">Empty until this week is finished in Food Schedule HG.</p>';
+      } else {
+        Object.keys(week.placements).forEach(function (date) {
           var row = week.placements[date];
           html += '<article class="food-day"><header class="food-day-head"><h3>' + escapeHtml(date) + "</h3></header>";
           ["breakfast", "lunch", "dinner"].forEach(function (slot) {
@@ -3255,8 +3279,8 @@
           });
           html += "</article>";
         });
-        html += "</section>";
-      });
+      }
+      html += "</section>";
     }
     host.innerHTML = html;
   }
@@ -3587,6 +3611,8 @@
   }
 
   function runSmoothieFly(toCabin, title, done) {
+    state.osDoor = "smoothies";
+    paintOsDoors();
     setNavOpen(true);
     document.querySelectorAll("[data-smoothie-room]").forEach(function (row) {
       row.classList.toggle("is-smoothie-target", row.getAttribute("data-smoothie-room") === toCabin);
@@ -3950,14 +3976,18 @@
     var html = smoothieBannersHtml();
     var card = state.smoothieFocusId && fin.cards ? fin.cards[state.smoothieFocusId] : null;
     if (!card && fin.order && fin.order.length) card = fin.cards[fin.order[fin.order.length - 1]];
-    if (!card) {
-      html += '<p class="food-made">Finished 4-week timetables land here from Smoothie Schedule HG.</p>';
-    } else {
-      html += "<h3 class=\"food-subhead\">" + escapeHtml(card.title) + "</h3>";
-      (card.weeks || []).forEach(function (week) {
-        html += '<section class="food-final-week"><h3>Week ' + week.week + "</h3>";
-        Object.keys(week.placements || {}).forEach(function (date) {
-          var row = week.placements[date];
+    if (card) html += "<h3 class=\"food-subhead\">" + escapeHtml(card.title) + "</h3>";
+    else html += '<p class="food-made">Finished 4-week timetables land here from Smoothie Schedule HG.</p>';
+    var savedSmoothieWeeks = {};
+    ((card && card.weeks) || []).forEach(function (week) { savedSmoothieWeeks[week.week] = week; });
+    for (var sw = 1; sw <= 4; sw++) {
+      var smoothieWeek = savedSmoothieWeeks[sw];
+      html += '<section class="food-final-week"><h3>Week ' + sw + "</h3>";
+      if (!smoothieWeek || !smoothieWeek.placements || !Object.keys(smoothieWeek.placements).length) {
+        html += '<p class="food-made">Empty until this week is finished in Smoothie Schedule HG.</p>';
+      } else {
+        Object.keys(smoothieWeek.placements).forEach(function (date) {
+          var row = smoothieWeek.placements[date];
           html += '<article class="food-day"><header class="food-day-head"><h3>' + escapeHtml(date) + "</h3></header>";
           SMOOTHIE_SLOTS.forEach(function (slot) {
             var meal = row[slot] ? smoothieById(row[slot]) : null;
@@ -3965,8 +3995,8 @@
           });
           html += "</article>";
         });
-        html += "</section>";
-      });
+      }
+      html += "</section>";
     }
     host.innerHTML = html;
   }
@@ -4115,6 +4145,7 @@
   function openSmoothieRoom(room, focusId) {
     if (!SMOOTHIE_TITLES[room]) return;
     state.foodRoom = "";
+    state.osDoor = "smoothies";
     state.smoothieRoom = room;
     state.smoothieFocusId = focusId || "";
     state.smoothieEditing = false;
@@ -4131,6 +4162,7 @@
     state.smoothieRoom = "";
     state.smoothieFocusId = "";
     state.smoothieEditing = false;
+    state.osDoor = "training";
     render();
   }
 
@@ -4334,6 +4366,7 @@
     paintForensic();
     paintFoodBoard();
     paintSmoothieBoard();
+    paintOsDoors();
     if (state.restoreTickDate) {
       var again = tbody.querySelector('button.tick-hit[data-date="' + state.restoreTickDate + '"]');
       state.restoreTickDate = "";
@@ -5323,6 +5356,24 @@
         setBranch(opt.getAttribute("data-set-branch"));
       });
     });
+    document.querySelectorAll("[data-os-door]").forEach(function (doorBtn) {
+      doorBtn.addEventListener("click", function () {
+        var name = doorBtn.getAttribute("data-os-door");
+        if (name === "training") {
+          state.foodRoom = "";
+          state.smoothieRoom = "";
+          state.foodFocusId = "";
+          state.smoothieFocusId = "";
+          state.foodEditing = false;
+          state.smoothieEditing = false;
+          state.osDoor = "training";
+          render();
+          return;
+        }
+        state.osDoor = name;
+        paintOsDoors();
+      });
+    });
     document.querySelectorAll("[data-food-room]").forEach(function (foodBtn) {
       foodBtn.addEventListener("click", function () {
         openFoodRoom(foodBtn.getAttribute("data-food-room"));
@@ -5733,7 +5784,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v22.1",
+    build: "v23",
     get nutrition() {
       return {
         shop: foodShop(),

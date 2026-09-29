@@ -6,9 +6,9 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v22.1" />
+  <meta name="relic-build" content="v23" />
   <title>NiX Training Schedules</title>
-  <link rel="stylesheet" href="styles.css?v=v22.1" />
+  <link rel="stylesheet" href="styles.css?v=v23" />
 </head>
 <body>
   <div class="wrap">
@@ -177,15 +177,10 @@
       </div>
 
       <section class="food-board" id="food-board" hidden aria-labelledby="food-board-title">
-        <button type="button" class="food-back" id="btn-food-close">Training timetable</button>
-        <nav class="food-rooms" aria-label="Food and Prep">
-          <button type="button" data-food-room="meals">Meal Recipe Cards</button>
-          <button type="button" data-food-room="cabinet">Main Meal Cabinet</button>
-          <button type="button" data-food-room="hg">Food Schedule HG</button>
-          <button type="button" data-food-room="final">Final Meal Prep Scheduled Timetables</button>
-          <button type="button" data-food-room="savelater">Save later</button>
-          <button type="button" data-food-room="shop">Monthly Shop</button>
-        </nav>
+        <div class="os-bar">
+          <button type="button" class="food-back" id="btn-food-close">Training</button>
+          <button type="button" class="os-quick" data-food-room="final">My Food Schedule</button>
+        </div>
         <h2 id="food-board-title" class="food-title" tabindex="-1">Meal Recipe Cards</h2>
         <div class="food-room" id="food-meals" hidden></div>
         <div class="food-room" id="food-cabinet" hidden></div>
@@ -198,14 +193,10 @@
       </section>
 
       <section class="food-board smoothie-board" id="smoothie-board" hidden aria-labelledby="smoothie-board-title">
-        <button type="button" class="food-back" id="btn-smoothie-close">Training timetable</button>
-        <nav class="food-rooms" aria-label="Smoothies">
-          <button type="button" data-smoothie-room="meals">Smoothie Recipe Cards</button>
-          <button type="button" data-smoothie-room="cabinet">Main Smoothie Cabinet</button>
-          <button type="button" data-smoothie-room="hg">Smoothie Schedule HG</button>
-          <button type="button" data-smoothie-room="final">Final Smoothie Prep Scheduled Timetables</button>
-          <button type="button" data-smoothie-room="savelater">Smoothie Save later</button>
-        </nav>
+        <div class="os-bar">
+          <button type="button" class="food-back" id="btn-smoothie-close">Training</button>
+          <button type="button" class="os-quick" data-smoothie-room="final">My Smoothie Schedule</button>
+        </div>
         <h2 id="smoothie-board-title" class="food-title" tabindex="-1">Smoothie Recipe Cards</h2>
         <div class="food-room" id="smoothie-meals" hidden></div>
         <div class="food-room" id="smoothie-cabinet" hidden></div>
@@ -231,6 +222,12 @@
       <h2 id="nav-drawer-title">NiX Training Schedules</h2>
     </div>
     <nav class="nav-drawer-nav" aria-label="Primary">
+      <div class="os-doors" role="group" aria-label="Training, Food, and Smoothies">
+        <button type="button" data-os-door="training" aria-pressed="true">Training</button>
+        <button type="button" data-os-door="food" aria-pressed="false">Food</button>
+        <button type="button" data-os-door="smoothies" aria-pressed="false">Smoothies</button>
+      </div>
+      <div data-os-panel="training">
       <section class="nav-section" aria-labelledby="nav-trainer-label">
         <h3 id="nav-trainer-label" class="nav-kicker">Trainer Schedules</h3>
         <div class="nav-rows" role="group" aria-label="Upper Body and Full Body Trainer Schedules">
@@ -257,6 +254,8 @@
           </button>
         </div>
       </section>
+      </div>
+      <div data-os-panel="food" hidden>
       <section class="nav-section" aria-labelledby="nav-food-label">
         <h3 id="nav-food-label" class="nav-kicker">Food and Prep</h3>
         <div class="nav-rows" role="group" aria-label="Food and Prep">
@@ -286,6 +285,8 @@
           </button>
         </div>
       </section>
+      </div>
+      <div data-os-panel="smoothies" hidden>
       <section class="nav-section" aria-labelledby="nav-smoothie-label">
         <h3 id="nav-smoothie-label" class="nav-kicker">Smoothies</h3>
         <div class="nav-rows" role="group" aria-label="Smoothies">
@@ -311,6 +312,7 @@
           </button>
         </div>
       </section>
+      </div>
     </nav>
   </aside>
 
@@ -381,18 +383,18 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v22.1"></script>
-  <script src="data/precondition.js?v=v22.1"></script>
-  <script src="data/upperBody.js?v=v22.1"></script>
-  <script src="data/citations.js?v=v22.1"></script>
-  <script src="data/forensic.js?v=v22.1"></script>
-  <script src="data/videoArchive.js?v=v22.1"></script>
-  <script src="data/nutrition/shop.js?v=v22.1"></script>
-  <script src="data/nutrition/meals.js?v=v22.1"></script>
-  <script src="data/nutrition/extractions.js?v=v22.1"></script>
-  <script src="data/nutrition/schedule.js?v=v22.1"></script>
-  <script src="data/food/pack001.js?v=v22.1"></script>
-  <script src="data/supabaseConfig.js?v=v22.1"></script>
-  <script src="app.js?v=v22.1"></script>
+  <script src="data/schedule.js?v=v23"></script>
+  <script src="data/precondition.js?v=v23"></script>
+  <script src="data/upperBody.js?v=v23"></script>
+  <script src="data/citations.js?v=v23"></script>
+  <script src="data/forensic.js?v=v23"></script>
+  <script src="data/videoArchive.js?v=v23"></script>
+  <script src="data/nutrition/shop.js?v=v23"></script>
+  <script src="data/nutrition/meals.js?v=v23"></script>
+  <script src="data/nutrition/extractions.js?v=v23"></script>
+  <script src="data/nutrition/schedule.js?v=v23"></script>
+  <script src="data/food/pack001.js?v=v23"></script>
+  <script src="data/supabaseConfig.js?v=v23"></script>
+  <script src="app.js?v=v23"></script>
 </body>
 </html>

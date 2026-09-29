@@ -5,7 +5,7 @@
 **Coach archive:** NiX  
 **Timezone:** Europe/London (always)  
 **Runtime:** static HTML / CSS / JS. No build step. No npm.  
-**Cache bust:** `?v=v22.1` on every stylesheet and script in `index.html`
+**Cache bust:** `?v=v23` on every stylesheet and script in `index.html`
 
 Footer motto (exact):
 
@@ -201,7 +201,7 @@ Evaluate on each timetable render and whenever a completion is upserted. Do not 
 
 ## 7. Cache
 
-`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v22.1`. The `relic-build` meta is `v22.1`. The in-memory month-row cache key is `{year}:{mode}:{month}`.
+`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v23`. The `relic-build` meta is `v23`. The in-memory month-row cache key is `{year}:{mode}:{month}`.
 
 ---
 
@@ -247,7 +247,7 @@ index.html?date=2027-01-04&setsec=3   → coach set length 3 seconds. At 00:00 t
 2. Clips stream from Supabase public URLs. At `00:00` the opened citation is credited and, once that set is finished, the player closes and the timetable is showing. Duration overwrites remaining time and `SET_DURATION_SEC`. Add More Time only stacks onto remaining time. Next still advances a clip without crediting it.
 3. The table is exactly DAY / TRAINING RELICS / DONE at 20% / 70% / 10%.
 4. Ticks upsert `relic_completions`.
-5. `vercel.json` no-cache plus `?v=v22.1` on assets. The `relic-build` meta is `v22.1`. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome. A drag past 18px does not. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph. The forensic CUE tab slides up from the bottom, does not reset that timer, and does not reload the video.
+5. `vercel.json` no-cache plus `?v=v23` on assets. The `relic-build` meta is `v23`. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome. A drag past 18px does not. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph. The forensic CUE tab slides up from the bottom, does not reset that timer, and does not reload the video.
 6. `schedule.js` `MONTH_ROTATIONS` stays the Full Body lock. Upper Body data is additive.
 7. A week chip has a SINGLE slot and a DUAL slot. At 100% dual the chip is rich green, the dual slot shows an orange `#ff8c00` double-tick shield and the aggregate tick count, and the single slot stays a separate dark module. Day DONE cells use a compact box or a single/double shield, with a 44px hit target. Month chips and `#year-badge` use the same score and light up only at 100%. Week 4 labels read `WEEK 4`. The deload hint does not render. Calisthenics appears only in October–December 2027.
 8. The toggle immediately under the timetable swaps Full Body and Upper Body without a reload. The drawer’s Full Body and Upper Body rows call the same `setScheduleMode`. Ambient Hub switches the 2026 bridge and the 2027 year. The motto and metadata stay under that toggle. Each mode shows only its own ticks and shield badges.
@@ -377,6 +377,10 @@ A training day is morning `extractionId`, a lunch string, and an evening `mealId
 ### v22 fly and shrink
 
 Food Schedule HG is the schedule. The old weekly fuel table is not a cabin. A move writes only the target cabin key after the allowlist accepts the action: meals `add_cabinet` to cabinet, meals or cabinet `add_hg` to hg, hg `finished_week` to savelater, hg `month_complete` to final, savelater `reuse_hg` to hg, shop `create_meal` to meals. The drawer opens, the target row highlights, the card shrinks onto that row, then that cabin opens on the new item. Save later inserts a finished week once. A duplicate shows `This card has already been added to save later.` for four seconds. Monthly Shop is three panels: this month’s trolley with soft lock £200, Gaps marked ESTIMATE, and six meal suggestions. Keys are `relic_food_meals_v22`, `relic_food_cabinet_v22`, `relic_food_hg_v22`, `relic_food_final_v22`, `relic_food_savelater_v22`, `relic_food_shop_v22`, and `relic_food_flylog_v22`. None of those keys is a Training key. Smoothie moves use a separate allowlist and a mint pour (`smoothie-fly-ghost`) so the food shrink curve stays cream and 0.65s. A smoothie cannot be placed at dinner. Extraction Cards stay morning or lunch only.
+
+### v23 navigation
+
+The hamburger has three doors: Training, Food, and Smoothies. Training keeps Full Body, Upper Body, and the Ambient Hub. Food shows only the six Food cabins. Smoothies shows only the smoothie cabins. Opening a cabin fills the screen. Quarter, month, and week chips stay inside that cabin. Training week SINGLE/DUAL chrome is hidden while Food or Smoothies is open. My Food Schedule jumps to Final Meal Prep Scheduled Timetables. My Smoothie Schedule jumps to Final Smoothie Prep Scheduled Timetables. Those finals always show Weeks 1–4. Fly still writes only the target cabin key.
 
 ### Next
 
