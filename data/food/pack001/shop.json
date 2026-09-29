@@ -1,0 +1,625 @@
+{
+  "room": "shop",
+  "build": "v21",
+  "budget": {
+    "trolleyGbp": 226.37,
+    "householdGbp": 38.4,
+    "mealWaterGbp": 187.97,
+    "criticalAddsGbp": 11.2,
+    "mealPlusCriticalGbp": 199.17,
+    "priceTags": [
+      "RECEIPT_TRUE",
+      "ESTIMATE"
+    ]
+  },
+  "items": [
+    {
+      "skuId": "sainsburys-sku-TBD-101",
+      "name": "Cathedral City Mini Mature Cheddar",
+      "customName": "Cathedral City Mini Mature Cheddar",
+      "packSize": "12×20 g",
+      "qty": 1,
+      "unitGbp": 3.9,
+      "pricePence": 390,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "dairy",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Cathedral City Mini Mature Cheddar · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-102",
+      "name": "Cathedral City Mini Extra Mature",
+      "customName": "Cathedral City Mini Extra Mature",
+      "packSize": "6×20 g",
+      "qty": 1,
+      "unitGbp": 1.65,
+      "pricePence": 165,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "dairy",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Cathedral City Mini Extra Mature · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-103",
+      "name": "Cathedral City High Protein Half Fat Mature Mini",
+      "customName": "Cathedral City High Protein Half Fat Mature Mini",
+      "packSize": "6×20 g",
+      "qty": 1,
+      "unitGbp": 1.65,
+      "pricePence": 165,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "dairy",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Cathedral City High Protein Half Fat Mature Mini · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-104",
+      "name": "Cathedral City Mature Spreadable",
+      "customName": "Cathedral City Mature Spreadable",
+      "packSize": "125 g",
+      "qty": 1,
+      "unitGbp": 1.75,
+      "pricePence": 175,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "dairy",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Cathedral City Mature Spreadable · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-105",
+      "name": "Flora Buttery Spread",
+      "customName": "Flora Buttery Spread",
+      "packSize": "450 g",
+      "qty": 2,
+      "unitGbp": 1.95,
+      "pricePence": 195,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "dairy",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Flora Buttery Spread · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-106",
+      "name": "Sainsbury's Taste the Difference 4 British Beef Steak Burgers",
+      "customName": "Sainsbury's Taste the Difference 4 British Beef Steak Burgers",
+      "packSize": "600 g",
+      "qty": 1,
+      "unitGbp": 7.25,
+      "pricePence": 725,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "protein",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Sainsbury's Taste the Difference 4 British Beef Steak Burgers · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-107",
+      "name": "Sainsbury's Taste the Difference Brioche Burger Buns",
+      "customName": "Sainsbury's Taste the Difference Brioche Burger Buns",
+      "packSize": "×4",
+      "qty": 4,
+      "unitGbp": 1.5,
+      "pricePence": 150,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "other",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Sainsbury's Taste the Difference Brioche Burger Buns · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-108",
+      "name": "Sainsbury's 7% Fat Fresh British Turkey Mince",
+      "customName": "Sainsbury's 7% Fat Fresh British Turkey Mince",
+      "packSize": "750 g",
+      "qty": 4,
+      "unitGbp": 5.25,
+      "pricePence": 525,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "protein",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Sainsbury's 7% Fat Fresh British Turkey Mince · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-109",
+      "name": "Sainsbury's Taste the Difference Free Range Golden Yolk Eggs",
+      "customName": "Sainsbury's Taste the Difference Free Range Golden Yolk Eggs",
+      "packSize": "×12",
+      "qty": 1,
+      "unitGbp": 3.5,
+      "pricePence": 350,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "protein",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Sainsbury's Taste the Difference Free Range Golden Yolk Eggs · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-110",
+      "name": "Sainsbury's British Fresh Skinless & Boneless Chicken Breast",
+      "customName": "Sainsbury's British Fresh Skinless & Boneless Chicken Breast",
+      "packSize": "2 kg",
+      "qty": 4,
+      "unitGbp": 12.29,
+      "pricePence": 1229,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "protein",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Sainsbury's British Fresh Skinless & Boneless Chicken Breast · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-111",
+      "name": "Tate & Lyle Caramel Syrup",
+      "customName": "Tate & Lyle Caramel Syrup",
+      "packSize": "250 ml",
+      "qty": 1,
+      "unitGbp": 2,
+      "pricePence": 200,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "other",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Tate & Lyle Caramel Syrup · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-112",
+      "name": "Tate & Lyle Vanilla Coffee Syrup",
+      "customName": "Tate & Lyle Vanilla Coffee Syrup",
+      "packSize": "250 ml",
+      "qty": 1,
+      "unitGbp": 2,
+      "pricePence": 200,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "other",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Tate & Lyle Vanilla Coffee Syrup · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-113",
+      "name": "Nescafé Gold Blend Instant Coffee",
+      "customName": "Nescafé Gold Blend Instant Coffee",
+      "packSize": "190 g",
+      "qty": 1,
+      "unitGbp": 5.7,
+      "pricePence": 570,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "other",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Nescafé Gold Blend Instant Coffee · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-114",
+      "name": "Sainsbury's Taste the Difference Medjool Dates",
+      "customName": "Sainsbury's Taste the Difference Medjool Dates",
+      "packSize": "500 g",
+      "qty": 1,
+      "unitGbp": 3.75,
+      "pricePence": 375,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "fruit",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Sainsbury's Taste the Difference Medjool Dates · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-115",
+      "name": "Sainsbury's Frozen Summer Fruits",
+      "customName": "Sainsbury's Frozen Summer Fruits",
+      "packSize": "450 g",
+      "qty": 3,
+      "unitGbp": 3.5,
+      "pricePence": 350,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "freezer",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Sainsbury's Frozen Summer Fruits · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-116",
+      "name": "Sainsbury's Frozen Dark Sweet Cherries",
+      "customName": "Sainsbury's Frozen Dark Sweet Cherries",
+      "packSize": "300 g",
+      "qty": 3,
+      "unitGbp": 3.5,
+      "pricePence": 350,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "freezer",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Sainsbury's Frozen Dark Sweet Cherries · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-117",
+      "name": "Sainsbury's Frozen Mango Chunks",
+      "customName": "Sainsbury's Frozen Mango Chunks",
+      "packSize": "450 g",
+      "qty": 3,
+      "unitGbp": 3.5,
+      "pricePence": 350,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "freezer",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Sainsbury's Frozen Mango Chunks · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-118",
+      "name": "Sainsbury's Frozen Black Forest Fruits",
+      "customName": "Sainsbury's Frozen Black Forest Fruits",
+      "packSize": "450 g",
+      "qty": 3,
+      "unitGbp": 3.5,
+      "pricePence": 350,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "freezer",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Sainsbury's Frozen Black Forest Fruits · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-119",
+      "name": "Sainsbury's Frozen Raspberries",
+      "customName": "Sainsbury's Frozen Raspberries",
+      "packSize": "315 g",
+      "qty": 3,
+      "unitGbp": 3.5,
+      "pricePence": 350,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "freezer",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Sainsbury's Frozen Raspberries · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-120",
+      "name": "Sainsbury's Frozen Blueberries",
+      "customName": "Sainsbury's Frozen Blueberries",
+      "packSize": "360 g",
+      "qty": 3,
+      "unitGbp": 3.5,
+      "pricePence": 350,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "freezer",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Sainsbury's Frozen Blueberries · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-121",
+      "name": "Sainsbury's Baby Leaf Spinach",
+      "customName": "Sainsbury's Baby Leaf Spinach",
+      "packSize": "200 g",
+      "qty": 3,
+      "unitGbp": 1.5,
+      "pricePence": 150,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "veg",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Sainsbury's Baby Leaf Spinach · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-122",
+      "name": "Sainsbury's Mixed Vegetables",
+      "customName": "Sainsbury's Mixed Vegetables",
+      "packSize": "1 kg",
+      "qty": 2,
+      "unitGbp": 1.65,
+      "pricePence": 165,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "freezer",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Sainsbury's Mixed Vegetables · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-123",
+      "name": "Sainsbury's Taste the Difference Large Smoked Garlic Bulb",
+      "customName": "Sainsbury's Taste the Difference Large Smoked Garlic Bulb",
+      "packSize": "each",
+      "qty": 4,
+      "unitGbp": 0.75,
+      "pricePence": 75,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "veg",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Sainsbury's Taste the Difference Large Smoked Garlic Bulb · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-124",
+      "name": "Highland Spring Still Water",
+      "customName": "Highland Spring Still Water",
+      "packSize": "6×1.5 L",
+      "qty": 6,
+      "unitGbp": 4.5,
+      "pricePence": 450,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "other",
+      "ticked": true,
+      "household": false,
+      "citations": [
+        "Highland Spring Still Water · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-301",
+      "name": "Flash Direct to Floor Berry",
+      "customName": "Flash Direct to Floor Berry",
+      "packSize": "800 ml",
+      "qty": 1,
+      "unitGbp": 2.75,
+      "pricePence": 275,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "other",
+      "ticked": false,
+      "household": true,
+      "citations": [
+        "Flash Direct to Floor Berry · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-302",
+      "name": "Dettol Fresh Cherry Bloom Multipurpose",
+      "customName": "Dettol Fresh Cherry Bloom Multipurpose",
+      "packSize": "750 ml",
+      "qty": 1,
+      "unitGbp": 2.4,
+      "pricePence": 240,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "other",
+      "ticked": false,
+      "household": true,
+      "citations": [
+        "Dettol Fresh Cherry Bloom Multipurpose · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-303",
+      "name": "Oral-B Pro 3D White Charcoal toothbrush",
+      "customName": "Oral-B Pro 3D White Charcoal toothbrush",
+      "packSize": "each",
+      "qty": 1,
+      "unitGbp": 1.75,
+      "pricePence": 175,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "other",
+      "ticked": false,
+      "household": true,
+      "citations": [
+        "Oral-B Pro 3D White Charcoal toothbrush · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-304",
+      "name": "Huggies Pure Plastic Free Baby Wipes",
+      "customName": "Huggies Pure Plastic Free Baby Wipes",
+      "packSize": "12×48",
+      "qty": 1,
+      "unitGbp": 9,
+      "pricePence": 900,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "other",
+      "ticked": false,
+      "household": true,
+      "citations": [
+        "Huggies Pure Plastic Free Baby Wipes · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-305",
+      "name": "Listerine Total Care Milder Zero Alcohol",
+      "customName": "Listerine Total Care Milder Zero Alcohol",
+      "packSize": "500 ml",
+      "qty": 1,
+      "unitGbp": 6,
+      "pricePence": 600,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "other",
+      "ticked": false,
+      "household": true,
+      "citations": [
+        "Listerine Total Care Milder Zero Alcohol · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-306",
+      "name": "Colgate Total Active Prevention toothpaste",
+      "customName": "Colgate Total Active Prevention toothpaste",
+      "packSize": "75 ml",
+      "qty": 2,
+      "unitGbp": 2.75,
+      "pricePence": 275,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "other",
+      "ticked": false,
+      "household": true,
+      "citations": [
+        "Colgate Total Active Prevention toothpaste · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-307",
+      "name": "Sensodyne Clinical Repair Active White",
+      "customName": "Sensodyne Clinical Repair Active White",
+      "packSize": "75 ml",
+      "qty": 2,
+      "unitGbp": 5.5,
+      "pricePence": 550,
+      "priceStatus": "RECEIPT_TRUE",
+      "tag": "other",
+      "ticked": false,
+      "household": true,
+      "citations": [
+        "Sensodyne Clinical Repair Active White · RECEIPT_TRUE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-201",
+      "name": "Sainsbury's Maris Piper Potatoes",
+      "customName": "Sainsbury's Maris Piper Potatoes",
+      "packSize": "2.5 kg",
+      "qty": 2,
+      "unitGbp": 1.9,
+      "pricePence": 190,
+      "priceStatus": "ESTIMATE",
+      "tag": "veg",
+      "ticked": false,
+      "household": false,
+      "citations": [
+        "Sainsbury's Maris Piper Potatoes · ESTIMATE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-202",
+      "name": "Sainsbury's Cornflour",
+      "customName": "Sainsbury's Cornflour",
+      "packSize": "500 g",
+      "qty": 1,
+      "unitGbp": 1,
+      "pricePence": 100,
+      "priceStatus": "ESTIMATE",
+      "tag": "other",
+      "ticked": false,
+      "household": false,
+      "citations": [
+        "Sainsbury's Cornflour · ESTIMATE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-203",
+      "name": "Sainsbury's Smoked Paprika",
+      "customName": "Sainsbury's Smoked Paprika",
+      "packSize": "40–45 g",
+      "qty": 1,
+      "unitGbp": 1.2,
+      "pricePence": 120,
+      "priceStatus": "ESTIMATE",
+      "tag": "other",
+      "ticked": false,
+      "household": false,
+      "citations": [
+        "Sainsbury's Smoked Paprika · ESTIMATE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-204",
+      "name": "Sainsbury's Paprika",
+      "customName": "Sainsbury's Paprika",
+      "packSize": "40–45 g",
+      "qty": 1,
+      "unitGbp": 1,
+      "pricePence": 100,
+      "priceStatus": "ESTIMATE",
+      "tag": "other",
+      "ticked": false,
+      "household": false,
+      "citations": [
+        "Sainsbury's Paprika · ESTIMATE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-205",
+      "name": "Sainsbury's Passata",
+      "customName": "Sainsbury's Passata",
+      "packSize": "500 g",
+      "qty": 2,
+      "unitGbp": 0.6,
+      "pricePence": 60,
+      "priceStatus": "ESTIMATE",
+      "tag": "veg",
+      "ticked": false,
+      "household": false,
+      "citations": [
+        "Sainsbury's Passata · ESTIMATE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-206",
+      "name": "Sainsbury's Thick Sliced Soft White Bread",
+      "customName": "Sainsbury's Thick Sliced Soft White Bread",
+      "packSize": "800 g",
+      "qty": 1,
+      "unitGbp": 1.2,
+      "pricePence": 120,
+      "priceStatus": "ESTIMATE",
+      "tag": "other",
+      "ticked": false,
+      "household": false,
+      "citations": [
+        "Sainsbury's Thick Sliced Soft White Bread · ESTIMATE"
+      ]
+    },
+    {
+      "skuId": "sainsburys-sku-TBD-207",
+      "name": "Sainsbury's Taste the Difference Stonebaked Baguette",
+      "customName": "Sainsbury's Taste the Difference Stonebaked Baguette",
+      "packSize": "each",
+      "qty": 2,
+      "unitGbp": 1.5,
+      "pricePence": 150,
+      "priceStatus": "ESTIMATE",
+      "tag": "other",
+      "ticked": false,
+      "household": false,
+      "citations": [
+        "Sainsbury's Taste the Difference Stonebaked Baguette · ESTIMATE"
+      ]
+    }
+  ]
+}

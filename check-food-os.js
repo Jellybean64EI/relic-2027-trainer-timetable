@@ -31,8 +31,16 @@ if (html.indexOf("data/nutrition.js") !== -1) {
   console.error("FAIL mashed nutrition.js still linked");
   process.exit(1);
 }
-if (html.indexOf('content="v20.2"') === -1 || html.indexOf("styles.css?v=v20.2") === -1) {
+if (html.indexOf('content="v21"') === -1 || html.indexOf("styles.css?v=v21") === -1) {
   console.error("FAIL cache stamp");
+  process.exit(1);
+}
+if (html.indexOf("Sunday stays off this list") !== -1) {
+  console.error("FAIL Sunday still hidden from the food week");
+  process.exit(1);
+}
+if (html.indexOf("data/food/pack001.js?v=v21") === -1) {
+  console.error("FAIL pack 001 script");
   process.exit(1);
 }
 const css = fs.readFileSync("styles.css", "utf8");
@@ -194,6 +202,28 @@ if (!jan1 || !jan1.portions || !jan1.portions.label || jan1.portions.precise || 
 }
 if (!jan6 || jan6.protein !== "Eggs" || jan6.mealId !== "eggs-mushroom-greens") {
   console.error("FAIL wednesday eggs");
+  process.exit(1);
+}
+if (app.indexOf("function foodWeekDays()") === -1 || app.indexOf("Extractions aren't dinner.") === -1) {
+  console.error("FAIL food week or evening refusal");
+  process.exit(1);
+}
+const pack = fs.readFileSync("data/food/pack001.js", "utf8");
+["pack001-bread-egg-pan-pizza", "extract-mango-date", "plate-batch-chicken-veg", "RECEIPT_TRUE", "ESTIMATE"].forEach(function (needle) {
+  if (pack.indexOf(needle) === -1) {
+    console.error("FAIL pack 001 missing " + needle);
+    process.exit(1);
+  }
+});
+["cards.json", "shop.json", "week.json"].forEach(function (name) {
+  const body = fs.readFileSync("data/food/pack001/" + name, "utf8").trim();
+  if (body.charAt(0) !== "{") {
+    console.error("FAIL pack json root " + name);
+    process.exit(1);
+  }
+});
+if (css.indexOf(".food-day.is-sunday") === -1 || css.indexOf(".food-rooms button") === -1) {
+  console.error("FAIL food week css");
   process.exit(1);
 }
 ["data/nutrition/shop.js", "data/nutrition/meals.js", "data/nutrition/extractions.js", "data/nutrition/schedule.js"].forEach(function (file) {

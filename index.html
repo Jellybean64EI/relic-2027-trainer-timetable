@@ -6,9 +6,9 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v20.2" />
+  <meta name="relic-build" content="v21" />
   <title>NiX Training Schedules</title>
-  <link rel="stylesheet" href="styles.css?v=v20.2" />
+  <link rel="stylesheet" href="styles.css?v=v21" />
 </head>
 <body>
   <div class="wrap">
@@ -178,11 +178,18 @@
 
       <section class="food-board" id="food-board" hidden aria-labelledby="food-board-title">
         <button type="button" class="food-back" id="btn-food-close">Training timetable</button>
+        <nav class="food-rooms" aria-label="Food and Prep">
+          <button type="button" data-food-room="weekly">01 Weekly Food Schedule</button>
+          <button type="button" data-food-room="shop">02 Monthly Sainsbury's Shop</button>
+          <button type="button" data-food-room="meals">03 Meal Recipe Cards</button>
+          <button type="button" data-food-room="extractions">04 Smoothie / Extraction Cards</button>
+        </nav>
         <h2 id="food-board-title" class="food-title" tabindex="-1">Weekly Food Schedule</h2>
         <div class="food-room" id="food-weekly" hidden>
+          <div id="food-week-days"></div>
           <div class="table-wrap">
             <table class="timetable fuel-table" id="fuel-table">
-              <caption class="sr-only">Monday to Saturday fuel for the selected week. Sunday stays off this list.</caption>
+              <caption class="sr-only">Monday to Sunday food. Sunday is Food Prep and Fuel Day, with the same morning, lunch, evening, and notes as every other day.</caption>
               <colgroup>
                 <col class="col-day" />
                 <col class="col-relics" />
@@ -337,17 +344,18 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v20.2"></script>
-  <script src="data/precondition.js?v=v20.2"></script>
-  <script src="data/upperBody.js?v=v20.2"></script>
-  <script src="data/citations.js?v=v20.2"></script>
-  <script src="data/forensic.js?v=v20.2"></script>
-  <script src="data/videoArchive.js?v=v20.2"></script>
-  <script src="data/nutrition/shop.js?v=v20.2"></script>
-  <script src="data/nutrition/meals.js?v=v20.2"></script>
-  <script src="data/nutrition/extractions.js?v=v20.2"></script>
-  <script src="data/nutrition/schedule.js?v=v20.2"></script>
-  <script src="data/supabaseConfig.js?v=v20.2"></script>
-  <script src="app.js?v=v20.2"></script>
+  <script src="data/schedule.js?v=v21"></script>
+  <script src="data/precondition.js?v=v21"></script>
+  <script src="data/upperBody.js?v=v21"></script>
+  <script src="data/citations.js?v=v21"></script>
+  <script src="data/forensic.js?v=v21"></script>
+  <script src="data/videoArchive.js?v=v21"></script>
+  <script src="data/nutrition/shop.js?v=v21"></script>
+  <script src="data/nutrition/meals.js?v=v21"></script>
+  <script src="data/nutrition/extractions.js?v=v21"></script>
+  <script src="data/nutrition/schedule.js?v=v21"></script>
+  <script src="data/food/pack001.js?v=v21"></script>
+  <script src="data/supabaseConfig.js?v=v21"></script>
+  <script src="app.js?v=v21"></script>
 </body>
 </html>

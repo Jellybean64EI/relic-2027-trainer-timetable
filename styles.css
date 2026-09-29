@@ -2404,3 +2404,253 @@ table.fuel-table col.col-relics { width: 78%; }
     font-size: 1.28rem;
   }
 }
+
+/* v21 Food+Prep. Scoped to the food board so training slots stay untouched. */
+.food-rooms {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px;
+}
+
+.food-rooms button {
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 2px solid #c9a227;
+  border-radius: 8px;
+  background: #fff9ee;
+  color: #1a3e2f;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.food-rooms button[aria-pressed="true"] {
+  background: #1a3e2f;
+  color: #fff9ee;
+}
+
+.food-week-range,
+.food-refuse,
+.food-undo,
+.food-snack,
+.food-sunday-label {
+  margin: 8px;
+  color: #1a3e2f;
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.food-refuse {
+  padding: 10px 12px;
+  border: 2px solid #c9a227;
+  border-radius: 8px;
+  background: #fff9ee;
+  color: #5c4033;
+}
+
+.food-pack-jump,
+.food-undo button,
+.food-day-actions button,
+.food-chip,
+.food-filters button,
+.food-lib-row button,
+.food-budget button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 12px;
+  border: 2px solid #1a3e2f;
+  border-radius: 8px;
+  background: #f7f1e3;
+  color: #1a3e2f;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.food-day {
+  margin: 8px;
+  padding: 10px;
+  border: 2px solid #1a3e2f;
+  border-radius: 10px;
+  background: #fff9ee;
+  color: #5c4033;
+  opacity: 1;
+}
+
+.food-day.is-sunday {
+  background: #f7f1e3;
+  border-color: #c9a227;
+  opacity: 1;
+  filter: none;
+}
+
+.food-day.is-pinned {
+  box-shadow: inset 0 0 0 2px #c9a227;
+}
+
+.food-day-head h3,
+.food-day-head p {
+  margin: 0;
+  color: #1a3e2f;
+}
+
+.food-slot {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 44px;
+  margin: 6px 0;
+  padding: 8px 10px;
+  border: 1px solid #c9a227;
+  border-radius: 8px;
+  background: #fff;
+  color: #5c4033;
+}
+
+.food-slot span {
+  color: #1a3e2f;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.food-slot.is-valid {
+  background: #e7f0e4;
+  box-shadow: inset 0 0 0 2px #1a3e2f;
+}
+
+.food-slot.is-invalid {
+  background: #fff9ee;
+  box-shadow: inset 0 0 0 2px #c9a227;
+}
+
+.food-note {
+  display: block;
+  margin: 6px 0;
+  color: #1a3e2f;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.food-note textarea {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 4px;
+  padding: 8px;
+  border: 1px solid #c9a227;
+  border-radius: 8px;
+  background: #fff;
+  color: #5c4033;
+  font: inherit;
+}
+
+.food-day-actions,
+.food-library,
+.food-filters,
+.food-lib-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.food-library,
+.food-filters {
+  margin: 8px;
+}
+
+.food-chip {
+  background: #e7f0e4;
+}
+
+.food-budget {
+  margin: 8px;
+  padding: 12px;
+  border: 8px solid #1a3e2f;
+  background: #fff9ee;
+  color: #5c4033;
+}
+
+.food-budget p {
+  margin: 0 0 6px;
+  font-weight: 800;
+}
+
+.food-board .recipe-card.food-forensic,
+.food-board .food-forensic.food-collection {
+  background: #fff9ee;
+  color: #5c4033;
+  border: 8px solid #1a3e2f;
+  box-shadow: inset 0 0 0 2px #c9a227;
+}
+
+.food-board .recipe-card.food-forensic[data-kind="extraction"] {
+  background: #f7f1e3;
+  border-color: #1a3e2f;
+  box-shadow: inset 0 0 0 2px #7d9a78;
+}
+
+.food-board .recipe-card.food-forensic h3,
+.food-board .food-collection h3,
+.food-board .recipe-card.food-forensic .recipe-kicker,
+.food-board .recipe-card.food-forensic h4 {
+  color: #1a3e2f;
+  border-bottom-color: #c9a227;
+}
+
+.food-board .recipe-card.food-forensic .recipe-tagline,
+.food-board .recipe-card.food-forensic .recipe-script,
+.food-board .recipe-card.food-forensic li,
+.food-board .recipe-card.food-forensic p {
+  color: #5c4033;
+}
+
+.food-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.food-quick span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid #c9a227;
+  background: #f7f1e3;
+  color: #1a3e2f;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.food-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.food-board .recipe-card.food-forensic .recipe-tip {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  background: #e7f0e4;
+  color: #1a3e2f;
+  font-weight: 700;
+}
+
+.food-collection p {
+  margin: 4px 0 8px;
+  color: #5c4033;
+  font-weight: 700;
+}
+
+.food-board .food-json-label {
+  color: #f7f1e3;
+}
