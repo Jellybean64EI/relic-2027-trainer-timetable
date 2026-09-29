@@ -64,6 +64,14 @@
     saveGen: {},
     mode: "full",
     foodRoom: "",
+    hgPick: "",
+    hgWindow: "2026-10",
+    hgMonth: 10,
+    hgYear: 2026,
+    hgWeek: 1,
+    foodToast: "",
+    foodToastUntil: 0,
+    foodFlyError: "",
     foodRefuse: "",
     foodUndo: null,
     foodFilter: "all",
@@ -708,9 +716,12 @@
   function foodSchedule() { return window.RELIC_FOOD_SCHEDULE || null; }
 
   var FOOD_TITLES = {
-    weekly: "Weekly Food Schedule",
-    shop: "Monthly Foods (Sainsbury’s)",
     meals: "Meal Recipe Cards",
+    cabinet: "Main Meal Cabinet",
+    hg: "Food Schedule HG",
+    final: "Final Meal Prep Scheduled Timetables",
+    savelater: "Save later",
+    shop: "Monthly Shop",
     extractions: "Smoothie / Extraction Cards"
   };
 
@@ -1090,13 +1101,7 @@
   }
 
   function foodToolsHtml(room) {
-    return '<div class="food-tools" data-food-room-tools="' + room + '">' +
-      '<button type="button" data-food-tool="export">Export JSON</button>' +
-      '<button type="button" data-food-tool="import">Import JSON</button>' +
-      '<button type="button" data-food-tool="reset">Reset this room</button>' +
-      '<label class="food-json-label">JSON for ChatGPT, Gemini, or NiX' +
-      '<textarea id="food-json-' + room + '" class="food-json" rows="5"></textarea></label>' +
-      "</div>";
+    return "";
   }
 
   function roomExport(room) {
@@ -1179,15 +1184,7 @@
   }
 
   function scanStripHtml(room) {
-    var pasteLabel = room === "shop" ? "Paste shop notes" : (room === "extractions" ? "Paste smoothie notes" : "Paste meal notes");
-    return '<section class="scan-strip" aria-label="Scan / Import">' +
-      "<h3>Scan / Import</h3>" +
-      '<label class="scan-label">' + pasteLabel +
-      '<textarea id="scan-paste-' + room + '" class="scan-paste" rows="4"></textarea></label>' +
-      '<button type="button" data-scan-action="parse">Parse</button>' +
-      '<label class="scan-file">JSON file<input type="file" accept="application/json,.json" data-scan-file="json" aria-label="Import JSON file"></label>' +
-      '<label class="scan-file">attach label photo; fill fields<input type="file" accept="image/*" capture="environment" data-scan-file="photo" aria-label="attach label photo; fill fields"></label>' +
-      "</section>";
+    return "";
   }
 
   function photoMarker(url) {
@@ -2748,6 +2745,739 @@
     render();
   }
 
+  var FOOD_V22 = {
+    meals: "relic_food_meals_v22",
+    cabinet: "relic_food_cabinet_v22",
+    hg: "relic_food_hg_v22",
+    final: "relic_food_final_v22",
+    later: "relic_food_savelater_v22",
+    shop: "relic_food_shop_v22",
+    fly: "relic_food_flylog_v22"
+  };
+  var FLY_ALLOW = {
+    meals: { add_cabinet: "cabinet", add_hg: "hg" },
+    cabinet: { add_hg: "hg" },
+    hg: { finished_week: "savelater", month_complete: "final" },
+    savelater: { reuse_hg: "hg" },
+    shop: { create_meal: "meals" }
+  };
+  var WEEKDAY_ALL = { Mon: "Mondays", Tue: "Tuesdays", Wed: "Wednesdays", Thu: "Thursdays", Fri: "Fridays", Sat: "Saturdays", Sun: "Sundays" };
+  var MONTH_LABEL = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  function readV22(key) {
+    var store = readJsonStore(key);
+    return store && typeof store === "object" && !Array.isArray(store) ? store : {};
+  }
+
+  function writeV22(key, value) {
+    writeJsonStore(key, value);
+  }
+
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+
+  function ensureMealSeed() {
+    var store = readV22(FOOD_V22.meals);
+    store.cards = store.cards || {};
+    if (!store.seeded) {
+      var pack = packApi();
+      if (pack && pack.meals) {
+        Object.keys(pack.meals).forEach(function (id) {
+          var row = pack.meals[id];
+          if (!row || row.kind === "collection" || row.visualOnly) return;
+          store.cards[id] = {
+            cardId: id,
+            title: row.name,
+            madeOn: "2026-10-01",
+            noteCode: "",
+            kind: "meal",
+            family: row.family || "meal",
+            tagline: row.tagline || "",
+            ingredients: row.ingredients || [],
+            method: row.method || [],
+            tip: row.tip || "",
+            cookEggWhites: !!row.cookEggWhites,
+            fresh: true
+          };
+        });
+      }
+      store.seeded = true;
+      writeV22(FOOD_V22.meals, store);
+      var cab = readV22(FOOD_V22.cabinet);
+      if (!cab.order || !cab.order.length) {
+        cab.order = Object.keys(store.cards);
+        writeV22(FOOD_V22.cabinet, cab);
+      }
+    }
+    return store;
+  }
+
+  function mealById(id) {
+    var store = ensureMealSeed();
+    return store.cards[id] || null;
+  }
+
+  function foodBannersHtml() {
+    var html = "";
+    if (state.foodFlyError) html += '<p class="food-refuse" role="status">' + escapeHtml(state.foodFlyError) + "</p>";
+    if (state.foodToast && state.foodToastUntil > Date.now()) {
+      html += '<p class="food-toast" role="status">' + escapeHtml(state.foodToast) + "</p>";
+    }
+    return html;
+  }
+
+  function logFly(entry) {
+    var log = readV22(FOOD_V22.fly);
+    log.events = log.events || [];
+    log.events.push(entry);
+    if (log.events.length > 40) log.events = log.events.slice(-40);
+    writeV22(FOOD_V22.fly, log);
+  }
+
+  function runFlyVisual(toCabin, title, done) {
+    setNavOpen(true);
+    document.querySelectorAll("[data-food-room]").forEach(function (row) {
+      row.classList.toggle("is-fly-target", row.getAttribute("data-food-room") === toCabin);
+    });
+    var target = document.querySelector('.nav-drawer [data-food-room="' + toCabin + '"]');
+    var ghost = document.createElement("div");
+    ghost.className = "food-fly-ghost";
+    ghost.textContent = title || "Meal";
+    document.body.appendChild(ghost);
+    setTimeout(function () {
+      var rect = target ? target.getBoundingClientRect() : { left: 16, top: 120 };
+      ghost.style.left = rect.left + "px";
+      ghost.style.top = rect.top + "px";
+      ghost.style.width = "44px";
+      ghost.style.height = "44px";
+    }, 340);
+    setTimeout(function () {
+      if (ghost.parentNode) ghost.parentNode.removeChild(ghost);
+      document.querySelectorAll(".is-fly-target").forEach(function (row) { row.classList.remove("is-fly-target"); });
+      setNavOpen(false);
+      done();
+    }, 1100);
+  }
+
+  function flyFood(fromCabin, action, cardId, extra) {
+    extra = extra || {};
+    var toCabin = FLY_ALLOW[fromCabin] && FLY_ALLOW[fromCabin][action];
+    if (!toCabin) {
+      state.foodFlyError = "That move is not allowed.";
+      render();
+      return;
+    }
+    if (action === "finished_week") {
+      var later = readV22(FOOD_V22.later);
+      later.cards = later.cards || {};
+      later.order = later.order || [];
+      if (later.cards[cardId]) {
+        state.foodToast = "This card has already been added to save later.";
+        state.foodToastUntil = Date.now() + 4000;
+        state.foodFlyError = "";
+        render();
+        setTimeout(function () {
+          if (state.foodToastUntil && Date.now() >= state.foodToastUntil) {
+            state.foodToast = "";
+            render();
+          }
+        }, 4100);
+        return;
+      }
+      later.cards[cardId] = extra.card;
+      later.order.push(cardId);
+      writeV22(FOOD_V22.later, later);
+      var hgDone = readV22(FOOD_V22.hg);
+      hgDone.finished = hgDone.finished || {};
+      hgDone.finished[cardId] = true;
+      writeV22(FOOD_V22.hg, hgDone);
+    }
+    if (action === "add_cabinet") {
+      var cab = readV22(FOOD_V22.cabinet);
+      cab.order = cab.order || [];
+      if (cab.order.indexOf(cardId) === -1) cab.order.push(cardId);
+      writeV22(FOOD_V22.cabinet, cab);
+    }
+    if (action === "add_hg" || action === "reuse_hg") {
+      var hg = readV22(FOOD_V22.hg);
+      hg.pool = hg.pool || [];
+      var ids = action === "reuse_hg" && extra.card ? (extra.card.mealIds || []) : [cardId];
+      ids.forEach(function (id) {
+        if (id && hg.pool.indexOf(id) === -1) hg.pool.push(id);
+      });
+      if (action === "reuse_hg" && extra.card && extra.card.placements) {
+        hg.placements = hg.placements || {};
+        Object.keys(extra.card.placements).forEach(function (date) {
+          hg.placements[date] = extra.card.placements[date];
+        });
+      }
+      writeV22(FOOD_V22.hg, hg);
+    }
+    if (action === "month_complete") {
+      var fin = readV22(FOOD_V22.final);
+      fin.cards = fin.cards || {};
+      fin.order = fin.order || [];
+      fin.cards[cardId] = extra.card;
+      if (fin.order.indexOf(cardId) === -1) fin.order.push(cardId);
+      writeV22(FOOD_V22.final, fin);
+      state.foodFocusId = cardId;
+    }
+    if (action === "create_meal") {
+      var meals = ensureMealSeed();
+      meals.cards[cardId] = extra.card;
+      writeV22(FOOD_V22.meals, meals);
+      state.foodFocusId = cardId;
+      state.foodEditing = true;
+    }
+    logFly({
+      fromCabin: fromCabin,
+      toCabin: toCabin,
+      cardId: cardId,
+      action: action,
+      at: new Date().toISOString()
+    });
+    state.foodFlyError = "";
+    var title = (extra.card && extra.card.title) || (mealById(cardId) && mealById(cardId).title) || cardId;
+    runFlyVisual(toCabin, title, function () {
+      if (action === "month_complete" || action === "create_meal") openFoodRoom(toCabin, cardId);
+      else openFoodRoom(toCabin, "");
+    });
+  }
+
+  function hgWindowMonths() {
+    var start = state.hgWindow === "2027-01" ? { year: 2027, month: 1 } : { year: 2026, month: 10 };
+    var out = [];
+    for (var i = 0; i < 3; i++) {
+      var date = new Date(Date.UTC(start.year, start.month - 1 + i, 1, 12));
+      var parts = londonParts(date);
+      out.push({ year: parts.year, month: parts.month });
+    }
+    return out;
+  }
+
+  function hgWeeks(year, month) {
+    var anchor = londonParts(new Date(Date.UTC(year, month - 1, 1, 12)));
+    var names = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+    var index = names[String(anchor.weekday || "").slice(0, 3)];
+    if (index == null) index = 0;
+    var monday = Date.UTC(anchor.year, anchor.month - 1, anchor.day, 12) - index * 86400000;
+    var weeks = [[], [], [], []];
+    var seen = {};
+    for (var w = 0; w < 4; w++) {
+      for (var i = 0; i < 7; i++) {
+        var parts = londonParts(new Date(monday + (w * 7 + i) * 86400000));
+        parts.sunday = String(parts.weekday || "").slice(0, 3) === "Sun";
+        weeks[w].push(parts);
+        if (parts.year === year && parts.month === month) seen[parts.dateKey] = true;
+      }
+    }
+    var last = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    for (var day = 1; day <= last; day++) {
+      var extra = londonParts(new Date(Date.UTC(year, month - 1, day, 12)));
+      if (!seen[extra.dateKey]) {
+        extra.sunday = String(extra.weekday || "").slice(0, 3) === "Sun";
+        weeks[3].push(extra);
+      }
+    }
+    return weeks;
+  }
+
+  function placeHg(dateKey, slot, cardId, mode, weekday) {
+    var card = mealById(cardId);
+    if (!card) {
+      state.foodFlyError = "Pick a meal from the HG pool first.";
+      render();
+      return;
+    }
+    if (slot === "dinner" && card.kind === "extraction") {
+      state.foodFlyError = "Extractions aren't dinner.";
+      render();
+      return;
+    }
+    var hg = readV22(FOOD_V22.hg);
+    hg.placements = hg.placements || {};
+    var dates = [dateKey];
+    if (mode === "all") {
+      dates = [];
+      hgWindowMonths().forEach(function (entry) {
+        hgWeeks(entry.year, entry.month).forEach(function (week) {
+          week.forEach(function (day) {
+            if (String(day.weekday || "").slice(0, 3) === weekday && dates.indexOf(day.dateKey) === -1) dates.push(day.dateKey);
+          });
+        });
+      });
+    }
+    dates.forEach(function (key) {
+      var row = hg.placements[key] || {};
+      row[slot] = cardId;
+      hg.placements[key] = row;
+    });
+    writeV22(FOOD_V22.hg, hg);
+    state.foodFlyError = "";
+    render();
+  }
+
+  function weekPlacements(year, month, weekIndex) {
+    var days = hgWeeks(year, month)[weekIndex] || [];
+    var hg = readV22(FOOD_V22.hg);
+    var placements = {};
+    var mealIds = [];
+    var complete = days.length > 0;
+    days.forEach(function (day) {
+      var row = (hg.placements && hg.placements[day.dateKey]) || {};
+      placements[day.dateKey] = { breakfast: row.breakfast || "", lunch: row.lunch || "", dinner: row.dinner || "" };
+      ["breakfast", "lunch", "dinner"].forEach(function (slot) {
+        if (!row[slot]) complete = false;
+        else if (mealIds.indexOf(row[slot]) === -1) mealIds.push(row[slot]);
+      });
+    });
+    return { days: days, placements: placements, mealIds: mealIds, complete: complete };
+  }
+
+  function weekCardId(year, month, week) {
+    return "week-" + year + "-" + pad2(month) + "-w" + week;
+  }
+
+  function finishWeek(year, month, week) {
+    var packed = weekPlacements(year, month, week - 1);
+    if (!packed.complete) {
+      state.foodFlyError = "Fill every breakfast, lunch, and dinner in this week first.";
+      render();
+      return;
+    }
+    var id = weekCardId(year, month, week);
+    flyFood("hg", "finished_week", id, {
+      card: {
+        cardId: id,
+        title: MONTH_LABEL[month] + " " + year + " · Week " + week,
+        madeOn: londonParts(new Date()).dateKey,
+        noteCode: "",
+        month: year + "-" + pad2(month),
+        week: week,
+        placements: packed.placements,
+        mealIds: packed.mealIds
+      }
+    });
+  }
+
+  function finishMonth(year, month) {
+    var weeks = [];
+    for (var w = 1; w <= 4; w++) {
+      var id = weekCardId(year, month, w);
+      var later = readV22(FOOD_V22.later);
+      if (!later.cards || !later.cards[id]) {
+        state.foodFlyError = "Finish weeks 1 to 4 into Save later before this month can fly to Final.";
+        render();
+        return;
+      }
+      weeks.push(later.cards[id]);
+    }
+    var finalId = "final-" + year + "-" + pad2(month);
+    flyFood("hg", "month_complete", finalId, {
+      card: {
+        cardId: finalId,
+        title: MONTH_LABEL[month] + " " + year,
+        madeOn: londonParts(new Date()).dateKey,
+        noteCode: "",
+        weeks: weeks
+      }
+    });
+  }
+
+  function v22CardHtml(card) {
+    var ingredients = (card.ingredients || []).map(function (item) {
+      return "<li>" + escapeHtml(item.text || "") + "</li>";
+    }).join("");
+    var method = (card.method || []).map(function (step, index) {
+      return "<li><strong>" + escapeHtml(step.verb || "") + "</strong> " + escapeHtml(step.detail || "") + "</li>";
+    }).join("");
+    return '<article class="recipe-card food-forensic" data-kind="meal" id="card-' + escapeHtml(card.cardId) + '">' +
+      '<p class="recipe-kicker">' + escapeHtml((card.family || "meal").toUpperCase()) + "</p>" +
+      "<h3>" + escapeHtml(card.title) + "</h3>" +
+      '<p class="food-made">Made ' + escapeHtml(card.madeOn || "") + (card.noteCode ? " · " + escapeHtml(card.noteCode) : "") + "</p>" +
+      (card.tagline ? '<p class="recipe-tagline">' + escapeHtml(card.tagline) + "</p>" : "") +
+      "<h4>Ingredients</h4><ul class=\"recipe-ingredients\">" + ingredients + "</ul>" +
+      "<h4>Method</h4><ol class=\"recipe-method\">" + method + "</ol>" +
+      (card.tip ? '<p class="recipe-tip">' + escapeHtml(card.tip) + "</p>" : "") +
+      "</article>";
+  }
+
+  function paintMealsV22() {
+    var host = $("food-meals");
+    if (!host) return;
+    var store = ensureMealSeed();
+    var card = state.foodFocusId ? store.cards[state.foodFocusId] : null;
+    var html = foodBannersHtml();
+    if (card && state.foodEditing) {
+      html += '<form class="food-editor" data-v22="editor">' +
+        '<label>Title<input name="title" value="' + escapeHtml(card.title) + '"></label>' +
+        '<label>Note code<input name="noteCode" value="' + escapeHtml(card.noteCode || "") + '"></label>' +
+        '<p class="food-made">Made ' + escapeHtml(card.madeOn) + "</p>" +
+        '<label>Ingredients, one line each<textarea name="ingredients" rows="6">' +
+          escapeHtml((card.ingredients || []).map(function (item) { return item.text; }).join("\n")) + "</textarea></label>" +
+        '<label>Method, one step each line<textarea name="method" rows="6">' +
+          escapeHtml((card.method || []).map(function (step) { return (step.verb || "Cook") + " " + (step.detail || ""); }).join("\n")) + "</textarea></label>" +
+        '<label>Notes<textarea name="tip" rows="3">' + escapeHtml(card.tip || "") + "</textarea></label>" +
+        '<button type="button" data-v22="save-meal" data-card="' + escapeHtml(card.cardId) + '">Save meal</button>' +
+        "</form>";
+    } else if (card) {
+      html += '<button type="button" class="food-fly-btn" data-v22="back-meals">All meal cards</button>' + v22CardHtml(card) +
+        '<div class="food-fly-actions">' +
+        '<button type="button" class="food-fly-btn" data-v22="edit-meal" data-card="' + escapeHtml(card.cardId) + '">Edit</button>' +
+        '<button type="button" class="food-fly-btn" data-v22="fly" data-from="meals" data-action="add_cabinet" data-card="' + escapeHtml(card.cardId) + '">Add to Main Meal Cabinet</button>' +
+        '<button type="button" class="food-fly-btn" data-v22="fly" data-from="meals" data-action="add_hg" data-card="' + escapeHtml(card.cardId) + '">Add to Food Schedule HG</button>' +
+        "</div>";
+    } else {
+      html += '<button type="button" class="food-fly-btn" data-v22="new-meal">New meal card</button>';
+      Object.keys(store.cards).forEach(function (id) {
+        var row = store.cards[id];
+        html += '<button type="button" class="food-jump" data-v22="open-meal" data-card="' + escapeHtml(id) + '">' +
+          escapeHtml(row.title) + "<span>Made " + escapeHtml(row.madeOn || "") + "</span></button>";
+      });
+    }
+    host.innerHTML = html;
+  }
+
+  function paintCabinet() {
+    var host = $("food-cabinet");
+    if (!host) return;
+    ensureMealSeed();
+    var cab = readV22(FOOD_V22.cabinet);
+    var order = cab.order || [];
+    var html = foodBannersHtml();
+    var focus = state.foodFocusId ? mealById(state.foodFocusId) : null;
+    if (focus) {
+      html += '<button type="button" class="food-fly-btn" data-v22="back-cabinet">Cabinet</button>' + v22CardHtml(focus) +
+        '<div class="food-fly-actions"><button type="button" class="food-fly-btn" data-v22="fly" data-from="cabinet" data-action="add_hg" data-card="' +
+        escapeHtml(focus.cardId) + '">Add to Food Schedule HG drafts</button></div>';
+    } else {
+      html += '<div class="food-cabinet-scroller" aria-label="Main Meal Cabinet">';
+      order.forEach(function (id) {
+        var card = mealById(id);
+        if (!card) return;
+        html += '<button type="button" class="food-mini" data-v22="open-cabinet" data-card="' + escapeHtml(id) + '">' +
+          "<strong>" + escapeHtml(card.title) + "</strong><span>" + escapeHtml(card.madeOn || "") + "</span></button>";
+      });
+      html += "</div>";
+    }
+    host.innerHTML = html;
+  }
+
+  function paintHg() {
+    var host = $("food-hg");
+    if (!host) return;
+    ensureMealSeed();
+    var hg = readV22(FOOD_V22.hg);
+    var pool = hg.pool || [];
+    if (state.hgMonth < 1) state.hgMonth = 10;
+    var months = hgWindowMonths();
+    var active = months.filter(function (entry) { return entry.year === state.hgYear && entry.month === state.hgMonth; })[0] || months[0];
+    state.hgYear = active.year;
+    state.hgMonth = active.month;
+    var weeks = hgWeeks(active.year, active.month);
+    var week = weeks[state.hgWeek - 1] || weeks[0];
+    var html = foodBannersHtml();
+    html += '<div class="food-filters">';
+    html += '<button type="button" data-v22="window" data-window="2026-10"' + (state.hgWindow === "2026-10" ? ' aria-pressed="true"' : "") + ">Oct–Dec</button>";
+    html += '<button type="button" data-v22="window" data-window="2027-01"' + (state.hgWindow === "2027-01" ? ' aria-pressed="true"' : "") + ">Jan–Mar</button>";
+    html += "</div><div class=\"food-filters\">";
+    months.forEach(function (entry) {
+      html += '<button type="button" data-v22="month" data-year="' + entry.year + '" data-month="' + entry.month + '"' +
+        (entry.month === state.hgMonth && entry.year === state.hgYear ? ' aria-pressed="true"' : "") + ">" +
+        MONTH_LABEL[entry.month] + "</button>";
+    });
+    html += "</div><div class=\"food-filters\">";
+    for (var w = 1; w <= 4; w++) {
+      html += '<button type="button" data-v22="hg-week" data-week="' + w + '"' + (state.hgWeek === w ? ' aria-pressed="true"' : "") + ">Week " + w + "</button>";
+    }
+    html += "</div>";
+    html += '<div class="food-cabinet-scroller" aria-label="HG pool">';
+    if (!pool.length) html += '<p class="food-made">Fly a meal here from Meal Recipe Cards or the Cabinet.</p>';
+    pool.forEach(function (id) {
+      var card = mealById(id);
+      if (!card) return;
+      html += '<button type="button" class="food-mini" data-v22="pick" data-card="' + escapeHtml(id) + '"' +
+        (state.hgPick === id ? ' aria-pressed="true"' : "") + "><strong>" + escapeHtml(card.title) + "</strong></button>";
+    });
+    html += "</div>";
+    week.forEach(function (day) {
+      var placed = (hg.placements && hg.placements[day.dateKey]) || {};
+      var short = String(day.weekday || "").slice(0, 3);
+      html += '<article class="food-day' + (day.sunday ? " is-sunday" : "") + '">';
+      html += "<header class=\"food-day-head\"><h3>" + escapeHtml(day.weekday) + "</h3><p>" + escapeHtml(day.dateKey) + "</p>";
+      if (day.sunday) html += '<p class="food-sunday-label">Food Prep + Fuel Day</p>';
+      html += "</header>";
+      ["breakfast", "lunch", "dinner"].forEach(function (slot) {
+        var chosen = placed[slot] ? mealById(placed[slot]) : null;
+        html += '<div class="food-slot"><span>' + slot + "</span><strong>" + escapeHtml(chosen ? chosen.title : "Empty") + "</strong>" +
+          '<div class="food-hg-actions">' +
+          '<button type="button" data-v22="place" data-mode="all" data-date="' + escapeHtml(day.dateKey) + '" data-slot="' + slot + '" data-weekday="' + short + '">All ' + WEEKDAY_ALL[short] + "</button>" +
+          '<button type="button" data-v22="place" data-mode="once" data-date="' + escapeHtml(day.dateKey) + '" data-slot="' + slot + '" data-weekday="' + short + '">Only once</button>' +
+          "</div></div>";
+      });
+      html += "</article>";
+    });
+    html += '<button type="button" class="food-fly-btn" data-v22="finish-week" data-week="' + state.hgWeek + '">Finished schedule</button>';
+    html += '<button type="button" class="food-fly-btn" data-v22="finish-month">Month complete</button>';
+    host.innerHTML = html;
+  }
+
+  function paintFinal() {
+    var host = $("food-final");
+    if (!host) return;
+    var fin = readV22(FOOD_V22.final);
+    var html = foodBannersHtml();
+    var card = state.foodFocusId && fin.cards ? fin.cards[state.foodFocusId] : null;
+    if (!card && fin.order && fin.order.length) card = fin.cards[fin.order[fin.order.length - 1]];
+    if (!card) {
+      html += '<p class="food-made">Finished 4-week timetables land here from Food Schedule HG.</p>';
+    } else {
+      html += "<h3 class=\"food-subhead\">" + escapeHtml(card.title) + "</h3>";
+      (card.weeks || []).forEach(function (week) {
+        html += '<section class="food-final-week"><h3>Week ' + week.week + "</h3>";
+        Object.keys(week.placements || {}).forEach(function (date) {
+          var row = week.placements[date];
+          html += '<article class="food-day"><header class="food-day-head"><h3>' + escapeHtml(date) + "</h3></header>";
+          ["breakfast", "lunch", "dinner"].forEach(function (slot) {
+            var meal = row[slot] ? mealById(row[slot]) : null;
+            html += '<div class="food-slot"><span>' + slot + "</span><strong>" + escapeHtml(meal ? meal.title : "Empty") + "</strong></div>";
+          });
+          html += "</article>";
+        });
+        html += "</section>";
+      });
+    }
+    host.innerHTML = html;
+  }
+
+  function paintSaveLater() {
+    var host = $("food-savelater");
+    if (!host) return;
+    var later = readV22(FOOD_V22.later);
+    var html = foodBannersHtml();
+    var focus = state.foodFocusId && later.cards ? later.cards[state.foodFocusId] : null;
+    if (focus) {
+      html += '<button type="button" class="food-fly-btn" data-v22="back-later">Save later</button>';
+      html += "<h3 class=\"food-subhead\">" + escapeHtml(focus.title) + "</h3>";
+      html += '<p class="food-made">Made ' + escapeHtml(focus.madeOn || "") + "</p>";
+      html += '<button type="button" class="food-fly-btn" data-v22="fly" data-from="savelater" data-action="reuse_hg" data-card="' +
+        escapeHtml(focus.cardId) + '">Reuse in Food Schedule HG</button>';
+    } else {
+      html += '<div class="food-cabinet-scroller" aria-label="Save later">';
+      (later.order || []).forEach(function (id) {
+        var card = later.cards[id];
+        if (!card) return;
+        html += '<button type="button" class="food-mini" data-v22="open-later" data-card="' + escapeHtml(id) + '"><strong>' +
+          escapeHtml(card.title) + "</strong><span>" + escapeHtml(card.madeOn || "") + "</span></button>";
+      });
+      html += "</div>";
+    }
+    host.innerHTML = html;
+  }
+
+  function shopGroupName(tag) {
+    if (tag === "protein") return "protein";
+    if (tag === "dairy") return "dairy";
+    if (tag === "veg" || tag === "fruit") return "produce";
+    if (tag === "freezer") return "frozen";
+    return "cupboard";
+  }
+
+  function paintShopV22() {
+    var host = $("food-shop");
+    if (!host) return;
+    var pack = packApi();
+    var items = pack && pack.shop ? pack.shop.items : [];
+    var meals = ensureMealSeed().cards;
+    var tagged = {};
+    Object.keys(meals).forEach(function (id) {
+      (meals[id].ingredients || []).forEach(function (item) {
+        if (item.skuId) tagged[item.skuId] = true;
+      });
+    });
+    var groups = { protein: [], dairy: [], produce: [], cupboard: [], frozen: [] };
+    var gaps = [];
+    var untagged = null;
+    items.forEach(function (item) {
+      if (item.household) return;
+      var line = escapeHtml(item.customName || item.name) + " · " + item.qty + " · £" + ((item.pricePence || 0) * item.qty / 100).toFixed(2);
+      if (item.priceStatus === "ESTIMATE") gaps.push("<li>" + line + " · ESTIMATE</li>");
+      if (item.priceStatus === "RECEIPT_TRUE") {
+        groups[shopGroupName(item.tag)].push("<li>" + line + "</li>");
+        if (!tagged[item.skuId] && !untagged && item.tag !== "other") untagged = item;
+      }
+    });
+    if (!untagged) {
+      items.forEach(function (item) {
+        if (!untagged && item.priceStatus === "ESTIMATE" && !item.household && !tagged[item.skuId]) untagged = item;
+      });
+    }
+    var suggestions = [];
+    if (untagged) {
+      var partners = Object.keys(meals).slice(0, 6);
+      partners.forEach(function (id, index) {
+        var base = meals[id];
+        var cardId = "suggest-" + String(untagged.skuId || "line").toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-" + (index + 1);
+        suggestions.push({
+          cardId: cardId,
+          title: (untagged.customName || untagged.name) + " with " + base.title,
+          madeOn: londonParts(new Date()).dateKey,
+          noteCode: "",
+          kind: "meal",
+          family: "meal",
+          tagline: "Pairs with a Cabinet meal.",
+          ingredients: (base.ingredients || []).concat([{ text: untagged.customName || untagged.name, skuId: untagged.skuId }]),
+          method: base.method || [],
+          tip: "Cook egg whites when eggs are in the pan. One Brazil nut a day only if that tin was purchased.",
+          fresh: true
+        });
+      });
+    }
+    state.foodSuggestions = suggestions;
+    writeV22(FOOD_V22.shop, {
+      softLockGbp: 200,
+      untaggedSku: untagged ? untagged.skuId : "",
+      suggestionIds: suggestions.map(function (card) { return card.cardId; })
+    });
+    var html = foodBannersHtml();
+    html += '<section class="food-shop-panel"><h3>This month’s trolley</h3><p class="food-made">Soft lock £200</p>';
+    ["protein", "dairy", "produce", "cupboard", "frozen"].forEach(function (name) {
+      if (!groups[name].length) return;
+      html += "<h4>" + name + "</h4><ul>" + groups[name].join("") + "</ul>";
+    });
+    html += "</section>";
+    html += '<section class="food-shop-panel"><h3>Gaps</h3><ul>' + (gaps.join("") || "<li>No ESTIMATE gaps on this trolley.</li>") + "</ul></section>";
+    html += '<section class="food-shop-panel"><h3>New product → 6 meals</h3>';
+    if (!suggestions.length) html += "<p>Every trolley food already has a meal card.</p>";
+    suggestions.forEach(function (card, index) {
+      html += '<button type="button" class="food-fly-btn" data-v22="suggest" data-index="' + index + '">' + escapeHtml(card.title) + "</button>";
+    });
+    html += "</section>";
+    host.innerHTML = html;
+  }
+
+  function onV22Click(event) {
+    var node = event.target.closest("[data-v22]");
+    if (!node) return false;
+    var kind = node.getAttribute("data-v22");
+    var cardId = node.getAttribute("data-card") || "";
+    if (kind === "open-meal" || kind === "open-cabinet" || kind === "open-later") {
+      state.foodFocusId = cardId;
+      state.foodEditing = false;
+      render();
+      return true;
+    }
+    if (kind === "back-meals" || kind === "back-cabinet" || kind === "back-later") {
+      state.foodFocusId = "";
+      state.foodEditing = false;
+      render();
+      return true;
+    }
+    if (kind === "edit-meal") {
+      state.foodEditing = true;
+      render();
+      return true;
+    }
+    if (kind === "new-meal") {
+      var id = newCardId();
+      var meals = ensureMealSeed();
+      meals.cards[id] = {
+        cardId: id,
+        title: "New meal",
+        madeOn: londonParts(new Date()).dateKey,
+        noteCode: "",
+        kind: "meal",
+        family: "meal",
+        tagline: "",
+        ingredients: [{ text: "" }],
+        method: [{ verb: "Cook", detail: "" }],
+        tip: "",
+        fresh: true
+      };
+      writeV22(FOOD_V22.meals, meals);
+      state.foodFocusId = id;
+      state.foodEditing = true;
+      render();
+      return true;
+    }
+    if (kind === "save-meal") {
+      var form = node.closest("form");
+      var existing = mealById(cardId);
+      if (form && existing) {
+        existing.title = form.querySelector('[name="title"]').value.trim() || existing.title;
+        existing.noteCode = form.querySelector('[name="noteCode"]').value.trim();
+        existing.ingredients = form.querySelector('[name="ingredients"]').value.split("\n").map(function (line) {
+          return { text: line.trim() };
+        }).filter(function (item) { return item.text; });
+        existing.method = form.querySelector('[name="method"]').value.split("\n").map(function (line) {
+          var parts = line.trim().split(/\s+/);
+          return { verb: parts.shift() || "Cook", detail: parts.join(" ") };
+        }).filter(function (step) { return step.verb || step.detail; });
+        existing.tip = form.querySelector('[name="tip"]').value.trim();
+        var store = ensureMealSeed();
+        store.cards[cardId] = existing;
+        writeV22(FOOD_V22.meals, store);
+      }
+      state.foodEditing = false;
+      render();
+      return true;
+    }
+    if (kind === "fly") {
+      var from = node.getAttribute("data-from");
+      var action = node.getAttribute("data-action");
+      var extra = {};
+      if (from === "savelater") {
+        var saved = readV22(FOOD_V22.later).cards || {};
+        extra.card = saved[cardId];
+      }
+      flyFood(from, action, cardId, extra);
+      return true;
+    }
+    if (kind === "pick") {
+      state.hgPick = cardId;
+      state.foodFlyError = "";
+      render();
+      return true;
+    }
+    if (kind === "place") {
+      if (!state.hgPick) {
+        state.foodFlyError = "Pick a meal from the HG pool first.";
+        render();
+        return true;
+      }
+      placeHg(node.getAttribute("data-date"), node.getAttribute("data-slot"), state.hgPick, node.getAttribute("data-mode"), node.getAttribute("data-weekday"));
+      return true;
+    }
+    if (kind === "window") {
+      state.hgWindow = node.getAttribute("data-window");
+      var first = hgWindowMonths()[0];
+      state.hgYear = first.year;
+      state.hgMonth = first.month;
+      state.hgWeek = 1;
+      render();
+      return true;
+    }
+    if (kind === "month") {
+      state.hgYear = +node.getAttribute("data-year");
+      state.hgMonth = +node.getAttribute("data-month");
+      state.hgWeek = 1;
+      render();
+      return true;
+    }
+    if (kind === "hg-week") {
+      state.hgWeek = +node.getAttribute("data-week") || 1;
+      render();
+      return true;
+    }
+    if (kind === "finish-week") finishWeek(state.hgYear, state.hgMonth, state.hgWeek);
+    if (kind === "finish-month") finishMonth(state.hgYear, state.hgMonth);
+    if (kind === "suggest") {
+      var suggestion = (state.foodSuggestions || [])[+node.getAttribute("data-index")];
+      if (!suggestion) return true;
+      flyFood("shop", "create_meal", suggestion.cardId, { card: suggestion });
+    }
+    return true;
+  }
+
   function paintFoodBoard() {
     var board = $("food-board");
     var training = $("training-board");
@@ -2761,16 +3491,19 @@
       row.classList.toggle("is-active", on);
       row.setAttribute("aria-pressed", on ? "true" : "false");
     });
-    ["weekly", "shop", "meals", "extractions"].forEach(function (name) {
+    ["meals", "cabinet", "hg", "final", "savelater", "shop", "extractions", "weekly"].forEach(function (name) {
       var panel = $("food-" + name);
       if (panel) panel.hidden = name !== room;
     });
     if (!open) return;
     var title = $("food-board-title");
     if (title) title.textContent = FOOD_TITLES[room];
-    if (room === "weekly") paintFuelWeek();
-    if (room === "shop") paintShop();
-    if (room === "meals") paintMeals();
+    if (room === "meals") paintMealsV22();
+    if (room === "cabinet") paintCabinet();
+    if (room === "hg") paintHg();
+    if (room === "final") paintFinal();
+    if (room === "savelater") paintSaveLater();
+    if (room === "shop") paintShopV22();
     if (room === "extractions") paintExtractions();
     if (state.foodJsonHold) {
       var held = $("food-json-" + room);
@@ -3956,6 +4689,7 @@
           event.preventDefault();
           return;
         }
+        if (onV22Click(event)) return;
         var weekAct = event.target.closest("[data-week-action]");
         if (weekAct) {
           onFoodWeekAction(weekAct);
@@ -4295,7 +5029,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v21",
+    build: "v22",
     get nutrition() {
       return {
         shop: foodShop(),

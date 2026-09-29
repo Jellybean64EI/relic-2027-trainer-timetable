@@ -2654,3 +2654,140 @@ table.fuel-table col.col-relics { width: 78%; }
 .food-board .food-json-label {
   color: #f7f1e3;
 }
+
+.food-cabinet-scroller {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  margin: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+}
+
+.food-mini {
+  flex: 0 0 168px;
+  min-height: 120px;
+  scroll-snap-align: start;
+  padding: 10px;
+  border: 2px solid #1a3e2f;
+  border-radius: 10px;
+  background: #fff9ee;
+  color: #1a3e2f;
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+}
+
+.food-mini span,
+.food-made {
+  display: block;
+  margin: 4px 8px;
+  color: #5c4033;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.food-mini[aria-pressed="true"],
+.food-filters button[aria-pressed="true"] {
+  background: #1a3e2f;
+  color: #fff9ee;
+}
+
+.food-fly-btn,
+.food-hg-actions button,
+.food-editor button,
+.food-editor input,
+.food-editor textarea,
+.food-filters button {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.food-fly-actions,
+.food-hg-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.food-fly-btn {
+  margin: 8px;
+  padding: 10px 12px;
+  border: 2px solid #1a3e2f;
+  border-radius: 8px;
+  background: #f7f1e3;
+  color: #1a3e2f;
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+}
+
+.food-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px;
+  color: #1a3e2f;
+  font-weight: 800;
+}
+
+.food-editor input,
+.food-editor textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #c9a227;
+  border-radius: 8px;
+  background: #fff;
+  color: #5c4033;
+  font: inherit;
+}
+
+.food-shop-panel {
+  margin: 8px;
+  padding: 12px;
+  border: 8px solid #1a3e2f;
+  background: #fff9ee;
+  color: #5c4033;
+}
+
+.food-shop-panel h3,
+.food-shop-panel h4 {
+  margin: 8px 0 4px;
+  color: #1a3e2f;
+}
+
+.food-toast {
+  margin: 8px;
+  padding: 12px;
+  border: 2px solid #c9a227;
+  border-radius: 8px;
+  background: #fff9ee;
+  color: #5c4033;
+  font-weight: 800;
+}
+
+.nav-row.is-fly-target,
+.food-rooms button.is-fly-target {
+  outline: 3px solid #c9a227;
+  outline-offset: 2px;
+}
+
+.food-fly-ghost {
+  position: fixed;
+  z-index: 1200;
+  left: 48px;
+  top: 160px;
+  display: flex;
+  align-items: center;
+  width: 280px;
+  height: 96px;
+  padding: 8px;
+  overflow: hidden;
+  border: 2px solid #1a3e2f;
+  border-radius: 10px;
+  background: #fff9ee;
+  color: #1a3e2f;
+  font-weight: 800;
+  transition: left 0.65s ease, top 0.65s ease, width 0.65s ease, height 0.65s ease;
+}

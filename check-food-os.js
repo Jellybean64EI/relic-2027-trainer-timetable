@@ -20,7 +20,7 @@ if (!audit.ok) {
   process.exit(1);
 }
 const html = fs.readFileSync("index.html", "utf8");
-const rooms = ["weekly", "shop", "meals", "extractions"];
+const rooms = ["meals", "cabinet", "hg", "final", "savelater", "shop", "extractions"];
 rooms.forEach(function (room) {
   if (html.indexOf('data-food-room="' + room + '"') === -1) {
     console.error("FAIL missing drawer room " + room);
@@ -31,7 +31,7 @@ if (html.indexOf("data/nutrition.js") !== -1) {
   console.error("FAIL mashed nutrition.js still linked");
   process.exit(1);
 }
-if (html.indexOf('content="v21"') === -1 || html.indexOf("styles.css?v=v21") === -1) {
+if (html.indexOf('content="v22"') === -1 || html.indexOf("styles.css?v=v22") === -1) {
   console.error("FAIL cache stamp");
   process.exit(1);
 }
@@ -39,8 +39,16 @@ if (html.indexOf("Sunday stays off this list") !== -1) {
   console.error("FAIL Sunday still hidden from the food week");
   process.exit(1);
 }
-if (html.indexOf("data/food/pack001.js?v=v21") === -1) {
+if (html.indexOf("data/food/pack001.js?v=v22") === -1) {
   console.error("FAIL pack 001 script");
+  process.exit(1);
+}
+if (html.indexOf("Final Meal Prep Scheduled Timetables") === -1 || html.indexOf("Main Meal Cabinet") === -1) {
+  console.error("FAIL v22 cabin names");
+  process.exit(1);
+}
+if (html.indexOf("Export JSON") !== -1 || html.indexOf("Import JSON") !== -1) {
+  console.error("FAIL export or import still in the food shell");
   process.exit(1);
 }
 const css = fs.readFileSync("styles.css", "utf8");
@@ -94,12 +102,20 @@ if (normalizeTier(2) !== 2 || popcount(normalizeTier(2)) !== 1 || normalizeTier(
   console.error("FAIL tier bit law");
   process.exit(1);
 }
-if (app.indexOf("Export JSON") === -1 || app.indexOf("relic_food_cards_v20") === -1 || app.indexOf("relic_food_week_v20") === -1) {
-  console.error("FAIL food editor");
+if (app.indexOf(">Export JSON<") !== -1 || app.indexOf(">Import JSON<") !== -1) {
+  console.error("FAIL export or import button still in food");
   process.exit(1);
 }
-if (app.indexOf("Scan / Import") === -1 || app.indexOf("attach label photo; fill fields") === -1 || app.indexOf('data-scan-action="parse"') === -1) {
-  console.error("FAIL scan strip");
+if (app.indexOf("relic_food_cabinet_v22") === -1 || app.indexOf("relic_food_hg_v22") === -1 || app.indexOf("relic_food_savelater_v22") === -1) {
+  console.error("FAIL v22 cabin keys");
+  process.exit(1);
+}
+if (app.indexOf("This card has already been added to save later.") === -1 || app.indexOf("Only once") === -1) {
+  console.error("FAIL save later or weekday buttons");
+  process.exit(1);
+}
+if (app.indexOf("relic_food_cards_v20") === -1 || app.indexOf("relic_food_week_v20") === -1) {
+  console.error("FAIL food editor");
   process.exit(1);
 }
 if (app.indexOf("Build cards from basket") === -1 || app.indexOf("Sort by category") === -1 || app.indexOf("recipe-citations") === -1) {
