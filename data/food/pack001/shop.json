@@ -7,6 +7,10 @@
     "mealWaterGbp": 187.97,
     "criticalAddsGbp": 11.2,
     "mealPlusCriticalGbp": 199.17,
+    "softLockGbp": 200,
+    "fullAddsGbp": 47.95,
+    "foodWaterLineGbp": 214.01,
+    "reconciliationDeltaGbp": 26.04,
     "priceTags": [
       "RECEIPT_TRUE",
       "ESTIMATE"

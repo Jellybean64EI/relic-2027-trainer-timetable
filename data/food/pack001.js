@@ -34,18 +34,20 @@
       prepMin: 10,
       cookLabel: "Roast 35–45 · Bake 8–10",
       timetable: { bestFor: "Lunch, dinner side, weekend", bestEaten: "Fresh", reheat: "5–7 mins oven or air fryer" },
-      tip: "Save a little garlic oil for drizzling or brushing the bread edges.",
+      tip: "Cathedral City stands in for mozzarella, Flora for butter, and the smoked bulb for roast garlic. Brioche is a last-resort base. Gaps still out of the cart: baguette, olive oil, parsley.",
       ingredients: [
         ing("Taste the Difference large smoked garlic, 4 bulbs", "sainsburys-sku-TBD-123"),
         ing("Flora Buttery spread", "sainsburys-sku-TBD-105"),
         ing("Cathedral City cheddar", "sainsburys-sku-TBD-101"),
-        ing("Crusty baguette or loaf — ESTIMATE add if not using brioche as a last resort", "sainsburys-sku-TBD-207")
+        ing("Taste the Difference stonebaked baguette — ESTIMATE", "sainsburys-sku-TBD-207"),
+        ing("Extra virgin olive oil — ESTIMATE", "sainsburys-sku-TBD-209"),
+        ing("Flat leaf parsley — ESTIMATE", "sainsburys-sku-TBD-217")
       ],
       method: [
-        step("Roast", "the smoked garlic in a little oil until soft and sweet."),
-        step("Mash", "the cloves with Flora and spread over split bread."),
-        step("Top", "with Cathedral City and bake 8–10 minutes until bubbling."),
-        step("Finish", "with parsley if the ESTIMATE bunch landed.")
+        step("Roast", "the Taste the Difference smoked garlic in a little oil until the cloves are soft and sweet."),
+        step("Mash", "the cloves with Flora Buttery and spread them over a split baguette. Use a brioche bun only if the baguette has not landed."),
+        step("Top", "with Cathedral City cheddar. Mozzarella is optional and is not on the receipt."),
+        step("Bake", "8–10 minutes in a hot oven or air fryer until the cheese bubbles, then finish with parsley if that bunch was bought.")
       ]
     }),
     card({
@@ -59,18 +61,19 @@
       prepMin: 15,
       cookLabel: "Boil then pan-toast",
       timetable: { bestFor: "Weekend treat, lunch", bestEaten: "Hot", reheat: "Pan or air fryer until crisp" },
-      tip: "Blocked until potatoes and cornflour are in the cupboard. Flora and Cathedral City are already on the receipt.",
+      tip: "Blocked until potatoes and cornflour are in the cupboard. Flora and Cathedral City are already on the receipt. Oil or spray is an ESTIMATE add.",
       ingredients: [
-        ing("Maris Piper potatoes — ESTIMATE, not in the Oct 1 cart", "sainsburys-sku-TBD-201"),
+        ing("Maris Piper potatoes, about 3 large — ESTIMATE, not in the Oct 1 cart", "sainsburys-sku-TBD-201"),
         ing("Cornflour — ESTIMATE", "sainsburys-sku-TBD-202"),
         ing("Flora Buttery spread", "sainsburys-sku-TBD-105"),
-        ing("Cathedral City cheddar", "sainsburys-sku-TBD-101")
+        ing("Cathedral City cheddar", "sainsburys-sku-TBD-101"),
+        ing("Cooking oil spray — ESTIMATE", "sainsburys-sku-TBD-210")
       ],
       method: [
-        step("Boil", "about three large potatoes, then mash with Flora."),
-        step("Bind", "with cornflour, salt, and pepper."),
-        step("Toast", "cakes in a pan until both sides are golden."),
-        step("Melt", "cheese on top.")
+        step("Boil", "about three large potatoes, then mash them with Flora Buttery."),
+        step("Bind", "the mash with cornflour, salt, and pepper."),
+        step("Toast", "cakes in a pan, or with a light spray, until both sides are golden."),
+        step("Melt", "Cathedral City on top. Mozzarella is optional and is not required.")
       ]
     }),
     card({
@@ -84,18 +87,22 @@
       prepMin: 10,
       cookLabel: "Skillet",
       timetable: { bestFor: "Friday brunch, light dinner, lunch", bestEaten: "Hot", reheat: "Skillet until the whites set" },
-      tip: "Cook the egg whites through. Taste the Difference golden yolk eggs are the ladder top.",
+      tip: "Cook the egg whites through. Taste the Difference golden yolk eggs stay at the top of the ladder. Potatoes, paprika, tomato, and chives are still gaps.",
       ingredients: [
-        ing("Taste the Difference free-range golden yolk eggs", "sainsburys-sku-TBD-109"),
-        ing("Potatoes — ESTIMATE", "sainsburys-sku-TBD-201"),
+        ing("Taste the Difference free-range golden yolk eggs, cook the whites", "sainsburys-sku-TBD-109"),
+        ing("Taste the Difference smoked garlic", "sainsburys-sku-TBD-123"),
+        ing("Maris Piper potatoes — ESTIMATE", "sainsburys-sku-TBD-201"),
+        ing("Smoked paprika — ESTIMATE", "sainsburys-sku-TBD-203"),
         ing("Paprika — ESTIMATE", "sainsburys-sku-TBD-204"),
+        ing("Tomatoes on the vine — ESTIMATE", "sainsburys-sku-TBD-213"),
+        ing("Fresh chives — ESTIMATE", "sainsburys-sku-TBD-218"),
         ing("Cathedral City cheddar", "sainsburys-sku-TBD-101")
       ],
       method: [
-        step("Slice", "the potatoes and start them in the skillet with garlic."),
-        step("Dust", "with paprika."),
-        step("Crack", "two eggs and cook the whites through."),
-        step("Finish", "with tomato, chives, and melting cheese.")
+        step("Slice", "the potatoes and start them in the skillet with Flora or oil and smoked garlic from the cart."),
+        step("Dust", "with smoked paprika. Plain paprika can stand in. Skipping the spice drops the name of the dish."),
+        step("Crack", "two Taste the Difference eggs and cook the whites through."),
+        step("Finish", "with tomato and chives if those adds landed, then melt Cathedral City over the top.")
       ]
     }),
     card({
@@ -108,43 +115,49 @@
       prepMin: 15,
       cookLabel: "Bake then fill",
       timetable: { bestFor: "Wednesday dinner, meal prep", bestEaten: "Hot", reheat: "Oven until the cheese melts" },
-      tip: "Crumble about 300 g of the Taste the Difference steak burgers as the beef until mince is added.",
+      tip: "Crumble about 300 g of the Taste the Difference steak burgers as the beef. True mince is optional. Potatoes, onion, tomato, paprika, and onion powder are still gaps.",
       ingredients: [
-        ing("Taste the Difference British beef steak burgers, 600 g", "sainsburys-sku-TBD-106"),
-        ing("Potatoes — ESTIMATE", "sainsburys-sku-TBD-201"),
+        ing("Taste the Difference British beef steak burgers, crumble about 300 g", "sainsburys-sku-TBD-106"),
+        ing("Maris Piper potatoes — ESTIMATE", "sainsburys-sku-TBD-201"),
         ing("Taste the Difference smoked garlic", "sainsburys-sku-TBD-123"),
+        ing("Brown onions — ESTIMATE", "sainsburys-sku-TBD-214"),
+        ing("Tomatoes on the vine — ESTIMATE", "sainsburys-sku-TBD-213"),
+        ing("Onion powder — ESTIMATE", "sainsburys-sku-TBD-212"),
         ing("Cathedral City cheddar", "sainsburys-sku-TBD-101")
       ],
       method: [
         step("Bake", "the potatoes and scoop the centres."),
-        step("Crumble", "seasoned burger with garlic and onion."),
-        step("Fill", "the skins and top with cheese."),
-        step("Reheat", "until the filling is hot.")
+        step("Crumble", "about 300 g of cooked Taste the Difference steak burger with smoked garlic and onion. That stands in for mince."),
+        step("Fill", "the skins, add tomato if it landed, and top with Cathedral City."),
+        step("Reheat", "until the filling is hot and the cheese has melted.")
       ]
     }),
     card({
       id: "pack001-bread-egg-pan-pizza",
       kind: "meal",
       family: "meal",
-      name: "Bread and Egg Pan Pizza",
+      name: "Bread & Egg Pan Pizza",
       tagline: "Monday lunch. Cook the whites.",
       cookEggWhites: true,
       yield: "6 slices",
       prepMin: 10,
       cookLabel: "Pan or grill",
       timetable: { bestFor: "Monday lunch", bestEaten: "Fresh", reheat: "Pan until the cheese melts" },
-      tip: "Cook the egg whites. Brioche buns are a weak base; sliced bread and passata are ESTIMATE adds.",
+      tip: "Cook the egg whites. Brioche is a sweet, soft stand-in for one lunch. Sliced bread, passata, tomato, red onion, and spring onion are the fidelity adds.",
       ingredients: [
-        ing("Taste the Difference free-range golden yolk eggs", "sainsburys-sku-TBD-109"),
-        ing("Brioche burger buns as a temporary base", "sainsburys-sku-TBD-107"),
-        ing("Cathedral City cheddar", "sainsburys-sku-TBD-101"),
-        ing("Passata — ESTIMATE", "sainsburys-sku-TBD-205")
+        ing("Taste the Difference free-range golden yolk eggs, cook the whites", "sainsburys-sku-TBD-109"),
+        ing("Thick sliced soft white bread — ESTIMATE", "sainsburys-sku-TBD-206"),
+        ing("Taste the Difference brioche buns, temporary base only", "sainsburys-sku-TBD-107"),
+        ing("Passata — ESTIMATE", "sainsburys-sku-TBD-205"),
+        ing("Red onion — ESTIMATE", "sainsburys-sku-TBD-215"),
+        ing("Spring onion — ESTIMATE", "sainsburys-sku-TBD-216"),
+        ing("Cathedral City cheddar", "sainsburys-sku-TBD-101")
       ],
       method: [
-        step("Lay", "the bread in a pan."),
-        step("Spread", "passata if it landed, or keep it a white pizza."),
-        step("Add", "egg and cook the whites, then cheese and onion."),
-        step("Grill", "until the top sets.")
+        step("Lay", "sliced bread in the pan. Use a brioche bun only for this one lunch if the loaf has not landed."),
+        step("Spread", "passata when it is in the cupboard. With no sauce, keep it a cheese-only white pizza."),
+        step("Add", "egg and cook the whites through, then Cathedral City, tomato, red onion, and spring onion."),
+        step("Grill", "or cover the pan until the top sets and the cheese melts.")
       ]
     }),
     card({
@@ -158,31 +171,32 @@
       prepMin: 15,
       cookLabel: "Microwave 9–12 · air fry 200°C 12–15",
       timetable: { bestFor: "Saturday snack, afternoon", bestEaten: "Hot and crisp", reheat: "3–5 mins air fryer" },
-      tip: "Cannot cook from the trolley alone. Keep bites small so they crisp evenly. Potatoes, cornflour, and spray are ESTIMATE adds.",
+      tip: "Cannot cook from the trolley alone. Keep bites small so they crisp evenly. Potatoes, cornflour, garlic powder, smoked paprika, and cooking spray are ESTIMATE adds.",
       ingredients: [
-        ing("400 g potatoes — ESTIMATE", "sainsburys-sku-TBD-201"),
+        ing("400 g Maris Piper potatoes — ESTIMATE", "sainsburys-sku-TBD-201"),
         ing("15 g cornflour — ESTIMATE", "sainsburys-sku-TBD-202"),
-        ing("Smoked paprika, garlic powder, salt, pepper — ESTIMATE", "sainsburys-sku-TBD-203"),
+        ing("Smoked paprika — ESTIMATE", "sainsburys-sku-TBD-203"),
+        ing("Garlic powder — ESTIMATE", "sainsburys-sku-TBD-211"),
         ing("Cooking spray — ESTIMATE", "sainsburys-sku-TBD-210")
       ],
       method: [
-        step("Microwave", "diced potato 9–12 minutes, then mash and cool."),
-        step("Mix", "in cornflour and the seasoning."),
-        step("Roll", "about 35–40 small bites and spray them."),
-        step("Air-fry", "at 200°C for 12–15 minutes.")
+        step("Dice", "400 g potato and microwave it 9–12 minutes, then mash and cool."),
+        step("Mix", "in 15 g cornflour, garlic powder, smoked paprika, salt, and pepper."),
+        step("Roll", "about 35–40 small bites and spray them lightly."),
+        step("Air-fry", "at 200°C for 12–15 minutes until crisp. Reheat 3–5 minutes if they cool.")
       ]
     }),
     card({
       id: "plate-chicken-mixed-veg",
       kind: "meal",
       family: "plate",
-      name: "Chicken and Mixed Veg",
+      name: "Chicken & Mixed Vegetables",
       tagline: "Monday evening plate from the trolley.",
       yield: "1",
       prepMin: 10,
       cookLabel: "Pan",
       timetable: { bestFor: "Monday evening", bestEaten: "Hot", reheat: "Until piping hot" },
-      tip: "Chicken breast from the 2 kg packs. Mixed vegetables from the receipt.",
+      tip: "Thaw one portion from the 2 kg chicken packs. Mixed vegetables are on the receipt.",
       ingredients: [
         ing("British chicken breast", "sainsburys-sku-TBD-110"),
         ing("Mixed vegetables 1 kg", "sainsburys-sku-TBD-122")
@@ -193,7 +207,7 @@
       id: "plate-chicken-leftover-spinach",
       kind: "meal",
       family: "plate",
-      name: "Chicken Leftover Spinach",
+      name: "Chicken, Leftover Spinach",
       tagline: "Tuesday lunch plate.",
       yield: "1",
       prepMin: 5,
@@ -210,7 +224,7 @@
       id: "plate-turkey-mince-mixed-veg",
       kind: "meal",
       family: "plate",
-      name: "Turkey Mince and Mixed Veg",
+      name: "Turkey Mince & Mixed Vegetables",
       tagline: "Evening plate. 7% fat turkey mince.",
       yield: "1",
       prepMin: 10,
@@ -227,7 +241,7 @@
       id: "plate-cheese-mini-fruit",
       kind: "meal",
       family: "plate",
-      name: "Cheese Mini and Fruit",
+      name: "Cheese & Mini Fruit Plate",
       tagline: "Wednesday light lunch.",
       yield: "1",
       prepMin: 2,
@@ -258,13 +272,13 @@
       id: "plate-chicken-tray-veg",
       kind: "meal",
       family: "plate",
-      name: "Chicken Tray and Veg",
+      name: "Chicken Tray with Vegetables",
       tagline: "Thursday evening tray.",
       yield: "1",
       prepMin: 10,
       cookLabel: "Tray",
       timetable: { bestFor: "Thursday evening", bestEaten: "Hot", reheat: "Oven until hot" },
-      tip: "Chicken plus mixed veg on one tray.",
+      tip: "Batch-cook the remaining chicken on this tray so Friday through Sunday still have a plate.",
       ingredients: [
         ing("British chicken breast", "sainsburys-sku-TBD-110"),
         ing("Mixed vegetables", "sainsburys-sku-TBD-122")
@@ -275,7 +289,7 @@
       id: "plate-ttd-burger-brioche",
       kind: "meal",
       family: "plate",
-      name: "Taste the Difference Burger on Brioche",
+      name: "TtD Beef Burger & Brioche",
       tagline: "Saturday evening. Keep some burgers for the potato boats.",
       yield: "1",
       prepMin: 5,
@@ -292,7 +306,7 @@
       id: "plate-leftover-roast",
       kind: "meal",
       family: "plate",
-      name: "Leftover Roast",
+      name: "Leftover Roast Plate",
       tagline: "Sunday lunch from the week’s chicken.",
       yield: "1",
       prepMin: 5,
@@ -306,7 +320,7 @@
       id: "plate-batch-chicken-veg",
       kind: "meal",
       family: "plate",
-      name: "Batch Chicken and Veg",
+      name: "Batch Chicken & Vegetables",
       tagline: "Sunday evening batch for the next days.",
       yield: "Several portions",
       prepMin: 15,
@@ -338,9 +352,9 @@
       tip: tip,
       ingredients: lines.map(function (pair) { return ing(pair[0], pair[1]); }),
       method: [
-        step("Pour", "water, or milk if the ESTIMATE bottle landed."),
-        step("Add", "the frozen fruit, spinach or dates named on the card."),
-        step("Blend", "until smooth. One Brazil nut a day only if the tin was purchased."),
+        step("Pour", "water. Milk or Greek yogurt is an ESTIMATE add and is not on the receipt."),
+        step("Add", lines.map(function (pair) { return pair[0]; }).join("; ") + "."),
+        step("Blend", "until smooth. One Brazil nut a day only if that tin was purchased. Leave it out otherwise."),
         step("Drink", "at morning or lunch. Extractions aren't dinner.")
       ]
     });
@@ -353,8 +367,9 @@
       ["Baby leaf spinach", "sainsburys-sku-TBD-121"],
       ["Taste the Difference Medjool dates", "sainsburys-sku-TBD-114"]
     ], "Morning or lunch only."),
-    glass("extract-cherry-cream", "Cherry Cream", "Tuesday morning. Yogurt is an ESTIMATE add.", [
-      ["Frozen dark sweet cherries", "sainsburys-sku-TBD-116"]
+    glass("extract-cherry-cream", "Cherry Dark Sweet", "Tuesday morning. Yogurt is an ESTIMATE add.", [
+      ["Frozen dark sweet cherries", "sainsburys-sku-TBD-116"],
+      ["Greek style yogurt — ESTIMATE, not on the receipt", "sainsburys-sku-TBD-222"]
     ], "Morning or lunch only. Not dinner."),
     glass("extract-blueberry-mango", "Blueberry Mango", "Wednesday morning.", [
       ["Frozen blueberries", "sainsburys-sku-TBD-120"],
@@ -463,7 +478,7 @@
     "2026-09-30": { extractionId: "extract-blueberry-mango", lunch: "plate-cheese-mini-fruit", mealId: "pack001-beef-stuffed-potato-boats" },
     "2026-10-01": { extractionId: "extract-raspberry-spinach", lunch: "plate-turkey-leftover-bowl", mealId: "plate-chicken-tray-veg" },
     "2026-10-02": { extractionId: "extract-black-forest-spinach", lunch: "pack001-paprika-potato-egg-skillet", mealId: "plate-turkey-mince-mixed-veg" },
-    "2026-10-03": { morning: "Coffee", lunch: "pack001-cheesy-roasted-garlic-bread", mealId: "plate-ttd-burger-brioche", snack: "pack001-crispy-potato-bites", note: "Saturday snack only if the ESTIMATE potato adds landed." },
+    "2026-10-03": { morning: "Coffee · Nescafé Gold, syrup optional", lunch: "pack001-cheesy-roasted-garlic-bread", mealId: "plate-ttd-burger-brioche", snack: "pack001-crispy-potato-bites", note: "Saturday morning is coffee, not an extraction. Snack only if the ESTIMATE potato adds landed." },
     "2026-10-04": { extractionId: "extract-mango-date", lunch: "plate-leftover-roast", mealId: "plate-batch-chicken-veg", note: prep }
   };
 
@@ -476,6 +491,10 @@
       mealWaterGbp: 187.97,
       criticalAddsGbp: 11.2,
       mealPlusCriticalGbp: 199.17,
+      softLockGbp: 200,
+      fullAddsGbp: 47.95,
+      foodWaterLineGbp: 214.01,
+      reconciliationDeltaGbp: 26.04,
       priceTags: ["RECEIPT_TRUE", "ESTIMATE"]
     },
     meals: meals,

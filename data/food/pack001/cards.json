@@ -16,7 +16,7 @@
         "bestEaten": "Fresh",
         "reheat": "5–7 mins oven or air fryer"
       },
-      "tip": "Save a little garlic oil for drizzling or brushing the bread edges.",
+      "tip": "Cathedral City stands in for mozzarella, Flora for butter, and the smoked bulb for roast garlic. Brioche is a last-resort base. Gaps still out of the cart: baguette, olive oil, parsley.",
       "ingredients": [
         {
           "text": "Taste the Difference large smoked garlic, 4 bulbs",
@@ -31,26 +31,34 @@
           "skuId": "sainsburys-sku-TBD-101"
         },
         {
-          "text": "Crusty baguette or loaf — ESTIMATE add if not using brioche as a last resort",
+          "text": "Taste the Difference stonebaked baguette — ESTIMATE",
           "skuId": "sainsburys-sku-TBD-207"
+        },
+        {
+          "text": "Extra virgin olive oil — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-209"
+        },
+        {
+          "text": "Flat leaf parsley — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-217"
         }
       ],
       "method": [
         {
           "verb": "Roast",
-          "detail": "the smoked garlic in a little oil until soft and sweet."
+          "detail": "the Taste the Difference smoked garlic in a little oil until the cloves are soft and sweet."
         },
         {
           "verb": "Mash",
-          "detail": "the cloves with Flora and spread over split bread."
+          "detail": "the cloves with Flora Buttery and spread them over a split baguette. Use a brioche bun only if the baguette has not landed."
         },
         {
           "verb": "Top",
-          "detail": "with Cathedral City and bake 8–10 minutes until bubbling."
+          "detail": "with Cathedral City cheddar. Mozzarella is optional and is not on the receipt."
         },
         {
-          "verb": "Finish",
-          "detail": "with parsley if the ESTIMATE bunch landed."
+          "verb": "Bake",
+          "detail": "8–10 minutes in a hot oven or air fryer until the cheese bubbles, then finish with parsley if that bunch was bought."
         }
       ],
       "pack001": true
@@ -70,10 +78,10 @@
         "bestEaten": "Hot",
         "reheat": "Pan or air fryer until crisp"
       },
-      "tip": "Blocked until potatoes and cornflour are in the cupboard. Flora and Cathedral City are already on the receipt.",
+      "tip": "Blocked until potatoes and cornflour are in the cupboard. Flora and Cathedral City are already on the receipt. Oil or spray is an ESTIMATE add.",
       "ingredients": [
         {
-          "text": "Maris Piper potatoes — ESTIMATE, not in the Oct 1 cart",
+          "text": "Maris Piper potatoes, about 3 large — ESTIMATE, not in the Oct 1 cart",
           "skuId": "sainsburys-sku-TBD-201"
         },
         {
@@ -87,24 +95,28 @@
         {
           "text": "Cathedral City cheddar",
           "skuId": "sainsburys-sku-TBD-101"
+        },
+        {
+          "text": "Cooking oil spray — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-210"
         }
       ],
       "method": [
         {
           "verb": "Boil",
-          "detail": "about three large potatoes, then mash with Flora."
+          "detail": "about three large potatoes, then mash them with Flora Buttery."
         },
         {
           "verb": "Bind",
-          "detail": "with cornflour, salt, and pepper."
+          "detail": "the mash with cornflour, salt, and pepper."
         },
         {
           "verb": "Toast",
-          "detail": "cakes in a pan until both sides are golden."
+          "detail": "cakes in a pan, or with a light spray, until both sides are golden."
         },
         {
           "verb": "Melt",
-          "detail": "cheese on top."
+          "detail": "Cathedral City on top. Mozzarella is optional and is not required."
         }
       ],
       "pack001": true
@@ -124,19 +136,35 @@
         "bestEaten": "Hot",
         "reheat": "Skillet until the whites set"
       },
-      "tip": "Cook the egg whites through. Taste the Difference golden yolk eggs are the ladder top.",
+      "tip": "Cook the egg whites through. Taste the Difference golden yolk eggs stay at the top of the ladder. Potatoes, paprika, tomato, and chives are still gaps.",
       "ingredients": [
         {
-          "text": "Taste the Difference free-range golden yolk eggs",
+          "text": "Taste the Difference free-range golden yolk eggs, cook the whites",
           "skuId": "sainsburys-sku-TBD-109"
         },
         {
-          "text": "Potatoes — ESTIMATE",
+          "text": "Taste the Difference smoked garlic",
+          "skuId": "sainsburys-sku-TBD-123"
+        },
+        {
+          "text": "Maris Piper potatoes — ESTIMATE",
           "skuId": "sainsburys-sku-TBD-201"
+        },
+        {
+          "text": "Smoked paprika — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-203"
         },
         {
           "text": "Paprika — ESTIMATE",
           "skuId": "sainsburys-sku-TBD-204"
+        },
+        {
+          "text": "Tomatoes on the vine — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-213"
+        },
+        {
+          "text": "Fresh chives — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-218"
         },
         {
           "text": "Cathedral City cheddar",
@@ -146,19 +174,19 @@
       "method": [
         {
           "verb": "Slice",
-          "detail": "the potatoes and start them in the skillet with garlic."
+          "detail": "the potatoes and start them in the skillet with Flora or oil and smoked garlic from the cart."
         },
         {
           "verb": "Dust",
-          "detail": "with paprika."
+          "detail": "with smoked paprika. Plain paprika can stand in. Skipping the spice drops the name of the dish."
         },
         {
           "verb": "Crack",
-          "detail": "two eggs and cook the whites through."
+          "detail": "two Taste the Difference eggs and cook the whites through."
         },
         {
           "verb": "Finish",
-          "detail": "with tomato, chives, and melting cheese."
+          "detail": "with tomato and chives if those adds landed, then melt Cathedral City over the top."
         }
       ],
       "pack001": true
@@ -177,19 +205,31 @@
         "bestEaten": "Hot",
         "reheat": "Oven until the cheese melts"
       },
-      "tip": "Crumble about 300 g of the Taste the Difference steak burgers as the beef until mince is added.",
+      "tip": "Crumble about 300 g of the Taste the Difference steak burgers as the beef. True mince is optional. Potatoes, onion, tomato, paprika, and onion powder are still gaps.",
       "ingredients": [
         {
-          "text": "Taste the Difference British beef steak burgers, 600 g",
+          "text": "Taste the Difference British beef steak burgers, crumble about 300 g",
           "skuId": "sainsburys-sku-TBD-106"
         },
         {
-          "text": "Potatoes — ESTIMATE",
+          "text": "Maris Piper potatoes — ESTIMATE",
           "skuId": "sainsburys-sku-TBD-201"
         },
         {
           "text": "Taste the Difference smoked garlic",
           "skuId": "sainsburys-sku-TBD-123"
+        },
+        {
+          "text": "Brown onions — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-214"
+        },
+        {
+          "text": "Tomatoes on the vine — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-213"
+        },
+        {
+          "text": "Onion powder — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-212"
         },
         {
           "text": "Cathedral City cheddar",
@@ -203,15 +243,15 @@
         },
         {
           "verb": "Crumble",
-          "detail": "seasoned burger with garlic and onion."
+          "detail": "about 300 g of cooked Taste the Difference steak burger with smoked garlic and onion. That stands in for mince."
         },
         {
           "verb": "Fill",
-          "detail": "the skins and top with cheese."
+          "detail": "the skins, add tomato if it landed, and top with Cathedral City."
         },
         {
           "verb": "Reheat",
-          "detail": "until the filling is hot."
+          "detail": "until the filling is hot and the cheese has melted."
         }
       ],
       "pack001": true
@@ -220,7 +260,7 @@
       "id": "pack001-bread-egg-pan-pizza",
       "kind": "meal",
       "family": "meal",
-      "name": "Bread and Egg Pan Pizza",
+      "name": "Bread & Egg Pan Pizza",
       "tagline": "Monday lunch. Cook the whites.",
       "cookEggWhites": true,
       "yield": "6 slices",
@@ -231,41 +271,53 @@
         "bestEaten": "Fresh",
         "reheat": "Pan until the cheese melts"
       },
-      "tip": "Cook the egg whites. Brioche buns are a weak base; sliced bread and passata are ESTIMATE adds.",
+      "tip": "Cook the egg whites. Brioche is a sweet, soft stand-in for one lunch. Sliced bread, passata, tomato, red onion, and spring onion are the fidelity adds.",
       "ingredients": [
         {
-          "text": "Taste the Difference free-range golden yolk eggs",
+          "text": "Taste the Difference free-range golden yolk eggs, cook the whites",
           "skuId": "sainsburys-sku-TBD-109"
         },
         {
-          "text": "Brioche burger buns as a temporary base",
-          "skuId": "sainsburys-sku-TBD-107"
+          "text": "Thick sliced soft white bread — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-206"
         },
         {
-          "text": "Cathedral City cheddar",
-          "skuId": "sainsburys-sku-TBD-101"
+          "text": "Taste the Difference brioche buns, temporary base only",
+          "skuId": "sainsburys-sku-TBD-107"
         },
         {
           "text": "Passata — ESTIMATE",
           "skuId": "sainsburys-sku-TBD-205"
+        },
+        {
+          "text": "Red onion — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-215"
+        },
+        {
+          "text": "Spring onion — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-216"
+        },
+        {
+          "text": "Cathedral City cheddar",
+          "skuId": "sainsburys-sku-TBD-101"
         }
       ],
       "method": [
         {
           "verb": "Lay",
-          "detail": "the bread in a pan."
+          "detail": "sliced bread in the pan. Use a brioche bun only for this one lunch if the loaf has not landed."
         },
         {
           "verb": "Spread",
-          "detail": "passata if it landed, or keep it a white pizza."
+          "detail": "passata when it is in the cupboard. With no sauce, keep it a cheese-only white pizza."
         },
         {
           "verb": "Add",
-          "detail": "egg and cook the whites, then cheese and onion."
+          "detail": "egg and cook the whites through, then Cathedral City, tomato, red onion, and spring onion."
         },
         {
           "verb": "Grill",
-          "detail": "until the top sets."
+          "detail": "or cover the pan until the top sets and the cheese melts."
         }
       ],
       "pack001": true
@@ -285,10 +337,10 @@
         "bestEaten": "Hot and crisp",
         "reheat": "3–5 mins air fryer"
       },
-      "tip": "Cannot cook from the trolley alone. Keep bites small so they crisp evenly. Potatoes, cornflour, and spray are ESTIMATE adds.",
+      "tip": "Cannot cook from the trolley alone. Keep bites small so they crisp evenly. Potatoes, cornflour, garlic powder, smoked paprika, and cooking spray are ESTIMATE adds.",
       "ingredients": [
         {
-          "text": "400 g potatoes — ESTIMATE",
+          "text": "400 g Maris Piper potatoes — ESTIMATE",
           "skuId": "sainsburys-sku-TBD-201"
         },
         {
@@ -296,8 +348,12 @@
           "skuId": "sainsburys-sku-TBD-202"
         },
         {
-          "text": "Smoked paprika, garlic powder, salt, pepper — ESTIMATE",
+          "text": "Smoked paprika — ESTIMATE",
           "skuId": "sainsburys-sku-TBD-203"
+        },
+        {
+          "text": "Garlic powder — ESTIMATE",
+          "skuId": "sainsburys-sku-TBD-211"
         },
         {
           "text": "Cooking spray — ESTIMATE",
@@ -306,20 +362,20 @@
       ],
       "method": [
         {
-          "verb": "Microwave",
-          "detail": "diced potato 9–12 minutes, then mash and cool."
+          "verb": "Dice",
+          "detail": "400 g potato and microwave it 9–12 minutes, then mash and cool."
         },
         {
           "verb": "Mix",
-          "detail": "in cornflour and the seasoning."
+          "detail": "in 15 g cornflour, garlic powder, smoked paprika, salt, and pepper."
         },
         {
           "verb": "Roll",
-          "detail": "about 35–40 small bites and spray them."
+          "detail": "about 35–40 small bites and spray them lightly."
         },
         {
           "verb": "Air-fry",
-          "detail": "at 200°C for 12–15 minutes."
+          "detail": "at 200°C for 12–15 minutes until crisp. Reheat 3–5 minutes if they cool."
         }
       ],
       "pack001": true
@@ -328,7 +384,7 @@
       "id": "plate-chicken-mixed-veg",
       "kind": "meal",
       "family": "plate",
-      "name": "Chicken and Mixed Veg",
+      "name": "Chicken & Mixed Vegetables",
       "tagline": "Monday evening plate from the trolley.",
       "yield": "1",
       "prepMin": 10,
@@ -338,7 +394,7 @@
         "bestEaten": "Hot",
         "reheat": "Until piping hot"
       },
-      "tip": "Chicken breast from the 2 kg packs. Mixed vegetables from the receipt.",
+      "tip": "Thaw one portion from the 2 kg chicken packs. Mixed vegetables are on the receipt.",
       "ingredients": [
         {
           "text": "British chicken breast",
@@ -365,7 +421,7 @@
       "id": "plate-chicken-leftover-spinach",
       "kind": "meal",
       "family": "plate",
-      "name": "Chicken Leftover Spinach",
+      "name": "Chicken, Leftover Spinach",
       "tagline": "Tuesday lunch plate.",
       "yield": "1",
       "prepMin": 5,
@@ -402,7 +458,7 @@
       "id": "plate-turkey-mince-mixed-veg",
       "kind": "meal",
       "family": "plate",
-      "name": "Turkey Mince and Mixed Veg",
+      "name": "Turkey Mince & Mixed Vegetables",
       "tagline": "Evening plate. 7% fat turkey mince.",
       "yield": "1",
       "prepMin": 10,
@@ -439,7 +495,7 @@
       "id": "plate-cheese-mini-fruit",
       "kind": "meal",
       "family": "plate",
-      "name": "Cheese Mini and Fruit",
+      "name": "Cheese & Mini Fruit Plate",
       "tagline": "Wednesday light lunch.",
       "yield": "1",
       "prepMin": 2,
@@ -501,7 +557,7 @@
       "id": "plate-chicken-tray-veg",
       "kind": "meal",
       "family": "plate",
-      "name": "Chicken Tray and Veg",
+      "name": "Chicken Tray with Vegetables",
       "tagline": "Thursday evening tray.",
       "yield": "1",
       "prepMin": 10,
@@ -511,7 +567,7 @@
         "bestEaten": "Hot",
         "reheat": "Oven until hot"
       },
-      "tip": "Chicken plus mixed veg on one tray.",
+      "tip": "Batch-cook the remaining chicken on this tray so Friday through Sunday still have a plate.",
       "ingredients": [
         {
           "text": "British chicken breast",
@@ -534,7 +590,7 @@
       "id": "plate-ttd-burger-brioche",
       "kind": "meal",
       "family": "plate",
-      "name": "Taste the Difference Burger on Brioche",
+      "name": "TtD Beef Burger & Brioche",
       "tagline": "Saturday evening. Keep some burgers for the potato boats.",
       "yield": "1",
       "prepMin": 5,
@@ -571,7 +627,7 @@
       "id": "plate-leftover-roast",
       "kind": "meal",
       "family": "plate",
-      "name": "Leftover Roast",
+      "name": "Leftover Roast Plate",
       "tagline": "Sunday lunch from the week’s chicken.",
       "yield": "1",
       "prepMin": 5,
@@ -600,7 +656,7 @@
       "id": "plate-batch-chicken-veg",
       "kind": "meal",
       "family": "plate",
-      "name": "Batch Chicken and Veg",
+      "name": "Batch Chicken & Vegetables",
       "tagline": "Sunday evening batch for the next days.",
       "yield": "Several portions",
       "prepMin": 15,
@@ -670,15 +726,15 @@
       "method": [
         {
           "verb": "Pour",
-          "detail": "water, or milk if the ESTIMATE bottle landed."
+          "detail": "water. Milk or Greek yogurt is an ESTIMATE add and is not on the receipt."
         },
         {
           "verb": "Add",
-          "detail": "the frozen fruit, spinach or dates named on the card."
+          "detail": "Frozen summer fruits; Baby leaf spinach; Taste the Difference Medjool dates."
         },
         {
           "verb": "Blend",
-          "detail": "until smooth. One Brazil nut a day only if the tin was purchased."
+          "detail": "until smooth. One Brazil nut a day only if that tin was purchased. Leave it out otherwise."
         },
         {
           "verb": "Drink",
@@ -691,7 +747,7 @@
       "id": "extract-cherry-cream",
       "kind": "extraction",
       "family": "extraction",
-      "name": "Cherry Cream",
+      "name": "Cherry Dark Sweet",
       "tagline": "Tuesday morning. Yogurt is an ESTIMATE add.",
       "yield": "1 glass",
       "prepMin": 8,
@@ -709,20 +765,24 @@
         {
           "text": "Frozen dark sweet cherries",
           "skuId": "sainsburys-sku-TBD-116"
+        },
+        {
+          "text": "Greek style yogurt — ESTIMATE, not on the receipt",
+          "skuId": "sainsburys-sku-TBD-222"
         }
       ],
       "method": [
         {
           "verb": "Pour",
-          "detail": "water, or milk if the ESTIMATE bottle landed."
+          "detail": "water. Milk or Greek yogurt is an ESTIMATE add and is not on the receipt."
         },
         {
           "verb": "Add",
-          "detail": "the frozen fruit, spinach or dates named on the card."
+          "detail": "Frozen dark sweet cherries; Greek style yogurt — ESTIMATE, not on the receipt."
         },
         {
           "verb": "Blend",
-          "detail": "until smooth. One Brazil nut a day only if the tin was purchased."
+          "detail": "until smooth. One Brazil nut a day only if that tin was purchased. Leave it out otherwise."
         },
         {
           "verb": "Drink",
@@ -762,15 +822,15 @@
       "method": [
         {
           "verb": "Pour",
-          "detail": "water, or milk if the ESTIMATE bottle landed."
+          "detail": "water. Milk or Greek yogurt is an ESTIMATE add and is not on the receipt."
         },
         {
           "verb": "Add",
-          "detail": "the frozen fruit, spinach or dates named on the card."
+          "detail": "Frozen blueberries; Frozen mango chunks."
         },
         {
           "verb": "Blend",
-          "detail": "until smooth. One Brazil nut a day only if the tin was purchased."
+          "detail": "until smooth. One Brazil nut a day only if that tin was purchased. Leave it out otherwise."
         },
         {
           "verb": "Drink",
@@ -810,15 +870,15 @@
       "method": [
         {
           "verb": "Pour",
-          "detail": "water, or milk if the ESTIMATE bottle landed."
+          "detail": "water. Milk or Greek yogurt is an ESTIMATE add and is not on the receipt."
         },
         {
           "verb": "Add",
-          "detail": "the frozen fruit, spinach or dates named on the card."
+          "detail": "Frozen raspberries; Baby leaf spinach."
         },
         {
           "verb": "Blend",
-          "detail": "until smooth. One Brazil nut a day only if the tin was purchased."
+          "detail": "until smooth. One Brazil nut a day only if that tin was purchased. Leave it out otherwise."
         },
         {
           "verb": "Drink",
@@ -858,15 +918,15 @@
       "method": [
         {
           "verb": "Pour",
-          "detail": "water, or milk if the ESTIMATE bottle landed."
+          "detail": "water. Milk or Greek yogurt is an ESTIMATE add and is not on the receipt."
         },
         {
           "verb": "Add",
-          "detail": "the frozen fruit, spinach or dates named on the card."
+          "detail": "Frozen black forest fruits; Baby leaf spinach."
         },
         {
           "verb": "Blend",
-          "detail": "until smooth. One Brazil nut a day only if the tin was purchased."
+          "detail": "until smooth. One Brazil nut a day only if that tin was purchased. Leave it out otherwise."
         },
         {
           "verb": "Drink",
@@ -906,15 +966,15 @@
       "method": [
         {
           "verb": "Pour",
-          "detail": "water, or milk if the ESTIMATE bottle landed."
+          "detail": "water. Milk or Greek yogurt is an ESTIMATE add and is not on the receipt."
         },
         {
           "verb": "Add",
-          "detail": "the frozen fruit, spinach or dates named on the card."
+          "detail": "Frozen mango chunks; Taste the Difference Medjool dates."
         },
         {
           "verb": "Blend",
-          "detail": "until smooth. One Brazil nut a day only if the tin was purchased."
+          "detail": "until smooth. One Brazil nut a day only if that tin was purchased. Leave it out otherwise."
         },
         {
           "verb": "Drink",

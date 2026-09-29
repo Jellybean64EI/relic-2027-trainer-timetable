@@ -2539,6 +2539,8 @@
         "<p>Household £" + budget.householdGbp.toFixed(2) + " out</p>" +
         "<p>Meal + water £" + budget.mealWaterGbp.toFixed(2) + "</p>" +
         "<p>Critical Pack 001 adds ESTIMATE ~£" + budget.criticalAddsGbp.toFixed(2) + " → ~£" + budget.mealPlusCriticalGbp.toFixed(2) + "</p>" +
+        (budget.softLockGbp != null ? "<p>Meal-engine soft lock £" + budget.softLockGbp.toFixed(2) + "</p>" : "") +
+        (budget.fullAddsGbp != null ? "<p>Full recommended adds ESTIMATE ~£" + budget.fullAddsGbp.toFixed(2) + "</p>" : "") +
         '<button type="button" data-shop-action="pack001">Add Pack 001 trolley</button>' +
         "</section>";
     }
