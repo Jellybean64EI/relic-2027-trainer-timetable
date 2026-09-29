@@ -221,6 +221,17 @@ h1 {
   font-weight: 800;
 }
 
+.corner-clock {
+  margin: 0;
+  color: var(--gold);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+}
+
 .live-stack {
   display: flex;
   flex-direction: column;
@@ -1430,6 +1441,11 @@ body.nav-open .nav-drawer {
   -webkit-appearance: none;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+}
+
+.nav-row,
+.nav-row-label {
+  white-space: normal;
 }
 
 .nav-row-label {
@@ -2854,10 +2870,10 @@ body.is-food .schedule-switch {
   min-height: 72px;
   padding: 10px 14px;
   overflow: visible;
-  border: 2px solid #c9a227;
+  border: 2px solid #14061f;
   border-radius: 10px;
-  background: #fff9ee;
-  color: #1a3e2f;
+  background: #ff8c00;
+  color: #14061f;
   font: inherit;
   font-size: 1rem;
   font-weight: 800;
@@ -2884,8 +2900,9 @@ body.is-food .schedule-switch {
 }
 
 .os-doors button[aria-pressed="true"] {
-  background: #1a3e2f;
-  color: #fff9ee;
+  border-color: #ff8c00;
+  background: #14061f;
+  color: #ff8c00;
 }
 
 .os-bar {

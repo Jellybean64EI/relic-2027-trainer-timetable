@@ -151,6 +151,19 @@
     };
   }
 
+  function paintLondonClock() {
+    var el = $("meta-clock");
+    if (!el) return;
+    var text = new Intl.DateTimeFormat("en-GB", {
+      timeZone: TZ,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23"
+    }).format(new Date());
+    if (el.textContent !== text) el.textContent = text;
+  }
+
   function parseModeOverride() {
     var match = /[?&]mode=(upper|full)\b/.exec(location.search || "");
     if (!match) return "full";
@@ -5116,6 +5129,7 @@
     if (state.branch === "bridge") blurb = "Q4 2026 Pre-Recondition · " + blurb;
     $("month-blurb").textContent = blurb;
     $("meta-today").innerHTML = "TODAY <strong>" + parts.dateKey + "</strong> · " + parts.weekday;
+    paintLondonClock();
     var modeText = "LIVE · " + parts.dateKey;
     if (parts.dateKey < BRIDGE_LOCK_START) modeText = "PREVIEW · live 1 Jan 2027";
     else if (parts.dateKey < S.LIVE_START) {
@@ -6590,14 +6604,16 @@
         var parts = londonParts(state.now);
         var today = $("meta-today");
         if (today) today.innerHTML = "TODAY <strong>" + parts.dateKey + "</strong> · " + parts.weekday;
+        paintLondonClock();
       }
     }, 30000);
+    setInterval(paintLondonClock, 1000);
   }
 
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v24.1",
+    build: "v24.2",
     get nutrition() {
       return {
         shop: foodShop(),

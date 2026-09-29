@@ -6,9 +6,9 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v24.1" />
+  <meta name="relic-build" content="v24.2" />
   <title>NiX Training Schedules</title>
-  <link rel="stylesheet" href="styles.css?v=v24.1" />
+  <link rel="stylesheet" href="styles.css?v=v24.2" />
 </head>
 <body>
   <div class="wrap">
@@ -29,6 +29,7 @@
             <p class="corner-who">JOSEPH · LONDON</p>
             <p class="corner-mode" id="meta-mode">MODE</p>
             <p class="corner-today" id="meta-today">TODAY</p>
+            <p class="corner-clock" id="meta-clock">--:--:--</p>
           </div>
         </div>
       </header>
@@ -240,29 +241,29 @@
         </button>
       </div>
       <div data-os-panel="training">
-      <section class="nav-section" aria-labelledby="nav-trainer-label">
-        <h3 id="nav-trainer-label" class="nav-kicker">Trainer Schedules</h3>
-        <div class="nav-rows" role="group" aria-label="Upper Body and Full Body Trainer Schedules">
-          <button type="button" class="nav-row" data-set-mode="full" aria-pressed="true">
-            <span class="nav-row-label">Full Body</span>
-            <span class="nav-row-tag">FULL</span>
-          </button>
-          <button type="button" class="nav-row" data-set-mode="upper" aria-pressed="false">
-            <span class="nav-row-label">Upper Body</span>
-            <span class="nav-row-tag">UPPER</span>
-          </button>
-        </div>
-      </section>
       <section class="nav-section" aria-labelledby="nav-hub-label">
         <h3 id="nav-hub-label" class="nav-kicker">Ambient Hub</h3>
         <div class="nav-rows" role="group" aria-label="Ambient Hub branch">
           <button type="button" class="nav-row" data-set-branch="bridge" aria-pressed="false">
-            <span class="nav-row-label">Q4 2026 Pre-Recondition</span>
+            <span class="nav-row-label">2026 pre Training schedules</span>
             <span class="nav-row-tag">BRIDGE</span>
           </button>
           <button type="button" class="nav-row" data-set-branch="year" aria-pressed="true">
-            <span class="nav-row-label">2027 Year</span>
+            <span class="nav-row-label">2027 Training Schedules</span>
             <span class="nav-row-tag">YEAR</span>
+          </button>
+        </div>
+      </section>
+      <section class="nav-section" aria-labelledby="nav-trainer-label">
+        <h3 id="nav-trainer-label" class="nav-kicker">Trainer Schedules</h3>
+        <div class="nav-rows" role="group" aria-label="Upper Body and Full Body Trainer Schedules">
+          <button type="button" class="nav-row" data-set-mode="upper" aria-pressed="false">
+            <span class="nav-row-label">Upper Body</span>
+            <span class="nav-row-tag">UPPER</span>
+          </button>
+          <button type="button" class="nav-row" data-set-mode="full" aria-pressed="true">
+            <span class="nav-row-label">Full Body</span>
+            <span class="nav-row-tag">FULL</span>
           </button>
         </div>
       </section>
@@ -395,18 +396,18 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v24.1"></script>
-  <script src="data/precondition.js?v=v24.1"></script>
-  <script src="data/upperBody.js?v=v24.1"></script>
-  <script src="data/citations.js?v=v24.1"></script>
-  <script src="data/forensic.js?v=v24.1"></script>
-  <script src="data/videoArchive.js?v=v24.1"></script>
-  <script src="data/nutrition/shop.js?v=v24.1"></script>
-  <script src="data/nutrition/meals.js?v=v24.1"></script>
-  <script src="data/nutrition/extractions.js?v=v24.1"></script>
-  <script src="data/nutrition/schedule.js?v=v24.1"></script>
-  <script src="data/food/pack001.js?v=v24.1"></script>
-  <script src="data/supabaseConfig.js?v=v24.1"></script>
-  <script src="app.js?v=v24.1"></script>
+  <script src="data/schedule.js?v=v24.2"></script>
+  <script src="data/precondition.js?v=v24.2"></script>
+  <script src="data/upperBody.js?v=v24.2"></script>
+  <script src="data/citations.js?v=v24.2"></script>
+  <script src="data/forensic.js?v=v24.2"></script>
+  <script src="data/videoArchive.js?v=v24.2"></script>
+  <script src="data/nutrition/shop.js?v=v24.2"></script>
+  <script src="data/nutrition/meals.js?v=v24.2"></script>
+  <script src="data/nutrition/extractions.js?v=v24.2"></script>
+  <script src="data/nutrition/schedule.js?v=v24.2"></script>
+  <script src="data/food/pack001.js?v=v24.2"></script>
+  <script src="data/supabaseConfig.js?v=v24.2"></script>
+  <script src="app.js?v=v24.2"></script>
 </body>
 </html>
