@@ -6,6 +6,7 @@
    Display citation: 1. {CabinKey}_Trainer_{Phase}
    v16: Calisthenics is Q4 2027 Till Failure only (October–December).
    Q1 Base, Q2 Hard, and Q3 Expert swap those slots for Posture_Mobility, Abs_Pelvic, or Neck.
+   v26: every month raises Back and Legs_Glutes. Back leads a shared day. Phase suffixes stay.
 */
 window.RELIC_SCHEDULE = (function () {
   const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
@@ -34,13 +35,14 @@ window.RELIC_SCHEDULE = (function () {
     return { 1: cloneWeek(src[1]), 2: cloneWeek(src[2]), 3: cloneWeek(src[3]), 4: cloneWeek(src[4]) };
   }
 
-  /* ═══════ JANUARY — v25 Back-first reshuffle (March–December untouched) ═══════
-     Back is cabin[0] on every Back day. Six Back training days. Sunday stays Recovery. */
+  /* ═══════ JANUARY — v26 Back and Legs ═══════
+     Back leads every Back day. Legs lead unless the same day is also Back.
+     Seven Back days and six Legs days. Sunday stays Recovery. */
   const JAN = {
     1: week(
       row("MON", "Back + Arms", "Back", "Upper_Arms"),
-      row("TUE", "Chest + Legs", "Chest", "Legs_Glutes"),
-      row("WED", "Core + Posture", "Abs_Pelvic", "Posture_Mobility"),
+      row("TUE", "Legs + Chest", "Legs_Glutes", "Chest"),
+      row("WED", "Legs + Core", "Legs_Glutes", "Abs_Pelvic"),
       row("THU", "Bands + Hang", "Resistance_Bands", "Hanging"),
       row("FRI", "Weights + Grip", "Target_Weights", "Hand_Wrist_Forearm"),
       row("SAT", "Reset + Alignment", "Posture_Mobility", "Neck")
@@ -57,8 +59,8 @@ window.RELIC_SCHEDULE = (function () {
       row("MON", "Legs + Arms", "Legs_Glutes", "Upper_Arms"),
       row("TUE", "Back + Chest", "Back", "Chest"),
       row("WED", "Core + Hang", "Abs_Pelvic", "Hanging"),
-      row("THU", "Bands + Grip", "Resistance_Bands", "Hand_Wrist_Forearm"),
-      row("FRI", "Weights + Alignment", "Target_Weights", "Neck"),
+      row("THU", "Back + Bands", "Back", "Resistance_Bands"),
+      row("FRI", "Legs + Weights", "Legs_Glutes", "Target_Weights"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     4: week(
@@ -71,8 +73,9 @@ window.RELIC_SCHEDULE = (function () {
     )
   };
 
-  /* ═══════ FEBRUARY — v25 Back-first reshuffle (March–December untouched) ═══════
-     Back is cabin[0] on every Back day. Six Back training days. Sunday stays Recovery. */
+  /* ═══════ FEBRUARY — v26 Back and Legs ═══════
+     Back leads every Back day. Legs lead unless the same day is also Back.
+     Seven Back days and six Legs days. Sunday stays Recovery. */
   const FEB = {
     1: week(
       row("MON", "Back + Core", "Back", "Abs_Pelvic"),
@@ -87,15 +90,15 @@ window.RELIC_SCHEDULE = (function () {
       row("TUE", "Back + Legs", "Back", "Legs_Glutes"),
       row("WED", "Core + Alignment", "Abs_Pelvic", "Neck"),
       row("THU", "Bands + Grip", "Resistance_Bands", "Hand_Wrist_Forearm"),
-      row("FRI", "Weights + Neck", "Target_Weights", "Neck"),
+      row("FRI", "Legs + Weights", "Legs_Glutes", "Target_Weights"),
       row("SAT", "Posture + Hang", "Posture_Mobility", "Hanging")
     ),
     3: week(
       row("MON", "Legs + Arms", "Legs_Glutes", "Upper_Arms"),
       row("TUE", "Back + Chest", "Back", "Chest"),
       row("WED", "Core + Hang", "Abs_Pelvic", "Hanging"),
-      row("THU", "Bands + Posture", "Resistance_Bands", "Posture_Mobility"),
-      row("FRI", "Weights + Grip", "Target_Weights", "Hand_Wrist_Forearm"),
+      row("THU", "Legs + Bands", "Legs_Glutes", "Resistance_Bands"),
+      row("FRI", "Back + Weights", "Back", "Target_Weights"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     4: week(
@@ -111,17 +114,17 @@ window.RELIC_SCHEDULE = (function () {
   /* ═══════ MARCH — Base Consolidation (NiX) ═══════ */
   const MAR = {
     1: week(
-      row("MON", "Chest + Back", "Chest", "Back"),
+      row("MON", "Back + Chest", "Back", "Chest"),
       row("TUE", "Legs + Arms", "Legs_Glutes", "Upper_Arms"),
       row("WED", "Core + Grip", "Abs_Pelvic", "Hand_Wrist_Forearm"),
       row("THU", "Bands + Hang", "Resistance_Bands", "Hanging"),
-      row("FRI", "Weights + Alignment", "Target_Weights", "Neck"),
+      row("FRI", "Legs + Weights", "Legs_Glutes", "Target_Weights"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     2: week(
       row("MON", "Back + Legs", "Back", "Legs_Glutes"),
       row("TUE", "Chest + Arms", "Chest", "Upper_Arms"),
-      row("WED", "Core + Posture", "Abs_Pelvic", "Posture_Mobility"),
+      row("WED", "Back + Core", "Back", "Abs_Pelvic"),
       row("THU", "Bands + Grip", "Resistance_Bands", "Hand_Wrist_Forearm"),
       row("FRI", "Weights + Hang", "Target_Weights", "Hanging"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
@@ -151,20 +154,20 @@ window.RELIC_SCHEDULE = (function () {
       row("TUE", "Back + Bands", "Back", "Resistance_Bands"),
       row("WED", "Legs + Core", "Legs_Glutes", "Abs_Pelvic"),
       row("THU", "Arms + Grip", "Upper_Arms", "Hand_Wrist_Forearm"),
-      row("FRI", "Posture + Hang", "Posture_Mobility", "Hanging"),
+      row("FRI", "Legs + Hang", "Legs_Glutes", "Hanging"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     2: week(
       row("MON", "Back + Weights", "Back", "Target_Weights"),
       row("TUE", "Chest + Arms", "Chest", "Upper_Arms"),
       row("WED", "Legs + Bands", "Legs_Glutes", "Resistance_Bands"),
-      row("THU", "Core + Alignment", "Abs_Pelvic", "Neck"),
+      row("THU", "Back + Core", "Back", "Abs_Pelvic"),
       row("FRI", "Hang + Grip", "Hanging", "Hand_Wrist_Forearm"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     3: week(
       row("MON", "Legs + Weights", "Legs_Glutes", "Target_Weights"),
-      row("TUE", "Chest + Back", "Chest", "Back"),
+      row("TUE", "Back + Chest", "Back", "Chest"),
       row("WED", "Arms + Posture", "Upper_Arms", "Posture_Mobility"),
       row("THU", "Bands + Hang", "Resistance_Bands", "Hanging"),
       row("FRI", "Core + Grip", "Abs_Pelvic", "Hand_Wrist_Forearm"),
@@ -184,9 +187,9 @@ window.RELIC_SCHEDULE = (function () {
   const MAY = {
     1: week(
       row("MON", "Back + Arms", "Back", "Upper_Arms"),
-      row("TUE", "Chest + Legs", "Chest", "Legs_Glutes"),
+      row("TUE", "Legs + Chest", "Legs_Glutes", "Chest"),
       row("WED", "Weights + Core", "Target_Weights", "Abs_Pelvic"),
-      row("THU", "Bands + Alignment", "Resistance_Bands", "Neck"),
+      row("THU", "Back + Bands", "Back", "Resistance_Bands"),
       row("FRI", "Hang + Grip", "Hanging", "Hand_Wrist_Forearm"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
@@ -195,12 +198,12 @@ window.RELIC_SCHEDULE = (function () {
       row("TUE", "Legs + Arms", "Legs_Glutes", "Upper_Arms"),
       row("WED", "Back + Hang", "Back", "Hanging"),
       row("THU", "Bands + Grip", "Resistance_Bands", "Hand_Wrist_Forearm"),
-      row("FRI", "Core + Posture", "Abs_Pelvic", "Posture_Mobility"),
+      row("FRI", "Legs + Core", "Legs_Glutes", "Abs_Pelvic"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     3: week(
       row("MON", "Legs + Weights", "Legs_Glutes", "Target_Weights"),
-      row("TUE", "Chest + Back", "Chest", "Back"),
+      row("TUE", "Back + Chest", "Back", "Chest"),
       row("WED", "Arms + Bands", "Upper_Arms", "Resistance_Bands"),
       row("THU", "Core + Hang", "Abs_Pelvic", "Hanging"),
       row("FRI", "Core + Grip", "Abs_Pelvic", "Hand_Wrist_Forearm"),
@@ -219,11 +222,11 @@ window.RELIC_SCHEDULE = (function () {
   /* ═══════ JUNE — Hard Peak (NiX) ═══════ */
   const JUN = {
     1: week(
-      row("MON", "Chest + Back", "Chest", "Back"),
+      row("MON", "Back + Chest", "Back", "Chest"),
       row("TUE", "Legs + Weights", "Legs_Glutes", "Target_Weights"),
       row("WED", "Arms + Hang", "Upper_Arms", "Hanging"),
       row("THU", "Bands + Core", "Resistance_Bands", "Abs_Pelvic"),
-      row("FRI", "Posture + Grip", "Posture_Mobility", "Hand_Wrist_Forearm"),
+      row("FRI", "Legs + Grip", "Legs_Glutes", "Hand_Wrist_Forearm"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     2: week(
@@ -231,7 +234,7 @@ window.RELIC_SCHEDULE = (function () {
       row("TUE", "Chest + Arms", "Chest", "Upper_Arms"),
       row("WED", "Legs + Core", "Legs_Glutes", "Abs_Pelvic"),
       row("THU", "Bands + Hang", "Resistance_Bands", "Hanging"),
-      row("FRI", "Core + Grip", "Abs_Pelvic", "Hand_Wrist_Forearm"),
+      row("FRI", "Back + Grip", "Back", "Hand_Wrist_Forearm"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     3: week(
@@ -256,7 +259,7 @@ window.RELIC_SCHEDULE = (function () {
   const JUL = {
     1: week(
       row("MON", "Core + Chest", "Abs_Pelvic", "Chest"),
-      row("TUE", "Hang + Back", "Hanging", "Back"),
+      row("TUE", "Back + Hang", "Back", "Hanging"),
       row("WED", "Legs + Core", "Legs_Glutes", "Abs_Pelvic"),
       row("THU", "Arms + Bands", "Upper_Arms", "Resistance_Bands"),
       row("FRI", "Weights + Grip", "Target_Weights", "Hand_Wrist_Forearm"),
@@ -271,8 +274,8 @@ window.RELIC_SCHEDULE = (function () {
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     3: week(
-      row("MON", "Arms + Posture", "Upper_Arms", "Posture_Mobility"),
-      row("TUE", "Chest + Back", "Chest", "Back"),
+      row("MON", "Back + Arms", "Back", "Upper_Arms"),
+      row("TUE", "Back + Chest", "Back", "Chest"),
       row("WED", "Legs + Hang", "Legs_Glutes", "Hanging"),
       row("THU", "Bands + Core", "Resistance_Bands", "Abs_Pelvic"),
       row("FRI", "Weights + Grip", "Target_Weights", "Hand_Wrist_Forearm"),
@@ -283,7 +286,7 @@ window.RELIC_SCHEDULE = (function () {
       row("TUE", "Back + Core", "Back", "Abs_Pelvic"),
       row("WED", "Legs + Bands", "Legs_Glutes", "Resistance_Bands"),
       row("THU", "Arms + Hang", "Upper_Arms", "Hanging"),
-      row("FRI", "Weights + Core", "Target_Weights", "Abs_Pelvic"),
+      row("FRI", "Legs + Weights", "Legs_Glutes", "Target_Weights"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     )
   };
@@ -293,14 +296,14 @@ window.RELIC_SCHEDULE = (function () {
     1: week(
       row("MON", "Chest + Arms", "Chest", "Upper_Arms"),
       row("TUE", "Back + Legs", "Back", "Legs_Glutes"),
-      row("WED", "Alignment + Hang", "Neck", "Hanging"),
+      row("WED", "Back + Hang", "Back", "Hanging"),
       row("THU", "Bands + Grip", "Resistance_Bands", "Hand_Wrist_Forearm"),
       row("FRI", "Weights + Core", "Target_Weights", "Abs_Pelvic"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     2: week(
       row("MON", "Legs + Posture", "Legs_Glutes", "Posture_Mobility"),
-      row("TUE", "Chest + Back", "Chest", "Back"),
+      row("TUE", "Back + Chest", "Back", "Chest"),
       row("WED", "Arms + Hang", "Upper_Arms", "Hanging"),
       row("THU", "Bands + Core", "Resistance_Bands", "Abs_Pelvic"),
       row("FRI", "Weights + Grip", "Target_Weights", "Hand_Wrist_Forearm"),
@@ -319,7 +322,7 @@ window.RELIC_SCHEDULE = (function () {
       row("TUE", "Chest + Grip", "Chest", "Hand_Wrist_Forearm"),
       row("WED", "Back + Bands", "Back", "Resistance_Bands"),
       row("THU", "Legs + Hang", "Legs_Glutes", "Hanging"),
-      row("FRI", "Weights + Alignment", "Target_Weights", "Neck"),
+      row("FRI", "Legs + Weights", "Legs_Glutes", "Target_Weights"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     )
   };
@@ -327,7 +330,7 @@ window.RELIC_SCHEDULE = (function () {
   /* ═══════ SEPTEMBER — Expert Peak (NiX) ═══════ */
   const SEP = {
     1: week(
-      row("MON", "Posture + Back", "Posture_Mobility", "Back"),
+      row("MON", "Back + Posture", "Back", "Posture_Mobility"),
       row("TUE", "Hang + Chest", "Hanging", "Chest"),
       row("WED", "Legs + Weights", "Legs_Glutes", "Target_Weights"),
       row("THU", "Arms + Bands", "Upper_Arms", "Resistance_Bands"),
@@ -335,11 +338,11 @@ window.RELIC_SCHEDULE = (function () {
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     2: week(
-      row("MON", "Chest + Legs", "Chest", "Legs_Glutes"),
+      row("MON", "Legs + Chest", "Legs_Glutes", "Chest"),
       row("TUE", "Back + Arms", "Back", "Upper_Arms"),
       row("WED", "Core + Hang", "Abs_Pelvic", "Hanging"),
       row("THU", "Bands + Grip", "Resistance_Bands", "Hand_Wrist_Forearm"),
-      row("FRI", "Weights + Core", "Target_Weights", "Abs_Pelvic"),
+      row("FRI", "Back + Weights", "Back", "Target_Weights"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     3: week(
@@ -355,7 +358,7 @@ window.RELIC_SCHEDULE = (function () {
       row("TUE", "Back + Grip", "Back", "Hand_Wrist_Forearm"),
       row("WED", "Legs + Bands", "Legs_Glutes", "Resistance_Bands"),
       row("THU", "Arms + Hang", "Upper_Arms", "Hanging"),
-      row("FRI", "Weights + Posture", "Target_Weights", "Posture_Mobility"),
+      row("FRI", "Legs + Weights", "Legs_Glutes", "Target_Weights"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     )
   };
@@ -367,7 +370,7 @@ window.RELIC_SCHEDULE = (function () {
       row("TUE", "Back + Hang", "Back", "Hanging"),
       row("WED", "Legs + Skill", "Legs_Glutes", "Calisthenics"),
       row("THU", "Arms + Bands", "Upper_Arms", "Resistance_Bands"),
-      row("FRI", "Core + Grip", "Abs_Pelvic", "Hand_Wrist_Forearm"),
+      row("FRI", "Legs + Grip", "Legs_Glutes", "Hand_Wrist_Forearm"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     2: week(
@@ -388,7 +391,7 @@ window.RELIC_SCHEDULE = (function () {
     ),
     4: week(
       row("MON", "Skill + Grip", "Calisthenics", "Hand_Wrist_Forearm"),
-      row("TUE", "Chest + Bands", "Chest", "Resistance_Bands"),
+      row("TUE", "Back + Bands", "Back", "Resistance_Bands"),
       row("WED", "Back + Hang", "Back", "Hanging"),
       row("THU", "Legs + Core", "Legs_Glutes", "Abs_Pelvic"),
       row("FRI", "Weights + Arms", "Target_Weights", "Upper_Arms"),
@@ -400,10 +403,10 @@ window.RELIC_SCHEDULE = (function () {
   const NOV = {
     1: week(
       row("MON", "Back + Arms", "Back", "Upper_Arms"),
-      row("TUE", "Chest + Legs", "Chest", "Legs_Glutes"),
+      row("TUE", "Legs + Chest", "Legs_Glutes", "Chest"),
       row("WED", "Weights + Hang", "Target_Weights", "Hanging"),
       row("THU", "Skill + Bands", "Calisthenics", "Resistance_Bands"),
-      row("FRI", "Core + Grip", "Abs_Pelvic", "Hand_Wrist_Forearm"),
+      row("FRI", "Back + Grip", "Back", "Hand_Wrist_Forearm"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     2: week(
@@ -416,7 +419,7 @@ window.RELIC_SCHEDULE = (function () {
     ),
     3: week(
       row("MON", "Legs + Weights", "Legs_Glutes", "Target_Weights"),
-      row("TUE", "Chest + Hang", "Chest", "Hanging"),
+      row("TUE", "Legs + Hang", "Legs_Glutes", "Hanging"),
       row("WED", "Back + Bands", "Back", "Resistance_Bands"),
       row("THU", "Arms + Skill", "Upper_Arms", "Calisthenics"),
       row("FRI", "Core + Grip", "Abs_Pelvic", "Hand_Wrist_Forearm"),
@@ -435,7 +438,7 @@ window.RELIC_SCHEDULE = (function () {
   /* ═══════ DECEMBER — Peak Seal (NiX) ═══════ */
   const DEC = {
     1: week(
-      row("MON", "Chest + Back", "Chest", "Back"),
+      row("MON", "Back + Chest", "Back", "Chest"),
       row("TUE", "Legs + Weights", "Legs_Glutes", "Target_Weights"),
       row("WED", "Arms + Skill", "Upper_Arms", "Calisthenics"),
       row("THU", "Bands + Hang", "Resistance_Bands", "Hanging"),
@@ -444,7 +447,7 @@ window.RELIC_SCHEDULE = (function () {
     ),
     2: week(
       row("MON", "Back + Weights", "Back", "Target_Weights"),
-      row("TUE", "Chest + Arms", "Chest", "Upper_Arms"),
+      row("TUE", "Back + Arms", "Back", "Upper_Arms"),
       row("WED", "Legs + Hang", "Legs_Glutes", "Hanging"),
       row("THU", "Skill + Grip", "Calisthenics", "Hand_Wrist_Forearm"),
       row("FRI", "Bands + Core", "Resistance_Bands", "Abs_Pelvic"),
@@ -459,7 +462,7 @@ window.RELIC_SCHEDULE = (function () {
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     4: week(
-      row("MON", "Hang + Core", "Hanging", "Abs_Pelvic"),
+      row("MON", "Legs + Hang", "Legs_Glutes", "Hanging"),
       row("TUE", "Chest + Arms", "Chest", "Upper_Arms"),
       row("WED", "Back + Skill", "Back", "Calisthenics"),
       row("THU", "Legs + Grip", "Legs_Glutes", "Hand_Wrist_Forearm"),
