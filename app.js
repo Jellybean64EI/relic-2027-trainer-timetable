@@ -482,7 +482,6 @@
       blocks.push('<span class="doc-text">' + escapeHtml(day.doc1 || "Rest / Light Mobility") + "</span>");
       if (day.doc2) blocks.push('<span class="doc-text">' + escapeHtml(day.doc2) + "</span>");
     } else {
-      if (day.pair) blocks.push('<span class="relic-pair">' + escapeHtml(day.pair) + "</span>");
       (day.cabins || []).forEach(function (cabinKey, index) {
         if (!cabinKey) return;
         var label = S.citationLabel(cabinKey, phase);
@@ -6621,7 +6620,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v26",
+    build: "v27",
     get nutrition() {
       return {
         shop: foodShop(),
