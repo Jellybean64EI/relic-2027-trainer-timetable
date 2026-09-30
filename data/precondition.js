@@ -38,13 +38,15 @@ window.RELIC_PRECONDITION = (function () {
     }];
   }
 
-  /* October — control opening. */
+  /* October — control opening.
+     v25: 2026-10-01 is OCT W1 Thursday. That slot is Back + Grip so Back is doc1.
+     Tuesday stays Back + Core. Saturday stays Posture + Neck. W2–W4 are unchanged. */
   var OCT = {
     1: week(
       row("MON", "Chest + Arms", "Chest", "Upper_Arms"),
       row("TUE", "Back + Core", "Back", "Abs_Pelvic"),
       row("WED", "Legs + Bands", "Legs_Glutes", "Resistance_Bands"),
-      row("THU", "Posture + Grip", "Posture_Mobility", "Hand_Wrist_Forearm"),
+      row("THU", "Back + Grip", "Back", "Hand_Wrist_Forearm"),
       row("FRI", "Arms + Core", "Upper_Arms", "Abs_Pelvic"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
