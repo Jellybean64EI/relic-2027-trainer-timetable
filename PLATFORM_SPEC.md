@@ -408,7 +408,7 @@ Orange `#ff8c00` and light purple `#d8b4fe` NiX three-bar marks and soft circles
 
 ### v26 Back and Legs
 
-From 1 October 2026 through 31 December 2026, a cold open of Full Body lands on the 2026 bridge for that month and week. 2026-10-01 stays Back + Grip, with `1. Back_Trainer_Base` first. October, November, and December each carry more Back and Legs days, and Back leads when the two share a day. January and February 2027 each rise above the v25 counts: seven Back days and six Legs days. March through December 2027 stay the previous lock. The training row shows the pair name, and the first citation is gold.
+From 1 October 2026 through 31 December 2026, a cold open of Full Body lands on the 2026 bridge for that month and week. 2026-10-01 stays Back + Grip, with `1. Back_Trainer_Base` first. Every bridge month and every 2027 Full Body month has more Back days and more Legs days than v25. Back leads when the two share a day. The bridge still has no Hanging, Target Weights, or Calisthenics. 2027 Q4 keeps its Calisthenics slots. The training row shows the pair name, and the first citation is gold.
 
 ### Next
 

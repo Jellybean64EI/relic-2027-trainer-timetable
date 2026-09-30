@@ -1,8 +1,7 @@
 #!/usr/bin/env node
-/* v26 acceptance. Exits 1 if Back/Legs lock laws fail. */
+/* v26 acceptance. Every bridge month and every 2027 month must raise Back and Legs. */
 const fs = require("fs");
 const vm = require("vm");
-const crypto = require("crypto");
 
 const fails = [];
 function fail(msg) { fails.push(msg); }
@@ -33,11 +32,33 @@ function tally(days, key) {
   }).length;
 }
 
+/* Pre-v26 calendar training-day counts (origin/master before this bump). */
 const BEFORE = {
   bridge: { 10: { back: 7, legs: 7 }, 11: { back: 6, legs: 6 }, 12: { back: 7, legs: 6 } },
-  year: { 1: { back: 6, legs: 4 }, 2: { back: 6, legs: 4 } }
+  year: {
+    1: { back: 6, legs: 4 }, 2: { back: 6, legs: 4 }, 3: { back: 5, legs: 5 },
+    4: { back: 4, legs: 4 }, 5: { back: 4, legs: 4 }, 6: { back: 5, legs: 4 },
+    7: { back: 4, legs: 4 }, 8: { back: 4, legs: 4 }, 9: { back: 4, legs: 5 },
+    10: { back: 4, legs: 4 }, 11: { back: 4, legs: 4 }, 12: { back: 5, legs: 5 }
+  }
 };
+const CALI_BEFORE = { 10: 4, 11: 4, 12: 5 };
 
+function orderLaws(days, label) {
+  days.forEach(function (day) {
+    if (day.dayName === "SUN" && !day.isRecovery) fail("Sunday is not recovery " + day.dateKey);
+    if (day.isRecovery || day.dayIndex >= 6) return;
+    if (day.cabins.length !== 2) fail(label + " row is not a pair " + day.dateKey);
+    if (day.cabins.indexOf("Back") !== -1 && day.cabins[0] !== "Back") {
+      fail(label + " Back is not first " + day.dateKey + " " + day.pair);
+    }
+    if (day.cabins.indexOf("Legs_Glutes") !== -1 && day.cabins[0] !== "Legs_Glutes" && day.cabins[0] !== "Back") {
+      fail(label + " Legs is not first " + day.dateKey + " " + day.pair);
+    }
+  });
+}
+
+console.log("\n2026 bridge (training days)");
 [10, 11, 12].forEach(function (month) {
   const days = P.buildMonthDays(2026, month);
   const back = tally(days, "Back");
@@ -47,52 +68,37 @@ const BEFORE = {
   if (back <= prior.back) fail("bridge " + month + " Back did not rise");
   if (legs <= prior.legs) fail("bridge " + month + " Legs did not rise");
   days.forEach(function (day) {
-    if (day.dayName === "SUN" && !day.isRecovery) fail("Sunday is not recovery " + day.dateKey);
     if (day.isRecovery || day.dayIndex >= 6) return;
     ["Hanging", "Target_Weights", "Calisthenics"].forEach(function (key) {
       if (day.cabins.indexOf(key) !== -1) fail("bridge banned cabin " + key + " on " + day.dateKey);
     });
-    if (day.cabins.length !== 2) fail("bridge row is not a pair " + day.dateKey);
-    if (day.cabins.indexOf("Back") !== -1 && day.cabins[0] !== "Back") {
-      fail("bridge Back is not first " + day.dateKey + " " + day.pair);
-    }
-    if (day.cabins.indexOf("Legs_Glutes") !== -1 && day.cabins[0] !== "Legs_Glutes" && day.cabins[0] !== "Back") {
-      fail("bridge Legs is not first " + day.dateKey + " " + day.pair);
-    }
   });
+  orderLaws(days, "bridge");
 });
 
-[1, 2].forEach(function (month) {
+console.log("\n2027 Full Body (training days)");
+for (let month = 1; month <= 12; month++) {
   const days = S.buildMonthDays(2027, month);
   const back = tally(days, "Back");
   const legs = tally(days, "Legs_Glutes");
+  const cali = tally(days, "Calisthenics");
   const prior = BEFORE.year[month];
-  console.log("2027-" + month + " Back " + prior.back + " -> " + back + "  Legs " + prior.legs + " -> " + legs);
+  console.log("2027-" + String(month).padStart(2, "0") +
+    " Back " + prior.back + " -> " + back +
+    "  Legs " + prior.legs + " -> " + legs +
+    "  Calisthenics " + cali);
   if (back <= prior.back) fail("2027 month " + month + " Back did not rise");
   if (legs <= prior.legs) fail("2027 month " + month + " Legs did not rise");
-  days.forEach(function (day) {
-    if (day.dayName === "SUN" && !day.isRecovery) fail("Sunday is not recovery " + day.dateKey);
-    if (day.isRecovery || day.dayIndex >= 6) return;
-    if (day.cabins.length !== 2) fail("year row is not a pair " + day.dateKey);
-    if (day.cabins.indexOf("Back") !== -1 && day.cabins[0] !== "Back") {
-      fail("Back is not first " + day.dateKey + " " + day.pair);
-    }
-    if (day.cabins.indexOf("Legs_Glutes") !== -1 && day.cabins[0] !== "Legs_Glutes" && day.cabins[0] !== "Back") {
-      fail("Legs is not first " + day.dateKey + " " + day.pair);
-    }
-  });
-});
-
-const marDec = {};
-for (let month = 3; month <= 12; month++) marDec[month] = S.MONTH_ROTATIONS[month];
-const hash = crypto.createHash("sha256").update(JSON.stringify(marDec)).digest("hex");
-const EXPECT = "50154c8337cd7b86de3930de87ec2f8be7344d9291b955eb26e141be785bb902";
-console.log("Mar-Dec sha256", hash);
-if (hash !== EXPECT) fail("Mar-Dec MONTH_ROTATIONS changed");
+  if (month <= 9 && cali !== 0) fail("Calisthenics outside Q4 in month " + month);
+  if (month >= 10 && cali !== CALI_BEFORE[month]) {
+    fail("2027 month " + month + " Calisthenics " + cali + " expected " + CALI_BEFORE[month]);
+  }
+  orderLaws(days, "2027");
+}
 
 if (fails.length) {
   console.error("FAIL", fails.length);
   fails.forEach(function (msg) { console.error(" -", msg); });
   process.exit(1);
 }
-console.log("OK back/legs v26");
+console.log("\nOK back/legs v26");
