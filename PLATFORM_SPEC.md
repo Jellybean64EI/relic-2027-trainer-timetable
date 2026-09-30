@@ -416,7 +416,7 @@ TRAINING RELICS shows only the clickable trainer citations. The pair name stays 
 
 ### v28 cue sheet
 
-The player cue control is a thin gold handle. It fades with the rest of the player chrome and returns when the stage restores the HUD. Swipe up or tap opens the sheet. The sheet shows the current clip's trainer block: title, sets line, 3 Lead Unique Rule, Do this properly, Avoid this. Back Base clips are keyed by Drive file id. Other cabins still use the cabin profile until their documents are ingested through `RELIC_FORENSIC.ingestClips`.
+The player cue control is a thin gold handle. It fades with the rest of the player chrome and returns when the stage restores the HUD. Swipe up or tap opens the sheet. The sheet shows the current clip's trainer block: title, sets line, 3 Lead Unique Rule, Do this properly, Avoid this. `data/cues/cues.js` is the full Drive dump. Lookup is Drive file id, then title and cabin. The day's phase wins, then Base. Blocks with no drive link stay on that title fallback. Breathing_Decompression has no document, so it keeps the empty cabin fallback.
 
 ### Next
 

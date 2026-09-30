@@ -195,42 +195,78 @@ window.RELIC_FORENSIC = (function () {
     return String(cabin || "") + "|" + normTitle(title);
   }
 
+  var SECTION_RANK = { PRE: 0, MAIN: 1, POST: 2 };
+
   function ingestClips(list) {
     (list || []).forEach(function (raw) {
-      if (!raw || !raw.id) return;
+      if (!raw) return;
+      var id = String(raw.id || raw.driveFileId || "");
+      var title = raw.title || "";
+      if (!id && !title) return;
       var clip = {
-        id: String(raw.id),
-        cabin: raw.cabin || "",
+        id: id,
+        cabin: raw.cabin || raw.cabinKey || "",
         phase: phaseKey(raw.phase || "Base"),
-        title: raw.title || "",
+        title: title,
+        section: raw.section || "",
+        number: raw.number || 0,
         metrics: raw.metrics || "",
         leadRule: raw.leadRule || "",
         doThis: raw.doThis || "",
         avoidThis: raw.avoidThis || "",
         breathing: raw.breathing || ""
       };
-      var bucket = clipsById[clip.id] || (clipsById[clip.id] = []);
-      var replaced = false;
-      for (var i = 0; i < bucket.length; i++) {
-        if (bucket[i].phase === clip.phase && bucket[i].cabin === clip.cabin) {
-          bucket[i] = clip;
-          replaced = true;
-          break;
-        }
+      if (id) {
+        var bucket = clipsById[id] || (clipsById[id] = []);
+        bucket.push(clip);
       }
-      if (!replaced) bucket.push(clip);
-      clipsByTitle[titleKey(clip.cabin, clip.title) + "|" + clip.phase] = clip;
+      var tkey = titleKey(clip.cabin, clip.title) + "|" + clip.phase;
+      var titled = clipsByTitle[tkey] || (clipsByTitle[tkey] = []);
+      titled.push(clip);
     });
-    return { count: Object.keys(clipsById).length };
+    return stats();
   }
 
-  function pickClip(list, phase) {
+  function bestBlock(list, title) {
+    var pool = list.slice();
+    if (title) {
+      var want = normTitle(title);
+      var titled = pool.filter(function (clip) { return normTitle(clip.title) === want; });
+      if (titled.length) pool = titled;
+    }
+    pool.sort(function (a, b) {
+      var ra = SECTION_RANK[a.section] == null ? 9 : SECTION_RANK[a.section];
+      var rb = SECTION_RANK[b.section] == null ? 9 : SECTION_RANK[b.section];
+      if (ra !== rb) return ra - rb;
+      return (a.number || 0) - (b.number || 0);
+    });
+    return pool[0] || null;
+  }
+
+  function pickClip(list, phase, cabinKey, title) {
     if (!list || !list.length) return null;
+    var pool = list.filter(function (clip) {
+      return !cabinKey || !clip.cabin || clip.cabin === cabinKey;
+    });
+    if (!pool.length) pool = list;
     var want = phaseKey(phase);
-    var i;
-    for (i = 0; i < list.length; i++) if (list[i].phase === want) return list[i];
-    for (i = 0; i < list.length; i++) if (list[i].phase === "Base") return list[i];
-    return list[0];
+    var phased = pool.filter(function (clip) { return clip.phase === want; });
+    if (!phased.length) phased = pool.filter(function (clip) { return clip.phase === "Base"; });
+    if (!phased.length) phased = pool;
+    return bestBlock(phased, title);
+  }
+
+  function titleHits(cabinKey, title, phase) {
+    var exact = clipsByTitle[titleKey(cabinKey, title) + "|" + phaseKey(phase)];
+    if (exact && exact.length) return exact;
+    var base = clipsByTitle[titleKey(cabinKey, title) + "|Base"];
+    if (base && base.length) return base;
+    var loose = titleKey(cabinKey, title);
+    var bag = [];
+    Object.keys(clipsByTitle).forEach(function (key) {
+      if (key.indexOf(loose + "|") === 0) bag = bag.concat(clipsByTitle[key]);
+    });
+    return bag;
   }
 
   function readClip(query) {
@@ -239,18 +275,9 @@ window.RELIC_FORENSIC = (function () {
     var phase = phaseKey(q.phase || "Base");
     var branch = q.branch === "bridge" ? "bridge" : "year";
     var found = null;
-    if (q.clipId && clipsById[q.clipId]) found = pickClip(clipsById[q.clipId], phase);
-    if (!found && q.title) {
-      found = clipsByTitle[titleKey(cabinKey, q.title) + "|" + phase] ||
-        clipsByTitle[titleKey(cabinKey, q.title) + "|Base"] || null;
-      if (!found) {
-        var loose = titleKey(cabinKey, q.title);
-        Object.keys(clipsByTitle).forEach(function (key) {
-          if (!found && key.indexOf(loose + "|") === 0) found = clipsByTitle[key];
-        });
-      }
-    }
-    if (found && found.leadRule && found.doThis && found.avoidThis) {
+    if (q.clipId && clipsById[q.clipId]) found = pickClip(clipsById[q.clipId], phase, cabinKey, q.title);
+    if (!found && q.title) found = pickClip(titleHits(cabinKey, q.title, phase), phase, cabinKey, q.title);
+    if (found && (found.doThis || found.avoidThis || found.metrics)) {
       return {
         source: "clip",
         branch: branch,
@@ -258,6 +285,7 @@ window.RELIC_FORENSIC = (function () {
         phase: found.phase,
         clipId: found.id,
         title: found.title,
+        section: found.section || "",
         allowed: true,
         leadRule: found.leadRule,
         breathing: found.breathing || "",
@@ -275,6 +303,16 @@ window.RELIC_FORENSIC = (function () {
     return profile;
   }
 
+  function stats() {
+    var blocks = 0;
+    var titleOnly = 0;
+    Object.keys(clipsById).forEach(function (id) { blocks += clipsById[id].length; });
+    Object.keys(clipsByTitle).forEach(function (key) {
+      clipsByTitle[key].forEach(function (clip) { if (!clip.id) titleOnly += 1; });
+    });
+    return { ids: Object.keys(clipsById).length, blocks: blocks, titleOnly: titleOnly };
+  }
+
   return {
     leadRule: LEAD,
     breathing: BREATH,
@@ -282,6 +320,7 @@ window.RELIC_FORENSIC = (function () {
     read: read,
     readClip: readClip,
     ingestClips: ingestClips,
+    stats: stats,
     normTitle: normTitle
   };
 })();

@@ -5545,9 +5545,17 @@
     if (cabinEl) cabinEl.textContent = cabinKey ? cabinKey.replace(/_/g, " ") : "";
     var titleEl = $("forensic-title");
     if (titleEl) titleEl.textContent = clipDisplayTitle(clip, entry);
+    var leadEl = $("forensic-lead");
     var leadBody = $("forensic-lead-body");
-    if (leadBody) {
-      leadBody.textContent = (entry && entry.leadRule) ? entry.leadRule : "Left-Lead. 3-second ease.";
+    if (leadEl && leadBody) {
+      var lead = entry && entry.leadRule ? entry.leadRule : "";
+      if (entry && entry.source === "clip" && !lead) {
+        leadEl.hidden = true;
+        leadBody.textContent = "";
+      } else {
+        leadEl.hidden = false;
+        leadBody.textContent = lead || "Left-Lead. 3-second ease.";
+      }
     }
     var doEl = $("forensic-do");
     if (doEl) doEl.textContent = (entry && entry.doThis) ? entry.doThis : "—";

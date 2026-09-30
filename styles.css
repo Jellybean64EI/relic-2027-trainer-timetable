@@ -1279,6 +1279,7 @@ tr.is-done td {
 }
 
 .forensic-breath[hidden] { display: none; }
+.forensic-lead[hidden] { display: none; }
 
 .player-close {
   position: absolute;
