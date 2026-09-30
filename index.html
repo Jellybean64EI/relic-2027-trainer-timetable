@@ -6,9 +6,9 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v27" />
+  <meta name="relic-build" content="v28" />
   <title>NiX Training Schedules</title>
-  <link rel="stylesheet" href="styles.css?v=v27" />
+  <link rel="stylesheet" href="styles.css?v=v28" />
 </head>
 <body>
   <div class="wrap">
@@ -395,28 +395,21 @@
         </div>
       </div>
       <div class="forensic-dock" id="forensic-dock">
-        <button type="button" class="forensic-tab" id="forensic-tab" aria-expanded="false" aria-controls="forensic-panel">CUE</button>
+        <button type="button" class="forensic-tab" id="forensic-tab" aria-expanded="false" aria-controls="forensic-panel" aria-label="Open cue sheet">
+          <span class="forensic-handle" aria-hidden="true"></span>
+        </button>
         <div class="forensic-panel" id="forensic-panel" aria-hidden="true" inert>
           <div class="forensic-scroll" id="forensic-scroll">
-            <p class="forensic-cabin" id="forensic-cabin">—</p>
-            <p class="forensic-line" id="forensic-lead">3-Lead Unique Rule: Left-Lead. 3-second ease.</p>
-            <p class="forensic-line" id="forensic-do">Do this properly: —</p>
-            <p class="forensic-line" id="forensic-avoid">Avoid this: —</p>
-            <p class="forensic-line forensic-breath" id="forensic-breath">Breathing: —</p>
-            <dl class="forensic-meta">
-              <dt>date_key</dt>
-              <dd id="forensic-date-key">—</dd>
-              <dt>tier</dt>
-              <dd id="forensic-tier">—</dd>
-              <dt>branch</dt>
-              <dd id="forensic-branch">—</dd>
-              <dt>viewYear</dt>
-              <dd id="forensic-year">—</dd>
-              <dt>canTick</dt>
-              <dd id="forensic-cantick">—</dd>
-            </dl>
+            <p class="forensic-cabin" id="forensic-cabin"></p>
+            <h2 class="forensic-title" id="forensic-title">—</h2>
+            <p class="forensic-metrics" id="forensic-metrics">Sets: — | Reps: — | Hold: — | Rest: —</p>
+            <p class="forensic-lead" id="forensic-lead"><span class="forensic-kicker">3 Lead Unique Rule:</span> <span id="forensic-lead-body">—</span></p>
+            <p class="forensic-kicker">Do this properly:</p>
+            <p class="forensic-body" id="forensic-do">—</p>
+            <p class="forensic-kicker">Avoid this:</p>
+            <p class="forensic-body" id="forensic-avoid">—</p>
+            <p class="forensic-breath" id="forensic-breath" hidden></p>
           </div>
-          <p class="forensic-metrics" id="forensic-metrics">Sets: — | Reps: — | Hold: — | Rest: —</p>
         </div>
       </div>
       <p id="relic-empty-overlay" class="empty-overlay" hidden>No video file IDs mapped for this cabin.</p>
@@ -424,18 +417,19 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v27"></script>
-  <script src="data/precondition.js?v=v27"></script>
-  <script src="data/upperBody.js?v=v27"></script>
-  <script src="data/citations.js?v=v27"></script>
-  <script src="data/forensic.js?v=v27"></script>
-  <script src="data/videoArchive.js?v=v27"></script>
-  <script src="data/nutrition/shop.js?v=v27"></script>
-  <script src="data/nutrition/meals.js?v=v27"></script>
-  <script src="data/nutrition/extractions.js?v=v27"></script>
-  <script src="data/nutrition/schedule.js?v=v27"></script>
-  <script src="data/food/pack001.js?v=v27"></script>
-  <script src="data/supabaseConfig.js?v=v27"></script>
-  <script src="app.js?v=v27"></script>
+  <script src="data/schedule.js?v=v28"></script>
+  <script src="data/precondition.js?v=v28"></script>
+  <script src="data/upperBody.js?v=v28"></script>
+  <script src="data/citations.js?v=v28"></script>
+  <script src="data/forensic.js?v=v28"></script>
+  <script src="data/forensicClips.js?v=v28"></script>
+  <script src="data/videoArchive.js?v=v28"></script>
+  <script src="data/nutrition/shop.js?v=v28"></script>
+  <script src="data/nutrition/meals.js?v=v28"></script>
+  <script src="data/nutrition/extractions.js?v=v28"></script>
+  <script src="data/nutrition/schedule.js?v=v28"></script>
+  <script src="data/food/pack001.js?v=v28"></script>
+  <script src="data/supabaseConfig.js?v=v28"></script>
+  <script src="app.js?v=v28"></script>
 </body>
 </html>

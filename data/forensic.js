@@ -171,10 +171,117 @@ window.RELIC_FORENSIC = (function () {
     };
   }
 
+  /* Clip cues keyed by Drive file id. Cabin profiles stay the fallback. */
+  var clipsById = {};
+  var clipsByTitle = {};
+
+  function phaseKey(phase) {
+    var raw = String(phase || "Base").replace(/\s+/g, "_");
+    if (raw === "Till_Failure" || raw === "TillFailure") return "Till_Failure";
+    if (raw === "Hard" || raw === "Expert" || raw === "Base") return raw;
+    return raw || "Base";
+  }
+
+  function normTitle(title) {
+    return String(title || "")
+      .toLowerCase()
+      .replace(/\.mp4$/i, "")
+      .replace(/^\d+\.\s*/, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
+  function titleKey(cabin, title) {
+    return String(cabin || "") + "|" + normTitle(title);
+  }
+
+  function ingestClips(list) {
+    (list || []).forEach(function (raw) {
+      if (!raw || !raw.id) return;
+      var clip = {
+        id: String(raw.id),
+        cabin: raw.cabin || "",
+        phase: phaseKey(raw.phase || "Base"),
+        title: raw.title || "",
+        metrics: raw.metrics || "",
+        leadRule: raw.leadRule || "",
+        doThis: raw.doThis || "",
+        avoidThis: raw.avoidThis || "",
+        breathing: raw.breathing || ""
+      };
+      var bucket = clipsById[clip.id] || (clipsById[clip.id] = []);
+      var replaced = false;
+      for (var i = 0; i < bucket.length; i++) {
+        if (bucket[i].phase === clip.phase && bucket[i].cabin === clip.cabin) {
+          bucket[i] = clip;
+          replaced = true;
+          break;
+        }
+      }
+      if (!replaced) bucket.push(clip);
+      clipsByTitle[titleKey(clip.cabin, clip.title) + "|" + clip.phase] = clip;
+    });
+    return { count: Object.keys(clipsById).length };
+  }
+
+  function pickClip(list, phase) {
+    if (!list || !list.length) return null;
+    var want = phaseKey(phase);
+    var i;
+    for (i = 0; i < list.length; i++) if (list[i].phase === want) return list[i];
+    for (i = 0; i < list.length; i++) if (list[i].phase === "Base") return list[i];
+    return list[0];
+  }
+
+  function readClip(query) {
+    var q = query || {};
+    var cabinKey = q.cabinKey || "";
+    var phase = phaseKey(q.phase || "Base");
+    var branch = q.branch === "bridge" ? "bridge" : "year";
+    var found = null;
+    if (q.clipId && clipsById[q.clipId]) found = pickClip(clipsById[q.clipId], phase);
+    if (!found && q.title) {
+      found = clipsByTitle[titleKey(cabinKey, q.title) + "|" + phase] ||
+        clipsByTitle[titleKey(cabinKey, q.title) + "|Base"] || null;
+      if (!found) {
+        var loose = titleKey(cabinKey, q.title);
+        Object.keys(clipsByTitle).forEach(function (key) {
+          if (!found && key.indexOf(loose + "|") === 0) found = clipsByTitle[key];
+        });
+      }
+    }
+    if (found && found.leadRule && found.doThis && found.avoidThis) {
+      return {
+        source: "clip",
+        branch: branch,
+        cabinKey: found.cabin || cabinKey,
+        phase: found.phase,
+        clipId: found.id,
+        title: found.title,
+        allowed: true,
+        leadRule: found.leadRule,
+        breathing: found.breathing || "",
+        doThis: found.doThis,
+        avoidThis: found.avoidThis,
+        metrics: found.metrics,
+        note: ""
+      };
+    }
+    var profile = read(branch, cabinKey);
+    profile.source = "profile";
+    profile.title = "";
+    profile.clipId = q.clipId || "";
+    profile.phase = phase;
+    return profile;
+  }
+
   return {
     leadRule: LEAD,
     breathing: BREATH,
     profiles: PROFILES,
-    read: read
+    read: read,
+    readClip: readClip,
+    ingestClips: ingestClips,
+    normTitle: normTitle
   };
 })();
