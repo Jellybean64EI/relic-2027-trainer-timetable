@@ -34,13 +34,14 @@ window.RELIC_SCHEDULE = (function () {
     return { 1: cloneWeek(src[1]), 2: cloneWeek(src[2]), 3: cloneWeek(src[3]), 4: cloneWeek(src[4]) };
   }
 
-  /* ═══════ JANUARY — v25 Back-first reshuffle (March–December untouched) ═══════
-     Back is cabin[0] on every Back day. Six Back training days. Sunday stays Recovery. */
+  /* ═══════ JANUARY — v26 Back and Legs (March–December untouched) ═══════
+     Back leads every Back day. Legs lead unless the same day is also Back.
+     Seven Back days and six Legs days. Sunday stays Recovery. */
   const JAN = {
     1: week(
       row("MON", "Back + Arms", "Back", "Upper_Arms"),
-      row("TUE", "Chest + Legs", "Chest", "Legs_Glutes"),
-      row("WED", "Core + Posture", "Abs_Pelvic", "Posture_Mobility"),
+      row("TUE", "Legs + Chest", "Legs_Glutes", "Chest"),
+      row("WED", "Legs + Core", "Legs_Glutes", "Abs_Pelvic"),
       row("THU", "Bands + Hang", "Resistance_Bands", "Hanging"),
       row("FRI", "Weights + Grip", "Target_Weights", "Hand_Wrist_Forearm"),
       row("SAT", "Reset + Alignment", "Posture_Mobility", "Neck")
@@ -57,8 +58,8 @@ window.RELIC_SCHEDULE = (function () {
       row("MON", "Legs + Arms", "Legs_Glutes", "Upper_Arms"),
       row("TUE", "Back + Chest", "Back", "Chest"),
       row("WED", "Core + Hang", "Abs_Pelvic", "Hanging"),
-      row("THU", "Bands + Grip", "Resistance_Bands", "Hand_Wrist_Forearm"),
-      row("FRI", "Weights + Alignment", "Target_Weights", "Neck"),
+      row("THU", "Back + Bands", "Back", "Resistance_Bands"),
+      row("FRI", "Legs + Weights", "Legs_Glutes", "Target_Weights"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     4: week(
@@ -71,8 +72,9 @@ window.RELIC_SCHEDULE = (function () {
     )
   };
 
-  /* ═══════ FEBRUARY — v25 Back-first reshuffle (March–December untouched) ═══════
-     Back is cabin[0] on every Back day. Six Back training days. Sunday stays Recovery. */
+  /* ═══════ FEBRUARY — v26 Back and Legs (March–December untouched) ═══════
+     Back leads every Back day. Legs lead unless the same day is also Back.
+     Seven Back days and six Legs days. Sunday stays Recovery. */
   const FEB = {
     1: week(
       row("MON", "Back + Core", "Back", "Abs_Pelvic"),
@@ -87,15 +89,15 @@ window.RELIC_SCHEDULE = (function () {
       row("TUE", "Back + Legs", "Back", "Legs_Glutes"),
       row("WED", "Core + Alignment", "Abs_Pelvic", "Neck"),
       row("THU", "Bands + Grip", "Resistance_Bands", "Hand_Wrist_Forearm"),
-      row("FRI", "Weights + Neck", "Target_Weights", "Neck"),
+      row("FRI", "Legs + Weights", "Legs_Glutes", "Target_Weights"),
       row("SAT", "Posture + Hang", "Posture_Mobility", "Hanging")
     ),
     3: week(
       row("MON", "Legs + Arms", "Legs_Glutes", "Upper_Arms"),
       row("TUE", "Back + Chest", "Back", "Chest"),
       row("WED", "Core + Hang", "Abs_Pelvic", "Hanging"),
-      row("THU", "Bands + Posture", "Resistance_Bands", "Posture_Mobility"),
-      row("FRI", "Weights + Grip", "Target_Weights", "Hand_Wrist_Forearm"),
+      row("THU", "Legs + Bands", "Legs_Glutes", "Resistance_Bands"),
+      row("FRI", "Back + Weights", "Back", "Target_Weights"),
       row("SAT", "Posture + Neck", "Posture_Mobility", "Neck")
     ),
     4: week(

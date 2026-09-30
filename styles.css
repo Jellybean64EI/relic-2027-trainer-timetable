@@ -689,6 +689,17 @@ tr.today td {
   gap: 4px;
 }
 
+.relic-pair {
+  color: var(--gold);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+  pointer-events: none;
+}
+
+.cite-link.is-lead { color: var(--gold); }
+
 .cite-link {
   display: flex;
   align-items: center;

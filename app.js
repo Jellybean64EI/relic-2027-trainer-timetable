@@ -482,12 +482,13 @@
       blocks.push('<span class="doc-text">' + escapeHtml(day.doc1 || "Rest / Light Mobility") + "</span>");
       if (day.doc2) blocks.push('<span class="doc-text">' + escapeHtml(day.doc2) + "</span>");
     } else {
+      if (day.pair) blocks.push('<span class="relic-pair">' + escapeHtml(day.pair) + "</span>");
       (day.cabins || []).forEach(function (cabinKey, index) {
         if (!cabinKey) return;
         var label = S.citationLabel(cabinKey, phase);
         var href = citationHref(cabinKey, phase);
         blocks.push(
-          '<a class="cite-link" data-cabin="' + escapeHtml(cabinKey) +
+          '<a class="cite-link' + (index === 0 ? " is-lead" : "") + '" data-cabin="' + escapeHtml(cabinKey) +
           '" data-phase="' + escapeHtml(phase) +
           '" data-date="' + escapeHtml(day.dateKey) +
           '" data-slot="' + (index === 1 ? "1" : "0") +
@@ -5063,7 +5064,14 @@
     syncBranch();
 
     if (!state.userPicked) {
-      if (state.viewYear === 2026) {
+      /* Q4 2026 is the live Full Body cabin. Cold open must land on that
+         bridge month, not January 2027 or the October 2027 Till Failure grid. */
+      if (parts.dateKey >= BRIDGE_LOCK_START && parts.dateKey < S.LIVE_START) {
+        state.viewYear = 2026;
+        state.branch = "bridge";
+        state.viewMonth = parts.month;
+        state.viewWeek = S.weekOfMonth(parts.day);
+      } else if (state.viewYear === 2026) {
         if (parts.year === 2026 && parts.month >= 10 && parts.month <= 12) {
           state.viewMonth = parts.month;
           state.viewWeek = S.weekOfMonth(parts.day);
@@ -6613,7 +6621,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v25",
+    build: "v26",
     get nutrition() {
       return {
         shop: foodShop(),
