@@ -5513,41 +5513,60 @@
     return !!node.closest(".player-close, .player-controls, .timer-dock, .start-gate, .forensic-tab, .forensic-panel, .forensic-dock");
   }
 
+  function currentClip() {
+    if (!player.clips || !player.clips.length) return null;
+    return player.clips[player.index] || null;
+  }
+
+  function clipDisplayTitle(clip, entry) {
+    if (entry && entry.title) return entry.title;
+    var raw = clip && clip.title ? String(clip.title) : "";
+    raw = raw.replace(/\.mp4$/i, "").replace(/^\d+\.\s*/, "").trim();
+    return raw || player.cabin || "—";
+  }
+
   function paintForensic() {
-    var stage = playerStage();
-    if (!stage || !stage.classList.contains("is-forensic-open")) return;
-    var credit = player.credit;
-    var dateKey = credit && credit.dateKey ? String(credit.dateKey) : "";
-    var parts = londonParts(state.now || getNow());
-    var mask = dateKey ? (maskFor(dateKey) & 3) : 0;
-    var dateEl = $("forensic-date-key");
-    if (dateEl) dateEl.textContent = dateKey || "—";
-    var tierEl = $("forensic-tier");
-    if (tierEl) tierEl.textContent = dateKey ? String(mask) : "—";
-    var branchEl = $("forensic-branch");
-    if (branchEl) branchEl.textContent = state.branch;
-    var yearEl = $("forensic-year");
-    if (yearEl) yearEl.textContent = String(state.viewYear);
-    var tickEl = $("forensic-cantick");
-    if (tickEl) tickEl.textContent = dateKey ? (canTick(dateKey, parts) ? "true" : "false") : "—";
     var cabinKey = player.cabin || "";
+    var clip = currentClip();
     var entry = null;
     var lib = window.RELIC_FORENSIC;
-    if (lib && typeof lib.read === "function") {
+    if (lib && typeof lib.readClip === "function") {
+      entry = lib.readClip({
+        branch: state.branch === "bridge" ? "bridge" : "year",
+        cabinKey: cabinKey,
+        clipId: clip && clip.id,
+        title: clip && clip.title,
+        phase: player.phase || "Base"
+      });
+    } else if (lib && typeof lib.read === "function") {
       entry = lib.read(state.branch === "bridge" ? "bridge" : "year", cabinKey);
     }
     var cabinEl = $("forensic-cabin");
-    if (cabinEl) cabinEl.textContent = cabinKey || "—";
+    if (cabinEl) cabinEl.textContent = cabinKey ? cabinKey.replace(/_/g, " ") : "";
+    var titleEl = $("forensic-title");
+    if (titleEl) titleEl.textContent = clipDisplayTitle(clip, entry);
     var leadEl = $("forensic-lead");
-    if (leadEl) {
-      leadEl.textContent = "3-Lead Unique Rule: " + ((entry && entry.leadRule) ? entry.leadRule : "Left-Lead. 3-second ease.");
+    var leadBody = $("forensic-lead-body");
+    if (leadEl && leadBody) {
+      var lead = entry && entry.leadRule ? entry.leadRule : "";
+      if (entry && entry.source === "clip" && !lead) {
+        leadEl.hidden = true;
+        leadBody.textContent = "";
+      } else {
+        leadEl.hidden = false;
+        leadBody.textContent = lead || "Left-Lead. 3-second ease.";
+      }
     }
     var doEl = $("forensic-do");
-    if (doEl) doEl.textContent = "Do this properly: " + ((entry && entry.doThis) ? entry.doThis : "—");
+    if (doEl) doEl.textContent = (entry && entry.doThis) ? entry.doThis : "—";
     var avoidEl = $("forensic-avoid");
-    if (avoidEl) avoidEl.textContent = "Avoid this: " + ((entry && entry.avoidThis) ? entry.avoidThis : "—");
+    if (avoidEl) avoidEl.textContent = (entry && entry.avoidThis) ? entry.avoidThis : "—";
     var breathEl = $("forensic-breath");
-    if (breathEl) breathEl.textContent = "Breathing: " + ((entry && entry.breathing) ? entry.breathing : "—");
+    if (breathEl) {
+      var breath = entry && entry.breathing ? String(entry.breathing) : "";
+      breathEl.hidden = !breath;
+      breathEl.textContent = breath ? ("Breathing: " + breath) : "";
+    }
     var metrics = $("forensic-metrics");
     if (metrics) {
       metrics.textContent = (entry && entry.metrics)
@@ -5647,13 +5666,37 @@
     }
   }
 
+  function swipeOpensCue(startX, startY, endX, endY) {
+    var dx = endX - startX;
+    var dy = endY - startY;
+    if (Math.abs(dx) >= Math.abs(dy)) return false;
+    if (dy > -36) return false;
+    var stage = playerStage();
+    if (!stage) return false;
+    var rect = stage.getBoundingClientRect();
+    return startY > rect.bottom - 88;
+  }
+
   function onStageHudPointerUp(event) {
     if (!hudGesture || event.pointerId !== hudGesture.id) return;
+    var startX = hudGesture.x;
+    var startY = hudGesture.y;
     var moved = hudGesture.moved;
     hudGesture = null;
+    if (swipeOpensCue(startX, startY, event.clientX, event.clientY)) {
+      setForensicOpen(true);
+      showPlayerHud();
+      return;
+    }
     if (moved) return;
     var node = eventElement(event);
     if (isForensicChrome(node) || isHudChromeTarget(node)) return;
+    var stage = playerStage();
+    if (stage && stage.classList.contains("is-forensic-open")) {
+      setForensicOpen(false);
+      showPlayerHud();
+      return;
+    }
     if (hudIsHidden()) {
       showPlayerHud();
       player.swallowChromeClick = true;
@@ -5751,6 +5794,7 @@
     el.textContent = (player.cabin || "") + " · " +
       (player.index + 1) + "/" + player.clips.length + " · " +
       (clip && clip.title ? clip.title : "Clip");
+    paintForensic();
   }
 
   function stripVideoChrome(video) {
@@ -6397,13 +6441,41 @@
       forensicDock.addEventListener("pointerdown", stopForensicEvent);
       forensicDock.addEventListener("click", stopForensicEvent);
     }
+    var cueGesture = null;
+    function cueDelta(event) {
+      if (!cueGesture || event.pointerId !== cueGesture.id) return null;
+      return {
+        dx: event.clientX - cueGesture.x,
+        dy: event.clientY - cueGesture.y
+      };
+    }
     if (forensicTab) {
-      forensicTab.addEventListener("pointerdown", stopForensicEvent);
+      forensicTab.addEventListener("pointerdown", function (event) {
+        if (event.button > 0) return;
+        cueGesture = { x: event.clientX, y: event.clientY, id: event.pointerId };
+        try { forensicTab.setPointerCapture(event.pointerId); } catch (err) { /* capture is optional */ }
+        stopForensicEvent(event);
+      });
+      forensicTab.addEventListener("pointerup", function (event) {
+        var delta = cueDelta(event);
+        cueGesture = null;
+        if (!delta) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (Math.abs(delta.dx) > Math.abs(delta.dy) && Math.abs(delta.dx) > TAP_SLOP) return;
+        if (delta.dy < -28) {
+          setForensicOpen(true);
+          return;
+        }
+        if (delta.dy > 28) {
+          setForensicOpen(false);
+          return;
+        }
+        if (Math.abs(delta.dx) < TAP_SLOP && Math.abs(delta.dy) < TAP_SLOP) setForensicOpen(true);
+      });
       forensicTab.addEventListener("click", function (event) {
         event.preventDefault();
         event.stopPropagation();
-        var stage = playerStage();
-        setForensicOpen(!(stage && stage.classList.contains("is-forensic-open")));
       });
     }
     if (forensicPanel) {
@@ -6620,7 +6692,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v27",
+    build: "v28",
     get nutrition() {
       return {
         shop: foodShop(),

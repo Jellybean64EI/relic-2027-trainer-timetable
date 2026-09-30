@@ -5,7 +5,7 @@
 **Coach archive:** NiX  
 **Timezone:** Europe/London (always)  
 **Runtime:** static HTML / CSS / JS. No build step. No npm.  
-**Cache bust:** `?v=v27` on every stylesheet and script in `index.html`
+**Cache bust:** `?v=v28` on every stylesheet and script in `index.html`
 
 Footer motto (exact):
 
@@ -201,7 +201,7 @@ Evaluate on each timetable render and whenever a completion is upserted. Do not 
 
 ## 7. Cache
 
-`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v27`. The `relic-build` meta is `v27`. The in-memory month-row cache key is `{year}:{mode}:{month}`.
+`vercel.json` sends `Cache-Control: public, max-age=0, must-revalidate` for every path. `cleanUrls` stays on. Every `<link>` and `<script>` in `index.html` uses `?v=v28`. The `relic-build` meta is `v28`. The in-memory month-row cache key is `{year}:{mode}:{month}`.
 
 ---
 
@@ -247,7 +247,7 @@ index.html?date=2027-01-04&setsec=3   → coach set length 3 seconds. At 00:00 t
 2. Clips stream from Supabase public URLs. At `00:00` the opened citation is credited and, once that set is finished, the player closes and the timetable is showing. Duration overwrites remaining time and `SET_DURATION_SEC`. Add More Time only stacks onto remaining time. Next still advances a clip without crediting it.
 3. The table is exactly DAY / TRAINING RELICS / DONE at 20% / 70% / 10%.
 4. Ticks upsert `relic_completions`.
-5. `vercel.json` no-cache plus `?v=v27` on assets. The `relic-build` meta is `v27`. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome. A drag past 18px does not. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph. The forensic CUE tab slides up from the bottom, does not reset that timer, and does not reload the video.
+5. `vercel.json` no-cache plus `?v=v28` on assets. The `relic-build` meta is `v28`. The player HUD auto-hides after exactly 2000ms. A tap on the empty stage or video toggles that chrome. A drag past 18px does not. Opening a citation shows the Supabase mp4 first frame with no poster and no native play glyph. The cue handle fades with that chrome. The sheet slides up from the bottom, does not reset that timer, and does not reload the video.
 6. `schedule.js` `MONTH_ROTATIONS` stays the Full Body lock. Upper Body data is additive.
 7. A week chip has a SINGLE slot and a DUAL slot. At 100% dual the chip is rich green, the dual slot shows an orange `#ff8c00` double-tick shield and the aggregate tick count, and the single slot stays a separate dark module. Day DONE cells use a compact box or a single/double shield, with a 44px hit target. Month chips and `#year-badge` use the same score and light up only at 100%. Week 4 labels read `WEEK 4`. The deload hint does not render. Calisthenics appears only in October–December 2027.
 8. The toggle immediately under the timetable swaps Full Body and Upper Body without a reload. The drawer’s Full Body and Upper Body rows call the same `setScheduleMode`. Ambient Hub switches the 2026 bridge and the 2027 year. The motto and metadata stay under that toggle. Each mode shows only its own ticks and shield badges.
@@ -413,6 +413,10 @@ From 1 October 2026 through 31 December 2026, a cold open of Full Body lands on 
 ### v27 relics column
 
 TRAINING RELICS shows only the clickable trainer citations. The pair name stays in the schedule data and is not drawn above those links. The first citation stays gold. Citation labels, hrefs, and document ids are unchanged.
+
+### v28 cue sheet
+
+The player cue control is a thin gold handle. It fades with the rest of the player chrome and returns when the stage restores the HUD. Swipe up or tap opens the sheet. The sheet shows the current clip's trainer block: title, sets line, 3 Lead Unique Rule, Do this properly, Avoid this. `data/cues/cues.js` is the full Drive dump. Lookup is Drive file id, then title and cabin. The day's phase wins, then Base. Blocks with no drive link stay on that title fallback. Breathing_Decompression has no document, so it keeps the empty cabin fallback.
 
 ### Next
 

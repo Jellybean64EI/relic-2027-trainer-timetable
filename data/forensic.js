@@ -171,10 +171,156 @@ window.RELIC_FORENSIC = (function () {
     };
   }
 
+  /* Clip cues keyed by Drive file id. Cabin profiles stay the fallback. */
+  var clipsById = {};
+  var clipsByTitle = {};
+
+  function phaseKey(phase) {
+    var raw = String(phase || "Base").replace(/\s+/g, "_");
+    if (raw === "Till_Failure" || raw === "TillFailure") return "Till_Failure";
+    if (raw === "Hard" || raw === "Expert" || raw === "Base") return raw;
+    return raw || "Base";
+  }
+
+  function normTitle(title) {
+    return String(title || "")
+      .toLowerCase()
+      .replace(/\.mp4$/i, "")
+      .replace(/^\d+\.\s*/, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  }
+
+  function titleKey(cabin, title) {
+    return String(cabin || "") + "|" + normTitle(title);
+  }
+
+  var SECTION_RANK = { PRE: 0, MAIN: 1, POST: 2 };
+
+  function ingestClips(list) {
+    (list || []).forEach(function (raw) {
+      if (!raw) return;
+      var id = String(raw.id || raw.driveFileId || "");
+      var title = raw.title || "";
+      if (!id && !title) return;
+      var clip = {
+        id: id,
+        cabin: raw.cabin || raw.cabinKey || "",
+        phase: phaseKey(raw.phase || "Base"),
+        title: title,
+        section: raw.section || "",
+        number: raw.number || 0,
+        metrics: raw.metrics || "",
+        leadRule: raw.leadRule || "",
+        doThis: raw.doThis || "",
+        avoidThis: raw.avoidThis || "",
+        breathing: raw.breathing || ""
+      };
+      if (id) {
+        var bucket = clipsById[id] || (clipsById[id] = []);
+        bucket.push(clip);
+      }
+      var tkey = titleKey(clip.cabin, clip.title) + "|" + clip.phase;
+      var titled = clipsByTitle[tkey] || (clipsByTitle[tkey] = []);
+      titled.push(clip);
+    });
+    return stats();
+  }
+
+  function bestBlock(list, title) {
+    var pool = list.slice();
+    if (title) {
+      var want = normTitle(title);
+      var titled = pool.filter(function (clip) { return normTitle(clip.title) === want; });
+      if (titled.length) pool = titled;
+    }
+    pool.sort(function (a, b) {
+      var ra = SECTION_RANK[a.section] == null ? 9 : SECTION_RANK[a.section];
+      var rb = SECTION_RANK[b.section] == null ? 9 : SECTION_RANK[b.section];
+      if (ra !== rb) return ra - rb;
+      return (a.number || 0) - (b.number || 0);
+    });
+    return pool[0] || null;
+  }
+
+  function pickClip(list, phase, cabinKey, title) {
+    if (!list || !list.length) return null;
+    var pool = list.filter(function (clip) {
+      return !cabinKey || !clip.cabin || clip.cabin === cabinKey;
+    });
+    if (!pool.length) pool = list;
+    var want = phaseKey(phase);
+    var phased = pool.filter(function (clip) { return clip.phase === want; });
+    if (!phased.length) phased = pool.filter(function (clip) { return clip.phase === "Base"; });
+    if (!phased.length) phased = pool;
+    return bestBlock(phased, title);
+  }
+
+  function titleHits(cabinKey, title, phase) {
+    var exact = clipsByTitle[titleKey(cabinKey, title) + "|" + phaseKey(phase)];
+    if (exact && exact.length) return exact;
+    var base = clipsByTitle[titleKey(cabinKey, title) + "|Base"];
+    if (base && base.length) return base;
+    var loose = titleKey(cabinKey, title);
+    var bag = [];
+    Object.keys(clipsByTitle).forEach(function (key) {
+      if (key.indexOf(loose + "|") === 0) bag = bag.concat(clipsByTitle[key]);
+    });
+    return bag;
+  }
+
+  function readClip(query) {
+    var q = query || {};
+    var cabinKey = q.cabinKey || "";
+    var phase = phaseKey(q.phase || "Base");
+    var branch = q.branch === "bridge" ? "bridge" : "year";
+    var found = null;
+    if (q.clipId && clipsById[q.clipId]) found = pickClip(clipsById[q.clipId], phase, cabinKey, q.title);
+    if (!found && q.title) found = pickClip(titleHits(cabinKey, q.title, phase), phase, cabinKey, q.title);
+    if (found && (found.doThis || found.avoidThis || found.metrics)) {
+      return {
+        source: "clip",
+        branch: branch,
+        cabinKey: found.cabin || cabinKey,
+        phase: found.phase,
+        clipId: found.id,
+        title: found.title,
+        section: found.section || "",
+        allowed: true,
+        leadRule: found.leadRule,
+        breathing: found.breathing || "",
+        doThis: found.doThis,
+        avoidThis: found.avoidThis,
+        metrics: found.metrics,
+        note: ""
+      };
+    }
+    var profile = read(branch, cabinKey);
+    profile.source = "profile";
+    profile.title = "";
+    profile.clipId = q.clipId || "";
+    profile.phase = phase;
+    return profile;
+  }
+
+  function stats() {
+    var blocks = 0;
+    var titleOnly = 0;
+    Object.keys(clipsById).forEach(function (id) { blocks += clipsById[id].length; });
+    Object.keys(clipsByTitle).forEach(function (key) {
+      clipsByTitle[key].forEach(function (clip) { if (!clip.id) titleOnly += 1; });
+    });
+    return { ids: Object.keys(clipsById).length, blocks: blocks, titleOnly: titleOnly };
+  }
+
   return {
     leadRule: LEAD,
     breathing: BREATH,
     profiles: PROFILES,
-    read: read
+    read: read,
+    readClip: readClip,
+    ingestClips: ingestClips,
+    stats: stats,
+    normTitle: normTitle
   };
 })();
