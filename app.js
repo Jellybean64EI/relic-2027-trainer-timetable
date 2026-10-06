@@ -7,8 +7,8 @@
    Badge paint reads normalizeTier(tier) only. completed never invents a shield.
    Mode preference stays in memory.
    v15: viewYear 2026 is the Q4 bridge; 2027 is the year timetable.
-   Month-row cache keys are year:mode:month. canTick locks future days from 1 Oct 2026
-   and locks every 2027 day until 1 Jan 2027.
+   Month-row cache keys are year:mode:month. From v29 any real training day can tick,
+   including tomorrow and every 2027 day.
    v16: the CUE panel slides up from the bottom of the stage. A finished citation
    set closes the player and returns to the timetable. Week chips keep a single
    slot and a dual slot. Calisthenics is Q4 2027 only.
@@ -211,19 +211,11 @@
     return parts.dateKey >= S.LIVE_START;
   }
 
-  /* Before 1 Oct 2026 every shown day can tick (practice).
-     1 Oct 2026–31 Dec 2026: 2026 days on or before London today tick; later 2026 days
-     and every 2027 day stay locked.
-     From 1 Jan 2027: past and today tick; future days stay locked. */
+  /* Any real training day can tick, including tomorrow and later years.
+     An empty date stays closed. The pre-bridge practice window stays open too. */
   function canTick(dateKey, parts) {
     if (!dateKey || !parts || !parts.dateKey) return false;
-    var today = parts.dateKey;
-    if (today < BRIDGE_LOCK_START) return true;
-    if (today < S.LIVE_START) {
-      if (dateKey >= S.LIVE_START) return false;
-      return dateKey <= today;
-    }
-    return dateKey <= today;
+    return true;
   }
 
   function syncBranch() {
@@ -5141,8 +5133,8 @@
     if (parts.dateKey < BRIDGE_LOCK_START) modeText = "PREVIEW · live 1 Jan 2027";
     else if (parts.dateKey < S.LIVE_START) {
       modeText = state.branch === "bridge"
-        ? "Q4 2026 · past and today tick"
-        : "2027 LOCKED · until 1 Jan";
+        ? "Q4 2026 · any day can tick"
+        : "2027 · any day can tick";
     }
     $("meta-mode").textContent = modeText;
 
@@ -6692,7 +6684,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v28",
+    build: "v29",
     get nutrition() {
       return {
         shop: foodShop(),
