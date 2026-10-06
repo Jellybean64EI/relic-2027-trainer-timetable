@@ -1549,6 +1549,10 @@ body.nav-open .nav-drawer {
   flex-direction: column;
 }
 
+#btn-future-lock {
+  min-height: 44px;
+}
+
 .nav-row {
   display: flex;
   align-items: center;

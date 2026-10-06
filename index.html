@@ -6,9 +6,9 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v28" />
+  <meta name="relic-build" content="v29" />
   <title>NiX Training Schedules</title>
-  <link rel="stylesheet" href="styles.css?v=v28" />
+  <link rel="stylesheet" href="styles.css?v=v29" />
 </head>
 <body>
   <div class="wrap">
@@ -47,7 +47,7 @@
         </div>
       </header>
 
-      <p class="banner" id="banner-live" hidden>LIVE · Europe/London · Today and past can tick · Future days locked</p>
+      <p class="banner" id="banner-live" hidden>LIVE · Europe/London · Any training day can tick</p>
       <p class="banner coach" id="banner-coach" hidden></p>
       <p class="banner warn" id="sync-status" hidden></p>
 
@@ -267,6 +267,15 @@
           <span class="os-door-chevron" aria-hidden="true">›</span>
         </button>
       </div>
+      <section class="nav-section" aria-labelledby="nav-lock-label">
+        <h3 id="nav-lock-label" class="nav-kicker">Training days</h3>
+        <div class="nav-rows">
+          <button type="button" class="nav-row" id="btn-future-lock" aria-pressed="false" aria-label="Lock future days, off">
+            <span class="nav-row-label">Lock future days</span>
+            <span class="nav-row-tag" id="future-lock-tag">OFF</span>
+          </button>
+        </div>
+      </section>
       <div data-os-panel="training">
       <section class="nav-section" aria-labelledby="nav-hub-label">
         <h3 id="nav-hub-label" class="nav-kicker">Ambient Hub</h3>
@@ -417,20 +426,20 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v28"></script>
-  <script src="data/precondition.js?v=v28"></script>
-  <script src="data/upperBody.js?v=v28"></script>
-  <script src="data/citations.js?v=v28"></script>
-  <script src="data/forensic.js?v=v28"></script>
-  <script src="data/cues/cues.js?v=v28"></script>
-  <script src="data/forensicClips.js?v=v28"></script>
-  <script src="data/videoArchive.js?v=v28"></script>
-  <script src="data/nutrition/shop.js?v=v28"></script>
-  <script src="data/nutrition/meals.js?v=v28"></script>
-  <script src="data/nutrition/extractions.js?v=v28"></script>
-  <script src="data/nutrition/schedule.js?v=v28"></script>
-  <script src="data/food/pack001.js?v=v28"></script>
-  <script src="data/supabaseConfig.js?v=v28"></script>
-  <script src="app.js?v=v28"></script>
+  <script src="data/schedule.js?v=v29"></script>
+  <script src="data/precondition.js?v=v29"></script>
+  <script src="data/upperBody.js?v=v29"></script>
+  <script src="data/citations.js?v=v29"></script>
+  <script src="data/forensic.js?v=v29"></script>
+  <script src="data/cues/cues.js?v=v29"></script>
+  <script src="data/forensicClips.js?v=v29"></script>
+  <script src="data/videoArchive.js?v=v29"></script>
+  <script src="data/nutrition/shop.js?v=v29"></script>
+  <script src="data/nutrition/meals.js?v=v29"></script>
+  <script src="data/nutrition/extractions.js?v=v29"></script>
+  <script src="data/nutrition/schedule.js?v=v29"></script>
+  <script src="data/food/pack001.js?v=v29"></script>
+  <script src="data/supabaseConfig.js?v=v29"></script>
+  <script src="app.js?v=v29"></script>
 </body>
 </html>
