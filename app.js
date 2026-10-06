@@ -7,8 +7,8 @@
    Badge paint reads normalizeTier(tier) only. completed never invents a shield.
    Mode preference stays in memory.
    v15: viewYear 2026 is the Q4 bridge; 2027 is the year timetable.
-   Month-row cache keys are year:mode:month. From v29 any real training day can tick,
-   including tomorrow and every 2027 day.
+   Month-row cache keys are year:mode:month. v29 ticks every day unless the menu
+   lock is on. Lock on allows today and past only, and each day opens on its London date.
    v16: the CUE panel slides up from the bottom of the stage. A finished citation
    set closes the player and returns to the timetable. Week chips keep a single
    slot and a dual slot. Calisthenics is Q4 2027 only.
@@ -41,6 +41,7 @@
   var surfacePress = null;
   var EMPTY_MSG = "No video file IDs mapped for this cabin.";
   var BRIDGE_LOCK_START = "2026-10-01";
+  var FUTURE_LOCK_KEY = "relic_future_lock";
 
   var MODE_LABEL = {
     full: "Full Body Trainer Schedules",
@@ -92,6 +93,7 @@
     smoothieToast: "",
     smoothieToastUntil: 0,
     osDoor: "training",
+    futureLock: false,
     foodRefuse: "",
     foodUndo: null,
     foodFilter: "all",
@@ -104,6 +106,7 @@
     basketDrafts: null,
     basketOpen: false
   };
+  state.futureLock = readFutureLock();
 
   var player = {
     cabin: null,
@@ -211,11 +214,43 @@
     return parts.dateKey >= S.LIVE_START;
   }
 
-  /* Any real training day can tick, including tomorrow and later years.
-     An empty date stays closed. The pre-bridge practice window stays open too. */
+  function readFutureLock() {
+    try { return localStorage.getItem(FUTURE_LOCK_KEY) === "1"; }
+    catch (err) { return false; }
+  }
+
+  function writeFutureLock(on) {
+    try {
+      if (on) localStorage.setItem(FUTURE_LOCK_KEY, "1");
+      else localStorage.removeItem(FUTURE_LOCK_KEY);
+    } catch (err) { /* private mode */ }
+  }
+
+  /* Lock off (default): any real training day can tick.
+     Lock on: today and earlier tick. A later day becomes a tick when London
+     reaches that date, including dates in 2027. An empty date stays closed. */
   function canTick(dateKey, parts) {
     if (!dateKey || !parts || !parts.dateKey) return false;
-    return true;
+    if (!state.futureLock) return true;
+    return dateKey <= parts.dateKey;
+  }
+
+  function paintFutureLock() {
+    var btn = $("btn-future-lock");
+    if (!btn) return;
+    var on = !!state.futureLock;
+    btn.classList.toggle("is-active", on);
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.setAttribute("aria-label", "Lock future days, " + (on ? "on" : "off"));
+    var tag = $("future-lock-tag");
+    if (tag) tag.textContent = on ? "ON" : "OFF";
+  }
+
+  function setFutureLock(on) {
+    state.futureLock = !!on;
+    writeFutureLock(state.futureLock);
+    if ($("relic-card")) render();
+    else paintFutureLock();
   }
 
   function syncBranch() {
@@ -5100,6 +5135,7 @@
       S.MONTH_META[state.viewMonth] || { phaseLine: phase.label, blurb: "" };
     paintModeChrome();
     paintBranchChrome();
+    paintFutureLock();
     var card = $("relic-card");
     card.setAttribute("data-month", String(state.viewMonth));
     card.setAttribute("data-year", String(state.viewYear));
@@ -5129,14 +5165,19 @@
     $("month-blurb").textContent = blurb;
     $("meta-today").innerHTML = "TODAY <strong>" + parts.dateKey + "</strong> · " + parts.weekday;
     paintLondonClock();
-    var modeText = "LIVE · " + parts.dateKey;
-    if (parts.dateKey < BRIDGE_LOCK_START) modeText = "PREVIEW · live 1 Jan 2027";
+    var tickNote = state.futureLock ? "future days locked" : "any day can tick";
+    var modeText = "LIVE · " + tickNote;
+    if (parts.dateKey < BRIDGE_LOCK_START) modeText = "PREVIEW · " + tickNote;
     else if (parts.dateKey < S.LIVE_START) {
-      modeText = state.branch === "bridge"
-        ? "Q4 2026 · any day can tick"
-        : "2027 · any day can tick";
+      modeText = (state.branch === "bridge" ? "Q4 2026 · " : "2027 · ") + tickNote;
     }
     $("meta-mode").textContent = modeText;
+    var liveBanner = $("banner-live");
+    if (liveBanner) {
+      liveBanner.textContent = state.futureLock
+        ? "LIVE · Europe/London · Today and past can tick · Future days locked"
+        : "LIVE · Europe/London · Any training day can tick";
+    }
 
     document.querySelectorAll(".phase").forEach(function (el) {
       el.classList.toggle("is-active", el.getAttribute("data-phase") === phase.suffix);
@@ -6226,6 +6267,12 @@
         setNavOpen(false);
       });
     });
+    var futureLockBtn = $("btn-future-lock");
+    if (futureLockBtn) {
+      futureLockBtn.addEventListener("click", function () {
+        setFutureLock(!state.futureLock);
+      });
+    }
     document.querySelectorAll("[data-os-door]").forEach(function (doorBtn) {
       doorBtn.addEventListener("click", function () {
         var name = doorBtn.getAttribute("data-os-door");
@@ -6659,6 +6706,7 @@
       setSync("Schedule data failed to load.", true);
       return;
     }
+    state.futureLock = readFutureLock();
     state.mode = parseModeOverride();
     if (state.mode === "upper" && !upperSchedule()) state.mode = "full";
     wire();
@@ -6700,6 +6748,8 @@
     canTickDate: function (dateKey) {
       return canTick(dateKey, londonParts(state.now || getNow()));
     },
+    get futureLock() { return !!state.futureLock; },
+    setFutureLock: setFutureLock,
     get setSeconds() { return SET_DURATION_SEC; },
     get SET_DURATION_SEC() { return SET_DURATION_SEC; },
     get remaining() { return player.remaining; },

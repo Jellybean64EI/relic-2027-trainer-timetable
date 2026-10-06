@@ -416,7 +416,7 @@ TRAINING RELICS shows only the clickable trainer citations. The pair name stays 
 
 ### v29 open ticks
 
-Any real training day can tick, including tomorrow and later years. The Done cell uses the same checkbox as today and past. The live line no longer says future days are locked. Shields, week badges, and the completion bitmask stay as they were.
+The menu row `Lock future days` defaults to OFF. OFF lets every training day tick. ON locks only dates after London today; that day becomes a normal tick when the London date arrives, including in 2027. The choice is `relic_future_lock` in localStorage. The corner line says `any day can tick` or `future days locked` to match. Shields, week badges, and the completion bitmask stay as they were.
 
 ### v28 cue sheet
 
