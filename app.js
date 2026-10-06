@@ -236,12 +236,15 @@
   }
 
   function paintFutureLock() {
+    var section = $("nav-lock");
+    var training = state.osDoor !== "food" && state.osDoor !== "smoothies";
+    if (section) section.hidden = !training;
     var btn = $("btn-future-lock");
     if (!btn) return;
     var on = !!state.futureLock;
     btn.classList.toggle("is-active", on);
     btn.setAttribute("aria-pressed", on ? "true" : "false");
-    btn.setAttribute("aria-label", "Lock future days, " + (on ? "on" : "off"));
+    btn.setAttribute("aria-label", on ? "Lock on" : "Lock off");
     var tag = $("future-lock-tag");
     if (tag) tag.textContent = on ? "ON" : "OFF";
   }
@@ -2821,6 +2824,7 @@
     document.querySelectorAll("[data-os-panel]").forEach(function (panel) {
       panel.hidden = panel.getAttribute("data-os-panel") !== door;
     });
+    paintFutureLock();
   }
 
   var FOOD_V22 = {
@@ -6271,6 +6275,7 @@
     if (futureLockBtn) {
       futureLockBtn.addEventListener("click", function () {
         setFutureLock(!state.futureLock);
+        setNavOpen(false);
       });
     }
     document.querySelectorAll("[data-os-door]").forEach(function (doorBtn) {
@@ -6732,7 +6737,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v29",
+    build: "v30",
     get nutrition() {
       return {
         shop: foodShop(),
@@ -6750,6 +6755,12 @@
     },
     get futureLock() { return !!state.futureLock; },
     setFutureLock: setFutureLock,
+    applyOsDoor: function (door) {
+      state.osDoor = door === "food" || door === "smoothies" ? door : "training";
+      paintOsDoors();
+      var section = $("nav-lock");
+      return !section || section.hidden !== true;
+    },
     get setSeconds() { return SET_DURATION_SEC; },
     get SET_DURATION_SEC() { return SET_DURATION_SEC; },
     get remaining() { return player.remaining; },
