@@ -5169,13 +5169,6 @@
     $("month-blurb").textContent = blurb;
     $("meta-today").innerHTML = "TODAY <strong>" + parts.dateKey + "</strong> · " + parts.weekday;
     paintLondonClock();
-    var tickNote = state.futureLock ? "future days locked" : "any day can tick";
-    var modeText = "LIVE · " + tickNote;
-    if (parts.dateKey < BRIDGE_LOCK_START) modeText = "PREVIEW · " + tickNote;
-    else if (parts.dateKey < S.LIVE_START) {
-      modeText = (state.branch === "bridge" ? "Q4 2026 · " : "2027 · ") + tickNote;
-    }
-    $("meta-mode").textContent = modeText;
     var liveBanner = $("banner-live");
     if (liveBanner) {
       liveBanner.textContent = state.futureLock
@@ -5389,8 +5382,14 @@
     render();
   }
 
+  var navToggleAt = 0;
+  var NAV_GUARD_MS = 420;
+
   function setNavOpen(open) {
     var next = !!open;
+    var wasOpen = document.body.classList.contains("nav-open");
+    if (next && !wasOpen) navToggleAt = Date.now();
+    if (!next) navToggleAt = 0;
     var drawer = $("nav-drawer");
     var scrim = $("nav-scrim");
     var btn = $("btn-nav-toggle");
@@ -6251,35 +6250,49 @@
     var navBtn = $("btn-nav-toggle");
     if (navBtn) {
       navBtn.addEventListener("click", function (event) {
+        event.preventDefault();
         event.stopPropagation();
-        setNavOpen(!document.body.classList.contains("nav-open"));
+        var open = document.body.classList.contains("nav-open");
+        if (open && Date.now() - navToggleAt < NAV_GUARD_MS) return;
+        setNavOpen(!open);
       });
     }
     var navScrim = $("nav-scrim");
     if (navScrim) {
-      navScrim.addEventListener("click", function () { setNavOpen(false); });
+      navScrim.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (Date.now() - navToggleAt < NAV_GUARD_MS) return;
+        setNavOpen(false);
+      });
     }
     document.querySelectorAll("[data-set-mode]").forEach(function (opt) {
-      opt.addEventListener("click", function () {
+      opt.addEventListener("click", function (event) {
+        event.stopPropagation();
         setScheduleMode(opt.getAttribute("data-set-mode"));
         setNavOpen(false);
       });
     });
     document.querySelectorAll("[data-set-branch]").forEach(function (opt) {
-      opt.addEventListener("click", function () {
+      opt.addEventListener("click", function (event) {
+        event.stopPropagation();
         setBranch(opt.getAttribute("data-set-branch"));
         setNavOpen(false);
       });
     });
     var futureLockBtn = $("btn-future-lock");
     if (futureLockBtn) {
-      futureLockBtn.addEventListener("click", function () {
+      futureLockBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
         setFutureLock(!state.futureLock);
         setNavOpen(false);
       });
     }
     document.querySelectorAll("[data-os-door]").forEach(function (doorBtn) {
-      doorBtn.addEventListener("click", function () {
+      doorBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
         var name = doorBtn.getAttribute("data-os-door");
         if (name === "training") {
           state.foodRoom = "";
@@ -6297,13 +6310,17 @@
       });
     });
     document.querySelectorAll("[data-food-room]").forEach(function (foodBtn) {
-      foodBtn.addEventListener("click", function () {
+      foodBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
         openFoodRoom(foodBtn.getAttribute("data-food-room"));
         setNavOpen(false);
       });
     });
     document.querySelectorAll("[data-smoothie-room]").forEach(function (smoothieBtn) {
-      smoothieBtn.addEventListener("click", function () {
+      smoothieBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
         openSmoothieRoom(smoothieBtn.getAttribute("data-smoothie-room"));
         setNavOpen(false);
       });
@@ -6737,7 +6754,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v30",
+    build: "v31",
     get nutrition() {
       return {
         shop: foodShop(),

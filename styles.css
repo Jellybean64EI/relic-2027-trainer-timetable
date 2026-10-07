@@ -60,8 +60,8 @@ button, a, input, label {
 .card {
   position: relative;
   background: var(--container-deep);
-  border: 1px solid rgba(255, 140, 0, 0.45);
-  border-radius: 10px;
+  border: 1px solid rgba(216, 180, 254, 0.28);
+  border-radius: 16px;
   overflow: hidden;
 }
 
@@ -70,11 +70,16 @@ button, a, input, label {
   z-index: 1;
 }
 
+/* The header must not trap the hamburger. Its z-index lives above the drawer. */
+.card > .header {
+  z-index: auto;
+}
+
 .header {
   position: relative;
-  background: var(--container);
+  background: transparent;
   text-align: left;
-  padding: 12px 12px 10px;
+  padding: 10px 12px 6px;
 }
 
 .brand-bar {
@@ -155,9 +160,9 @@ h1 {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 2px;
+  gap: 1px;
   flex: 0 0 auto;
-  max-width: 46%;
+  max-width: 42%;
   padding-top: 1px;
   text-align: right;
 }
@@ -198,28 +203,13 @@ h1 {
   50% { opacity: 0.45; }
 }
 
-.corner-who,
-.corner-mode,
 .corner-today {
   margin: 0;
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  line-height: 1.25;
-}
-
-.corner-who {
-  color: var(--text);
-  letter-spacing: 0.08em;
-}
-
-.corner-mode {
-  color: var(--gold);
-}
-
-.corner-today {
   color: var(--muted);
+  font-size: 0.68rem;
   font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
 }
 
 .corner-today strong {
@@ -305,9 +295,9 @@ h1 {
   align-items: center;
   justify-content: center;
   padding: 6px 4px;
-  border: 1px solid rgba(216, 180, 254, 0.25);
-  border-radius: 8px;
-  background: var(--cell);
+  border: 1px solid rgba(216, 180, 254, 0.32);
+  border-radius: 12px;
+  background: rgba(21, 7, 36, 0.88);
   text-align: center;
 }
 
@@ -333,9 +323,9 @@ h1 {
 .mbtn, .wtab, .mode-btn, .player-ctrl, .player-close, .start-gate {
   min-height: var(--touch);
   min-width: var(--touch);
-  border: 1px solid rgba(255, 140, 0, 0.4);
-  border-radius: 8px;
-  background: var(--cell);
+  border: 1px solid rgba(216, 180, 254, 0.32);
+  border-radius: 12px;
+  background: rgba(21, 7, 36, 0.92);
   color: var(--text);
   font: inherit;
   font-size: 0.72rem;
@@ -1404,7 +1394,7 @@ body.nav-open .nav-scrim {
   padding: 0;
   overflow: hidden;
   background: #12051d;
-  border-right: 1px solid rgba(255, 140, 0, 0.5);
+  border-right: 1px solid rgba(216, 180, 254, 0.28);
   box-shadow: 12px 0 32px rgba(0, 0, 0, 0.35);
   transform: translateX(-100%);
   transition: transform 0.32s ease;
@@ -1435,7 +1425,7 @@ body.nav-open .nav-scrim {
   position: absolute;
   left: var(--x);
   top: var(--y);
-  color: #ff8c00;
+  color: #d8b4fe;
   pointer-events: none;
   animation-duration: 28s;
   animation-timing-function: ease-in-out;
