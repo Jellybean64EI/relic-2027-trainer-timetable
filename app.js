@@ -182,10 +182,37 @@
     if (el.textContent !== text) el.textContent = text;
   }
 
+  var SCHEDULE_MODE_KEY = "relic_schedule_mode";
+  var NAV_MARK_KEY = "relic_nav_mark";
+
   function parseModeOverride() {
     var match = /[?&]mode=(upper|full)\b/.exec(location.search || "");
-    if (!match) return "full";
+    if (!match) return "";
     return match[1] === "upper" ? "upper" : "full";
+  }
+
+  function readStoredMode() {
+    try {
+      var stored = localStorage.getItem(SCHEDULE_MODE_KEY);
+      if (stored === "upper" || stored === "full") return stored;
+    } catch (err) { /* private mode */ }
+    return "";
+  }
+
+  function writeStoredMode(mode) {
+    try { localStorage.setItem(SCHEDULE_MODE_KEY, mode); } catch (err) { /* private mode */ }
+  }
+
+  function readStoredMark() {
+    try {
+      var stored = localStorage.getItem(NAV_MARK_KEY);
+      if (stored === "mode" || stored === "branch") return stored;
+    } catch (err) { /* private mode */ }
+    return "";
+  }
+
+  function writeStoredMark(mark) {
+    try { localStorage.setItem(NAV_MARK_KEY, mark); } catch (err) { /* private mode */ }
   }
 
   function upperSchedule() {
@@ -2867,6 +2894,8 @@
       }
     });
     paintFutureLock();
+    paintModeChrome();
+    paintBranchChrome();
   }
 
   var FOOD_V22 = {
@@ -5075,7 +5104,7 @@
       if (training) training.hidden = true;
       document.body.classList.add("is-food");
     }
-    document.querySelectorAll("[data-smoothie-room]").forEach(function (row) {
+    document.querySelectorAll(".nav-row[data-smoothie-room]").forEach(function (row) {
       var on = row.getAttribute("data-smoothie-room") === room;
       row.classList.toggle("is-active", on);
       row.setAttribute("aria-pressed", on ? "true" : "false");
@@ -5102,7 +5131,7 @@
     if (board) board.hidden = !open;
     if (training) training.hidden = open;
     document.body.classList.toggle("is-food", open);
-    document.querySelectorAll("[data-food-room]").forEach(function (row) {
+    document.querySelectorAll(".nav-row[data-food-room]").forEach(function (row) {
       var on = row.getAttribute("data-food-room") === room;
       row.classList.toggle("is-active", on);
       row.setAttribute("aria-pressed", on ? "true" : "false");
@@ -5354,18 +5383,30 @@
     render();
   }
 
+  function resolvedMark() {
+    if (state.navMark === "branch" || state.navMark === "mode") return state.navMark;
+    if (state.mode === "upper") return "mode";
+    if (state.branch === "bridge") return "branch";
+    return "mode";
+  }
+
   function paintModeChrome() {
     var currentKey = viewingUpper() ? "upper" : "full";
     var otherKey = currentKey === "upper" ? "full" : "upper";
+    var notesUp = !!(document.body && document.body.classList.contains("nav-open") && state.menuCabin === "notes");
+    var training = state.osDoor !== "food" && state.osDoor !== "smoothies" && !notesUp;
     var line = $("schedule-mode");
-    if (line) line.textContent = MODE_LABEL[currentKey];
+    if (line) {
+      line.hidden = !training;
+      line.textContent = training ? MODE_LABEL[currentKey] : "";
+    }
     var btn = $("btn-schedule-mode");
     if (btn) {
       btn.textContent = MODE_LABEL[otherKey];
       btn.setAttribute("data-mode", currentKey);
       btn.setAttribute("aria-label", "Show " + MODE_LABEL[otherKey]);
     }
-    var markMode = state.navMark !== "branch";
+    var markMode = training && resolvedMark() === "mode";
     document.querySelectorAll("[data-set-mode]").forEach(function (opt) {
       var on = opt.getAttribute("data-set-mode") === currentKey;
       opt.classList.toggle("is-active", markMode && on);
@@ -5373,13 +5414,15 @@
     });
     var card = $("relic-card");
     if (card) card.setAttribute("data-schedule", currentKey);
-    document.body.setAttribute("data-schedule", currentKey);
+    if (document.body) document.body.setAttribute("data-schedule", currentKey);
   }
 
   function setScheduleMode(mode) {
     if (!upperSchedule()) return;
     if (mode !== "full" && mode !== "upper") return;
     state.navMark = "mode";
+    writeStoredMode(mode);
+    writeStoredMark("mode");
     if (state.mode === mode) {
       render();
       return;
@@ -5395,7 +5438,8 @@
   }
 
   function paintBranchChrome() {
-    var markBranch = state.navMark === "branch";
+    var training = state.osDoor !== "food" && state.osDoor !== "smoothies";
+    var markBranch = training && resolvedMark() === "branch";
     document.querySelectorAll("[data-set-branch]").forEach(function (opt) {
       var on = opt.getAttribute("data-set-branch") === state.branch;
       opt.classList.toggle("is-active", markBranch && on);
@@ -5405,6 +5449,7 @@
 
   function setBranch(branch) {
     state.navMark = "branch";
+    writeStoredMark("branch");
     var year = branch === "bridge" ? 2026 : 2027;
     var changing = state.viewYear !== year;
     clearClientCache();
@@ -5447,7 +5492,8 @@
     var drawer = $("nav-drawer");
     var scrim = $("nav-scrim");
     var btn = $("btn-nav-toggle");
-    document.body.classList.toggle("nav-open", next);
+    if (document.body) document.body.classList.toggle("nav-open", next);
+    if (!next && document.body) paintModeChrome();
     if (drawer) {
       drawer.setAttribute("aria-hidden", next ? "false" : "true");
       if ("inert" in drawer) drawer.inert = !next;
@@ -7265,7 +7311,8 @@
       return;
     }
     state.futureLock = readFutureLock();
-    state.mode = parseModeOverride();
+    state.mode = parseModeOverride() || readStoredMode() || "full";
+    state.navMark = readStoredMark();
     if (state.mode === "upper" && !upperSchedule()) state.mode = "full";
     wire();
     render();
@@ -7290,7 +7337,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v36",
+    build: "v37",
     get phaseState() { return player.phaseState || "idle"; },
     get advanceCount() { return player.advanceCount | 0; },
     get playerIndex() { return player.index | 0; },

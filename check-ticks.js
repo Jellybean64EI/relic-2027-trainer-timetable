@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* v36: future days tick unless Training lock is on. Public corner has no lock chrome. */
+/* v37: future days tick unless Training lock is on. Public corner has no lock chrome. */
 const fs = require("fs");
 const vm = require("vm");
 
@@ -10,10 +10,10 @@ const html = fs.readFileSync("index.html", "utf8");
 const app = fs.readFileSync("app.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v36"') === -1 || html.indexOf("app.js?v=v36") === -1) {
-  fail("index.html is not stamped v36");
+if (html.indexOf('content="v37"') === -1 || html.indexOf("app.js?v=v37") === -1) {
+  fail("index.html is not stamped v37");
 }
-if (app.indexOf('build: "v36"') === -1) fail("RelicArchitect.build is not v36");
+if (app.indexOf('build: "v37"') === -1) fail("RelicArchitect.build is not v37");
 if (html.indexOf("JOSEPH · LONDON") !== -1 || html.indexOf("corner-who") !== -1 || html.indexOf("meta-mode") !== -1) {
   fail("public corner still has the name or lock status");
 }
@@ -137,7 +137,7 @@ function expect(arch, dateKey, want, label) {
 
 const open = load("?date=2026-10-06");
 const arch = open.RelicArchitect;
-if (!arch || arch.build !== "v36" || arch.futureLock !== false) fail("default lock is not off");
+if (!arch || arch.build !== "v37" || arch.futureLock !== false) fail("default lock is not off");
 else {
   expect(arch, "2026-10-06", true, "open today");
   ["2026-10-07", "2026-12-31", "2027-01-01", "2027-10-07"].forEach(function (dateKey) {
@@ -194,4 +194,4 @@ if (fails.length) {
   fails.forEach(function (msg) { console.error("FAIL", msg); });
   process.exit(1);
 }
-console.log("OK ticks v36");
+console.log("OK ticks v37");
