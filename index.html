@@ -6,10 +6,10 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v37" />
+  <meta name="relic-build" content="v38" />
   <title>Nexus</title>
-  <link rel="manifest" href="manifest.webmanifest?v=v37" />
-  <link rel="stylesheet" href="styles.css?v=v37" />
+  <link rel="manifest" href="manifest.webmanifest?v=v38" />
+  <link rel="stylesheet" href="styles.css?v=v38" />
 </head>
 <body>
   <div class="wrap">
@@ -186,31 +186,13 @@
         </table>
       </div>
 
-      <section class="food-board" id="food-board" hidden aria-labelledby="food-board-title">
-        <div class="os-bar">
-          <button type="button" class="os-quick" data-food-room="final">My Food Schedule</button>
+      <section class="food-board" id="planner-board" hidden aria-label="Food and smoothies">
+        <div class="planner-tabs" role="tablist" aria-label="Planner">
+          <button type="button" data-planner-screen="recipes" aria-pressed="false">Recipes</button>
+          <button type="button" data-planner-screen="plan" aria-pressed="false">Plan</button>
+          <button type="button" data-planner-screen="today" aria-pressed="false">Prep &amp; Today</button>
         </div>
-        <h2 id="food-board-title" class="food-title" tabindex="-1">Meal Recipe Cards</h2>
-        <div class="food-room" id="food-meals" hidden></div>
-        <div class="food-room" id="food-cabinet" hidden></div>
-        <div class="food-room" id="food-hg" hidden></div>
-        <div class="food-room" id="food-final" hidden></div>
-        <div class="food-room" id="food-savelater" hidden></div>
-        <div class="food-room" id="food-shop" hidden></div>
-        <div class="food-room" id="food-extractions" hidden></div>
-        <div class="food-room" id="food-weekly" hidden></div>
-      </section>
-
-      <section class="food-board smoothie-board" id="smoothie-board" hidden aria-labelledby="smoothie-board-title">
-        <div class="os-bar">
-          <button type="button" class="os-quick" data-smoothie-room="final">My Smoothie Schedule</button>
-        </div>
-        <h2 id="smoothie-board-title" class="food-title" tabindex="-1">Smoothie Recipe Cards</h2>
-        <div class="food-room" id="smoothie-meals" hidden></div>
-        <div class="food-room" id="smoothie-cabinet" hidden></div>
-        <div class="food-room" id="smoothie-hg" hidden></div>
-        <div class="food-room" id="smoothie-final" hidden></div>
-        <div class="food-room" id="smoothie-savelater" hidden></div>
+        <div id="planner-root"></div>
       </section>
 
       <div class="schedule-switch">
@@ -298,29 +280,17 @@
               <section class="nav-section" aria-labelledby="nav-food-label">
                 <h3 id="nav-food-label" class="nav-kicker" style="--stagger:1">Food and Prep</h3>
                 <div class="nav-rows" role="group" aria-label="Food and Prep">
-                  <button type="button" class="nav-row" data-food-room="meals" style="--stagger:1" aria-pressed="false" aria-controls="food-meals">
-                    <span class="nav-row-label">Meal Recipe Cards</span>
-                    <span class="nav-row-tag">MEAL</span>
+                  <button type="button" class="nav-row" data-food-room="recipes" style="--stagger:1" aria-pressed="false">
+                    <span class="nav-row-label">Recipes</span>
+                    <span class="nav-row-tag">REC</span>
                   </button>
-                  <button type="button" class="nav-row" data-food-room="cabinet" style="--stagger:2" aria-pressed="false" aria-controls="food-cabinet">
-                    <span class="nav-row-label">Main Meal Cabinet</span>
-                    <span class="nav-row-tag">CAB</span>
+                  <button type="button" class="nav-row" data-food-room="plan" style="--stagger:2" aria-pressed="false">
+                    <span class="nav-row-label">Plan</span>
+                    <span class="nav-row-tag">PLAN</span>
                   </button>
-                  <button type="button" class="nav-row" data-food-room="hg" style="--stagger:3" aria-pressed="false" aria-controls="food-hg">
-                    <span class="nav-row-label">Draft Food Schedule</span>
-                    <span class="nav-row-tag">HG</span>
-                  </button>
-                  <button type="button" class="nav-row" data-food-room="final" style="--stagger:4" aria-pressed="false" aria-controls="food-final">
-                    <span class="nav-row-label">My 4-Week Food Timetable</span>
-                    <span class="nav-row-tag">FINAL</span>
-                  </button>
-                  <button type="button" class="nav-row" data-food-room="savelater" style="--stagger:5" aria-pressed="false" aria-controls="food-savelater">
-                    <span class="nav-row-label">Save later</span>
-                    <span class="nav-row-tag">LATER</span>
-                  </button>
-                  <button type="button" class="nav-row" data-food-room="shop" style="--stagger:6" aria-pressed="false" aria-controls="food-shop">
-                    <span class="nav-row-label">Monthly Shop</span>
-                    <span class="nav-row-tag">SHOP</span>
+                  <button type="button" class="nav-row" data-food-room="today" style="--stagger:3" aria-pressed="false">
+                    <span class="nav-row-label">Prep &amp; Today</span>
+                    <span class="nav-row-tag">TODAY</span>
                   </button>
                 </div>
               </section>
@@ -337,25 +307,17 @@
               <section class="nav-section" aria-labelledby="nav-smoothie-label">
                 <h3 id="nav-smoothie-label" class="nav-kicker" style="--stagger:1">Smoothies</h3>
                 <div class="nav-rows" role="group" aria-label="Smoothies">
-                  <button type="button" class="nav-row" data-smoothie-room="meals" style="--stagger:1" aria-pressed="false" aria-controls="smoothie-meals">
-                    <span class="nav-row-label">Smoothie Recipe Cards</span>
-                    <span class="nav-row-tag">BLEND</span>
+                  <button type="button" class="nav-row" data-smoothie-room="recipes" style="--stagger:1" aria-pressed="false">
+                    <span class="nav-row-label">Recipes</span>
+                    <span class="nav-row-tag">REC</span>
                   </button>
-                  <button type="button" class="nav-row" data-smoothie-room="cabinet" style="--stagger:2" aria-pressed="false" aria-controls="smoothie-cabinet">
-                    <span class="nav-row-label">Main Smoothie Cabinet</span>
-                    <span class="nav-row-tag">CAB</span>
+                  <button type="button" class="nav-row" data-smoothie-room="plan" style="--stagger:2" aria-pressed="false">
+                    <span class="nav-row-label">Plan</span>
+                    <span class="nav-row-tag">PLAN</span>
                   </button>
-                  <button type="button" class="nav-row" data-smoothie-room="hg" style="--stagger:3" aria-pressed="false" aria-controls="smoothie-hg">
-                    <span class="nav-row-label">Draft Smoothie Schedule</span>
-                    <span class="nav-row-tag">HG</span>
-                  </button>
-                  <button type="button" class="nav-row" data-smoothie-room="final" style="--stagger:4" aria-pressed="false" aria-controls="smoothie-final">
-                    <span class="nav-row-label">My 4-Week Smoothie Timetable</span>
-                    <span class="nav-row-tag">FINAL</span>
-                  </button>
-                  <button type="button" class="nav-row" data-smoothie-room="savelater" style="--stagger:5" aria-pressed="false" aria-controls="smoothie-savelater">
-                    <span class="nav-row-label">Smoothie Save later</span>
-                    <span class="nav-row-tag">LATER</span>
+                  <button type="button" class="nav-row" data-smoothie-room="today" style="--stagger:3" aria-pressed="false">
+                    <span class="nav-row-label">Prep &amp; Today</span>
+                    <span class="nav-row-tag">TODAY</span>
                   </button>
                 </div>
               </section>
@@ -443,20 +405,21 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v37"></script>
-  <script src="data/precondition.js?v=v37"></script>
-  <script src="data/upperBody.js?v=v37"></script>
-  <script src="data/citations.js?v=v37"></script>
-  <script src="data/forensic.js?v=v37"></script>
-  <script src="data/cues/cues.js?v=v37"></script>
-  <script src="data/forensicClips.js?v=v37"></script>
-  <script src="data/videoArchive.js?v=v37"></script>
-  <script src="data/nutrition/shop.js?v=v37"></script>
-  <script src="data/nutrition/meals.js?v=v37"></script>
-  <script src="data/nutrition/extractions.js?v=v37"></script>
-  <script src="data/nutrition/schedule.js?v=v37"></script>
-  <script src="data/food/pack001.js?v=v37"></script>
-  <script src="data/supabaseConfig.js?v=v37"></script>
-  <script src="app.js?v=v37"></script>
+  <script src="data/schedule.js?v=v38"></script>
+  <script src="data/precondition.js?v=v38"></script>
+  <script src="data/upperBody.js?v=v38"></script>
+  <script src="data/citations.js?v=v38"></script>
+  <script src="data/forensic.js?v=v38"></script>
+  <script src="data/cues/cues.js?v=v38"></script>
+  <script src="data/forensicClips.js?v=v38"></script>
+  <script src="data/videoArchive.js?v=v38"></script>
+  <script src="data/nutrition/shop.js?v=v38"></script>
+  <script src="data/nutrition/meals.js?v=v38"></script>
+  <script src="data/nutrition/extractions.js?v=v38"></script>
+  <script src="data/nutrition/schedule.js?v=v38"></script>
+  <script src="data/food/pack001.js?v=v38"></script>
+  <script src="food.js?v=v38"></script>
+  <script src="data/supabaseConfig.js?v=v38"></script>
+  <script src="app.js?v=v38"></script>
 </body>
 </html>

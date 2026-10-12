@@ -5,7 +5,7 @@ window.RELIC_FOOD_SCHEDULE = (function () {
   var ROTATION = {
     MON: "Chicken",
     TUE: "Salmon",
-    WED: "Eggs",
+    WED: "Chicken",
     THU: "Chicken",
     FRI: "Salmon",
     SAT: "Beef Mince",
@@ -14,7 +14,7 @@ window.RELIC_FOOD_SCHEDULE = (function () {
   var LIVE_DAY = {
     MON: {
       smoothie: "live-mon-banana-blueberry",
-      lunch: "Eggs, spinach, and leftover veg. Cook the whites.",
+      lunch: "Chicken, spinach, and leftover veg.",
       mealId: "chicken-broccoli-carrot",
       protein: "Chicken",
       carb: "Rice",
@@ -33,10 +33,10 @@ window.RELIC_FOOD_SCHEDULE = (function () {
     WED: {
       smoothie: "live-wed-mango-cherry",
       lunch: "Chicken leftover wrap and salad.",
-      mealId: "eggs-mushroom-greens",
-      protein: "Eggs",
+      mealId: "chicken-broccoli-carrot",
+      protein: "Chicken",
       carb: "Rice",
-      portionLabel: "2 eggs · mushrooms · a plate of greens. Whites cooked through.",
+      portionLabel: "1 British chicken breast · mushrooms · a plate of greens.",
       precise: false
     },
     THU: {
@@ -50,7 +50,7 @@ window.RELIC_FOOD_SCHEDULE = (function () {
     },
     FRI: {
       smoothie: "live-fri-pineapple-ginger",
-      lunch: "Eggs. Cook the whites.",
+      lunch: "Chicken leftover and greens.",
       mealId: "salmon-or-white-fish",
       protein: "Salmon",
       carb: "Rice",
@@ -59,7 +59,7 @@ window.RELIC_FOOD_SCHEDULE = (function () {
     },
     SAT: {
       smoothie: "live-sat-banana-blueberry",
-      lunch: "Bigger cooked breakfast. Eggs, with the whites set.",
+      lunch: "Bigger cooked plate. Beef and potato.",
       mealId: "beef-stuffed-potato-boats",
       protein: "Beef Mince",
       carb: "Potatoes",
@@ -122,7 +122,6 @@ window.RELIC_FOOD_SCHEDULE = (function () {
     if (protein === "Turkey Mince") return "mince-pasta-frozen-veg";
     if (protein === "Beef Mince") return "beef-stuffed-potato-boats";
     if (protein === "Salmon") return "salmon-greens-potato";
-    if (protein === "Eggs") return "eggs-mushroom-greens";
     return "chicken-broccoli-carrot";
   }
 
@@ -130,10 +129,9 @@ window.RELIC_FOOD_SCHEDULE = (function () {
     Chicken: ["chicken"],
     "Turkey Mince": ["turkey"],
     "Beef Mince": ["beef10", "beef5"],
-    Salmon: ["salmonFresh", "salmonFrozen", "salmonWaitrose"],
-    Eggs: ["eggsPasture", "eggsSo", "eggsOmega"]
+    Salmon: ["salmonFresh", "salmonFrozen", "salmonWaitrose"]
   };
-  var PROTEIN_FALLBACK = ["Chicken", "Turkey Mince", "Beef Mince", "Salmon", "Eggs"];
+  var PROTEIN_FALLBACK = ["Chicken", "Turkey Mince", "Beef Mince", "Salmon"];
 
   function basketHas(ids, skuList) {
     var i;
@@ -159,9 +157,7 @@ window.RELIC_FOOD_SCHEDULE = (function () {
     cue.carb = next === "Salmon" || next === "Beef Mince" ? "Potatoes" : "Rice";
     cue.mealId = mealFor(next);
     cue.portions = {
-      label: next === "Eggs"
-        ? "Eggs from the locked basket. Cook the whites. Taste the Difference, then SO Organic, then standard free-range."
-        : next + " from the locked basket. Household portion.",
+      label: next + " from the locked basket. Household portion.",
       precise: next === "Beef Mince",
       proteinName: next,
       fruitPortions: 2,
@@ -251,14 +247,12 @@ window.RELIC_FOOD_SCHEDULE = (function () {
     var template = apiShop.shoppingLists["2027-02+"];
     if (!template || template.tier !== 2) problems.push("missing tier 2 template");
     else if (template.totalPence > 30000) problems.push("tier 2 over £300: " + template.totalPence);
-    if (apiShop.proteins.join("|") !== "Chicken|Turkey Mince|Beef Mince|Salmon|Eggs") problems.push("proteins");
-    if (apiShop.eggsBanned) problems.push("eggs banned");
-    if ((apiShop.eggPreference || []).join("|") !== "eggsPasture|eggsSo|eggsOmega") problems.push("egg preference");
+    if (apiShop.proteins.join("|") !== "Chicken|Turkey Mince|Beef Mince|Salmon") problems.push("proteins");
+    if (!apiShop.eggsBanned) problems.push("eggs still allowed");
+    if ((apiShop.eggPreference || []).length) problems.push("egg preference");
     Object.keys(apiShop.shoppingLists).forEach(function (key) {
       var ids = (apiShop.shoppingLists[key].items || []).map(function (item) { return item.skuId; });
-      if (ids.indexOf("eggsPasture") === -1 && ids.indexOf("eggsSo") === -1 && ids.indexOf("eggsOmega") === -1) {
-        problems.push("missing eggs " + key);
-      }
+      if (ids.some(function (id) { return /egg/i.test(id); })) problems.push("egg sku " + key);
     });
     if (apiShop.carbs.join("|") !== "Potatoes|Rice") problems.push("carbs");
     if (apiShop.laws.length !== 5) problems.push("laws");
@@ -268,10 +262,7 @@ window.RELIC_FOOD_SCHEDULE = (function () {
       "cheesy-potato-toast",
       "beef-stuffed-potato-boats",
       "chicken-broccoli-carrot",
-      "salmon-greens-potato",
-      "eggs-mushroom-greens",
-      "paprika-potato-egg-skillet",
-      "omega3-egg-rest-plate"
+      "salmon-greens-potato"
     ].forEach(function (id) {
       var card = apiMeals.present(id, 1);
       if (!card) problems.push("missing meal " + id);
@@ -298,7 +289,7 @@ window.RELIC_FOOD_SCHEDULE = (function () {
       if (text.indexOf("3000W") === -1) problems.push(id + " blender");
       if (text.indexOf("Cheesecloth") === -1) problems.push(id + " strain");
       if (/4\s*[-–]\s*5/.test(text)) problems.push(id + " brazil pile");
-      if (id === "berry-banana-brazil" && text.indexOf("One Brazil nut") === -1 && text.indexOf("one a day") === -1) {
+      if (id === "berry-banana-brazil" && text.indexOf("2 Brazil nuts") === -1) {
         problems.push(id + " brazil cap");
       }
       if (card.lock.indexOf("Not dinner") === -1) problems.push(id + " lock");
@@ -321,9 +312,9 @@ window.RELIC_FOOD_SCHEDULE = (function () {
     if (!jan1 || !jan1.portions || !jan1.portions.label || jan1.portions.precise || jan1.fruitPortions !== 2 || jan1.vegPortions !== 3) {
       problems.push("jan 1 portions");
     }
-    if (!jan1 || jan1.lunch.indexOf("Eggs") === -1) problems.push("jan 1 lunch eggs");
+    if (!jan1 || /egg/i.test(jan1.lunch)) problems.push("jan 1 lunch eggs");
     var jan6 = fuelDays["2027-01-06"];
-    if (!jan6 || jan6.protein !== "Eggs" || jan6.mealId !== "eggs-mushroom-greens") problems.push("wednesday eggs");
+    if (!jan6 || jan6.protein !== "Chicken" || jan6.mealId !== "chicken-broccoli-carrot") problems.push("wednesday plate");
     if (!jan1.smoothieName) problems.push("jan 1 smoothie");
     if (window.RELIC_SCHEDULE && window.RELIC_SCHEDULE.buildMonthDays) {
       var monday = null;
@@ -335,7 +326,7 @@ window.RELIC_FOOD_SCHEDULE = (function () {
         var swapped = composeFromBasket(monday, ["turkey"]);
         if (swapped.plan !== "locked" || swapped.protein !== "Turkey Mince") problems.push("compose " + (swapped && swapped.protein));
         var eggSwap = composeFromBasket(monday, ["eggsOmega"]);
-        if (eggSwap.protein !== "Eggs" || eggSwap.mealId !== "eggs-mushroom-greens") problems.push("egg compose");
+        if (eggSwap.protein === "Eggs" || /egg/i.test(eggSwap.mealId || "")) problems.push("egg compose");
       }
     }
     if (apiShop.tierFor(2027, 2).id !== 2) problems.push("feb tier");
@@ -343,7 +334,8 @@ window.RELIC_FOOD_SCHEDULE = (function () {
     Object.keys(fuelDays).forEach(function (dateKey) {
       var cue = fuelDays[dateKey];
       if (!cue.morning || cue.morning.length !== 5) problems.push("morning " + dateKey);
-      if (cue.dayName === "WED" && cue.protein !== "Eggs") problems.push("wed eggs " + dateKey);
+      if (cue.dayName === "WED" && cue.protein !== "Chicken") problems.push("wed plate " + dateKey);
+      if (/egg/i.test(cue.lunch || "") || /egg/i.test(cue.protein || "")) problems.push("egg " + dateKey);
       if (dateKey.slice(8, 10) === "00" || /Sunday/.test(cue.dayName)) problems.push("sunday " + dateKey);
     });
     var bridgeCount = Object.keys(fuelDays).filter(function (key) { return key.indexOf("2026-") === 0; }).length;

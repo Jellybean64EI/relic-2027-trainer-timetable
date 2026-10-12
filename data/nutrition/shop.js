@@ -22,9 +22,6 @@ window.RELIC_FOOD_SHOP = (function () {
     salmonFrozen: sku("salmonFrozen", "Sainsbury's Frozen Boneless Salmon Fillets 360g", "Sainsbury's", 450, 360, "g", 1),
     salmonFresh: sku("salmonFresh", "Sainsbury's ASC Fresh Scottish Salmon Fillets 240g", "Sainsbury's", 675, 240, "g", 2),
     salmonWaitrose: sku("salmonWaitrose", "Waitrose Scottish Loch Muir Salmon Fillets 260g", "Waitrose", 795, 260, "g", 2),
-    eggsPasture: sku("eggsPasture", "Sainsbury's Taste the Difference Free Range Eggs 10", "Sainsbury's", 395, 10, "egg", 1),
-    eggsSo: sku("eggsSo", "Sainsbury's SO Organic Free Range Eggs 6", "Sainsbury's", 249, 6, "egg", 1),
-    eggsOmega: sku("eggsOmega", "Sainsbury's Woodland Free Range Eggs 12", "Sainsbury's", 195, 12, "egg", 1),
     potatoes: sku("potatoes", "Sainsbury's Maris Piper Potatoes 2.5kg", "Sainsbury's", 175, 2500, "g", 1),
     sweetPot: sku("sweetPot", "Sainsbury's Sweet Potatoes 1.25kg", "Sainsbury's", 155, 1250, "g", 2),
     rice: sku("rice", "Sainsbury's Easy Cook Long Grain Rice 1kg", "Sainsbury's", 125, 1000, "g", 1),
@@ -95,7 +92,7 @@ window.RELIC_FOOD_SHOP = (function () {
       through: "2027-01-31",
       rangeLabel: "Oct 2026 – Jan 2027",
       stores: ["Sainsbury's"],
-      priority: "Bulk chicken, turkey mince, potatoes, rice, and eggs. Taste the Difference free-range first, then SO Organic free-range, then standard free-range. Never skip eggs. Frozen fruit is allowed."
+      priority: "Bulk chicken, turkey mince, potatoes, rice, and frozen fruit."
     },
     2: {
       id: 2,
@@ -122,7 +119,7 @@ window.RELIC_FOOD_SHOP = (function () {
     "SO Organic bananas, apples, kiwi, lemons, blueberries, mango, oranges, pears, carrots",
     "British chicken",
     "ASC Scottish salmon",
-    "Eggs: Taste the Difference free-range first, then SO Organic free-range, then standard free-range. Cook the whites.",
+    "Brazil nuts, 2 a day, beside the glass.",
     "SO Organic milk or kefir if stocked",
     "Frozen berries",
     "Baby-leaf spinach",
@@ -130,7 +127,7 @@ window.RELIC_FOOD_SHOP = (function () {
     "Hemp hearts",
     "Pineapple",
     "Chicken livers, monthly, optional",
-    "Brazil nuts, small pack — maximum 1 a day"
+    "Brazil nuts, small pack — 2 a day"
   ];
 
   var PROTECT = [
@@ -154,7 +151,7 @@ window.RELIC_FOOD_SHOP = (function () {
     "Turkey mince",
     "Beef mince",
     "ASC Scottish salmon",
-    "Taste the Difference free-range eggs, then SO Organic, then standard free-range",
+    "Brazil nuts, 2 a day",
     "Maris Piper potatoes",
     "Easy Cook long grain rice",
     "Hemp hearts",
@@ -172,8 +169,6 @@ window.RELIC_FOOD_SHOP = (function () {
     ["turkey", 5],
     ["beef10", 4],
     ["salmonFrozen", 2],
-    ["eggsPasture", 1],
-    ["eggsSo", 2],
     ["potatoes", 4],
     ["rice", 4],
     ["fruit", 4],
@@ -248,8 +243,6 @@ window.RELIC_FOOD_SHOP = (function () {
       ["beef5", 6],
       ["salmonFresh", 8],
       ["salmonWaitrose", 2],
-      ["eggsPasture", 4],
-      ["eggsSo", 2],
       ["potatoes", 4],
       ["sweetPot", 2],
       ["rice", 3],
@@ -320,14 +313,14 @@ window.RELIC_FOOD_SHOP = (function () {
   return {
     build: "v19",
     priceBasis: "placeholder-sainsburys-style",
-    proteins: ["Chicken", "Turkey Mince", "Beef Mince", "Salmon", "Eggs"],
-    eggsBanned: false,
-    eggPreference: ["eggsPasture", "eggsSo", "eggsOmega"],
+    proteins: ["Chicken", "Turkey Mince", "Beef Mince", "Salmon"],
+    eggsBanned: true,
+    eggPreference: [],
     aisles: [
       { aisle: "Fruit", prefer: "SO Organic bananas, kiwi ×4, blueberries, mango, apples, lemons", fallback: "Standard or frozen fruit" },
       { aisle: "Frozen", prefer: "Mixed berries, mango, pineapple, cherries, spinach", fallback: "Own-brand unsweetened" },
       { aisle: "Veg", prefer: "SO Organic carrots, baby-leaf spinach, broccoli, onions", fallback: "Essentials veg" },
-      { aisle: "Protein", prefer: "British chicken breast, ASC Scottish salmon, Taste the Difference free-range eggs, chicken livers", fallback: "SO Organic free-range eggs, then standard free-range. Never skip eggs." },
+      { aisle: "Protein", prefer: "British chicken breast, ASC Scottish salmon, chicken livers", fallback: "Turkey mince, then beef mince." },
       { aisle: "Dairy", prefer: "SO Organic milk, plain Greek yogurt, kefir", fallback: "Standard plain yogurt" },
       { aisle: "Cupboard", prefer: "Hemp hearts, turmeric, ginger, thyme, bay, coconut milk", fallback: "Own-brand" },
       { aisle: "Nuts", prefer: "Brazil nuts, small pack", fallback: "Count at home. One nut a day. Never a pile." }
@@ -336,7 +329,7 @@ window.RELIC_FOOD_SHOP = (function () {
       "Check the freezer: banana, berries, mango, pineapple, cherry, papaya, spinach, ginger coins, hemp.",
       "Bag seven smoothie kits for the week.",
       "One tray of chicken and one tray of mixed veg.",
-      "Boil eggs for two days. Cook the whites through. Raw whites block biotin.",
+      "Bag the smoothie kits. Brazil nuts are 2 a day.",
       "Brazil tin: 7 nuts for the week, one a day.",
       "Sunday glass, if you blend one: papaya, pineapple, kiwi, and berry. Morning only.",
       "Shop the aisle table. Frozen stock beats a fresh-fruit trip."

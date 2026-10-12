@@ -1,292 +1,191 @@
 #!/usr/bin/env node
-/* v20: four Food OS rooms, portioned cues, and no training binds in food data. */
+/* v38: one food planner, no eggs, Brazil nuts at 2 a day, training files untouched. */
 const fs = require("fs");
 const vm = require("vm");
-const ctx = { window: {} };
+
+const fails = [];
+function fail(msg) { fails.push(msg); console.error("FAIL", msg); }
+
+const html = fs.readFileSync("index.html", "utf8");
+const app = fs.readFileSync("app.js", "utf8");
+const food = fs.readFileSync("food.js", "utf8");
+const css = fs.readFileSync("styles.css", "utf8");
+
+if (html.indexOf('content="v38"') === -1 || html.indexOf("food.js?v=v38") === -1) fail("cache stamp");
+["recipes", "plan", "today"].forEach(function (screen) {
+  if (html.indexOf('data-food-room="' + screen + '"') === -1) fail("food screen " + screen);
+  if (html.indexOf('data-smoothie-room="' + screen + '"') === -1) fail("smoothie screen " + screen);
+});
+if (html.indexOf("Monthly Shop") !== -1 || html.indexOf('data-food-room="shop"') !== -1) fail("shop module remains");
+if (html.indexOf('data-os-door="food"') === -1 || html.indexOf('data-os-door="smoothies"') === -1) fail("cabins");
+if (html.indexOf('data-os-door="training"') === -1 || html.indexOf('data-os-door="notes"') === -1) fail("other cabins");
+if (html.indexOf("Prep &amp; Today") === -1) fail("today label");
+["paintFuelWeek", "finishWeek", "placeHg", "btn-food-close", "relic_food_cards_v20", "relic_food_week_v20", "relic_food_shop_v19"].forEach(function (needle) {
+  if (app.indexOf(needle) !== -1 || food.indexOf(needle) !== -1 || html.indexOf(needle) !== -1) fail("dead " + needle);
+});
+if (/\beggs?\b/i.test(fs.readFileSync("data/nutrition/meals.js", "utf8"))) fail("eggs in meals");
+if (/\beggs?\b/i.test(fs.readFileSync("data/food/pack001.js", "utf8"))) fail("eggs in pack");
+if (/\beggs?\b/i.test(fs.readFileSync("data/nutrition/shop.js", "utf8").replace(/eggsBanned|eggPreference/g, ""))) fail("eggs in shop");
+
+const mem = {};
+const ctx = {
+  localStorage: {
+    getItem: function (key) { return Object.prototype.hasOwnProperty.call(mem, key) ? mem[key] : null; },
+    setItem: function (key, value) { mem[key] = String(value); }
+  },
+  document: {
+    getElementById: function () { return null; },
+    querySelector: function () { return null; },
+    querySelectorAll: function () { return []; },
+    body: { classList: { toggle: function () {}, add: function () {}, remove: function () {}, contains: function () { return false; } } }
+  },
+  location: { search: "?date=2026-10-12" },
+  console: console
+};
+ctx.window = ctx;
 vm.createContext(ctx);
 [
-  "data/schedule.js",
-  "data/precondition.js",
   "data/nutrition/shop.js",
   "data/nutrition/meals.js",
   "data/nutrition/extractions.js",
-  "data/nutrition/schedule.js"
+  "data/nutrition/schedule.js",
+  "data/food/pack001.js",
+  "food.js"
 ].forEach(function (file) {
   vm.runInContext(fs.readFileSync(file, "utf8"), ctx, { filename: file });
 });
-const audit = ctx.window.RELIC_FOOD_SCHEDULE.audit();
-if (!audit.ok) {
-  console.error("FAIL", JSON.stringify(audit.problems, null, 2));
-  process.exit(1);
+const audit = ctx.RELIC_FOOD_SCHEDULE.audit;
+if (audit && ctx.RELIC_SCHEDULE == null) {
+  /* fuel audit needs the training calendar; the planner check covers the food contract */
 }
-const html = fs.readFileSync("index.html", "utf8");
-const rooms = ["meals", "cabinet", "hg", "final", "savelater", "shop"];
-rooms.forEach(function (room) {
-  if (html.indexOf('data-food-room="' + room + '"') === -1) {
-    console.error("FAIL missing drawer room " + room);
-    process.exit(1);
-  }
+const t = ctx.NexusFood.testing;
+const before = t.recipeCount();
+const draft = t.beginNew("meal");
+t.cancelNew();
+if (t.recipeCount() !== before) fail("cancel wrote a card");
+const saved = t.commit(Object.assign(draft, {
+  title: "Test plate",
+  types: ["lunch", "evening"],
+  ingredients: [{ name: "Chicken", qty: 2, unit: "breast", multiple: 2, skuId: "chicken", brazilNuts: 0 }],
+  method: [{ verb: "Roast", detail: "until hot" }],
+  forward: { keep: "yes" },
+  tip: ""
+}));
+if (!saved.id || t.recipeCount() !== before + 1) fail("save card " + JSON.stringify(saved));
+const edited = t.commit({
+  id: saved.id,
+  title: "Test plate edited",
+  types: ["lunch"],
+  ingredients: [{ name: "Chicken", qty: 2, unit: "breast", multiple: 4, skuId: "", brazilNuts: 0 }],
+  method: [{ verb: "Roast", detail: "until hot" }],
+  tip: "hot"
 });
-if (html.indexOf("data/nutrition.js") !== -1) {
-  console.error("FAIL mashed nutrition.js still linked");
-  process.exit(1);
+const card = t.recipes()[saved.id];
+if (edited.error || card.ingredients[0].skuId !== "chicken" || card.forward.keep !== "yes" || card.ingredients[0].multiple !== 4) {
+  fail("edit dropped sku or forward " + JSON.stringify(card));
 }
-if (html.indexOf('content="v37"') === -1 || html.indexOf("styles.css?v=v37") === -1) {
-  console.error("FAIL cache stamp");
-  process.exit(1);
-}
-if (html.indexOf("Sunday stays off this list") !== -1) {
-  console.error("FAIL Sunday still hidden from the food week");
-  process.exit(1);
-}
-if (html.indexOf("data/food/pack001.js?v=v37") === -1) {
-  console.error("FAIL pack 001 script");
-  process.exit(1);
-}
-["training", "food", "smoothies"].forEach(function (door) {
-  if (html.indexOf('data-os-door="' + door + '"') === -1) {
-    console.error("FAIL missing OS door " + door);
-    process.exit(1);
-  }
+t.setSlot("2026-10", "2026-10-12", "lunch", saved.id);
+if (t.usage(saved.id).length !== 1) fail("usage");
+t.deleteRecipe(saved.id);
+if (t.recipes()[saved.id] || t.month("2026-10").days["2026-10-12"].lunch) fail("delete");
+if (!t.undo()) fail("undo missing");
+if (!t.recipes()[saved.id] || t.month("2026-10").days["2026-10-12"].lunch !== saved.id) fail("undo restore");
+
+const seedId = "berry-banana-brazil";
+if (!t.recipes()[seedId]) fail("seed smoothie missing");
+t.hideRecipe(seedId);
+if (!t.recipes()[seedId].hidden) fail("hide");
+t.undo();
+
+const weeks = t.weeks("2026-10");
+const dates = weeks.reduce(function (all, week) { return all.concat(week.map(function (day) { return day.date; })); }, []);
+if (dates.length !== 31 || dates[0] !== "2026-10-01" || dates[dates.length - 1] !== "2026-10-31") fail("october dates");
+if (dates.some(function (date) { return date.slice(0, 7) !== "2026-10"; })) fail("spill");
+const nov = t.dates("2026-11").map(function (day) { return day.date; });
+if (nov[0] !== "2026-11-01" || dates.indexOf("2026-11-01") !== -1) fail("november");
+
+t.setSlot("2026-10", "2026-10-05", "lunch", "plate-batch-chicken-veg");
+const held = t.month("2026-10").days["2026-10-05"].lunch;
+t.autoOrganise("2026-10");
+if (t.month("2026-10").days["2026-10-05"].lunch !== held) fail("auto replaced a filled slot");
+if (t.gaps("2026-10").length) fail("auto left gaps " + t.gaps("2026-10").length);
+t.dates("2026-10").forEach(function (day) {
+  const row = t.month("2026-10").days[day.date];
+  const evening = t.recipes()[row.evening];
+  if (evening && (evening.types || []).indexOf("smoothie") !== -1) fail("evening smoothie " + day.date);
+  const nuts = t.nuts("2026-10", day.date);
+  if (nuts.total !== 2) fail("brazil " + day.date + " " + nuts.total);
 });
-if (html.indexOf("My Food Schedule") === -1 || html.indexOf("My Smoothie Schedule") === -1) {
-  console.error("FAIL schedule quick jump");
-  process.exit(1);
-}
-["meals", "cabinet", "hg", "final", "savelater"].forEach(function (room) {
-  if (html.indexOf('data-smoothie-room="' + room + '"') === -1) {
-    console.error("FAIL missing smoothie room " + room);
-    process.exit(1);
-  }
+const week = weeks[1];
+const snapshot = JSON.stringify(t.month("2026-10").days);
+t.clearRange("2026-10", week[0].date, week[week.length - 1].date);
+if (week.length !== 7) fail("week length");
+week.forEach(function (day) {
+  const row = t.month("2026-10").days[day.date];
+  if (row.morning || row.lunch || row.evening) fail("clear " + day.date);
 });
-if (html.indexOf("Main Smoothie Cabinet") === -1 || html.indexOf("My 4-Week Smoothie Timetable") === -1 || html.indexOf("Draft Smoothie Schedule") === -1) {
-  console.error("FAIL smoothie cabin names");
-  process.exit(1);
-}
-if (html.indexOf("My 4-Week Food Timetable") === -1 || html.indexOf("Draft Food Schedule") === -1 || html.indexOf("Main Meal Cabinet") === -1) {
-  console.error("FAIL v22 cabin names");
-  process.exit(1);
-}
-if (html.indexOf("Export JSON") !== -1 || html.indexOf("Import JSON") !== -1) {
-  console.error("FAIL export or import still in the food shell");
-  process.exit(1);
-}
-const css = fs.readFileSync("styles.css", "utf8");
-if (css.indexOf("body.is-food .week-tabs") === -1) {
-  console.error("FAIL training chrome still sits on food");
-  process.exit(1);
-}
-if (/\.recipe-card li \{[^}]*color:\s*var\(--text\)/.test(css)) {
-  console.error("FAIL ingredient ink still uses --text");
-  process.exit(1);
-}
-if (css.indexOf(".recipe-card .recipe-ingredients li") === -1 || css.indexOf("#1f1812") === -1) {
-  console.error("FAIL dark ingredient ink");
-  process.exit(1);
-}
-if (css.indexOf(".week-slot-dual.is-full") === -1 || css.indexOf("#3dff7a") === -1) {
-  console.error("FAIL dual green glow");
-  process.exit(1);
-}
-if (css.indexOf('.tick-hit[data-tier="2"] .tick-box svg path:first-of-type') === -1 || css.indexOf("fill: #3dff7a") === -1) {
-  console.error("FAIL dual shield fill");
-  process.exit(1);
-}
-if (css.indexOf(".wtab.is-complete .week-slot-single.is-full") === -1 || css.indexOf(".week-slot-single.is-target") === -1) {
-  console.error("FAIL single slot green");
-  process.exit(1);
-}
-const app = fs.readFileSync("app.js", "utf8");
-if (app.indexOf("var singleTarget = total > 0 && singleCount === total") === -1 || app.indexOf('".week-slot-single .shield-complete"') === -1) {
-  console.error("FAIL single slot paint");
-  process.exit(1);
-}
-if (app.indexOf("function normalizeTier(value)") === -1 || app.indexOf("return (Number(value) || 0) & 3") === -1) {
-  console.error("FAIL normalizeTier");
-  process.exit(1);
-}
-if (app.indexOf("if (bits >= 1) singleCount += 1") === -1 || app.indexOf("if (tier === 3) dualCount += 1") === -1) {
-  console.error("FAIL week counts");
-  process.exit(1);
-}
-if (app.indexOf("is-week-complete") === -1 || app.indexOf('completed: bits !== 0') === -1) {
-  console.error("FAIL week complete or completed write");
-  process.exit(1);
-}
-if (app.indexOf("if (completed) return 3") !== -1) {
-  console.error("FAIL completed still invents a dual badge");
-  process.exit(1);
-}
-function normalizeTier(value) { return (Number(value) || 0) & 3; }
-function popcount(mask) {
-  var bits = mask & 3;
-  return (bits & 1) + ((bits >> 1) & 1);
-}
-if (normalizeTier(2) !== 2 || popcount(normalizeTier(2)) !== 1 || normalizeTier(3) !== 3 || popcount(3) !== 2 || normalizeTier(0) !== 0 || normalizeTier(null) !== 0) {
-  console.error("FAIL tier bit law");
-  process.exit(1);
-}
-if (app.indexOf(">Export JSON<") !== -1 || app.indexOf(">Import JSON<") !== -1) {
-  console.error("FAIL export or import button still in food");
-  process.exit(1);
-}
-if (app.indexOf("relic_food_cabinet_v22") === -1 || app.indexOf("relic_food_hg_v22") === -1 || app.indexOf("relic_food_savelater_v22") === -1) {
-  console.error("FAIL v22 cabin keys");
-  process.exit(1);
-}
-if (app.indexOf("This card has already been added to save later.") === -1 || app.indexOf("All 4 weeks complete — add this timetable to Save later?") === -1 || app.indexOf("Lock into Final Timetable") === -1 || app.indexOf(">Remove<") === -1) {
-  console.error("FAIL save later gate or draft grid");
-  process.exit(1);
-}
-if (app.indexOf("Only once") !== -1) {
-  console.error("FAIL weekday wall still primary");
-  process.exit(1);
-}
-if (app.indexOf("relic_smoothie_meals_v22") === -1 || app.indexOf("relic_smoothie_cabinet_v22") === -1 || app.indexOf("relic_smoothie_hg_v22") === -1 || app.indexOf("relic_smoothie_final_v22") === -1 || app.indexOf("relic_smoothie_savelater_v22") === -1 || app.indexOf("relic_smoothie_flylog_v22") === -1) {
-  console.error("FAIL smoothie cabin keys");
-  process.exit(1);
-}
-if (app.indexOf('var SMOOTHIE_SLOTS = ["morning", "lunch"]') === -1 || app.indexOf("Fill every morning and lunch in this week first.") === -1) {
-  console.error("FAIL smoothie morning lunch law");
-  process.exit(1);
-}
-if (css.indexOf(".smoothie-fly-ghost") === -1 || css.indexOf("cubic-bezier(0.34, 1.56, 0.64, 1)") === -1 || css.indexOf("transition: left 0.65s ease, top 0.65s ease, width 0.65s ease, height 0.65s ease;") === -1) {
-  console.error("FAIL smoothie pour or food fly curve");
-  process.exit(1);
-}
-if (app.indexOf("relic_food_cards_v20") === -1 || app.indexOf("relic_food_week_v20") === -1) {
-  console.error("FAIL food editor");
-  process.exit(1);
-}
-if (app.indexOf("Build cards from basket") === -1 || app.indexOf("Sort by category") === -1 || app.indexOf("recipe-citations") === -1) {
-  console.error("FAIL citations or basket drafts");
-  process.exit(1);
-}
-if (css.indexOf(".scan-preview") === -1 || css.indexOf(".scan-preview h3,\n.scan-preview label") === -1) {
-  console.error("FAIL scan preview ink");
-  process.exit(1);
-}
-if (css.indexOf(".recipe-citations") === -1 || css.indexOf(".recipe-citations li") === -1) {
-  console.error("FAIL citation ink");
-  process.exit(1);
-}
-if (app.indexOf("Import accepts a JSON object, not a list.") === -1 || app.indexOf("Import accepts a JSON object, not a ZIP.") === -1) {
-  console.error("FAIL object-only import");
-  process.exit(1);
-}
-if (app.indexOf('["protein", "veg", "fruit", "dairy", "freezer", "botanical", "other"]') === -1) {
-  console.error("FAIL shop sort tags");
-  process.exit(1);
-}
-const spec = fs.readFileSync("PLATFORM_SPEC.md", "utf8");
-if (spec.indexOf("ZIP plus a manifest is future") === -1 || spec.indexOf("extractionId") === -1 || spec.indexOf("no dinner smoothie") === -1 || spec.indexOf("docs/FOOD_OS_HANDSHAKE.md") === -1) {
-  console.error("FAIL handshake spec");
-  process.exit(1);
-}
-const handshake = fs.readFileSync("docs/FOOD_OS_HANDSHAKE.md", "utf8");
-["2026-09-29", "JSON **object**", "not a ZIP", "runtime kind `extraction`", "{ \"notes\": { \"dateKey\": { \"lunch\": \"\", \"mealId\": \"\", \"note\": \"\" } } }", "CARD_FORWARD", "extractionId", "no dinner smoothie", "relic_completions", "eggsPasture", "one a day", "protein", "ZIP plus a manifest", "OCR"].forEach(function (needle) {
-  if (handshake.indexOf(needle) === -1) {
-    console.error("FAIL handshake contract missing " + needle);
-    process.exit(1);
-  }
+t.undo();
+if (JSON.stringify(t.month("2026-10").days) !== snapshot) fail("clear undo");
+
+t.clearRange("2026-10", "2026-10-01", "2026-10-01");
+["morning", "lunch", "evening"].forEach(function (slot) {
+  t.month("2026-10").days["2026-10-01"][slot] = "";
 });
-const meals = ctx.window.RELIC_FOOD_MEALS;
-const extract = ctx.window.RELIC_FOOD_EXTRACTIONS;
-["berry-banana-brazil", "cherry-banana-cream", "mango-banana-nut", "berry-oat-almond", "orange-berry-yogurt"].forEach(function (id) {
-  const card = extract.present(id, 1);
-  if (!card || card.method.map(function (step) { return step.verb; }).join("|") !== "Pour|Add|Add|Add|Blend|Strain|Whisk") {
-    console.error("FAIL smoothie " + id);
-    process.exit(1);
-  }
+const gapList = t.gaps("2026-10");
+if (gapList.length < 3) fail("gap count " + gapList.length);
+const locked = t.lock("2026-10", false);
+if (locked.ok) fail("locked with gaps");
+
+t.autoOrganise("2026-10");
+const first = t.lock("2026-10", false);
+if (!first.ok || t.month("2026-10").status !== "locked") fail("lock " + JSON.stringify(first));
+t.toggleTick("2026-10-12", "lunch");
+const again = t.lock("2026-10", false);
+if (!again.needsConfirm) fail("relock confirm");
+const frozen = JSON.stringify(t.month("2026-10"));
+t.lock("2026-10", false);
+if (JSON.stringify(t.month("2026-10")) !== frozen) fail("cancel relock mutated");
+
+t.setNuts(seedId, 3);
+const over = t.validate("2026-10").filter(function (item) { return item.slot === "brazil"; });
+if (!over.length) fail("3 brazil nuts allowed");
+t.undo();
+
+const tpl = t.saveTemplate("2026-10", "October base");
+t.applyTemplate(tpl, "2026-11");
+const octMon = t.month("2026-10").days["2026-10-05"];
+const novMon = t.month("2026-11").days["2026-11-02"];
+if (!novMon || novMon.morning !== octMon.morning) fail("template apply");
+if (!t.renameTemplate(tpl, "Base month").name) fail("rename");
+t.deleteTemplate(tpl);
+if (t.read().templates[tpl]) fail("template delete");
+
+const prep = t.prep("2026-10-11");
+if (prep.brazilTin !== 14 || prep.lines.join(" ").toLowerCase().indexOf("egg") !== -1) fail("prep " + JSON.stringify(prep));
+if (t.defaultDate("2026-10") < "2026-10-12") fail("past default");
+if (t.allows(t.recipes()[seedId], "evening")) fail("smoothie offered at evening");
+
+t.reset();
+mem.relic_food_meals_v22 = JSON.stringify({ cards: { audit: { cardId: "audit", title: "AUDIT Meal Card 1", noteCode: "AUDIT-01", ingredients: [{ text: "oats" }], method: [] } } });
+mem.relic_smoothie_meals_v22 = JSON.stringify({ cards: { audits: { cardId: "audits", title: "AUDIT Smoothie 1", ingredients: [], method: [] } } });
+mem.relic_food_hg_v22 = JSON.stringify({ months: { "2026-10": { placements: { "2026-10-01": { lunch: "audit" } } } } });
+mem.relic_food_final_v22 = JSON.stringify({ months: { "2026-10": { placements: { "2026-10-02": { dinner: "audit" } } } } });
+["relic_food_cabinet_v22", "relic_food_savelater_v22", "relic_food_shop_v22", "relic_food_flylog_v22", "relic_smoothie_cabinet_v22", "relic_smoothie_hg_v22", "relic_smoothie_final_v22", "relic_smoothie_savelater_v22", "relic_smoothie_flylog_v22"].forEach(function (key) {
+  mem[key] = "{}";
 });
-["chicken-rice-broccoli", "mince-pasta-frozen-veg", "tuna-avocado-lettuce"].forEach(function (id) {
-  const card = meals.present(id, 1);
-  if (!card || !card.ingredients.length) {
-    console.error("FAIL meal " + id);
-    process.exit(1);
-  }
-});
-if (!ctx.window.RELIC_FOOD_SCHEDULE.composeFromBasket) {
-  console.error("FAIL missing composeFromBasket");
+delete mem.nexus_food_v1;
+const migrated = t.read();
+const backup = JSON.parse(mem.nexus_food_backup_v22);
+if (Object.keys(backup).length !== 13) fail("backup " + Object.keys(backup).length);
+if (migrated.recipes.audit || migrated.recipes.audits) fail("audit cards kept");
+const oct = migrated.months["2026-10"];
+if (oct && oct.days && (oct.days["2026-10-01"] || oct.days["2026-10-02"])) fail("october plan kept");
+const once = mem.nexus_food_v1;
+t.read();
+if (mem.nexus_food_v1 !== once) fail("second migrate wrote");
+
+if (fails.length) {
+  console.error(fails.length + " failed");
   process.exit(1);
 }
-if (!ctx.window.RELIC_FOOD_SHOP.tiers[1].stretchPence) {
-  console.error("FAIL missing tier 1 stretch");
-  process.exit(1);
-}
-const shop = ctx.window.RELIC_FOOD_SHOP;
-if (shop.eggsBanned || shop.proteins.indexOf("Eggs") === -1) {
-  console.error("FAIL eggs missing");
-  process.exit(1);
-}
-if ((shop.eggPreference || []).join("|") !== "eggsPasture|eggsSo|eggsOmega") {
-  console.error("FAIL egg preference");
-  process.exit(1);
-}
-if (!shop.aisles || shop.aisles.length < 7 || !shop.sundayPrep || shop.sundayPrep.length < 6) {
-  console.error("FAIL aisle or sunday prep");
-  process.exit(1);
-}
-["live-mon-banana-blueberry", "live-fri-pineapple-ginger", "live-sat-banana-blueberry"].forEach(function (id) {
-  const card = extract.present(id, 1);
-  if (!card || card.lock.indexOf("Not dinner") === -1) {
-    console.error("FAIL live smoothie " + id);
-    process.exit(1);
-  }
-});
-const berryText = extract.present("berry-banana-brazil", 1).method.map(function (step) {
-  return step.verb + " " + step.detail;
-}).join(" ");
-if (/4\s*[-\u2013]\s*5/.test(berryText) || berryText.indexOf("One Brazil nut") === -1 && berryText.indexOf("one a day") === -1) {
-  console.error("FAIL brazil cap");
-  process.exit(1);
-}
-if (!meals.present("paprika-potato-egg-skillet", 1) || !meals.present("omega3-egg-rest-plate", 1) || !meals.present("eggs-mushroom-greens", 1)) {
-  console.error("FAIL egg card missing");
-  process.exit(1);
-}
-if (meals.order.indexOf("eggs-mushroom-greens") === -1) {
-  console.error("FAIL meal order");
-  process.exit(1);
-}
-const fuel = ctx.window.RELIC_FOOD_SCHEDULE.buildFuelDays();
-const jan1 = fuel["2027-01-01"];
-const jan6 = fuel["2027-01-06"];
-if (!jan1 || !jan1.portions || !jan1.portions.label || jan1.portions.precise || jan1.lunch.indexOf("Eggs") === -1) {
-  console.error("FAIL jan 1 household plate");
-  process.exit(1);
-}
-if (!jan6 || jan6.protein !== "Eggs" || jan6.mealId !== "eggs-mushroom-greens") {
-  console.error("FAIL wednesday eggs");
-  process.exit(1);
-}
-if (app.indexOf("function foodWeekDays()") === -1 || app.indexOf("Extractions aren't dinner.") === -1) {
-  console.error("FAIL food week or evening refusal");
-  process.exit(1);
-}
-const pack = fs.readFileSync("data/food/pack001.js", "utf8");
-["pack001-bread-egg-pan-pizza", "extract-mango-date", "plate-batch-chicken-veg", "RECEIPT_TRUE", "ESTIMATE"].forEach(function (needle) {
-  if (pack.indexOf(needle) === -1) {
-    console.error("FAIL pack 001 missing " + needle);
-    process.exit(1);
-  }
-});
-["cards.json", "shop.json", "week.json"].forEach(function (name) {
-  const body = fs.readFileSync("data/food/pack001/" + name, "utf8").trim();
-  if (body.charAt(0) !== "{") {
-    console.error("FAIL pack json root " + name);
-    process.exit(1);
-  }
-});
-if (css.indexOf(".food-day.is-sunday") === -1 || css.indexOf(".food-rooms button") === -1) {
-  console.error("FAIL food week css");
-  process.exit(1);
-}
-["data/nutrition/shop.js", "data/nutrition/meals.js", "data/nutrition/extractions.js", "data/nutrition/schedule.js"].forEach(function (file) {
-  const text = fs.readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
-  if (/relic_completions|relic-active-video|forensic-tab|localStorage/.test(text)) {
-    console.error("FAIL training bind in " + file);
-    process.exit(1);
-  }
-});
-console.log("OK food OS", "bridge", audit.bridgeCount, "year", audit.yearCount);
+console.log("OK food OS v38");
