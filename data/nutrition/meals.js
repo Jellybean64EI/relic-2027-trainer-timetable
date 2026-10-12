@@ -152,56 +152,7 @@ window.RELIC_FOOD_MEALS = (function () {
         ]
       }
     }),
-    "paprika-potato-egg-skillet": card({
-      id: "paprika-potato-egg-skillet",
-      kind: "meal",
-      seed: true,
-      name: "Paprika Potato Egg Skillet",
-      tagline: "Simple skillet comfort food.",
-      script: "Cook the egg whites. Raw whites block biotin.",
-      yield: "2 servings",
-      prepMin: 10,
-      cookLabel: "Covered pan · about 15 min",
-      protein: "Eggs",
-      carb: "Potatoes",
-      role: "main",
-      timetable: {
-        bestFor: "Light dinner or brunch",
-        bestEaten: "Fresh",
-        reheat: "Covered pan for a few minutes until hot"
-      },
-      tip: "Keep the lid on until the egg white is fully set. Do not drink the white raw.",
-      macros: { kcal: 420, protein: 18, carb: 40, fat: 20, basis: "serving" },
-      ingredients: {
-        1: [
-          { skuId: "potatoes", qty: 300, text: "2 Sainsbury's Maris Piper Potatoes, thinly sliced" },
-          { skuId: "salt", qty: 2, text: "1 tsp paprika, salt, and black pepper" },
-          { skuId: "eggsSo", qty: 2, text: "2 Sainsbury's SO Organic Free Range Eggs. Standard free-range if SO Organic is out." },
-          { skuId: "passata", qty: 40, text: "1 tomato, diced" },
-          { skuId: "onion", qty: 15, text: "Chopped chives or spring onion" },
-          { skuId: "mozzarella", qty: 40, text: "40 g Sainsbury's Grated Mozzarella" },
-          { skuId: "oil", qty: 8, text: "8 ml Sainsbury's Olive Oil" }
-        ],
-        2: [
-          { skuId: "potatoes", qty: 300, text: "2 Sainsbury's Maris Piper Potatoes, thinly sliced" },
-          { skuId: "salt", qty: 2, text: "1 tsp paprika, salt, and black pepper" },
-          { skuId: "eggsPasture", qty: 2, text: "2 Sainsbury's Taste the Difference Free Range Eggs" },
-          { skuId: "passata", qty: 40, text: "1 tomato, diced" },
-          { skuId: "onion", qty: 15, text: "Chopped chives or spring onion" },
-          { skuId: "cheddarPremium", qty: 30, text: "30 g Sainsbury's Taste the Difference Extra Mature Cheddar" },
-          { skuId: "oil", qty: 8, text: "8 ml Sainsbury's Olive Oil" }
-        ]
-      },
-      method: {
-        1: [
-          step("Layer", "the potato slices in an oiled pan and season with paprika, salt, and pepper."),
-          step("Whisk", "the eggs with the tomato and chives. Cook the whites — do not leave them raw."),
-          step("Cover", "and cook for about 10 minutes, until the white is set."),
-          step("Add", "the cheese and cook 5 minutes more, until it melts.")
-        ]
-      }
-    }),
-    "beef-stuffed-potato-boats": card({
+        "beef-stuffed-potato-boats": card({
       id: "beef-stuffed-potato-boats",
       kind: "meal",
       seed: true,
@@ -248,47 +199,7 @@ window.RELIC_FOOD_MEALS = (function () {
         ]
       }
     }),
-    "bread-egg-pan-pizza": card({
-      id: "bread-egg-pan-pizza",
-      kind: "meal",
-      seed: true,
-      name: "Bread & Egg Pan Pizza",
-      tagline: "Pizza vibes from pantry basics.",
-      script: "Hearty Monday lunch. Cook the egg white through.",
-      yield: "1 pan, 6 slices",
-      prepMin: 10,
-      cookLabel: "Covered pan · about 12 min",
-      protein: "Eggs",
-      carb: "",
-      role: "main",
-      timetable: {
-        bestFor: "Quick lunch, easy dinner",
-        bestEaten: "Fresh",
-        reheat: "Covered pan, oven, or air fryer"
-      },
-      tip: "Wait until the egg base is set before you flip. The white must be cooked.",
-      macros: { kcal: 560, protein: 28, carb: 48, fat: 26, basis: "pan" },
-      ingredients: {
-        1: [
-          { skuId: "bread", qty: 240, text: "6 slices Sainsbury's White Farmhouse Bloomer" },
-          { skuId: "eggsSo", qty: 4, text: "3 to 4 Sainsbury's SO Organic Free Range Eggs. Taste the Difference when it is stocked." },
-          { skuId: "passata", qty: 80, text: "80 g Sainsbury's Tomato Passata" },
-          { skuId: "passata", qty: 40, text: "1 small tomato, diced" },
-          { skuId: "onion", qty: 30, text: "Red onion and spring onion, finely chopped" },
-          { skuId: "mozzarella", qty: 100, text: "100 g Sainsbury's Grated Mozzarella" },
-          { skuId: "oil", qty: 8, text: "A little Sainsbury's Olive Oil or salted butter" }
-        ]
-      },
-      method: {
-        1: [
-          step("Arrange", "the bread slices in a greased pan and pour over the beaten eggs."),
-          step("Cook", "until the egg base is set and the white is no longer raw, then flip carefully."),
-          step("Spread", "the tomato passata over the top."),
-          step("Add", "the onion, tomato, spring onion, and mozzarella, then cover until the cheese melts.")
-        ]
-      }
-    }),
-    "bulk-chicken-potato-plate": card({
+        "bulk-chicken-potato-plate": card({
       id: "bulk-chicken-potato-plate",
       kind: "meal",
       seed: false,
@@ -419,52 +330,7 @@ window.RELIC_FOOD_MEALS = (function () {
         ]
       }
     }),
-    "omega3-egg-rest-plate": card({
-      id: "omega3-egg-rest-plate",
-      kind: "meal",
-      seed: false,
-      name: "Omega-3 Egg Rest Plate",
-      tagline: "The lighter plate.",
-      script: "Cook the egg whites. Raw whites block biotin.",
-      yield: "1 plate",
-      prepMin: 5,
-      cookLabel: "Soft scramble · 2 min",
-      protein: "Eggs",
-      carb: "Rice",
-      role: "main",
-      timetable: {
-        bestFor: "Recovery day or a lighter dinner",
-        bestEaten: "Fresh",
-        reheat: "Do not reheat scrambled eggs. Cook a fresh pair."
-      },
-      tip: "Keep this plate lighter than a training main. The morning extraction is a separate card.",
-      macros: { kcal: 460, protein: 28, carb: 42, fat: 20, basis: "plate" },
-      ingredients: {
-        1: [
-          { skuId: "eggsSo", qty: 3, text: "3 Sainsbury's SO Organic Free Range Eggs" },
-          { skuId: "rice", qty: 60, text: "60 g Sainsbury's Easy Cook Long Grain Rice, dry" },
-          { skuId: "butter", qty: 8, text: "8 g Sainsbury's British Salted Butter" },
-          { skuId: "spinachF", qty: 40, text: "40 g Sainsbury's Frozen Spinach" },
-          { skuId: "salt", qty: 1, text: "1 g Sainsbury's Table Salt" }
-        ],
-        2: [
-          { skuId: "eggsPasture", qty: 3, text: "3 Sainsbury's Taste the Difference Free Range Eggs" },
-          { skuId: "rice", qty: 50, text: "50 g Sainsbury's Easy Cook Long Grain Rice, dry" },
-          { skuId: "butter", qty: 8, text: "8 g Sainsbury's British Salted Butter" },
-          { skuId: "spinachFresh", qty: 40, text: "40 g Sainsbury's Baby-Leaf Spinach" },
-          { skuId: "salt", qty: 1, text: "1 g Sainsbury's Table Salt" }
-        ]
-      },
-      method: {
-        1: [
-          step("Rinse", "the rice and microwave it, covered, until tender."),
-          step("Whisk", "the eggs with salt. The whites go into the pan, not into a glass."),
-          step("Scramble", "them low and slow in the butter for 2 minutes, until the white is set."),
-          step("Fold", "in the warmed spinach and serve beside the rice.")
-        ]
-      }
-    }),
-    "chicken-rice-broccoli": card({
+        "chicken-rice-broccoli": card({
       id: "chicken-rice-broccoli",
       kind: "meal",
       seed: false,
@@ -537,7 +403,7 @@ window.RELIC_FOOD_MEALS = (function () {
           step("Drain", "one tin of tuna and flake it."),
           step("Slice", "one avocado and a handful of lettuce."),
           step("Squeeze", "the lemon over the avocado."),
-          step("Plate", "the tuna on the rice with avocado and lettuce. No raw egg white.")
+          step("Plate", "the tuna on the rice with avocado and lettuce. ")
         ]
       }
     }),
@@ -627,7 +493,7 @@ window.RELIC_FOOD_MEALS = (function () {
       id: "chicken-broccoli-carrot",
       kind: "meal",
       name: "Chicken, Broccoli and Carrot",
-      tagline: "Monday evening. Lunch was the eggs.",
+      tagline: "Monday evening. Lunch was a meal.",
       script: "The bird, the greens, one carrot.",
       yield: "1 plate",
       prepMin: 15,
@@ -647,7 +513,7 @@ window.RELIC_FOOD_MEALS = (function () {
       method: { 1: [
         step("Cook", "one British chicken breast until the juices run clear."),
         step("Steam", "the broccoli and the carrot."),
-        step("Plate", "them with rice or potato. This is dinner. The smoothie was the morning. Lunch was eggs, with the whites cooked.")
+        step("Plate", "them with rice or potato. This is dinner. The smoothie was the morning.")
       ] }
     }),
     "salmon-greens-potato": card({
@@ -680,7 +546,7 @@ window.RELIC_FOOD_MEALS = (function () {
       id: "chicken-mushroom-greens",
       kind: "meal",
       name: "Chicken, Mushrooms and Greens",
-      tagline: "Leftover chicken, when Wednesday is not the egg plate.",
+      tagline: "Leftover chicken for a later dinner.",
       script: "Leftover bird. Mushrooms. Greens.",
       yield: "1 plate",
       prepMin: 10,
@@ -689,7 +555,7 @@ window.RELIC_FOOD_MEALS = (function () {
       carb: "Rice",
       role: "main",
       timetable: { bestFor: "Wednesday evening", bestEaten: "Fresh", reheat: "Heat until the chicken is piping hot" },
-      tip: "FOOD_LIVE Wednesday evening is eggs, mushrooms, and greens. This chicken plate is the leftover, not a replacement for the eggs.",
+      tip: "This chicken plate is the leftover tray.",
       macros: { kcal: "—", protein: "—", carb: "—", fat: "—", basis: "household portion" },
       ingredients: { 1: [
         { skuId: "chicken", qty: 1, text: "Leftover British chicken" },
@@ -724,7 +590,7 @@ window.RELIC_FOOD_MEALS = (function () {
       method: { 1: [
         step("Roast", "the chicken thighs on one tray."),
         step("Roast", "the mixed veg on the second tray."),
-        step("Serve", "both. Friday lunch is eggs, with the whites cooked.")
+        step("Serve", "both.")
       ] }
     }),
     "salmon-or-white-fish": card({
@@ -740,7 +606,7 @@ window.RELIC_FOOD_MEALS = (function () {
       carb: "Rice",
       role: "main",
       timetable: { bestFor: "Friday evening", bestEaten: "Fresh", reheat: "Heat the fillet until piping hot" },
-      tip: "Friday lunch is eggs. This evening plate is the fish. Cook egg whites. Raw whites block biotin.",
+      tip: "This evening plate is the fish.",
       macros: { kcal: "—", protein: "—", carb: "—", fat: "—", basis: "household portion" },
       ingredients: { 1: [
         { skuId: "salmonFrozen", qty: 1, text: "1 salmon or white-fish fillet" },
@@ -750,43 +616,10 @@ window.RELIC_FOOD_MEALS = (function () {
       method: { 1: [
         step("Cook", "one fillet."),
         step("Heat", "the greens and a portion of rice."),
-        step("Plate", "them. The eggs were lunch, and the whites were cooked.")
+        step("Plate", "them.")
       ] }
     }),
-    "eggs-mushroom-greens": card({
-      id: "eggs-mushroom-greens",
-      kind: "meal",
-      name: "Eggs, Mushrooms and Greens",
-      tagline: "Wednesday evening.",
-      script: "Eggs, mushrooms, greens. Cook the whites.",
-      yield: "1 plate",
-      prepMin: 8,
-      cookLabel: "Covered pan · until the white is set",
-      protein: "Eggs",
-      carb: "Rice",
-      role: "main",
-      timetable: { bestFor: "Wednesday evening", bestEaten: "Fresh", reheat: "Cook a fresh pair. Do not reheat a soft white." },
-      tip: "Taste the Difference free-range when it is stocked, then SO Organic, then standard free-range. Never skip the eggs. Raw whites block biotin.",
-      macros: { kcal: "—", protein: "—", carb: "—", fat: "—", basis: "household portion" },
-      ingredients: {
-        1: [
-          { skuId: "eggsSo", qty: 2, text: "2 Sainsbury's SO Organic Free Range Eggs" },
-          { skuId: "mushrooms", qty: 1, text: "1 handful mushrooms" },
-          { skuId: "spinachF", qty: 1, text: "A plate of greens" }
-        ],
-        2: [
-          { skuId: "eggsPasture", qty: 2, text: "2 Sainsbury's Taste the Difference Free Range Eggs" },
-          { skuId: "mushrooms", qty: 1, text: "1 handful mushrooms" },
-          { skuId: "spinachFresh", qty: 1, text: "A plate of greens" }
-        ]
-      },
-      method: { 1: [
-        step("Whisk", "two eggs. The whites go into the pan, not into a glass."),
-        step("Fry", "the mushrooms and greens until hot."),
-        step("Cook", "the eggs until the white is fully set, then plate them with the mushrooms and greens.")
-      ] }
-    })
-  };
+      };
 
   Object.keys(MEALS).forEach(function (id) {
     var meal = MEALS[id];
@@ -799,11 +632,7 @@ window.RELIC_FOOD_MEALS = (function () {
     "cheesy-roasted-garlic-bread",
     "cheesy-potato-toast",
     "beef-stuffed-potato-boats",
-    "paprika-potato-egg-skillet",
-    "bread-egg-pan-pizza",
-    "eggs-mushroom-greens",
-    "omega3-egg-rest-plate",
-    "chicken-broccoli-carrot",
+                    "chicken-broccoli-carrot",
     "salmon-greens-potato",
     "chicken-mushroom-greens",
     "chicken-thigh-tray",

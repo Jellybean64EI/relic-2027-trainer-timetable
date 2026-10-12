@@ -35,7 +35,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
   function botanicalsAfter(band, extra) {
     return doseLine(band) + " into the strained liquid. Psyllium goes in last. Do not return them to the blender. " +
       (extra || "This glass is morning only. It is not dinner.") +
-      " Brazil nut maximum is one a day, beside the glass, never dumped in before the strain.";
+      " 2 Brazil nuts a day, beside the glass, never dumped in before the strain.";
   }
 
   function glassMethod(liquid, frozen, citrus, hemp, band, extra) {
@@ -63,29 +63,29 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
       id: "berry-banana-brazil",
       name: "Berry Banana Brazil",
       tagline: "Immune. Skin. Steady start.",
-      script: "Frozen banana, mixed berries, one Brazil nut.",
+      script: "Frozen banana, mixed berries, 2 Brazil nuts.",
       yield: "1 glass",
       prepMin: 6,
       cookLabel: "3000W · 45 sec, then strain",
       band: "moderate",
       lock: "Morning only. Not dinner.",
       macros: { kcal: 280, protein: 9, carb: 36, fat: 11 },
-      tip: "FOOD_LIVE lock: one Brazil nut a day. A pile of nuts does not apply.",
+      tip: "FOOD_LIVE lock: 2 Brazil nuts a day. A pile of nuts does not apply.",
       ingredients: [
         { skuId: "milk", qty: 180, text: "180 ml Sainsbury's SO Organic Whole Milk or yogurt (¾ cup)" },
         { skuId: "banana", qty: 120, text: "1 frozen Sainsbury's SO Organic Banana, about 120 g" },
         { skuId: "fruit", qty: 150, text: "150 g Sainsbury's Frozen Summer Fruits (1 cup mixed berries)" },
         { skuId: "lemons", qty: 20, text: "20 g Sainsbury's SO Organic Lemons, peeled" },
         { skuId: "hemp", qty: 10, text: "10 g Sainsbury's Hulled Hemp Hearts" },
-        { skuId: "brazil", qty: 1, text: "1 Brazil nut maximum, beside the glass, not in the jug" },
+        { skuId: "brazil", qty: 2, text: "2 Brazil nuts, beside the glass, not in the jug" },
         { skuId: "cinnamon", qty: 1, text: "1 pinch ground cinnamon" }
       ],
       lines: [
         "180 ml Sainsbury's SO Organic Whole Milk or yogurt into the 3000W jug.",
         "1 frozen Sainsbury's SO Organic Banana (about 120 g) and 150 g mixed berries.",
         "20 g peeled Sainsbury's SO Organic Lemons.",
-        "10 g Sainsbury's Hulled Hemp Hearts and a pinch of cinnamon. Leave the Brazil nut out of the jug.",
-        "One Brazil nut maximum is eaten beside the glass after the strain. Do not use a pile."
+        "10 g Sainsbury's Hulled Hemp Hearts and a pinch of cinnamon. Leave the Brazil nuts out of the jug.",
+        "2 Brazil nuts are eaten beside the glass after the strain. Do not use a pile."
       ]
     },
     "cherry-banana-cream": {
@@ -113,7 +113,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
         "150 g frozen cherries and 1 banana (about 120 g).",
         "15 g peeled Sainsbury's SO Organic Lemons.",
         "10 g Sainsbury's Hulled Hemp Hearts.",
-        "No Brazil nut in this glass. The daily maximum is still one, on the Brazil day only."
+        "No Brazil nut in this glass. The daily amount is 2 Brazil nuts, beside the glass."
       ]
     },
     "mango-banana-nut": {
@@ -141,7 +141,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
         "160 g frozen mango and 1 banana (about 120 g).",
         "15 g peeled Sainsbury's SO Organic Lemons.",
         "10 g hemp hearts and 1 tbsp almond butter.",
-        "Brazil nut maximum stays one a day and is not part of this jug."
+        "Brazil nut rule stays 2 Brazil nuts a day and is not part of this jug."
       ]
     },
     "berry-oat-almond": {
@@ -170,7 +170,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
         "150 g berries, 1 banana (about 120 g), and 25 g porridge oats.",
         "15 g peeled Sainsbury's SO Organic Lemons.",
         "10 g hemp hearts and 1 tbsp almond butter.",
-        "Brazil nut maximum is one a day. This glass does not take one."
+        "Brazil nut rule is 2 Brazil nuts a day. This glass does not take one."
       ]
     },
     "orange-berry-yogurt": {
@@ -197,7 +197,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
         "150 g mixed berries.",
         "juice of 1 SO Organic orange (about 80 ml). The orange is the citrus.",
         "10 g Sainsbury's Hulled Hemp Hearts.",
-        "Brazil nut maximum is one a day. Leave it out of this glass."
+        "Brazil nut rule is 2 Brazil nuts a day. Leave it out of this glass."
       ]
     },
     "morning-cell-shatter": {
@@ -211,7 +211,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
       band: "moderate",
       lock: "Morning only. Not dinner.",
       macros: { kcal: 210, protein: 8, carb: 22, fat: 9 },
-      tip: "Brazil nut maximum is one a day. Count it from the tin. Do not tip the bag into the jug.",
+      tip: "Brazil nut rule is 2 Brazil nuts a day. Count it from the tin. Do not tip the bag into the jug.",
       ingredients: [
         { skuId: "milk", qty: 250, text: "250 ml Sainsbury's SO Organic Whole Milk, or cold water if the organic bottle is out" },
         { skuId: "fruit", qty: 160, text: "160 g Sainsbury's Frozen Summer Fruits" },
@@ -223,7 +223,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
         "160 g Sainsbury's Frozen Summer Fruits.",
         "40 g peeled Sainsbury's SO Organic Lemons.",
         "20 g Sainsbury's Hulled Hemp Hearts.",
-        "One Brazil nut maximum, eaten beside the glass."
+        "2 Brazil nuts, eaten beside the glass."
       ]
     },
     "recovery-botanical-extraction": {
@@ -249,7 +249,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
         "200 g Sainsbury's Frozen Summer Fruits.",
         "40 g peeled Sainsbury's SO Organic Lemons.",
         "20 g Sainsbury's Hulled Hemp Hearts.",
-        "This is the heavy morning extraction. It is still not dinner. Brazil nut maximum is one a day."
+        "This is the heavy morning extraction. It is still not dinner. Brazil nut rule is 2 Brazil nuts a day."
       ]
     },
     "live-mon-banana-blueberry": liveGlass("live-mon-banana-blueberry", "Banana, Blueberry, Spinach, Hemp", "Monday training glass.", "1 banana, a handful of blueberries, spinach, and 1 spoon of hemp."),
@@ -272,7 +272,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
       band: "moderate",
       lock: "Morning only. Not dinner.",
       macros: { kcal: "—", protein: "—", carb: "—", fat: "—", basis: "household glass" },
-      tip: "Training-day glass. Morning or a lunch refresh. Not dinner. One Brazil nut a day at most.",
+      tip: "Training-day glass. Morning or a lunch refresh. Not dinner. 2 Brazil nuts a day.",
       ingredients: [
         { skuId: "milk", qty: 1, text: "Milk or water to move the blades" },
         { skuId: "fruit", qty: 1, text: fruitLine },
@@ -284,7 +284,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
         fruitLine,
         "A squeeze of lemon.",
         "1 spoon hemp when the day asks for it.",
-        "Morning glass only. Not dinner. One Brazil nut a day at most, beside the glass."
+        "Morning glass only. Not dinner. 2 Brazil nuts a day, beside the glass."
       ]
     };
   }

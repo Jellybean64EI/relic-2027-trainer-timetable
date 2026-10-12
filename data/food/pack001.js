@@ -76,36 +76,7 @@
         step("Melt", "Cathedral City on top. Mozzarella is optional and is not required.")
       ]
     }),
-    card({
-      id: "pack001-paprika-potato-egg-skillet",
-      kind: "meal",
-      family: "meal",
-      name: "Paprika Potato Egg Skillet",
-      tagline: "Friday brunch. Cook the whites.",
-      cookEggWhites: true,
-      yield: "1",
-      prepMin: 10,
-      cookLabel: "Skillet",
-      timetable: { bestFor: "Friday brunch, light dinner, lunch", bestEaten: "Hot", reheat: "Skillet until the whites set" },
-      tip: "Cook the egg whites through. Taste the Difference golden yolk eggs stay at the top of the ladder. Potatoes, paprika, tomato, and chives are still gaps.",
-      ingredients: [
-        ing("Taste the Difference free-range golden yolk eggs, cook the whites", "sainsburys-sku-TBD-109"),
-        ing("Taste the Difference smoked garlic", "sainsburys-sku-TBD-123"),
-        ing("Maris Piper potatoes — ESTIMATE", "sainsburys-sku-TBD-201"),
-        ing("Smoked paprika — ESTIMATE", "sainsburys-sku-TBD-203"),
-        ing("Paprika — ESTIMATE", "sainsburys-sku-TBD-204"),
-        ing("Tomatoes on the vine — ESTIMATE", "sainsburys-sku-TBD-213"),
-        ing("Fresh chives — ESTIMATE", "sainsburys-sku-TBD-218"),
-        ing("Cathedral City cheddar", "sainsburys-sku-TBD-101")
-      ],
-      method: [
-        step("Slice", "the potatoes and start them in the skillet with Flora or oil and smoked garlic from the cart."),
-        step("Dust", "with smoked paprika. Plain paprika can stand in. Skipping the spice drops the name of the dish."),
-        step("Crack", "two Taste the Difference eggs and cook the whites through."),
-        step("Finish", "with tomato and chives if those adds landed, then melt Cathedral City over the top.")
-      ]
-    }),
-    card({
+        card({
       id: "pack001-beef-stuffed-potato-boats",
       kind: "meal",
       family: "meal",
@@ -132,35 +103,7 @@
         step("Reheat", "until the filling is hot and the cheese has melted.")
       ]
     }),
-    card({
-      id: "pack001-bread-egg-pan-pizza",
-      kind: "meal",
-      family: "meal",
-      name: "Bread & Egg Pan Pizza",
-      tagline: "Monday lunch. Cook the whites.",
-      cookEggWhites: true,
-      yield: "6 slices",
-      prepMin: 10,
-      cookLabel: "Pan or grill",
-      timetable: { bestFor: "Monday lunch", bestEaten: "Fresh", reheat: "Pan until the cheese melts" },
-      tip: "Cook the egg whites. Brioche is a sweet, soft stand-in for one lunch. Sliced bread, passata, tomato, red onion, and spring onion are the fidelity adds.",
-      ingredients: [
-        ing("Taste the Difference free-range golden yolk eggs, cook the whites", "sainsburys-sku-TBD-109"),
-        ing("Thick sliced soft white bread — ESTIMATE", "sainsburys-sku-TBD-206"),
-        ing("Taste the Difference brioche buns, temporary base only", "sainsburys-sku-TBD-107"),
-        ing("Passata — ESTIMATE", "sainsburys-sku-TBD-205"),
-        ing("Red onion — ESTIMATE", "sainsburys-sku-TBD-215"),
-        ing("Spring onion — ESTIMATE", "sainsburys-sku-TBD-216"),
-        ing("Cathedral City cheddar", "sainsburys-sku-TBD-101")
-      ],
-      method: [
-        step("Lay", "sliced bread in the pan. Use a brioche bun only for this one lunch if the loaf has not landed."),
-        step("Spread", "passata when it is in the cupboard. With no sauce, keep it a cheese-only white pizza."),
-        step("Add", "egg and cook the whites through, then Cathedral City, tomato, red onion, and spring onion."),
-        step("Grill", "or cover the pan until the top sets and the cheese melts.")
-      ]
-    }),
-    card({
+        card({
       id: "pack001-crispy-potato-bites",
       kind: "meal",
       family: "snack",
@@ -402,9 +345,9 @@
       cookLabel: "See the child cards",
       childCardIds: [
         "pack001-cheesy-potato-toast",
-        "pack001-paprika-potato-egg-skillet",
+        "pack001-cheesy-roasted-garlic-bread",
         "pack001-beef-stuffed-potato-boats",
-        "pack001-bread-egg-pan-pizza"
+        "pack001-crispy-potato-bites"
       ],
       timetable: { bestFor: "Poster only", bestEaten: "", reheat: "" },
       tip: "Drop the child cards into the week. This poster stays on the library wall.",
@@ -439,8 +382,7 @@
     line("Sainsbury's Taste the Difference 4 British Beef Steak Burgers", "600 g", 1, 7.25, "sainsburys-sku-TBD-106", "RECEIPT_TRUE", "protein"),
     line("Sainsbury's Taste the Difference Brioche Burger Buns", "×4", 4, 1.5, "sainsburys-sku-TBD-107", "RECEIPT_TRUE", "other"),
     line("Sainsbury's 7% Fat Fresh British Turkey Mince", "750 g", 4, 5.25, "sainsburys-sku-TBD-108", "RECEIPT_TRUE", "protein"),
-    line("Sainsbury's Taste the Difference Free Range Golden Yolk Eggs", "×12", 1, 3.5, "sainsburys-sku-TBD-109", "RECEIPT_TRUE", "protein"),
-    line("Sainsbury's British Fresh Skinless & Boneless Chicken Breast", "2 kg", 4, 12.29, "sainsburys-sku-TBD-110", "RECEIPT_TRUE", "protein"),
+        line("Sainsbury's British Fresh Skinless & Boneless Chicken Breast", "2 kg", 4, 12.29, "sainsburys-sku-TBD-110", "RECEIPT_TRUE", "protein"),
     line("Tate & Lyle Caramel Syrup", "250 ml", 1, 2, "sainsburys-sku-TBD-111", "RECEIPT_TRUE", "other"),
     line("Tate & Lyle Vanilla Coffee Syrup", "250 ml", 1, 2, "sainsburys-sku-TBD-112", "RECEIPT_TRUE", "other"),
     line("Nescafé Gold Blend Instant Coffee", "190 g", 1, 5.7, "sainsburys-sku-TBD-113", "RECEIPT_TRUE", "other"),
@@ -471,13 +413,13 @@
     line("Sainsbury's Taste the Difference Stonebaked Baguette", "each", 2, 1.5, "sainsburys-sku-TBD-207", "ESTIMATE", "other")
   ];
 
-  var prep = "Prep: bag_7_extraction_kits. Boil eggs for 2 days and cook the whites. Brazil tin ×7 if purchased. One Brazil nut a day.";
+  var prep = "Prep: bag_7_extraction_kits. Brazil tin ×14. 2 Brazil nuts a day.";
   var week = {
-    "2026-09-28": { extractionId: "extract-summer-spinach-date", lunch: "pack001-bread-egg-pan-pizza", mealId: "plate-chicken-mixed-veg" },
+    "2026-09-28": { extractionId: "extract-summer-spinach-date", lunch: "pack001-crispy-potato-bites", mealId: "plate-chicken-mixed-veg" },
     "2026-09-29": { extractionId: "extract-cherry-cream", lunch: "plate-chicken-leftover-spinach", mealId: "plate-turkey-mince-mixed-veg" },
     "2026-09-30": { extractionId: "extract-blueberry-mango", lunch: "plate-cheese-mini-fruit", mealId: "pack001-beef-stuffed-potato-boats" },
     "2026-10-01": { extractionId: "extract-raspberry-spinach", lunch: "plate-turkey-leftover-bowl", mealId: "plate-chicken-tray-veg" },
-    "2026-10-02": { extractionId: "extract-black-forest-spinach", lunch: "pack001-paprika-potato-egg-skillet", mealId: "plate-turkey-mince-mixed-veg" },
+    "2026-10-02": { extractionId: "extract-black-forest-spinach", lunch: "pack001-cheesy-roasted-garlic-bread", mealId: "plate-turkey-mince-mixed-veg" },
     "2026-10-03": { morning: "Coffee · Nescafé Gold, syrup optional", lunch: "pack001-cheesy-roasted-garlic-bread", mealId: "plate-ttd-burger-brioche", snack: "pack001-crispy-potato-bites", note: "Saturday morning is coffee, not an extraction. Snack only if the ESTIMATE potato adds landed." },
     "2026-10-04": { extractionId: "extract-mango-date", lunch: "plate-leftover-roast", mealId: "plate-batch-chicken-veg", note: prep }
   };

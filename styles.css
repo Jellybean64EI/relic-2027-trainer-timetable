@@ -3274,3 +3274,170 @@ body.is-food .schedule-switch {
   border-color: #1f7a62;
   background: #1f7a62;
 }
+
+.planner-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+
+.planner-tabs button,
+.planner-bar button,
+.planner-primary,
+.planner-actions button,
+.planner-chip,
+.planner-slot,
+.planner-lock,
+.planner-card-open,
+.planner-today button,
+.planner-sheet button,
+.planner-editor button,
+.planner-week-head button,
+.planner-notice button,
+.planner-undo button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #d8c4f0;
+  background: #241433;
+  color: #f6eefe;
+  font: inherit;
+  font-weight: 700;
+}
+
+.planner-tabs button {
+  flex: 1 1 0;
+}
+
+.planner-tabs button.is-active,
+.planner-chip.is-active,
+.planner-primary,
+.planner-lock {
+  background: #ff8c00;
+  color: #1a0a00;
+  border-color: #ff8c00;
+}
+
+.planner-bar,
+.planner-actions,
+.planner-chips,
+.planner-week-head,
+.planner-today {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 8px 0;
+}
+
+.planner-title {
+  margin: 0;
+  color: #f6eefe;
+  font-size: 1.25rem;
+}
+
+.planner-status,
+.planner-empty,
+.planner-why,
+.planner-brazil,
+.planner-detail,
+.planner-editor,
+.planner-card,
+.planner-day,
+.planner-prep-list {
+  color: #f6eefe;
+}
+
+.planner-why,
+.planner-brazil,
+.planner-status {
+  color: #f3e8ff;
+  font-size: 0.95rem;
+}
+
+.planner-card,
+.planner-day,
+.planner-editor,
+.planner-sheet,
+.planner-today {
+  background: #1b0a2a;
+  border: 1px solid #5c4678;
+  border-radius: 10px;
+  padding: 10px;
+  margin: 8px 0;
+}
+
+.planner-card-open,
+.planner-slot {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.planner-slot.is-gap {
+  outline: 3px solid #ff8c00;
+}
+
+.planner-search,
+.planner-editor label,
+.planner-check {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #f6eefe;
+  margin: 8px 0;
+}
+
+.planner-editor input,
+.planner-editor select,
+.planner-search input,
+.planner-sheet input,
+.planner-sheet select {
+  min-height: 44px;
+  background: #12051d;
+  color: #f6eefe;
+  border: 1px solid #d8c4f0;
+  border-radius: 8px;
+  padding: 8px;
+  font: inherit;
+}
+
+.planner-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 6px 0;
+}
+
+.planner-row input,
+.planner-row select {
+  flex: 1 1 120px;
+}
+
+.planner-error,
+.planner-notice,
+.planner-undo {
+  background: #3a2410;
+  color: #fff7e8;
+  border: 1px solid #ff8c00;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.planner-prep {
+  margin-left: 8px;
+  color: #ff8c00;
+  font-weight: 800;
+}
+
+.planner-sheet {
+  position: sticky;
+  bottom: 0;
+}
+
+body.is-food .storage-note {
+  display: none;
+}
