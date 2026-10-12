@@ -92,6 +92,7 @@
     smoothieToast: "",
     smoothieToastUntil: 0,
     osDoor: "training",
+    menuCabin: null,
     futureLock: false,
     foodRefuse: "",
     foodUndo: null,
@@ -2826,7 +2827,10 @@
   }
 
   function paintOsDoors() {
+    var prevPainted = state.paintedDoor;
     var door = state.osDoor === "food" || state.osDoor === "smoothies" ? state.osDoor : "training";
+    if (prevPainted && prevPainted !== door) state.menuCabin = null;
+    state.paintedDoor = door;
     state.osDoor = door;
     var titles = { training: "NiX Training Schedules", food: "Food", smoothies: "Smoothies" };
     var title = $("nav-drawer-title");
@@ -2837,6 +2841,23 @@
     });
     document.querySelectorAll("[data-os-panel]").forEach(function (panel) {
       panel.hidden = panel.getAttribute("data-os-panel") !== door;
+    });
+    var open = state.menuCabin == null ? door : state.menuCabin;
+    document.querySelectorAll(".cabin").forEach(function (cabin) {
+      var name = cabin.getAttribute("data-cabin");
+      var on = !!open && name === open;
+      cabin.classList.toggle("is-open", on);
+      var toggle = cabin.querySelector(".cabin-toggle");
+      if (toggle) {
+        toggle.setAttribute("aria-expanded", on ? "true" : "false");
+        toggle.setAttribute("aria-pressed", on ? "true" : "false");
+      }
+      var panel = cabin.querySelector(".cabin-panel");
+      if (panel) {
+        panel.setAttribute("aria-hidden", on ? "false" : "true");
+        if (on) panel.removeAttribute("inert");
+        else panel.setAttribute("inert", "");
+      }
     });
     paintFutureLock();
   }
@@ -5403,7 +5424,11 @@
   function setNavOpen(open) {
     var next = !!open;
     var wasOpen = document.body.classList.contains("nav-open");
-    if (next && !wasOpen) navToggleAt = Date.now();
+    if (next && !wasOpen) {
+      navToggleAt = Date.now();
+      state.menuCabin = null;
+      paintOsDoors();
+    }
     if (!next) navToggleAt = 0;
     var drawer = $("nav-drawer");
     var scrim = $("nav-scrim");
@@ -6800,6 +6825,18 @@
         event.preventDefault();
         event.stopPropagation();
         var name = doorBtn.getAttribute("data-os-door");
+        var door = state.osDoor === "food" || state.osDoor === "smoothies" ? state.osDoor : "training";
+        var current = state.menuCabin == null ? door : state.menuCabin;
+        if (current === name) {
+          state.menuCabin = "";
+          paintOsDoors();
+          return;
+        }
+        state.menuCabin = name;
+        if (name === "notes") {
+          paintOsDoors();
+          return;
+        }
         if (name === "training") {
           state.foodRoom = "";
           state.smoothieRoom = "";
@@ -7239,7 +7276,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v34",
+    build: "v35",
     get phaseState() { return player.phaseState || "idle"; },
     get advanceCount() { return player.advanceCount | 0; },
     get playerIndex() { return player.index | 0; },
