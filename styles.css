@@ -138,10 +138,6 @@ button, a, input, label {
   padding-top: 2px;
 }
 
-body.nav-open .brand-main {
-  visibility: hidden;
-}
-
 .nexus-mark {
   margin: 0;
   color: #ff8c00;
