@@ -31,7 +31,7 @@ if (html.indexOf("data/nutrition.js") !== -1) {
   console.error("FAIL mashed nutrition.js still linked");
   process.exit(1);
 }
-if (html.indexOf('content="v36"') === -1 || html.indexOf("styles.css?v=v36") === -1) {
+if (html.indexOf('content="v37"') === -1 || html.indexOf("styles.css?v=v37") === -1) {
   console.error("FAIL cache stamp");
   process.exit(1);
 }
@@ -39,7 +39,7 @@ if (html.indexOf("Sunday stays off this list") !== -1) {
   console.error("FAIL Sunday still hidden from the food week");
   process.exit(1);
 }
-if (html.indexOf("data/food/pack001.js?v=v36") === -1) {
+if (html.indexOf("data/food/pack001.js?v=v37") === -1) {
   console.error("FAIL pack 001 script");
   process.exit(1);
 }
