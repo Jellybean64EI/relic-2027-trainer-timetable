@@ -1571,7 +1571,7 @@ body.nav-open .nav-drawer {
   padding: 8px 4px 8px 10px;
   border: 0;
   border-bottom: 1px solid rgba(216, 180, 254, 0.28);
-  border-left: 2px solid transparent;
+  border-radius: 0;
   background: transparent;
   color: var(--text);
   font: inherit;
@@ -1584,6 +1584,7 @@ body.nav-open .nav-drawer {
   -webkit-appearance: none;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
 }
 
 .nav-row,
@@ -1609,8 +1610,8 @@ body.nav-open .nav-drawer {
 }
 
 .nav-row.is-active {
-  border-left-color: #ff8c00;
   color: #ff8c00;
+  box-shadow: inset 2px 0 0 #ff8c00;
 }
 
 .nav-row.is-active .nav-row-tag {
@@ -1632,7 +1633,12 @@ body.nav-open .nav-drawer {
 @media (prefers-reduced-motion: reduce) {
   .nav-toggle-bars,
   .nav-scrim,
-  .nav-drawer {
+  .nav-drawer,
+  .cabin-panel,
+  .cabin-panel-inner,
+  .cabin-panel .nav-row,
+  .cabin-panel .nav-kicker,
+  .cabin-chevron {
     transition: none;
   }
 }
@@ -2998,59 +3004,119 @@ body.is-food .schedule-switch {
   display: none;
 }
 
-.os-doors {
+.cabin-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px 0 4px;
 }
 
-.os-doors button {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  height: 72px;
-  min-height: 72px;
-  padding: 8px 16px;
-  overflow: visible;
-  border: 2px solid #14061f;
-  border-radius: 10px;
-  background: #ff8c00;
-  color: #14061f;
-  font: inherit;
-  font-size: 1.25rem;
+.cabin-toggle {
+  min-height: 44px;
+}
+
+.cabin-toggle .nav-row-label {
+  font-size: 0.78rem;
   font-weight: 800;
-  white-space: normal;
-  box-sizing: border-box;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
-.os-door-icon {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  flex: 0 0 auto;
-  font-size: 18px;
-  line-height: 1;
-  white-space: nowrap;
+.cabin-chevron {
+  flex: 0 0 8px;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 300ms ease-out;
 }
 
-.os-door-label {
-  flex: 1 1 auto;
-  text-align: left;
-  white-space: normal;
-}
-
-.os-door-chevron {
-  flex: 0 0 16px;
-  font-size: 1.4rem;
-  line-height: 1;
-}
-
-.os-doors button[aria-pressed="true"] {
-  border-color: #ff8c00;
-  background: #14061f;
+.cabin.is-open > .cabin-toggle {
   color: #ff8c00;
+  box-shadow: inset 2px 0 0 #ff8c00;
+}
+
+.cabin.is-open > .cabin-toggle .cabin-chevron {
+  transform: rotate(45deg);
+}
+
+.cabin-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 300ms ease-out, opacity 300ms ease-out;
+}
+
+.cabin-panel[hidden] {
+  display: grid !important;
+}
+
+.cabin.is-open > .cabin-panel {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.cabin:not(.is-open) > .cabin-panel {
+  pointer-events: none;
+}
+
+.cabin-panel-inner {
+  min-height: 0;
+  overflow: hidden;
+  transform: translateY(-6px);
+  transition: transform 300ms ease-out;
+}
+
+.cabin.is-open > .cabin-panel > .cabin-panel-inner {
+  transform: translateY(0);
+}
+
+.cabin-panel .nav-kicker,
+.cabin-panel .nav-row {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 300ms ease-out, transform 300ms ease-out;
+}
+
+.cabin.is-open .cabin-panel .nav-kicker,
+.cabin.is-open .cabin-panel .nav-row {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: calc(var(--stagger, 1) * 30ms);
+}
+
+.cabin-panel .nav-row {
+  padding-left: 22px;
+}
+
+.cabin-panel .nav-kicker {
+  margin-left: 22px;
+  margin-top: 8px;
+}
+
+.cabin-list > .cabin:last-child:not(.is-open) > .cabin-toggle,
+.cabin-list > .cabin:last-child.is-open .cabin-panel-inner > :last-child .nav-row:last-child {
+  border-bottom: 0;
+}
+
+.nav-row.is-soon,
+.cabin-panel .nav-row.is-static {
+  color: rgba(203, 182, 228, 0.72);
+  pointer-events: auto;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cabin-panel,
+  .cabin-panel-inner,
+  .cabin-panel .nav-kicker,
+  .cabin-panel .nav-row,
+  .cabin.is-open .cabin-panel .nav-kicker,
+  .cabin.is-open .cabin-panel .nav-row,
+  .cabin-chevron,
+  .cabin.is-open > .cabin-toggle .cabin-chevron {
+    transition: none;
+  }
 }
 
 .os-bar {

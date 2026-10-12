@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* v34: future days tick unless Training lock is on. Public corner has no lock chrome. */
+/* v35: future days tick unless Training lock is on. Public corner has no lock chrome. */
 const fs = require("fs");
 const vm = require("vm");
 
@@ -10,10 +10,10 @@ const html = fs.readFileSync("index.html", "utf8");
 const app = fs.readFileSync("app.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v34"') === -1 || html.indexOf("app.js?v=v34") === -1) {
-  fail("index.html is not stamped v34");
+if (html.indexOf('content="v35"') === -1 || html.indexOf("app.js?v=v35") === -1) {
+  fail("index.html is not stamped v35");
 }
-if (app.indexOf('build: "v34"') === -1) fail("RelicArchitect.build is not v34");
+if (app.indexOf('build: "v35"') === -1) fail("RelicArchitect.build is not v35");
 if (html.indexOf("JOSEPH · LONDON") !== -1 || html.indexOf("corner-who") !== -1 || html.indexOf("meta-mode") !== -1) {
   fail("public corner still has the name or lock status");
 }
@@ -24,9 +24,16 @@ if (app.indexOf("NAV_GUARD_MS") === -1) fail("menu tap guard is missing");
 if (app.indexOf("meta-mode") !== -1) fail("corner lock status is still painted");
 if (html.indexOf("Future days locked") !== -1) fail("default banner still says future days are locked");
 if (html.indexOf("Any training day can tick") === -1) fail("default banner is missing");
-if (html.indexOf('id="btn-future-lock"') === -1 || html.indexOf(">Training lock 🔒<") === -1) {
-  fail("menu lock label is not Training lock 🔒");
+if (html.indexOf('id="btn-future-lock"') === -1 || html.indexOf(">Training lock<") === -1) {
+  fail("menu lock label is not Training lock");
 }
+if ((html.match(/>The Cabins</g) || []).length !== 1) fail("The Cabins header must appear once");
+if (html.indexOf(">Notes &amp; Ideas<") === -1 && html.indexOf(">Notes & Ideas<") === -1) {
+  fail("Notes & Ideas cabin is missing");
+}
+if (html.indexOf(">Coming soon<") === -1) fail("Notes placeholder is missing");
+const drawer = html.slice(html.indexOf('id="nav-drawer"'), html.indexOf('id="relic-deck-park"'));
+if (/🔒|🏋️|🛍️|🍎|🍌|os-door-icon/.test(drawer)) fail("menu still has emoji or door pills");
 if (html.indexOf("Lock future days") !== -1) fail("old lock label is still in the menu");
 const lockMarkup = html.slice(html.indexOf('id="nav-lock"'), html.indexOf("</section>", html.indexOf('id="nav-lock"')));
 if (/future days|training days/i.test(lockMarkup)) fail("lock row still says future days or training days");
@@ -130,7 +137,7 @@ function expect(arch, dateKey, want, label) {
 
 const open = load("?date=2026-10-06");
 const arch = open.RelicArchitect;
-if (!arch || arch.build !== "v34" || arch.futureLock !== false) fail("default lock is not off");
+if (!arch || arch.build !== "v35" || arch.futureLock !== false) fail("default lock is not off");
 else {
   expect(arch, "2026-10-06", true, "open today");
   ["2026-10-07", "2026-12-31", "2027-01-01", "2027-10-07"].forEach(function (dateKey) {
@@ -187,4 +194,4 @@ if (fails.length) {
   fails.forEach(function (msg) { console.error("FAIL", msg); });
   process.exit(1);
 }
-console.log("OK ticks v34");
+console.log("OK ticks v35");
