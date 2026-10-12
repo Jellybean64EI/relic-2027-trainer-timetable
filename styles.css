@@ -138,6 +138,27 @@ button, a, input, label {
   padding-top: 2px;
 }
 
+body.nav-open .brand-main {
+  visibility: hidden;
+}
+
+.nexus-mark {
+  margin: 0;
+  color: #ff8c00;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.brand-main h1,
+.brand-lockup h2 {
+  margin-top: 3px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(216, 180, 254, 0.35);
+}
+
 h1 {
   margin: 0;
   color: var(--text);
@@ -1527,8 +1548,16 @@ body.nav-open .nav-drawer {
   padding-left: 52px;
 }
 
+.brand-lockup {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .nav-drawer h2 {
-  margin: 0;
+  margin: 3px 0 0;
+  padding-top: 4px;
+  border-top: 1px solid rgba(216, 180, 254, 0.35);
   color: var(--text);
   font-size: 1.12rem;
   font-weight: 800;
@@ -1556,8 +1585,16 @@ body.nav-open .nav-drawer {
   flex-direction: column;
 }
 
-#btn-future-lock {
+#btn-future-lock,
+#btn-future-lock.is-active {
   min-height: 44px;
+  color: var(--text);
+  box-shadow: none;
+}
+
+#btn-future-lock .nav-row-tag,
+#btn-future-lock.is-active .nav-row-tag {
+  color: var(--cite);
 }
 
 .nav-row {
