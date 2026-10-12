@@ -868,15 +868,21 @@ tr.is-done td {
   pointer-events: none;
 }
 
-#relic-frame-warm {
+#relic-deck-park {
   position: fixed;
-  width: 1px;
-  height: 1px;
   left: 0;
   bottom: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
   opacity: 0;
   pointer-events: none;
   z-index: -1;
+}
+
+#relic-deck-park .deck-video {
+  width: 1px;
+  height: 1px;
 }
 
 .player-stage {
@@ -887,6 +893,7 @@ tr.is-done td {
   touch-action: pan-y;
 }
 
+.player-stage > .deck-video,
 #relic-active-video {
   display: block;
   width: 100%;

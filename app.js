@@ -125,7 +125,8 @@
     flushFallback: null,
     wantsFlushFrame: false,
     awaitingReveal: false,
-    credit: null
+    credit: null,
+    retries: {}
   };
 
   var SHIELD_SVG_OPEN = '<svg class="shield-tick" viewBox="0 0 24 28" aria-hidden="true" focusable="false">';
@@ -5229,6 +5230,7 @@
     paintFoodBoard();
     paintSmoothieBoard();
     paintOsDoors();
+    warmVisibleLeads();
     if (state.restoreTickDate) {
       var again = tbody.querySelector('button.tick-hit[data-date="' + state.restoreTickDate + '"]');
       state.restoreTickDate = "";
@@ -5431,7 +5433,7 @@
     var parts = [bucket].concat(objectParts).filter(function (part) { return !!part; });
     return base + "/storage/v1/object/public/" + parts.map(function (part) {
       return encodeURIComponent(part);
-    }).join("/");
+    }).join("/") + "?v=v32";
   }
 
   function resolveClipSrc(cabinKey, clip) {
@@ -5466,7 +5468,45 @@
     return clips;
   }
 
-  function activeVideo() { return $("relic-active-video"); }
+  function deckPark() { return $("relic-deck-park"); }
+
+  function deckVideos() {
+    return Array.prototype.slice.call(document.querySelectorAll(".deck-video"));
+  }
+
+  function frontVideo() {
+    return document.querySelector(".deck-video.is-front") || $("relic-active-video");
+  }
+
+  function activeVideo() { return frontVideo(); }
+
+  function parkedVideos() {
+    return deckVideos().filter(function (video) { return video !== frontVideo(); });
+  }
+
+  function stageFront(video) {
+    var stage = playerStage();
+    var park = deckPark();
+    if (!stage || !video) return;
+    deckVideos().forEach(function (other) {
+      if (other === video) return;
+      other.classList.remove("is-front");
+      try { other.pause(); } catch (err) { /* parked */ }
+      if (park && other.parentNode !== park) park.appendChild(other);
+    });
+    var previous = $("relic-active-video");
+    if (previous && previous !== video) previous.removeAttribute("id");
+    video.id = "relic-active-video";
+    video.classList.add("is-front");
+    if (video.parentNode !== stage) stage.insertBefore(video, stage.firstChild);
+  }
+
+  function bufferReady(video, src) {
+    if (!video || !src) return false;
+    if ((video.getAttribute("src") || "") !== src) return false;
+    if (video.error) return false;
+    return video.readyState >= 2 && video.videoWidth > 0;
+  }
 
   function formatTimer(seconds) {
     var safe = Math.max(0, seconds | 0);
@@ -5945,20 +5985,157 @@
     player.flushFallback = setTimeout(poll, 120);
   }
 
+  function holdBuffer(video, src) {
+    if (!video || !src) return false;
+    stripVideoChrome(video);
+    if (video !== frontVideo()) {
+      video.muted = true;
+      video.defaultMuted = true;
+      video.autoplay = false;
+      video.loop = false;
+      video.removeAttribute("autoplay");
+      video.removeAttribute("loop");
+    }
+    if (bufferReady(video, src)) return true;
+    if ((video.getAttribute("src") || "") !== src || video.error) {
+      try { video.pause(); } catch (err) { /* swapping source */ }
+      video.src = src;
+      try { video.load(); } catch (err2) { /* about:blank is not a media file */ }
+    }
+    return false;
+  }
+
+  function armStallWatch(video, src) {
+    var token = (video.__stall | 0) + 1;
+    video.__stall = token;
+    var attempt = player.retries[src] || 0;
+    setTimeout(function () {
+      if (!video || video.__stall !== token) return;
+      if ((video.getAttribute("src") || "") !== src) return;
+      if (video.readyState >= 2 && video.videoWidth) return;
+      var current = player.clips[player.index];
+      if (!current || current.src !== src) return;
+      if (attempt < 1) {
+        player.retries[src] = attempt + 1;
+        try { video.load(); } catch (err) { /* retry */ }
+        armStallWatch(video, src);
+        return;
+      }
+      var note = $("relic-media-note");
+      if (note) note.textContent = "This clip stalled. Skipping ahead. The set timer still runs.";
+      setMediaNote(true);
+      revealActiveFrame();
+      if (player.clips.length > 1) {
+        setTimeout(function () {
+          var still = player.clips[player.index];
+          if (still && still.src === src) playNextVideo();
+        }, 600);
+      }
+    }, 10000);
+  }
+
   function warmCabinLead(cabinKey) {
+    var root = $("relic-player");
+    if (root && !root.hidden) return;
     var clips = clipsForCabin(cabinKey);
     var src = clips.length ? clips[0].src : "";
-    var warm = $("relic-frame-warm");
-    if (!warm || !src) return;
-    if (warm.getAttribute("src") === src) return;
-    stripVideoChrome(warm);
-    warm.muted = true;
-    warm.defaultMuted = true;
-    warm.setAttribute("muted", "");
-    warm.removeAttribute("autoplay");
-    warm.autoplay = false;
-    warm.src = src;
-    try { warm.load(); } catch (err) { /* warm is best-effort */ }
+    if (!src) return;
+    if (deckVideos().some(function (video) { return (video.getAttribute("src") || "") === src; })) return;
+    var slot = parkedVideos().concat(deckVideos()).filter(function (video) {
+      return !bufferReady(video, video.getAttribute("src") || "x");
+    })[0] || parkedVideos()[0];
+    if (!slot) return;
+    holdBuffer(slot, src);
+  }
+
+  function warmVisibleLeads() {
+    var root = $("relic-player");
+    if (root && !root.hidden) return;
+    var parts = londonParts(state.now || getNow());
+    var links = Array.prototype.slice.call(document.querySelectorAll("#tt-body a.cite-link"));
+    if (!links.length) return;
+    var today = links.filter(function (link) { return link.getAttribute("data-date") === parts.dateKey; });
+    var chosen = (today.length ? today : links).slice(0, 3);
+    var srcs = [];
+    chosen.forEach(function (link) {
+      var clips = clipsForCabin(link.getAttribute("data-cabin"));
+      if (clips[0] && srcs.indexOf(clips[0].src) === -1) srcs.push(clips[0].src);
+    });
+    var slots = deckVideos();
+    srcs.forEach(function (src, index) {
+      if (slots[index]) holdBuffer(slots[index], src);
+    });
+  }
+
+  function preloadNeighbours() {
+    var clips = player.clips || [];
+    if (clips.length < 2) return;
+    var front = frontVideo();
+    if (!front || front.readyState < 2) return;
+    var current = clips[player.index] && clips[player.index].src;
+    var nextSrc = clips[(player.index + 1) % clips.length].src;
+    var prevSrc = player.index > 0 ? clips[player.index - 1].src : "";
+    var slots = parkedVideos();
+    function srcOf(video) { return video.getAttribute("src") || ""; }
+    if (nextSrc && nextSrc !== current && !slots.some(function (video) { return srcOf(video) === nextSrc; })) {
+      var nextSlot = slots.find(function (video) { return srcOf(video) !== prevSrc; }) || slots[0];
+      if (nextSlot) holdBuffer(nextSlot, nextSrc);
+    }
+    if (prevSrc && prevSrc !== current && prevSrc !== nextSrc && !slots.some(function (video) { return srcOf(video) === prevSrc; })) {
+      var prevSlot = slots.find(function (video) { return srcOf(video) !== nextSrc; });
+      if (prevSlot) holdBuffer(prevSlot, prevSrc);
+    }
+  }
+
+  function playFront(video) {
+    if (!video) return;
+    video.muted = false;
+    video.defaultMuted = false;
+    video.removeAttribute("muted");
+    video.loop = true;
+    video.autoplay = true;
+    video.setAttribute("loop", "");
+    video.setAttribute("autoplay", "");
+    var token = {};
+    player.playToken = token;
+    var pending = video.play();
+    if (pending && typeof pending.then === "function") {
+      pending.then(function () {
+        if (player.playToken !== token) return;
+        player.paused = false;
+        setGate(false);
+        paintPlayButton();
+        preloadNeighbours();
+      }).catch(function (err) {
+        if (player.playToken !== token) return;
+        if (err && err.name === "AbortError") return;
+        var blocked = err && err.name === "NotAllowedError";
+        player.paused = !!blocked;
+        setGate(!!blocked);
+        paintPlayButton();
+        if (blocked) nudgeFirstFrame(video);
+      });
+    }
+  }
+
+  function promote(video, shouldPlay) {
+    if (!video) return;
+    video.__stall = (video.__stall | 0) + 1;
+    stageFront(video);
+    video.classList.add("is-frame-ready");
+    var root = $("relic-player");
+    if (root) {
+      root.classList.remove("is-awaiting-frame");
+      if (!root.hidden) root.setAttribute("aria-hidden", "false");
+    }
+    player.awaitingReveal = false;
+    stopFlushWatch();
+    setMediaNote(false);
+    if (shouldPlay && !player.paused) playFront(video);
+    else {
+      try { video.pause(); } catch (err) { /* held */ }
+    }
+    preloadNeighbours();
   }
 
   function assignVideoSrc(src) {
@@ -6019,32 +6196,23 @@
     }
     player.empty = false;
     setEmptyOverlay(false);
-    assignVideoSrc(clip.src);
     paintClipLabel();
-    if (!shouldPlay) {
-      try { activeVideo().pause(); } catch (err) { /* not playing yet */ }
+    var ready = deckVideos().filter(function (video) { return bufferReady(video, clip.src); })[0];
+    if (ready) {
+      promote(ready, shouldPlay);
       return;
     }
-    var token = {};
-    player.playToken = token;
-    var pending = activeVideo().play();
-    if (pending && typeof pending.then === "function") {
-      pending.then(function () {
-        if (player.playToken !== token) return;
-        player.paused = false;
-        setGate(false);
-        paintPlayButton();
-      }).catch(function (err) {
-        if (player.playToken !== token) return;
-        /* A seek that paints frame 0 aborts the first play(); start it again from seeked. */
-        if (err && err.name === "AbortError") return;
-        /* A missing file must not freeze the 20-minute set. Only an autoplay block waits for a tap. */
-        var blocked = err && err.name === "NotAllowedError";
-        player.paused = !!blocked;
-        setGate(!!blocked);
-        paintPlayButton();
-        if (blocked) nudgeFirstFrame(activeVideo());
-      });
+    var front = frontVideo();
+    var frontSrc = front ? (front.getAttribute("src") || "") : "";
+    var holding = !!(front && frontSrc && frontSrc !== clip.src && front.readyState >= 2 && front.videoWidth);
+    var target = holding ? (parkedVideos()[0] || front) : front;
+    if (!target) return;
+    if (!holding) armFlushFrame(target);
+    holdBuffer(target, clip.src);
+    armStallWatch(target, clip.src);
+    if (shouldPlay && target === frontVideo()) playFront(target);
+    else if (!shouldPlay && target === frontVideo()) {
+      try { target.pause(); } catch (err) { /* not playing yet */ }
     }
   }
 
@@ -6147,14 +6315,12 @@
     player.cabin = null;
     player.credit = null;
     setMediaNote(false);
-    try {
-      var video = activeVideo();
-      video.pause();
+    var park = deckPark();
+    deckVideos().forEach(function (video) {
+      try { video.pause(); } catch (err) { /* closed */ }
       video.classList.remove("is-frame-ready");
-      video.removeAttribute("poster");
-      video.removeAttribute("src");
-      video.load();
-    } catch (err) { /* closed */ }
+      if (park && video.parentNode !== park) park.appendChild(video);
+    });
     setEmptyOverlay(false);
     setGate(false);
     var root = $("relic-player");
@@ -6180,7 +6346,6 @@
     player.phase = phase || "Base";
     player.index = 0;
     player.clips = clipsForCabin(cabinKey);
-    warmCabinLead(cabinKey);
 
     var root = $("relic-player");
     var wasHidden = !root || root.hidden;
@@ -6662,29 +6827,55 @@
       setTimerModsOpen(false);
     });
 
-    activeVideo().addEventListener("error", function () {
-      if (player.empty) return;
-      var src = activeVideo().getAttribute("src") || "";
-      if (!src || src === "about:blank") return;
-      setMediaNote(true);
-      revealActiveFrame();
-    });
-    activeVideo().addEventListener("loadeddata", function () {
-      setMediaNote(false);
-      nudgeFirstFrame(activeVideo());
-    });
-    activeVideo().addEventListener("playing", function () {
-      var video = activeVideo();
-      if (!video || !player.wantsFlushFrame || !video.videoWidth) return;
-      revealActiveFrame();
-    });
-    activeVideo().addEventListener("seeked", function () {
-      var video = activeVideo();
-      if (!video || !player.wantsFlushFrame) return;
-      if (video.currentTime < 0.0005) return;
-      var resume = !player.paused && !player.empty && video.paused;
-      revealActiveFrame();
-      if (resume) resumeIfNudged(video);
+    deckVideos().forEach(function (video) {
+      video.addEventListener("error", function () {
+        if (player.empty) return;
+        var src = video.getAttribute("src") || "";
+        if (!src || src === "about:blank") return;
+        var current = player.clips[player.index];
+        if (!current || current.src !== src) return;
+        var attempt = player.retries[src] || 0;
+        if (attempt < 1) {
+          player.retries[src] = attempt + 1;
+          try { video.load(); } catch (err) { /* retry */ }
+          armStallWatch(video, src);
+          return;
+        }
+        var note = $("relic-media-note");
+        if (note) note.textContent = "This clip could not load. Skipping ahead. The set timer still runs.";
+        setMediaNote(true);
+        revealActiveFrame();
+        if (player.clips.length > 1) {
+          setTimeout(function () {
+            var still = player.clips[player.index];
+            if (still && still.src === src) playNextVideo();
+          }, 600);
+        }
+      });
+      video.addEventListener("loadeddata", function () {
+        var src = video.getAttribute("src") || "";
+        var current = player.clips[player.index];
+        if (current && current.src === src && video !== frontVideo() && bufferReady(video, src)) {
+          promote(video, !player.paused && !player.empty);
+          return;
+        }
+        if (video === frontVideo()) {
+          setMediaNote(false);
+          nudgeFirstFrame(video);
+        }
+      });
+      video.addEventListener("playing", function () {
+        if (video !== frontVideo()) return;
+        if (player.wantsFlushFrame && video.videoWidth) revealActiveFrame();
+        preloadNeighbours();
+      });
+      video.addEventListener("seeked", function () {
+        if (video !== frontVideo() || !player.wantsFlushFrame) return;
+        if (video.currentTime < 0.0005) return;
+        var resume = !player.paused && !player.empty && video.paused;
+        revealActiveFrame();
+        if (resume) resumeIfNudged(video);
+      });
     });
 
     document.addEventListener("keydown", function (event) {
@@ -6754,7 +6945,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v31",
+    build: "v32",
     get nutrition() {
       return {
         shop: foodShop(),
