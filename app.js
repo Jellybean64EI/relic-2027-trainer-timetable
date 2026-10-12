@@ -5446,7 +5446,7 @@
     var parts = [bucket].concat(objectParts).filter(function (part) { return !!part; });
     return base + "/storage/v1/object/public/" + parts.map(function (part) {
       return encodeURIComponent(part);
-    }).join("/") + "?v=v33";
+    }).join("/") + "?v=v34";
   }
 
   function resolveClipSrc(cabinKey, clip) {
@@ -6672,6 +6672,7 @@
 
   function openCabin(cabinKey, phase, dateKey, slot) {
     if (!cabinKey) return;
+    setNavOpen(false);
     player.credit = null;
     player.cabin = cabinKey;
     player.phase = phase || "Base";
@@ -7238,7 +7239,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v33",
+    build: "v34",
     get phaseState() { return player.phaseState || "idle"; },
     get advanceCount() { return player.advanceCount | 0; },
     get playerIndex() { return player.index | 0; },

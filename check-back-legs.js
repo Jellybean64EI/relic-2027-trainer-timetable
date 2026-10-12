@@ -7,9 +7,9 @@ const fails = [];
 function fail(msg) { fails.push(msg); }
 
 const html = fs.readFileSync("index.html", "utf8");
-if (html.indexOf('content="v33"') === -1 || html.indexOf("styles.css?v=v33") === -1 ||
-    html.indexOf("data/schedule.js?v=v33") === -1 || html.indexOf("data/precondition.js?v=v33") === -1) {
-  fail("index.html is not stamped ?v=v33");
+if (html.indexOf('content="v34"') === -1 || html.indexOf("styles.css?v=v34") === -1 ||
+    html.indexOf("data/schedule.js?v=v34") === -1 || html.indexOf("data/precondition.js?v=v34") === -1) {
+  fail("index.html is not stamped ?v=v34");
 }
 
 const ctx = { window: {} };
@@ -101,4 +101,4 @@ if (fails.length) {
   fails.forEach(function (msg) { console.error(" -", msg); });
   process.exit(1);
 }
-console.log("\nOK back/legs v33");
+console.log("\nOK back/legs v34");
