@@ -257,7 +257,6 @@
     var btn = $("btn-future-lock");
     if (!btn) return;
     var on = !!state.futureLock;
-    btn.classList.toggle("is-active", on);
     btn.setAttribute("aria-pressed", on ? "true" : "false");
     btn.setAttribute("aria-label", on ? "Lock on" : "Lock off");
     var tag = $("future-lock-tag");
@@ -2832,9 +2831,17 @@
     if (prevPainted && prevPainted !== door) state.menuCabin = null;
     state.paintedDoor = door;
     state.osDoor = door;
-    var titles = { training: "NiX Training Schedules", food: "Food", smoothies: "Smoothies" };
+    var titles = {
+      training: "Training Schedules",
+      food: "Food & Shopping",
+      smoothies: "Smoothies & Prep",
+      notes: "Notes & Ideas"
+    };
+    var shown = state.menuCabin && titles[state.menuCabin] ? state.menuCabin : door;
     var title = $("nav-drawer-title");
-    if (title) title.textContent = titles[door];
+    if (title) title.textContent = titles[shown];
+    var pageTitle = $("page-title");
+    if (pageTitle) pageTitle.textContent = titles[door];
     document.querySelectorAll("[data-os-door]").forEach(function (btn) {
       var on = btn.getAttribute("data-os-door") === door;
       btn.setAttribute("aria-pressed", on ? "true" : "false");
@@ -5358,9 +5365,10 @@
       btn.setAttribute("data-mode", currentKey);
       btn.setAttribute("aria-label", "Show " + MODE_LABEL[otherKey]);
     }
+    var markMode = state.navMark !== "branch";
     document.querySelectorAll("[data-set-mode]").forEach(function (opt) {
       var on = opt.getAttribute("data-set-mode") === currentKey;
-      opt.classList.toggle("is-active", on);
+      opt.classList.toggle("is-active", markMode && on);
       opt.setAttribute("aria-pressed", on ? "true" : "false");
     });
     var card = $("relic-card");
@@ -5371,7 +5379,11 @@
   function setScheduleMode(mode) {
     if (!upperSchedule()) return;
     if (mode !== "full" && mode !== "upper") return;
-    if (state.mode === mode) return;
+    state.navMark = "mode";
+    if (state.mode === mode) {
+      render();
+      return;
+    }
     rememberViewScroll();
     state.mode = mode;
     render();
@@ -5383,14 +5395,16 @@
   }
 
   function paintBranchChrome() {
+    var markBranch = state.navMark === "branch";
     document.querySelectorAll("[data-set-branch]").forEach(function (opt) {
       var on = opt.getAttribute("data-set-branch") === state.branch;
-      opt.classList.toggle("is-active", on);
+      opt.classList.toggle("is-active", markBranch && on);
       opt.setAttribute("aria-pressed", on ? "true" : "false");
     });
   }
 
   function setBranch(branch) {
+    state.navMark = "branch";
     var year = branch === "bridge" ? 2026 : 2027;
     var changing = state.viewYear !== year;
     clearClientCache();
@@ -7276,7 +7290,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v35",
+    build: "v36",
     get phaseState() { return player.phaseState || "idle"; },
     get advanceCount() { return player.advanceCount | 0; },
     get playerIndex() { return player.index | 0; },

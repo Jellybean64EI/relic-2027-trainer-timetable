@@ -1,0 +1,8 @@
+{
+  "name": "Nexus",
+  "short_name": "Nexus",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0216",
+  "theme_color": "#0b0216"
+}
