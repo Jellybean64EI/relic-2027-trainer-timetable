@@ -3395,8 +3395,55 @@ body.is-food .schedule-switch {
   border-radius: 999px;
   background: #12051d;
   color: #f6eefe;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 800;
+  white-space: nowrap;
+}
+
+.planner-help,
+.planner-kicker {
+  margin: 4px 0;
+  color: #cbb6e0;
+  text-align: center;
+}
+
+.planner-help {
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.planner-kicker {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.planner-slot-toggles,
+.planner-fits {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0 0 8px;
+}
+
+.planner-fits {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.planner-slot-toggles button,
+.planner-fits button {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 4px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+}
+
+.planner-slot-toggles button:not(.is-active),
+.planner-fits button:not(.is-active) {
+  background: transparent;
+  color: #f6eefe;
+  border-color: #8d74a8;
 }
 
 .planner-daybar {

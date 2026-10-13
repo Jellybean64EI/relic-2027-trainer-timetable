@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* v40: plain recipe cards, no strain line, no card-id citations on screen. */
+/* v41: card fits, day-slot toggles, plain recipe cards. */
 const fs = require("fs");
 const vm = require("vm");
 
@@ -11,7 +11,7 @@ const app = fs.readFileSync("app.js", "utf8");
 const food = fs.readFileSync("food.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v40"') === -1 || html.indexOf("food.js?v=v40") === -1) fail("cache stamp");
+if (html.indexOf('content="v41"') === -1 || html.indexOf("food.js?v=v41") === -1) fail("cache stamp");
 if (css.indexOf("#planner-sheet-host") === -1 || css.indexOf("safe-area-inset-bottom") === -1 || css.indexOf("100dvh") === -1) fail("sheet viewport");
 if (/^\.planner-sheet \{[^}]*position:\s*sticky/m.test(css)) fail("sheet still sticky");
 ["recipes", "plan", "today"].forEach(function (screen) {
@@ -187,6 +187,7 @@ const nutDraft = t.beginNew("meal");
 const nutSave = t.commit(Object.assign(nutDraft, { title: "Nut note", tip: "one Brazil nut a day", ingredients: [{ name: "Chicken" }], method: [] }));
 if (!nutSave.error) fail("one brazil card saved");
 t.cancelNew();
+t.setSlot("2026-10", "2026-10-12", "lunch", "cheesy-potato-toast");
 t.recipes()["cheesy-potato-toast"].tip = "1 Brazil nut maximum";
 if (!t.validate("2026-10").some(function (item) { return item.slot === "text"; })) fail("validator ignored brazil text");
 t.recipes()["cheesy-potato-toast"].tip = "Seal the mozzarella inside the round so it stays in the middle.";
@@ -260,7 +261,7 @@ t.read();
 if (mem.nexus_food_v1 !== once) fail("second migrate wrote");
 
 const botanical = t.cardView("recovery-botanical-extraction");
-if (!botanical || botanical.title !== "Botanical" || botanical.tag !== "Recovery" || botanical.blend !== "Blend all until smooth.") {
+if (!botanical || botanical.title !== "Botanical" || botanical.tag.indexOf("Smoothie") === -1 || botanical.tag.indexOf("Recovery") === -1 || botanical.blend !== "Blend all until smooth.") {
   fail("botanical view " + JSON.stringify(botanical));
 }
 if (botanical.lines.some(function (line) { return /sainsbury|strain|beside the glass|SO Organic|joe v38/i.test(line); })) fail("botanical lines " + botanical.lines.join(" | "));
@@ -268,11 +269,41 @@ if (botanical.source && botanical.title.indexOf(botanical.source) !== -1) fail("
 const morning = t.cardView("morning-cell-shatter");
 if (!morning || morning.title !== "Morning Blend" || /3000W|smoothie/i.test(morning.title)) fail("morning title " + JSON.stringify(morning));
 const toast = t.cardView("cheesy-potato-toast");
-if (!toast || toast.tag !== "Lunch" || toast.blend) fail("meal tag " + JSON.stringify(toast));
+if (!toast || toast.tag.indexOf("Breakfast") === -1 || toast.tag === "Lunch" || toast.blend) fail("meal tag " + JSON.stringify(toast));
 if (food.indexOf("Source: ") !== -1 || food.indexOf("planner-brazil") !== -1 || food.indexOf("Joe v38") !== -1) fail("citation still rendered");
+const mealTags = Object.keys(t.recipes()).map(function (id) { return t.cardView(id); }).filter(function (card) {
+  return card && card.tag.indexOf("Smoothie") === -1;
+}).map(function (card) { return card.tag; });
+if (!mealTags.length || mealTags.every(function (tag) { return tag === "Lunch"; })) fail("tags all lunch " + mealTags.slice(0, 6).join(" | "));
+const mince = t.cardView("turkey-mince-rice-skillet");
+if (!mince || mince.fits.indexOf("lunch") === -1 || mince.fits.indexOf("evening") === -1) fail("mince fits " + JSON.stringify(mince));
+const oats = t.commit({ title: "Morning oats", types: ["breakfast"], ingredients: [{ name: "Oats", qty: 40 }], method: [] });
+if (oats.error || t.allows(t.recipes()[oats.id], "evening") || t.allows(t.recipes()[oats.id], "lunch") || !t.allows(t.recipes()[oats.id], "breakfast")) {
+  fail("oats fits " + JSON.stringify(t.recipes()[oats.id] && t.recipes()[oats.id].fits));
+}
+t.setFlag("2027-04", "breakfast", true);
+t.setFlag("2027-04", "lunch", false);
+t.setFlag("2027-04", "dinner", false);
+t.setFlag("2027-04", "smoothie", false);
+if (t.enabledSlots("2027-04").join("|") !== "Breakfast") fail("breakfast row " + t.enabledSlots("2027-04").join(","));
+t.autoOrganise("2027-04");
+t.dates("2027-04").forEach(function (day) {
+  const row = t.month("2027-04").days[day.date];
+  if (row.lunch || row.evening || row.morning) fail("inactive slot filled " + day.date);
+  const placed = t.recipes()[row.breakfast];
+  if (!placed || placed.fits.indexOf("breakfast") === -1) fail("auto ignored fits " + day.date + " " + (placed && placed.title));
+});
+t.setSlot("2027-04", "2027-04-02", "breakfast", oats.id);
+t.setFlag("2027-04", "breakfast", false);
+t.setFlag("2027-04", "lunch", true);
+if (t.enabledSlots("2027-04").indexOf("Breakfast") !== -1) fail("toggle hid breakfast");
+if (t.month("2027-04").days["2027-04-02"].breakfast !== oats.id) fail("hidden breakfast dropped");
+t.setFlag("2027-04", "breakfast", true);
+if (t.enabledSlots("2027-04").indexOf("Breakfast") === -1 || t.month("2027-04").days["2027-04-02"].breakfast !== oats.id) fail("breakfast restore");
+if (food.indexOf("Meals each day") === -1 || food.indexOf("Choose meals each day") === -1) fail("plan helper missing");
 
 if (fails.length) {
   console.error(fails.length + " failed");
   process.exit(1);
 }
-console.log("OK food OS v40");
+console.log("OK food OS v41");
