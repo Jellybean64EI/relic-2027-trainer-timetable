@@ -4,7 +4,7 @@
   "notes": {
     "2026-09-28": {
       "extractionId": "extract-summer-spinach-date",
-      "lunch": "pack001-bread-egg-pan-pizza",
+      "lunch": "",
       "mealId": "plate-chicken-mixed-veg"
     },
     "2026-09-29": {
@@ -24,11 +24,11 @@
     },
     "2026-10-02": {
       "extractionId": "extract-black-forest-spinach",
-      "lunch": "pack001-paprika-potato-egg-skillet",
+      "lunch": "",
       "mealId": "plate-turkey-mince-mixed-veg"
     },
     "2026-10-03": {
-      "morning": "Coffee · Nescafé Gold, syrup optional",
+      "morning": "Coffee \u00b7 Nescaf\u00e9 Gold, syrup optional",
       "lunch": "pack001-cheesy-roasted-garlic-bread",
       "mealId": "plate-ttd-burger-brioche",
       "snack": "pack001-crispy-potato-bites",
@@ -38,7 +38,7 @@
       "extractionId": "extract-mango-date",
       "lunch": "plate-leftover-roast",
       "mealId": "plate-batch-chicken-veg",
-      "note": "Prep: bag_7_extraction_kits. Boil eggs for 2 days and cook the whites. Brazil tin ×7 if purchased. One Brazil nut a day."
+      "note": "Prep: bag_7_extraction_kits. Brazil tin \u00d77 if purchased. 2 Brazil nuts a day."
     }
   }
 }

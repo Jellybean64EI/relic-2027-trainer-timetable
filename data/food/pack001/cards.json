@@ -8,13 +8,13 @@
       "name": "Cheesy Roasted Garlic Bread",
       "tagline": "Garlicky. Cheesy. Irresistible.",
       "script": "Lunch side, dinner side, weekend treat.",
-      "yield": "4–6",
+      "yield": "4\u20136",
       "prepMin": 10,
-      "cookLabel": "Roast 35–45 · Bake 8–10",
+      "cookLabel": "Roast 35\u201345 \u00b7 Bake 8\u201310",
       "timetable": {
         "bestFor": "Lunch, dinner side, weekend",
         "bestEaten": "Fresh",
-        "reheat": "5–7 mins oven or air fryer"
+        "reheat": "5\u20137 mins oven or air fryer"
       },
       "tip": "Cathedral City stands in for mozzarella, Flora for butter, and the smoked bulb for roast garlic. Brioche is a last-resort base. Gaps still out of the cart: baguette, olive oil, parsley.",
       "ingredients": [
@@ -31,15 +31,15 @@
           "skuId": "sainsburys-sku-TBD-101"
         },
         {
-          "text": "Taste the Difference stonebaked baguette — ESTIMATE",
+          "text": "Taste the Difference stonebaked baguette \u2014 ESTIMATE",
           "skuId": "sainsburys-sku-TBD-207"
         },
         {
-          "text": "Extra virgin olive oil — ESTIMATE",
+          "text": "Extra virgin olive oil \u2014 ESTIMATE",
           "skuId": "sainsburys-sku-TBD-209"
         },
         {
-          "text": "Flat leaf parsley — ESTIMATE",
+          "text": "Flat leaf parsley \u2014 ESTIMATE",
           "skuId": "sainsburys-sku-TBD-217"
         }
       ],
@@ -58,7 +58,7 @@
         },
         {
           "verb": "Bake",
-          "detail": "8–10 minutes in a hot oven or air fryer until the cheese bubbles, then finish with parsley if that bunch was bought."
+          "detail": "8\u201310 minutes in a hot oven or air fryer until the cheese bubbles, then finish with parsley if that bunch was bought."
         }
       ],
       "pack001": true
@@ -81,11 +81,11 @@
       "tip": "Blocked until potatoes and cornflour are in the cupboard. Flora and Cathedral City are already on the receipt. Oil or spray is an ESTIMATE add.",
       "ingredients": [
         {
-          "text": "Maris Piper potatoes, about 3 large — ESTIMATE, not in the Oct 1 cart",
+          "text": "Maris Piper potatoes, about 3 large \u2014 ESTIMATE, not in the Oct 1 cart",
           "skuId": "sainsburys-sku-TBD-201"
         },
         {
-          "text": "Cornflour — ESTIMATE",
+          "text": "Cornflour \u2014 ESTIMATE",
           "skuId": "sainsburys-sku-TBD-202"
         },
         {
@@ -97,7 +97,7 @@
           "skuId": "sainsburys-sku-TBD-101"
         },
         {
-          "text": "Cooking oil spray — ESTIMATE",
+          "text": "Cooking oil spray \u2014 ESTIMATE",
           "skuId": "sainsburys-sku-TBD-210"
         }
       ],
@@ -117,76 +117,6 @@
         {
           "verb": "Melt",
           "detail": "Cathedral City on top. Mozzarella is optional and is not required."
-        }
-      ],
-      "pack001": true
-    },
-    "pack001-paprika-potato-egg-skillet": {
-      "id": "pack001-paprika-potato-egg-skillet",
-      "kind": "meal",
-      "family": "meal",
-      "name": "Paprika Potato Egg Skillet",
-      "tagline": "Friday brunch. Cook the whites.",
-      "cookEggWhites": true,
-      "yield": "1",
-      "prepMin": 10,
-      "cookLabel": "Skillet",
-      "timetable": {
-        "bestFor": "Friday brunch, light dinner, lunch",
-        "bestEaten": "Hot",
-        "reheat": "Skillet until the whites set"
-      },
-      "tip": "Cook the egg whites through. Taste the Difference golden yolk eggs stay at the top of the ladder. Potatoes, paprika, tomato, and chives are still gaps.",
-      "ingredients": [
-        {
-          "text": "Taste the Difference free-range golden yolk eggs, cook the whites",
-          "skuId": "sainsburys-sku-TBD-109"
-        },
-        {
-          "text": "Taste the Difference smoked garlic",
-          "skuId": "sainsburys-sku-TBD-123"
-        },
-        {
-          "text": "Maris Piper potatoes — ESTIMATE",
-          "skuId": "sainsburys-sku-TBD-201"
-        },
-        {
-          "text": "Smoked paprika — ESTIMATE",
-          "skuId": "sainsburys-sku-TBD-203"
-        },
-        {
-          "text": "Paprika — ESTIMATE",
-          "skuId": "sainsburys-sku-TBD-204"
-        },
-        {
-          "text": "Tomatoes on the vine — ESTIMATE",
-          "skuId": "sainsburys-sku-TBD-213"
-        },
-        {
-          "text": "Fresh chives — ESTIMATE",
-          "skuId": "sainsburys-sku-TBD-218"
-        },
-        {
-          "text": "Cathedral City cheddar",
-          "skuId": "sainsburys-sku-TBD-101"
-        }
-      ],
-      "method": [
-        {
-          "verb": "Slice",
-          "detail": "the potatoes and start them in the skillet with Flora or oil and smoked garlic from the cart."
-        },
-        {
-          "verb": "Dust",
-          "detail": "with smoked paprika. Plain paprika can stand in. Skipping the spice drops the name of the dish."
-        },
-        {
-          "verb": "Crack",
-          "detail": "two Taste the Difference eggs and cook the whites through."
-        },
-        {
-          "verb": "Finish",
-          "detail": "with tomato and chives if those adds landed, then melt Cathedral City over the top."
         }
       ],
       "pack001": true
@@ -212,7 +142,7 @@
           "skuId": "sainsburys-sku-TBD-106"
         },
         {
-          "text": "Maris Piper potatoes — ESTIMATE",
+          "text": "Maris Piper potatoes \u2014 ESTIMATE",
           "skuId": "sainsburys-sku-TBD-201"
         },
         {
@@ -220,15 +150,15 @@
           "skuId": "sainsburys-sku-TBD-123"
         },
         {
-          "text": "Brown onions — ESTIMATE",
+          "text": "Brown onions \u2014 ESTIMATE",
           "skuId": "sainsburys-sku-TBD-214"
         },
         {
-          "text": "Tomatoes on the vine — ESTIMATE",
+          "text": "Tomatoes on the vine \u2014 ESTIMATE",
           "skuId": "sainsburys-sku-TBD-213"
         },
         {
-          "text": "Onion powder — ESTIMATE",
+          "text": "Onion powder \u2014 ESTIMATE",
           "skuId": "sainsburys-sku-TBD-212"
         },
         {
@@ -256,114 +186,48 @@
       ],
       "pack001": true
     },
-    "pack001-bread-egg-pan-pizza": {
-      "id": "pack001-bread-egg-pan-pizza",
-      "kind": "meal",
-      "family": "meal",
-      "name": "Bread & Egg Pan Pizza",
-      "tagline": "Monday lunch. Cook the whites.",
-      "cookEggWhites": true,
-      "yield": "6 slices",
-      "prepMin": 10,
-      "cookLabel": "Pan or grill",
-      "timetable": {
-        "bestFor": "Monday lunch",
-        "bestEaten": "Fresh",
-        "reheat": "Pan until the cheese melts"
-      },
-      "tip": "Cook the egg whites. Brioche is a sweet, soft stand-in for one lunch. Sliced bread, passata, tomato, red onion, and spring onion are the fidelity adds.",
-      "ingredients": [
-        {
-          "text": "Taste the Difference free-range golden yolk eggs, cook the whites",
-          "skuId": "sainsburys-sku-TBD-109"
-        },
-        {
-          "text": "Thick sliced soft white bread — ESTIMATE",
-          "skuId": "sainsburys-sku-TBD-206"
-        },
-        {
-          "text": "Taste the Difference brioche buns, temporary base only",
-          "skuId": "sainsburys-sku-TBD-107"
-        },
-        {
-          "text": "Passata — ESTIMATE",
-          "skuId": "sainsburys-sku-TBD-205"
-        },
-        {
-          "text": "Red onion — ESTIMATE",
-          "skuId": "sainsburys-sku-TBD-215"
-        },
-        {
-          "text": "Spring onion — ESTIMATE",
-          "skuId": "sainsburys-sku-TBD-216"
-        },
-        {
-          "text": "Cathedral City cheddar",
-          "skuId": "sainsburys-sku-TBD-101"
-        }
-      ],
-      "method": [
-        {
-          "verb": "Lay",
-          "detail": "sliced bread in the pan. Use a brioche bun only for this one lunch if the loaf has not landed."
-        },
-        {
-          "verb": "Spread",
-          "detail": "passata when it is in the cupboard. With no sauce, keep it a cheese-only white pizza."
-        },
-        {
-          "verb": "Add",
-          "detail": "egg and cook the whites through, then Cathedral City, tomato, red onion, and spring onion."
-        },
-        {
-          "verb": "Grill",
-          "detail": "or cover the pan until the top sets and the cheese melts."
-        }
-      ],
-      "pack001": true
-    },
     "pack001-crispy-potato-bites": {
       "id": "pack001-crispy-potato-bites",
       "kind": "meal",
       "family": "snack",
       "name": "Low-Calorie Crispy Potato Bites",
-      "tagline": "About 35–40 bites. About 375 kcal for the batch.",
+      "tagline": "About 35\u201340 bites. About 375 kcal for the batch.",
       "blockedWithoutAdds": true,
-      "yield": "35–40 bites",
+      "yield": "35\u201340 bites",
       "prepMin": 15,
-      "cookLabel": "Microwave 9–12 · air fry 200°C 12–15",
+      "cookLabel": "Microwave 9\u201312 \u00b7 air fry 200\u00b0C 12\u201315",
       "timetable": {
         "bestFor": "Saturday snack, afternoon",
         "bestEaten": "Hot and crisp",
-        "reheat": "3–5 mins air fryer"
+        "reheat": "3\u20135 mins air fryer"
       },
       "tip": "Cannot cook from the trolley alone. Keep bites small so they crisp evenly. Potatoes, cornflour, garlic powder, smoked paprika, and cooking spray are ESTIMATE adds.",
       "ingredients": [
         {
-          "text": "400 g Maris Piper potatoes — ESTIMATE",
+          "text": "400 g Maris Piper potatoes \u2014 ESTIMATE",
           "skuId": "sainsburys-sku-TBD-201"
         },
         {
-          "text": "15 g cornflour — ESTIMATE",
+          "text": "15 g cornflour \u2014 ESTIMATE",
           "skuId": "sainsburys-sku-TBD-202"
         },
         {
-          "text": "Smoked paprika — ESTIMATE",
+          "text": "Smoked paprika \u2014 ESTIMATE",
           "skuId": "sainsburys-sku-TBD-203"
         },
         {
-          "text": "Garlic powder — ESTIMATE",
+          "text": "Garlic powder \u2014 ESTIMATE",
           "skuId": "sainsburys-sku-TBD-211"
         },
         {
-          "text": "Cooking spray — ESTIMATE",
+          "text": "Cooking spray \u2014 ESTIMATE",
           "skuId": "sainsburys-sku-TBD-210"
         }
       ],
       "method": [
         {
           "verb": "Dice",
-          "detail": "400 g potato and microwave it 9–12 minutes, then mash and cool."
+          "detail": "400 g potato and microwave it 9\u201312 minutes, then mash and cool."
         },
         {
           "verb": "Mix",
@@ -371,11 +235,11 @@
         },
         {
           "verb": "Roll",
-          "detail": "about 35–40 small bites and spray them lightly."
+          "detail": "about 35\u201340 small bites and spray them lightly."
         },
         {
           "verb": "Air-fry",
-          "detail": "at 200°C for 12–15 minutes until crisp. Reheat 3–5 minutes if they cool."
+          "detail": "at 200\u00b0C for 12\u201315 minutes until crisp. Reheat 3\u20135 minutes if they cool."
         }
       ],
       "pack001": true
@@ -628,7 +492,7 @@
       "kind": "meal",
       "family": "plate",
       "name": "Leftover Roast Plate",
-      "tagline": "Sunday lunch from the week’s chicken.",
+      "tagline": "Sunday lunch from the week\u2019s chicken.",
       "yield": "1",
       "prepMin": 5,
       "cookLabel": "Reheat",
@@ -734,7 +598,7 @@
         },
         {
           "verb": "Blend",
-          "detail": "until smooth. One Brazil nut a day only if that tin was purchased. Leave it out otherwise."
+          "detail": "until smooth. 2 Brazil nuts a day. Leave it out otherwise."
         },
         {
           "verb": "Drink",
@@ -767,7 +631,7 @@
           "skuId": "sainsburys-sku-TBD-116"
         },
         {
-          "text": "Greek style yogurt — ESTIMATE, not on the receipt",
+          "text": "Greek style yogurt \u2014 ESTIMATE, not on the receipt",
           "skuId": "sainsburys-sku-TBD-222"
         }
       ],
@@ -778,11 +642,11 @@
         },
         {
           "verb": "Add",
-          "detail": "Frozen dark sweet cherries; Greek style yogurt — ESTIMATE, not on the receipt."
+          "detail": "Frozen dark sweet cherries; Greek style yogurt \u2014 ESTIMATE, not on the receipt."
         },
         {
           "verb": "Blend",
-          "detail": "until smooth. One Brazil nut a day only if that tin was purchased. Leave it out otherwise."
+          "detail": "until smooth. 2 Brazil nuts a day. Leave it out otherwise."
         },
         {
           "verb": "Drink",
@@ -830,7 +694,7 @@
         },
         {
           "verb": "Blend",
-          "detail": "until smooth. One Brazil nut a day only if that tin was purchased. Leave it out otherwise."
+          "detail": "until smooth. 2 Brazil nuts a day. Leave it out otherwise."
         },
         {
           "verb": "Drink",
@@ -878,7 +742,7 @@
         },
         {
           "verb": "Blend",
-          "detail": "until smooth. One Brazil nut a day only if that tin was purchased. Leave it out otherwise."
+          "detail": "until smooth. 2 Brazil nuts a day. Leave it out otherwise."
         },
         {
           "verb": "Drink",
@@ -926,7 +790,7 @@
         },
         {
           "verb": "Blend",
-          "detail": "until smooth. One Brazil nut a day only if that tin was purchased. Leave it out otherwise."
+          "detail": "until smooth. 2 Brazil nuts a day. Leave it out otherwise."
         },
         {
           "verb": "Drink",
@@ -952,7 +816,7 @@
         "bestEaten": "Straight away",
         "reheat": "Do not reheat"
       },
-      "tip": "Morning or lunch only. One Brazil nut a day only if purchased.",
+      "tip": "Morning or lunch only. 2 Brazil nuts a day.",
       "ingredients": [
         {
           "text": "Frozen mango chunks",
@@ -974,7 +838,7 @@
         },
         {
           "verb": "Blend",
-          "detail": "until smooth. One Brazil nut a day only if that tin was purchased. Leave it out otherwise."
+          "detail": "until smooth. 2 Brazil nuts a day. Leave it out otherwise."
         },
         {
           "verb": "Drink",
@@ -997,9 +861,7 @@
       "cookLabel": "See the child cards",
       "childCardIds": [
         "pack001-cheesy-potato-toast",
-        "pack001-paprika-potato-egg-skillet",
-        "pack001-beef-stuffed-potato-boats",
-        "pack001-bread-egg-pan-pizza"
+        "pack001-beef-stuffed-potato-boats"
       ],
       "timetable": {
         "bestFor": "Poster only",

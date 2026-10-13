@@ -323,14 +323,14 @@ window.RELIC_FOOD_SHOP = (function () {
       { aisle: "Protein", prefer: "British chicken breast, ASC Scottish salmon, chicken livers", fallback: "Turkey mince, then beef mince." },
       { aisle: "Dairy", prefer: "SO Organic milk, plain Greek yogurt, kefir", fallback: "Standard plain yogurt" },
       { aisle: "Cupboard", prefer: "Hemp hearts, turmeric, ginger, thyme, bay, coconut milk", fallback: "Own-brand" },
-      { aisle: "Nuts", prefer: "Brazil nuts, small pack", fallback: "Count at home. One nut a day. Never a pile." }
+      { aisle: "Nuts", prefer: "Brazil nuts, small pack", fallback: "Count at home. 2 Brazil nuts a day. Never a pile." }
     ],
     sundayPrep: [
       "Check the freezer: banana, berries, mango, pineapple, cherry, papaya, spinach, ginger coins, hemp.",
       "Bag seven smoothie kits for the week.",
       "One tray of chicken and one tray of mixed veg.",
       "Bag the smoothie kits. Brazil nuts are 2 a day.",
-      "Brazil tin: 7 nuts for the week, one a day.",
+      "Brazil tin: 14 nuts for the week, 2 a day.",
       "Sunday glass, if you blend one: papaya, pineapple, kiwi, and berry. Morning only.",
       "Shop the aisle table. Frozen stock beats a fresh-fruit trip."
     ],
