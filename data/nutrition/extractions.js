@@ -1,5 +1,5 @@
-/* Relic Food OS — smoothie and 3000W extraction cards.
-   Morning lock only. Botanicals go in after the cheesecloth strain.
+/* Relic Food OS — smoothie cards for one 3000W jug.
+   Morning lock only. Botanicals and Brazil nuts go in the jug with the rest.
    Does not read relic_completions, the player, or the CUE panel. */
 window.RELIC_FOOD_EXTRACTIONS = (function () {
   var SEQUENCE = [
@@ -7,9 +7,8 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
     "frozen fruit",
     "citrus",
     "hemp",
-    "3000W blend",
-    "cheesecloth strain",
-    "botanicals"
+    "botanicals",
+    "3000W blend"
   ];
 
   var BOTANICALS = {
@@ -32,28 +31,23 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
     return doses(band).map(function (dose) { return dose.text + " " + dose.name; }).join(", ");
   }
 
-  function botanicalsAfter(band, extra) {
-    return doseLine(band) + " into the strained liquid. Psyllium goes in last. Do not return them to the blender. " +
-      (extra || "This glass is morning only. It is not dinner.") +
-      " 2 Brazil nuts a day, beside the glass, never dumped in before the strain.";
-  }
-
   function glassMethod(liquid, frozen, citrus, hemp, band, extra) {
+    var nuts = extra && /2 Brazil nuts/i.test(extra) && !/no brazil|not part of this jug|does not take|leave it out/i.test(extra)
+      ? " 2 Brazil nuts go in the jug."
+      : "";
     return [
       { verb: "Pour", detail: liquid },
       { verb: "Add", detail: "the frozen fruit next: " + frozen },
       { verb: "Add", detail: "the citrus next: " + citrus },
-      { verb: "Add", detail: hemp },
-      { verb: "Blend", detail: "45 seconds on the 3000W motor until the cell walls shatter and no frost shards remain." },
-      { verb: "Strain", detail: "through damp Sainsbury's Cheesecloth into a bowl. Stop. Do not add botanicals before this strain." },
-      { verb: "Whisk", detail: botanicalsAfter(band, extra) }
+      { verb: "Add", detail: hemp + ". " + doseLine(band) + " go in the same jug." },
+      { verb: "Blend", detail: "on the 3000W motor until smooth." + nuts }
     ];
   }
 
   function withBotanicals(rows, band) {
     var copy = rows.slice();
     doses(band).forEach(function (dose) {
-      copy.push({ skuId: dose.skuId, qty: 1, text: dose.text + " " + dose.name + " — after the strain" });
+      copy.push({ skuId: dose.skuId, qty: 1, text: dose.text + " " + dose.name });
     });
     return copy;
   }
@@ -66,7 +60,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
       script: "Frozen banana, mixed berries, 2 Brazil nuts.",
       yield: "1 glass",
       prepMin: 6,
-      cookLabel: "3000W · 45 sec, then strain",
+      cookLabel: "3000W · blend until smooth",
       band: "moderate",
       lock: "Morning only. Not dinner.",
       macros: { kcal: 280, protein: 9, carb: 36, fat: 11 },
@@ -77,7 +71,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
         { skuId: "fruit", qty: 150, text: "150 g Sainsbury's Frozen Summer Fruits (1 cup mixed berries)" },
         { skuId: "lemons", qty: 20, text: "20 g Sainsbury's SO Organic Lemons, peeled" },
         { skuId: "hemp", qty: 10, text: "10 g Sainsbury's Hulled Hemp Hearts" },
-        { skuId: "brazil", qty: 2, text: "2 Brazil nuts, beside the glass, not in the jug" },
+        { skuId: "brazil", qty: 2, text: "2 Brazil nuts" },
         { skuId: "cinnamon", qty: 1, text: "1 pinch ground cinnamon" }
       ],
       lines: [
@@ -85,7 +79,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
         "1 frozen Sainsbury's SO Organic Banana (about 120 g) and 150 g mixed berries.",
         "20 g peeled Sainsbury's SO Organic Lemons.",
         "10 g Sainsbury's Hulled Hemp Hearts and a pinch of cinnamon. Leave the Brazil nuts out of the jug.",
-        "2 Brazil nuts are eaten beside the glass after the strain. Do not use a pile."
+        "2 Brazil nuts go in the jug."
       ]
     },
     "cherry-banana-cream": {
@@ -95,7 +89,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
       script: "Frozen cherries, banana, Greek yogurt.",
       yield: "1 glass",
       prepMin: 6,
-      cookLabel: "3000W · 45 sec, then strain",
+      cookLabel: "3000W · blend until smooth",
       band: "restorative",
       lock: "Morning only. Not dinner.",
       macros: { kcal: 290, protein: 12, carb: 40, fat: 8 },
@@ -113,7 +107,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
         "150 g frozen cherries and 1 banana (about 120 g).",
         "15 g peeled Sainsbury's SO Organic Lemons.",
         "10 g Sainsbury's Hulled Hemp Hearts.",
-        "No Brazil nut in this glass. The daily amount is 2 Brazil nuts, beside the glass."
+        "No Brazil nut in this glass."
       ]
     },
     "mango-banana-nut": {
@@ -123,7 +117,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
       script: "Frozen mango, banana, a spoon of nut butter.",
       yield: "1 glass",
       prepMin: 6,
-      cookLabel: "3000W · 45 sec, then strain",
+      cookLabel: "3000W · blend until smooth",
       band: "moderate",
       lock: "Morning only. Not dinner.",
       macros: { kcal: 340, protein: 10, carb: 42, fat: 14 },
@@ -151,11 +145,11 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
       script: "Berries, banana, oats, almond butter.",
       yield: "1 glass",
       prepMin: 6,
-      cookLabel: "3000W · 45 sec, then strain",
+      cookLabel: "3000W · blend until smooth",
       band: "intense",
       lock: "Morning only. Not dinner.",
       macros: { kcal: 420, protein: 14, carb: 52, fat: 16 },
-      tip: "Oats go in before the blend so the strain still catches the husk.",
+      tip: "Oats go in with the fruit.",
       ingredients: [
         { skuId: "milk", qty: 240, text: "240 ml Sainsbury's SO Organic Whole Milk (1 cup)" },
         { skuId: "fruit", qty: 150, text: "150 g mixed berries (1 cup)" },
@@ -180,7 +174,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
       script: "One orange, berries, yogurt.",
       yield: "1 glass",
       prepMin: 6,
-      cookLabel: "3000W · 45 sec, then strain",
+      cookLabel: "3000W · blend until smooth",
       band: "moderate",
       lock: "Morning only. Not dinner.",
       macros: { kcal: 260, protein: 11, carb: 38, fat: 7 },
@@ -204,10 +198,10 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
       id: "morning-cell-shatter",
       name: "Morning 3000W Smoothie",
       tagline: "Smoothie every morning.",
-      script: "Liquid, fruit, citrus, hemp. Strain. Then the botanicals.",
+      script: "Liquid, fruit, citrus, hemp, and the botanicals.",
       yield: "1 glass",
       prepMin: 6,
-      cookLabel: "3000W · 45 sec, then strain",
+      cookLabel: "3000W · blend until smooth",
       band: "moderate",
       lock: "Morning only. Not dinner.",
       macros: { kcal: 210, protein: 8, carb: 22, fat: 9 },
@@ -216,24 +210,25 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
         { skuId: "milk", qty: 250, text: "250 ml Sainsbury's SO Organic Whole Milk, or cold water if the organic bottle is out" },
         { skuId: "fruit", qty: 160, text: "160 g Sainsbury's Frozen Summer Fruits" },
         { skuId: "lemons", qty: 40, text: "40 g Sainsbury's SO Organic Lemons, peeled" },
-        { skuId: "hemp", qty: 20, text: "20 g Sainsbury's Hulled Hemp Hearts" }
+        { skuId: "hemp", qty: 20, text: "20 g Sainsbury's Hulled Hemp Hearts" },
+        { skuId: "brazil", qty: 2, text: "2 Brazil nuts" }
       ],
       lines: [
         "250 ml Sainsbury's SO Organic Whole Milk into the 3000W jug. Use cold water if SO Organic milk is not on the shelf.",
         "160 g Sainsbury's Frozen Summer Fruits.",
         "40 g peeled Sainsbury's SO Organic Lemons.",
         "20 g Sainsbury's Hulled Hemp Hearts.",
-        "2 Brazil nuts, eaten beside the glass."
+        "2 Brazil nuts go in the jug."
       ]
     },
     "recovery-botanical-extraction": {
       id: "recovery-botanical-extraction",
       name: "Recovery Heavy Botanical Extraction",
       tagline: "The heavier morning glass.",
-      script: "Same order. Larger Lion's Mane and spirulina after the strain.",
+      script: "Larger Lion's Mane and spirulina, blended with the rest.",
       yield: "1 glass",
       prepMin: 6,
-      cookLabel: "3000W · 45 sec, then strain",
+      cookLabel: "3000W · blend until smooth",
       band: "restorative",
       lock: "Morning only. Not dinner.",
       macros: { kcal: 240, protein: 10, carb: 24, fat: 10 },
@@ -268,7 +263,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
       script: fruitLine,
       yield: "1 glass",
       prepMin: 5,
-      cookLabel: "3000W · 45 sec, then strain",
+      cookLabel: "3000W · blend until smooth",
       band: "moderate",
       lock: "Morning only. Not dinner.",
       macros: { kcal: "—", protein: "—", carb: "—", fat: "—", basis: "household glass" },
@@ -284,7 +279,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
         fruitLine,
         "A squeeze of lemon.",
         "1 spoon hemp when the day asks for it.",
-        "Morning glass only. Not dinner. 2 Brazil nuts a day, beside the glass."
+        "Morning glass only. Not dinner."
       ]
     };
   }
@@ -317,7 +312,7 @@ window.RELIC_FOOD_EXTRACTIONS = (function () {
       tierFact: "Tier " + tier + " · " + tierRow.budgetLabel,
       timetable: {
         bestFor: "Every morning",
-        bestEaten: "Drink after the strain, the same morning",
+        bestEaten: "Drink the same morning",
         reheat: "Do not reheat. Blend a fresh glass."
       }
     };

@@ -1,4 +1,4 @@
-/* Nexus food planner v39. Meals and smoothies share one store.
+/* Nexus food planner v40. Meals and smoothies share one store.
    Does not read relic_completions or training keys. */
 (function (root) {
   "use strict";
@@ -28,7 +28,6 @@
     { key: "lunch", flag: "lunch", label: "Lunch" },
     { key: "evening", flag: "dinner", label: "Evening" }
   ];
-  var BRAZIL_CITE = "Joe v38, 12 Oct 2026. Brazil nuts are 2 a day, beside the glass, not in the jug.";
   var cache = null;
   var base = null;
   var ui = {
@@ -72,14 +71,37 @@
   function scrubText(text) {
     var value = String(text || "");
     if (!value) return "";
-    value = value.replace(/\bone brazil nut(?: a day| maximum)?(?: only if (?:that tin was )?purchased)?/gi, "2 Brazil nuts a day");
-    value = value.replace(/\b1 brazil nut(?: a day| maximum)?/gi, "2 Brazil nuts a day");
-    value = value.replace(/\bone nut a day\b/gi, "2 Brazil nuts a day");
-    value = value.replace(/\bone a day only if purchased\b/gi, "2 Brazil nuts a day");
-    value = value.replace(/Brazil tin: 7 nuts for the week, one a day/gi, "Brazil tin: 14 nuts for the week, 2 a day");
+    value = value.replace(/[^.!?\n]*\b(?:one|1) brazil nut\b[^.!?\n]*[.!?]?/gi, "");
+    value = value.replace(/[^.!?\n]*\b(?:strain|beside the glass|not in the jug|joe v\d+)\b[^.!?\n]*[.!?]?/gi, "");
     value = value.replace(/[^.!?\n]*\begg whites?\b[^.!?\n]*[.!?]?/gi, "");
     value = value.replace(/[^.!?\n]*\beggs?\b[^.!?\n]*[.!?]?/gi, "");
     return value.replace(/\s{2,}/g, " ").replace(/\s+([.!?])/g, "$1").trim();
+  }
+
+  function plainName(text) {
+    var name = String(text || "");
+    if (/^2 Brazil nuts$/i.test(name.trim())) return "2 Brazil nuts";
+    name = name.replace(/\s*[—–-]\s*after the strain/gi, "");
+    name = name.replace(/,?\s*beside the glass[^.]*/gi, "");
+    name = name.replace(/,?\s*not in the jug/gi, "");
+    name = name.replace(/Sainsbury's/gi, "");
+    name = name.replace(/SO Organic/gi, "");
+    name = name.replace(/Taste the Difference/gi, "");
+    name = name.replace(/\bJoe v\d+\b[^.]*/gi, "");
+    name = name.replace(/\(\s*(?:¾|1\/4|¼|1)\s*cup\s*\)/gi, "");
+    name = name.replace(/,?\s*or cold water if the organic bottle is out/gi, "");
+    name = name.replace(/\s+/g, " ").replace(/^[\s,.;]+|[\s,.;]+$/g, "").trim();
+    if (/brazil nut/i.test(name)) return "2 Brazil nuts";
+    return name;
+  }
+
+  function ingredientLine(item) {
+    var name = plainName(item && item.name || "");
+    if (!name) return "";
+    if (name === "2 Brazil nuts" || /^\d/.test(name)) return name;
+    var mult = item.multiple > 1 ? item.multiple + "× " : "";
+    var qty = item.qty > 1 ? String(item.qty) + " " : "";
+    return (mult + qty + name).trim();
   }
 
   function cardBlob(recipe) {
@@ -90,36 +112,101 @@
       .join(" ");
   }
 
+  function visibleBlob(recipe) {
+    if (!recipe) return "";
+    return [recipe.title].concat((recipe.ingredients || []).map(function (item) { return item.name || ""; })).join(" ");
+  }
+
   function textIssues(recipe) {
-    var blob = cardBlob(recipe);
+    var blob = visibleBlob(recipe);
+    var stored = cardBlob(recipe);
     var issues = [];
-    if (badBrazil(blob)) issues.push("Brazil nuts are 2 a day.");
-    if (isEgg(blob)) issues.push("Eggs are not used.");
+    var nuts = recipeNuts(recipe);
+    if (badBrazil(stored) || (nuts !== 0 && nuts !== 2)) issues.push("Brazil nuts are 2.");
+    if (isEgg(stored)) issues.push("Eggs are not used.");
+    if (/strain|beside the glass|not in the jug|joe v\d+/i.test(blob)) issues.push("Blend everything in the jug.");
     return issues;
+  }
+
+  function tagFor(recipe) {
+    if (!recipe) return "";
+    if (isSmoothie(recipe)) {
+      var purpose = purposeOf(recipe);
+      return purpose.charAt(0).toUpperCase() + purpose.slice(1);
+    }
+    var types = recipe.types || [];
+    if (types.indexOf("breakfast") !== -1 && types.indexOf("lunch") === -1 && types.indexOf("evening") === -1) return "Breakfast";
+    if (types.indexOf("evening") !== -1 && types.indexOf("lunch") === -1) return "Evening";
+    return "Lunch";
+  }
+
+  function cleanTitle(recipe) {
+    var aliases = {
+      "recovery-botanical-extraction": "Botanical",
+      "morning-cell-shatter": "Morning Blend"
+    };
+    if (recipe.id && aliases[recipe.id]) return aliases[recipe.id];
+    var title = scrubText(recipe.title || "");
+    title = title.replace(/\bheavy botanical extraction\b/ig, "Botanical");
+    title = title.replace(/\bextraction\b/ig, "");
+    title = title.replace(/\b3000\s*w\b/ig, "");
+    title = title.replace(/\bsmoothie\b/ig, "");
+    title = title.replace(/\bmeal\b/ig, "");
+    var tag = tagFor(recipe);
+    if (tag) title = title.replace(new RegExp("\\b" + tag + "\\b", "ig"), "");
+    title = title.replace(/\s+/g, " ").replace(/^[\s,.\-–]+|[\s,.\-–]+$/g, "").trim();
+    return title || "Recipe";
+  }
+
+  function simplifyRecipe(recipe) {
+    if (!recipe.citation) {
+      recipe.citation = {
+        title: recipe.title || "",
+        source: recipe.source || ""
+      };
+    }
+    if (isSmoothie(recipe) && !recipe.purpose) recipe.purpose = purposeOf(recipe);
+    recipe.title = cleanTitle(recipe);
+    var brazil = false;
+    recipe.ingredients = (recipe.ingredients || []).map(function (item) {
+      var original = item.name || item.text || "";
+      if (/sainsbury/i.test(original) && !item.brand) item.brand = "Sainsbury's";
+      item.name = plainName(original);
+      if (item.name === "2 Brazil nuts" || item.skuId === "brazil") {
+        item.name = "2 Brazil nuts";
+        item.qty = 2;
+        item.brazilNuts = 2;
+        item.skuId = item.skuId || "brazil";
+      }
+      return item;
+    }).filter(function (item) {
+      if (!item.name || isEgg(item.name)) return false;
+      if (item.name === "2 Brazil nuts") {
+        if (brazil) return false;
+        brazil = true;
+      }
+      return true;
+    });
+    if (isSmoothie(recipe)) {
+      recipe.method = [{ verb: "Blend", detail: "all until smooth" }];
+      recipe.tip = "";
+    } else {
+      recipe.tip = "";
+      recipe.method = (recipe.method || []).map(function (step) {
+        step.verb = scrubText(step.verb || "");
+        step.detail = scrubText(step.detail || "");
+        return step;
+      }).filter(function (step) {
+        var blob = ((step.verb || "") + " " + (step.detail || "")).trim();
+        return blob && !isEgg(blob) && !/strain|beside the glass|not in the jug/i.test(blob);
+      });
+    }
+    return recipe;
   }
 
   function scrubRecipe(recipe) {
     if (!recipe) return null;
-    ["title", "tip", "script", "source"].forEach(function (key) {
-      if (recipe[key]) recipe[key] = scrubText(recipe[key]);
-    });
-    recipe.ingredients = (recipe.ingredients || []).map(function (item) {
-      var original = item.name || item.text || "";
-      item.name = scrubText(original);
-      if ((/brazil nut/i.test(item.name) || item.skuId === "brazil") && ((+item.qty || 1) < 2 || badBrazil(original))) {
-        item.qty = 2;
-        item.brazilNuts = 2;
-      }
-      return item;
-    }).filter(function (item) { return item.name && !isEgg(item.name); });
-    recipe.method = (recipe.method || []).map(function (step) {
-      step.verb = scrubText(step.verb || "");
-      step.detail = scrubText(step.detail || "");
-      return step;
-    }).filter(function (step) {
-      var blob = ((step.verb || "") + " " + (step.detail || "")).trim();
-      return blob && !isEgg(blob);
-    });
+    recipe = simplifyRecipe(recipe);
     if (!recipe.title || isEgg(recipe.title)) return null;
     return recipe;
   }
@@ -246,8 +333,7 @@
     ["breakfast", "morning", "lunch", "evening"].forEach(function (slot) {
       fromCards += recipeNuts(store.recipes[day[slot]]);
     });
-    var extra = fromCards >= 2 ? 0 : 2 - fromCards;
-    return { cards: fromCards, extra: extra, total: fromCards + extra };
+    return { cards: fromCards, extra: 0, total: fromCards };
   }
 
   function applyBrazil(store, month, day) {
@@ -570,7 +656,7 @@
       store.months["2026-10"].lockedAt = null;
     }
     scrubStore(store);
-    store.scrubbed = 39;
+    store.scrubbed = 40;
     store.rev = 0;
     var kept = Object.keys(store.recipes).length;
     store.notice = "Your plans were moved. " + kept + " cards kept. October plan cleared." +
@@ -662,13 +748,10 @@
       cache.undo = cache.undo || [];
       cache.view = cache.view || { month: monthOf(todayKey()) };
       cache.rev = cache.rev || 0;
-      if ((cache.scrubbed || 0) < 39) {
+      if ((cache.scrubbed || 0) < 40) {
         var dirty = scrubStore(cache);
-        cache.scrubbed = 39;
-        if (dirty) {
-          cache.notice = (cache.notice ? cache.notice + " " : "") +
-            "Cards now say 2 Brazil nuts a day. Egg lines were removed. Duplicate cards were merged.";
-        }
+        cache.scrubbed = 40;
+        if (dirty) cache.notice = "Recipes simplified.";
         save();
       } else {
         rememberBase();
@@ -822,8 +905,8 @@
     dateList(key).forEach(function (info) {
       var day = ensureDay(month, info.date);
       var nuts = applyBrazil(store, month, day);
-      if (nuts.total !== 2 || nuts.cards > 2) {
-        problems.push({ date: info.date, slot: "brazil", reason: "Brazil nuts must be 2 a day (" + nuts.total + " here)." });
+      if (nuts.total !== 0 && nuts.total !== 2) {
+        problems.push({ date: info.date, slot: "brazil", reason: "Brazil nuts are 2 (" + nuts.total + " on this day)." });
       }
       enabled(month).forEach(function (slot) {
         var id = day[slot.key];
@@ -879,23 +962,9 @@
     return { cleared: cleared };
   }
 
-  function shortBits(recipe) {
-    return (recipe.ingredients || []).map(function (item) { return item.name || ""; }).filter(function (name) {
-      return name && !/after the strain|ashwagandha|lion's mane|spirulina|psyllium|shilajit/i.test(name);
-    }).slice(0, 3).map(function (name) {
-      return name.replace(/Sainsbury's( SO Organic)? /gi, "").split(",")[0];
-    }).join(", ");
-  }
-
   function whyFor(recipe, date, slot, store, month) {
     if (!recipe) return "";
-    if (isSmoothie(recipe)) {
-      var purpose = purposeOf(recipe);
-      return purpose.charAt(0).toUpperCase() + purpose.slice(1) +
-        " pairing. " + (shortBits(recipe) || recipe.title) +
-        ". Card " + recipe.id + ". Source: " + (recipe.source || "smoothie card") + ".";
-    }
-    return recipe.title + " for " + slot + ". Card " + recipe.id + ". Source: " + (recipe.source || "meal card") + ".";
+    return recipe.id;
   }
 
   function candidates(store, slot) {
@@ -1118,11 +1187,12 @@
         return item;
       });
     }
-    if (!previous) pushUndo("Added " + title);
+    recipe = simplifyRecipe(recipe);
+    if (!previous) pushUndo("Added " + recipe.title);
     store.recipes[id] = recipe;
     save();
     ui.draft = null;
-    ui.toast = "Saved " + title + ".";
+    ui.toast = "Saved " + recipe.title + ".";
     return { id: id };
   }
 
@@ -1267,7 +1337,7 @@
       brazilTin: days.length * 2,
       lines: [
         "Bag " + kits + " smoothie kits",
-        "Brazil nut tin: " + (days.length * 2) + ". " + BRAZIL_CITE
+        "Brazil nuts: " + (days.length * 2)
       ]
     };
   }
@@ -1359,7 +1429,7 @@
     if (ui.draft) html += editorHtml(ui.draft);
     visibleRecipes().forEach(function (recipe) {
       html += '<article class="planner-card"><button type="button" class="planner-card-open" data-planner-act="open-card" data-id="' + esc(recipe.id) + '">' +
-        "<strong>" + esc(recipe.title) + "</strong><span>" + esc(isSmoothie(recipe) ? purposeOf(recipe) : "meal") + "</span></button>";
+        "<strong>" + esc(recipe.title) + "</strong><span class=\"planner-tag\">" + esc(tagFor(recipe)) + "</span></button>";
       if (ui.focusId === recipe.id && !ui.draft) html += detailHtml(recipe);
       html += "</article>";
     });
@@ -1369,15 +1439,11 @@
 
   function detailHtml(recipe) {
     var ingredients = (recipe.ingredients || []).map(function (item) {
-      var mult = item.multiple > 1 ? item.multiple + "× " : "";
-      return "<li>" + esc(mult + item.name) + "</li>";
+      var line = ingredientLine(item);
+      return line ? "<li>" + esc(line) + "</li>" : "";
     }).join("");
-    var method = (recipe.method || []).map(function (step) {
-      return "<li><strong>" + esc(step.verb) + "</strong> " + esc(step.detail) + "</li>";
-    }).join("");
-    return '<div class="planner-detail"><p>' + esc(recipe.tip || "") + "</p>" +
-      "<h3>Ingredients</h3><ul>" + ingredients + "</ul><h3>Method</h3><ol>" + method + "</ol>" +
-      '<p class="planner-why">Source: ' + esc(recipe.source || "card") + " · " + esc(recipe.id) + "</p>" +
+    var blend = isSmoothie(recipe) ? "<p>Blend all until smooth.</p>" : "";
+    return '<div class="planner-detail"><h3>Ingredients</h3><ul>' + ingredients + "</ul>" + blend +
       '<div class="planner-actions">' +
       '<button type="button" data-planner-act="add-plan" data-id="' + esc(recipe.id) + '">Add to plan</button>' +
       '<button type="button" data-planner-act="edit" data-id="' + esc(recipe.id) + '">Edit</button>' +
@@ -1452,7 +1518,7 @@
         '<button type="button" data-planner-act="clear-week" data-from="' + week[0].date + '" data-to="' + week[week.length - 1].date + '">Clear week</button></div>';
       week.forEach(function (info) {
         var day = ensureDay(month, info.date);
-        var nuts = applyBrazil(store, month, day);
+        applyBrazil(store, month, day);
         html += '<article class="planner-day"><header><span>' + esc(info.name + " " + info.day) + "</span>" +
           (info.sunday ? '<span class="planner-prep">Prep day</span>' : "") + "</header>";
         enabled(month).forEach(function (slot) {
@@ -1463,10 +1529,9 @@
             '" data-planner-act="swap" data-date="' + info.date + '" data-slot="' + slot.key + '">' +
             '<span class="planner-slot-k">' + slot.label + "</span>" +
             "<strong>" + esc(recipe ? recipe.title : "Empty") + "</strong>" +
-            (day.why && day.why[slot.key] ? '<span class="planner-why">' + esc(day.why[slot.key]) + "</span>" : "") +
             "</button>";
         });
-        html += '<p class="planner-brazil">Brazil nuts ×' + nuts.total + ". " + esc(BRAZIL_CITE) + "</p></article>";
+        html += "</article>";
       });
       html += "</section>";
     });
@@ -1480,20 +1545,18 @@
     var month = ensureMonth(store, key);
     var day = ensureDay(month, date);
     var info = dateList(key).filter(function (row) { return row.date === date; })[0];
-    var html = '<div class="planner-bar"><button type="button" data-planner-act="day-prev" aria-label="Yesterday">Yesterday</button>' +
+    var html = '<div class="planner-daybar"><button type="button" data-planner-act="day-prev" aria-label="Yesterday">Yesterday</button>' +
       "<h2 class=\"planner-title\">" + esc(info ? info.name + " " + info.day + " " + monthName(key) : date) + "</h2>" +
       '<button type="button" data-planner-act="day-next" aria-label="Tomorrow">Tomorrow</button></div>';
     enabled(month).forEach(function (slot) {
       var id = day[slot.key];
       var recipe = id && store.recipes[id];
       var done = !!month.ticks[tickKey(date, slot.key)];
-      html += '<div class="planner-today"><div><span>' + slot.label + "</span><strong>" + esc(recipe ? recipe.title : "Empty") + "</strong>" +
-        (day.why && day.why[slot.key] ? '<p class="planner-why">' + esc(day.why[slot.key]) + "</p>" : "") +
+      html += '<div class="planner-today"><div class="planner-today-copy"><span>' + slot.label + "</span><strong>" + esc(recipe ? recipe.title : "Empty") + "</strong>" +
         "</div><button type=\"button\" data-planner-act=\"done\" data-date=\"" + date + "\" data-slot=\"" + slot.key + "\">" +
         (done ? "Done" : "Mark done") + "</button></div>";
     });
-    var nuts = applyBrazil(store, month, day);
-    html += '<p class="planner-brazil">Brazil nuts ×' + nuts.total + "</p>";
+    applyBrazil(store, month, day);
     if (info && info.sunday) ui.showPrep = true;
     html += '<button type="button" data-planner-act="toggle-prep">' + (ui.showPrep ? "Hide Sunday prep" : "Sunday prep") + "</button>";
     if (ui.showPrep) {
@@ -1564,7 +1627,7 @@
       var q = (sheet.query || "").toLowerCase();
       list.filter(function (recipe) { return !q || recipe.title.toLowerCase().indexOf(q) !== -1; }).forEach(function (recipe) {
         html += '<button type="button" data-planner-act="place" data-id="' + esc(recipe.id) + '">' + esc(recipe.title) +
-          "<span>" + esc(isSmoothie(recipe) ? purposeOf(recipe) : "meal") + "</span></button>";
+          "<span>" + esc(tagFor(recipe)) + "</span></button>";
       });
       html += '<button type="button" data-planner-act="place" data-id="">Remove</button>';
       html += '<button type="button" data-planner-act="repeat">Repeat on every ' + esc(weekdayName(sheet.date)) + "</button>";
@@ -1963,6 +2026,17 @@
       futureMonths: futureMonths,
       clampMonth: clampMonth,
       lint: function (id) { return textIssues(read().recipes[id]); },
+      cardView: function (id) {
+        var recipe = read().recipes[id];
+        if (!recipe) return null;
+        return {
+          title: recipe.title,
+          tag: tagFor(recipe),
+          lines: (recipe.ingredients || []).map(ingredientLine).filter(Boolean),
+          blend: isSmoothie(recipe) ? "Blend all until smooth." : "",
+          source: recipe.source || ""
+        };
+      },
       duplicateTitles: function () {
         var seen = {};
         var dups = [];

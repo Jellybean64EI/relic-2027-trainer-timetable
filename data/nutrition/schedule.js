@@ -282,18 +282,19 @@ window.RELIC_FOOD_SCHEDULE = (function () {
     apiExtract.order.forEach(function (id) {
       var card = apiExtract.present(id, 1);
       var verbs = card.method.map(function (step) { return step.verb; }).join(" ");
-      var expected = ["Pour", "Add", "Add", "Add", "Blend", "Strain", "Whisk"];
+      var expected = ["Pour", "Add", "Add", "Add", "Blend"];
       var got = card.method.map(function (step) { return step.verb; });
       if (got.join("|") !== expected.join("|")) problems.push(id + " order " + verbs);
       var text = card.method.map(function (step) { return step.verb + " " + step.detail; }).join(" ");
       if (text.indexOf("3000W") === -1) problems.push(id + " blender");
-      if (text.indexOf("Cheesecloth") === -1) problems.push(id + " strain");
+      if (text.indexOf("until smooth") === -1) problems.push(id + " blend");
+      if (/strain|cheesecloth|beside the glass|not in the jug/i.test(text)) problems.push(id + " strain");
       if (/4\s*[-–]\s*5/.test(text)) problems.push(id + " brazil pile");
       if (id === "berry-banana-brazil" && text.indexOf("2 Brazil nuts") === -1) {
         problems.push(id + " brazil cap");
       }
       if (card.lock.indexOf("Not dinner") === -1) problems.push(id + " lock");
-      if (apiExtract.sequence.join("|") !== "liquid|frozen fruit|citrus|hemp|3000W blend|cheesecloth strain|botanicals") {
+      if (apiExtract.sequence.join("|") !== "liquid|frozen fruit|citrus|hemp|botanicals|3000W blend") {
         problems.push("sequence");
       }
     });

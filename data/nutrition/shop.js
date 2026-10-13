@@ -119,7 +119,7 @@ window.RELIC_FOOD_SHOP = (function () {
     "SO Organic bananas, apples, kiwi, lemons, blueberries, mango, oranges, pears, carrots",
     "British chicken",
     "ASC Scottish salmon",
-    "Brazil nuts, 2 a day, beside the glass.",
+    "Brazil nuts, 2 a day, in the jug.",
     "SO Organic milk or kefir if stocked",
     "Frozen berries",
     "Baby-leaf spinach",
@@ -154,8 +154,7 @@ window.RELIC_FOOD_SHOP = (function () {
     "Brazil nuts, 2 a day",
     "Maris Piper potatoes",
     "Easy Cook long grain rice",
-    "Hemp hearts",
-    "Cheesecloth"
+    "Hemp hearts"
   ];
 
   function lines(pairs) {
@@ -181,7 +180,6 @@ window.RELIC_FOOD_SHOP = (function () {
     ["salt", 1],
     ["lemons", 8],
     ["hemp", 1],
-    ["cheesecloth", 1],
     ["bread", 1],
     ["ashwagandha", 1],
     ["lionsMane", 1],
@@ -262,7 +260,6 @@ window.RELIC_FOOD_SHOP = (function () {
       ["salt", 1],
       ["lemons", 12],
       ["hemp", 2],
-      ["cheesecloth", 1],
       ["bread", 2],
       ["yogurtW", 4],
       ["ashwagandha", 1],

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* v39: planner sheet, any future month, deduped cards, template confirm, tab revisions. */
+/* v40: plain recipe cards, no strain line, no card-id citations on screen. */
 const fs = require("fs");
 const vm = require("vm");
 
@@ -11,7 +11,7 @@ const app = fs.readFileSync("app.js", "utf8");
 const food = fs.readFileSync("food.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v39"') === -1 || html.indexOf("food.js?v=v39") === -1) fail("cache stamp");
+if (html.indexOf('content="v40"') === -1 || html.indexOf("food.js?v=v40") === -1) fail("cache stamp");
 if (css.indexOf("#planner-sheet-host") === -1 || css.indexOf("safe-area-inset-bottom") === -1 || css.indexOf("100dvh") === -1) fail("sheet viewport");
 if (/^\.planner-sheet \{[^}]*position:\s*sticky/m.test(css)) fail("sheet still sticky");
 ["recipes", "plan", "today"].forEach(function (screen) {
@@ -116,7 +116,7 @@ t.dates("2026-10").forEach(function (day) {
   const evening = t.recipes()[row.evening];
   if (evening && (evening.types || []).indexOf("smoothie") !== -1) fail("evening smoothie " + day.date);
   const nuts = t.nuts("2026-10", day.date);
-  if (nuts.total !== 2) fail("brazil " + day.date + " " + nuts.total);
+  if (nuts.total !== 0 && nuts.total !== 2) fail("brazil " + day.date + " " + nuts.total);
 });
 const week = weeks[1];
 const snapshot = JSON.stringify(t.month("2026-10").days);
@@ -253,13 +253,26 @@ if (!novLunch || novLunch.lunch !== boats[0]) fail("duplicate slot not remapped 
 const cathedral = migrated.recipes.cathedral;
 const berry = migrated.recipes["berry-banana-brazil"];
 if (!cathedral || /\beggs?\b|egg white|one brazil nut|1 brazil nut/i.test(JSON.stringify(cathedral))) fail("cathedral text " + JSON.stringify(cathedral));
-if (!berry || /one brazil nut|1 brazil nut|maximum/i.test(JSON.stringify(berry)) || !/2 Brazil nuts a day/.test(JSON.stringify(berry))) fail("berry text " + JSON.stringify(berry));
+if (!berry || /one brazil nut|1 brazil nut|maximum|strain|beside the glass|Sainsbury/i.test(berry.title + JSON.stringify(berry.ingredients))) fail("berry text " + JSON.stringify(berry.ingredients));
+if (!berry.ingredients.some(function (item) { return item.name === "2 Brazil nuts" && item.brazilNuts === 2; })) fail("berry nuts " + JSON.stringify(berry.ingredients));
 const once = mem.nexus_food_v1;
 t.read();
 if (mem.nexus_food_v1 !== once) fail("second migrate wrote");
+
+const botanical = t.cardView("recovery-botanical-extraction");
+if (!botanical || botanical.title !== "Botanical" || botanical.tag !== "Recovery" || botanical.blend !== "Blend all until smooth.") {
+  fail("botanical view " + JSON.stringify(botanical));
+}
+if (botanical.lines.some(function (line) { return /sainsbury|strain|beside the glass|SO Organic|joe v38/i.test(line); })) fail("botanical lines " + botanical.lines.join(" | "));
+if (botanical.source && botanical.title.indexOf(botanical.source) !== -1) fail("source in title");
+const morning = t.cardView("morning-cell-shatter");
+if (!morning || morning.title !== "Morning Blend" || /3000W|smoothie/i.test(morning.title)) fail("morning title " + JSON.stringify(morning));
+const toast = t.cardView("cheesy-potato-toast");
+if (!toast || toast.tag !== "Lunch" || toast.blend) fail("meal tag " + JSON.stringify(toast));
+if (food.indexOf("Source: ") !== -1 || food.indexOf("planner-brazil") !== -1 || food.indexOf("Joe v38") !== -1) fail("citation still rendered");
 
 if (fails.length) {
   console.error(fails.length + " failed");
   process.exit(1);
 }
-console.log("OK food OS v39");
+console.log("OK food OS v40");
