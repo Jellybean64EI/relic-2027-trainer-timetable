@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* v38: one food planner, no eggs, Brazil nuts at 2 a day, training files untouched. */
+/* v39: planner sheet, any future month, deduped cards, template confirm, tab revisions. */
 const fs = require("fs");
 const vm = require("vm");
 
@@ -11,7 +11,9 @@ const app = fs.readFileSync("app.js", "utf8");
 const food = fs.readFileSync("food.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v38"') === -1 || html.indexOf("food.js?v=v38") === -1) fail("cache stamp");
+if (html.indexOf('content="v39"') === -1 || html.indexOf("food.js?v=v39") === -1) fail("cache stamp");
+if (css.indexOf("#planner-sheet-host") === -1 || css.indexOf("safe-area-inset-bottom") === -1 || css.indexOf("100dvh") === -1) fail("sheet viewport");
+if (/^\.planner-sheet \{[^}]*position:\s*sticky/m.test(css)) fail("sheet still sticky");
 ["recipes", "plan", "today"].forEach(function (screen) {
   if (html.indexOf('data-food-room="' + screen + '"') === -1) fail("food screen " + screen);
   if (html.indexOf('data-smoothie-room="' + screen + '"') === -1) fail("smoothie screen " + screen);
@@ -165,11 +167,74 @@ if (prep.brazilTin !== 14 || prep.lines.join(" ").toLowerCase().indexOf("egg") !
 if (t.defaultDate("2026-10") < "2026-10-12") fail("past default");
 if (t.allows(t.recipes()[seedId], "evening")) fail("smoothie offered at evening");
 
+const months = t.futureMonths();
+if (months[0] !== "2026-10" || months.indexOf("2026-11") === -1 || months.indexOf("2026-09") !== -1) fail("future months " + months.slice(0, 3));
+if (t.clampMonth("2026-09") !== "2026-10" || t.clampMonth("2027-01") !== "2027-01") fail("clamp month");
+if (t.duplicateTitles().length) fail("duplicate titles " + t.duplicateTitles().join(","));
+const lunchIds = t.candidates("lunch");
+if (lunchIds.length !== new Set(lunchIds).size) fail("picker ids repeat");
+const lunchTitles = lunchIds.map(function (id) { return t.recipes()[id].title; });
+if (lunchTitles.indexOf("Cheesy Potato Toast") !== lunchTitles.lastIndexOf("Cheesy Potato Toast")) fail("toast listed twice");
+Object.keys(t.recipes()).forEach(function (id) {
+  const issues = t.lint(id);
+  if (issues.length) fail("seed text " + id + " " + issues.join(" "));
+});
+const eggDraft = t.beginNew("meal");
+const eggSave = t.commit(Object.assign(eggDraft, { title: "Egg plate", ingredients: [{ name: "eggs", qty: 2 }], method: [] }));
+if (!eggSave.error) fail("egg card saved");
+t.cancelNew();
+const nutDraft = t.beginNew("meal");
+const nutSave = t.commit(Object.assign(nutDraft, { title: "Nut note", tip: "one Brazil nut a day", ingredients: [{ name: "Chicken" }], method: [] }));
+if (!nutSave.error) fail("one brazil card saved");
+t.cancelNew();
+t.recipes()["cheesy-potato-toast"].tip = "1 Brazil nut maximum";
+if (!t.validate("2026-10").some(function (item) { return item.slot === "text"; })) fail("validator ignored brazil text");
+t.recipes()["cheesy-potato-toast"].tip = "Seal the mozzarella inside the round so it stays in the middle.";
+
+t.setSlot("2026-12", "2026-12-01", "lunch", "cheesy-potato-toast");
+const december = t.saveTemplate("2026-12", "December");
+t.setSlot("2026-12", "2026-12-02", "lunch", "salmon-rice-plate");
+const beforeApply = JSON.stringify(t.month("2026-12").days);
+const ask = t.applyTemplate(december, "2026-12", false);
+if (!ask.needsConfirm || JSON.stringify(t.month("2026-12").days) !== beforeApply) fail("apply confirm " + JSON.stringify(ask));
+t.applyTemplate(december, "2026-12", true);
+if (t.month("2026-12").days["2026-12-02"].lunch === "salmon-rice-plate") fail("confirmed apply kept the old lunch");
+if (!t.undo() || t.month("2026-12").days["2026-12-02"].lunch !== "salmon-rice-plate") fail("apply undo");
+
+const staleRev = t.rev();
+const disk = JSON.parse(mem.nexus_food_v1);
+disk.rev = staleRev + 2;
+disk.months["2026-10"].days["2026-10-20"] = disk.months["2026-10"].days["2026-10-20"] || { breakfast: "", morning: "", lunch: "", evening: "", why: {}, brazilExtra: 2 };
+disk.months["2026-10"].days["2026-10-20"].lunch = "salmon-rice-plate";
+mem.nexus_food_v1 = JSON.stringify(disk);
+const merged = t.setSlot("2026-10", "2026-10-21", "lunch", "turkey-mince-rice-skillet");
+if (merged.stale) fail("merge refused a different slot");
+if (t.month("2026-10").days["2026-10-20"].lunch !== "salmon-rice-plate") fail("lost other tab lunch");
+if (t.month("2026-10").days["2026-10-21"].lunch !== "turkey-mince-rice-skillet") fail("lost this tab lunch");
+if (t.syncNote().indexOf("Merged") === -1) fail("merge notice " + t.syncNote());
+const clash = JSON.parse(mem.nexus_food_v1);
+clash.rev = t.rev() + 3;
+clash.months["2026-10"].days["2026-10-12"].evening = "salmon-rice-plate";
+mem.nexus_food_v1 = JSON.stringify(clash);
+const refused = t.setSlot("2026-10", "2026-10-12", "evening", "beef-stuffed-potato-boats");
+if (!refused.stale || t.month("2026-10").days["2026-10-12"].evening !== "salmon-rice-plate") fail("stale write won " + JSON.stringify(refused));
+if (t.syncNote().indexOf("not written") === -1) fail("stale notice " + t.syncNote());
+
 t.reset();
-mem.relic_food_meals_v22 = JSON.stringify({ cards: { audit: { cardId: "audit", title: "AUDIT Meal Card 1", noteCode: "AUDIT-01", ingredients: [{ text: "oats" }], method: [] } } });
-mem.relic_smoothie_meals_v22 = JSON.stringify({ cards: { audits: { cardId: "audits", title: "AUDIT Smoothie 1", ingredients: [], method: [] } } });
+mem.relic_food_meals_v22 = JSON.stringify({ cards: {
+  audit: { cardId: "audit", title: "AUDIT Meal Card 1", noteCode: "AUDIT-01", ingredients: [{ text: "oats" }], method: [] },
+  "dup-boats": { cardId: "dup-boats", title: "Beef-Stuffed Potato Boats", ingredients: [{ text: "Beef" }], method: [] },
+  cathedral: { cardId: "cathedral", title: "Cathedral City Mini Extra Mature with Cheesy Roasted Garlic Bread", tip: "Cook egg whites when eggs are in the pan. One Brazil nut a day only if that tin was purchased.", ingredients: [{ text: "Cheddar" }, { text: "eggs" }], method: [{ verb: "Cook", detail: "egg whites when eggs are in the pan." }] }
+} });
+mem.relic_smoothie_meals_v22 = JSON.stringify({ cards: {
+  audits: { cardId: "audits", title: "AUDIT Smoothie 1", ingredients: [], method: [] },
+  "berry-banana-brazil": { cardId: "berry-banana-brazil", title: "Berry Banana Brazil", tip: "FOOD_LIVE lock: one Brazil nut a day", ingredients: [{ text: "1 Brazil nut maximum", skuId: "brazil", qty: 1 }], method: [{ verb: "Eat", detail: "One Brazil nut maximum" }] }
+} });
 mem.relic_food_hg_v22 = JSON.stringify({ months: { "2026-10": { placements: { "2026-10-01": { lunch: "audit" } } } } });
-mem.relic_food_final_v22 = JSON.stringify({ months: { "2026-10": { placements: { "2026-10-02": { dinner: "audit" } } } } });
+mem.relic_food_final_v22 = JSON.stringify({ months: {
+  "2026-10": { placements: { "2026-10-02": { dinner: "audit" } } },
+  "2026-11": { placements: { "2026-11-02": { lunch: "dup-boats" } } }
+} });
 ["relic_food_cabinet_v22", "relic_food_savelater_v22", "relic_food_shop_v22", "relic_food_flylog_v22", "relic_smoothie_cabinet_v22", "relic_smoothie_hg_v22", "relic_smoothie_final_v22", "relic_smoothie_savelater_v22", "relic_smoothie_flylog_v22"].forEach(function (key) {
   mem[key] = "{}";
 });
@@ -180,6 +245,15 @@ if (Object.keys(backup).length !== 13) fail("backup " + Object.keys(backup).leng
 if (migrated.recipes.audit || migrated.recipes.audits) fail("audit cards kept");
 const oct = migrated.months["2026-10"];
 if (oct && oct.days && (oct.days["2026-10-01"] || oct.days["2026-10-02"])) fail("october plan kept");
+if (migrated.recipes["dup-boats"]) fail("duplicate boats kept");
+const boats = Object.keys(migrated.recipes).filter(function (id) { return migrated.recipes[id].title === "Beef-Stuffed Potato Boats"; });
+if (boats.length !== 1) fail("boats " + boats.join(","));
+const novLunch = migrated.months["2026-11"] && migrated.months["2026-11"].days["2026-11-02"];
+if (!novLunch || novLunch.lunch !== boats[0]) fail("duplicate slot not remapped " + JSON.stringify(novLunch));
+const cathedral = migrated.recipes.cathedral;
+const berry = migrated.recipes["berry-banana-brazil"];
+if (!cathedral || /\beggs?\b|egg white|one brazil nut|1 brazil nut/i.test(JSON.stringify(cathedral))) fail("cathedral text " + JSON.stringify(cathedral));
+if (!berry || /one brazil nut|1 brazil nut|maximum/i.test(JSON.stringify(berry)) || !/2 Brazil nuts a day/.test(JSON.stringify(berry))) fail("berry text " + JSON.stringify(berry));
 const once = mem.nexus_food_v1;
 t.read();
 if (mem.nexus_food_v1 !== once) fail("second migrate wrote");
@@ -188,4 +262,4 @@ if (fails.length) {
   console.error(fails.length + " failed");
   process.exit(1);
 }
-console.log("OK food OS v38");
+console.log("OK food OS v39");

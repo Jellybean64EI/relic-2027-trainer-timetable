@@ -1,4 +1,4 @@
-/* Nexus food planner v38. Meals and smoothies share one store.
+/* Nexus food planner v39. Meals and smoothies share one store.
    Does not read relic_completions or training keys. */
 (function (root) {
   "use strict";
@@ -30,6 +30,7 @@
   ];
   var BRAZIL_CITE = "Joe v38, 12 Oct 2026. Brazil nuts are 2 a day, beside the glass, not in the jug.";
   var cache = null;
+  var base = null;
   var ui = {
     door: "food",
     screen: "recipes",
@@ -42,6 +43,7 @@
     gap: "",
     toast: "",
     toastTimer: 0,
+    syncNote: "",
     showPrep: false
   };
 
@@ -60,7 +62,70 @@
   }
 
   function isEgg(text) {
-    return /\beggs?\b/i.test(String(text || ""));
+    return /\beggs?\b|\begg whites?\b/i.test(String(text || ""));
+  }
+
+  function badBrazil(text) {
+    return /\bone brazil nut\b|\b1 brazil nut\b|brazil nut maximum|\bone nut a day\b/i.test(String(text || ""));
+  }
+
+  function scrubText(text) {
+    var value = String(text || "");
+    if (!value) return "";
+    value = value.replace(/\bone brazil nut(?: a day| maximum)?(?: only if (?:that tin was )?purchased)?/gi, "2 Brazil nuts a day");
+    value = value.replace(/\b1 brazil nut(?: a day| maximum)?/gi, "2 Brazil nuts a day");
+    value = value.replace(/\bone nut a day\b/gi, "2 Brazil nuts a day");
+    value = value.replace(/\bone a day only if purchased\b/gi, "2 Brazil nuts a day");
+    value = value.replace(/Brazil tin: 7 nuts for the week, one a day/gi, "Brazil tin: 14 nuts for the week, 2 a day");
+    value = value.replace(/[^.!?\n]*\begg whites?\b[^.!?\n]*[.!?]?/gi, "");
+    value = value.replace(/[^.!?\n]*\beggs?\b[^.!?\n]*[.!?]?/gi, "");
+    return value.replace(/\s{2,}/g, " ").replace(/\s+([.!?])/g, "$1").trim();
+  }
+
+  function cardBlob(recipe) {
+    if (!recipe) return "";
+    return [recipe.title, recipe.tip, recipe.script, recipe.source]
+      .concat((recipe.ingredients || []).map(function (item) { return item.name || item.text || ""; }))
+      .concat((recipe.method || []).map(function (step) { return (step.verb || "") + " " + (step.detail || ""); }))
+      .join(" ");
+  }
+
+  function textIssues(recipe) {
+    var blob = cardBlob(recipe);
+    var issues = [];
+    if (badBrazil(blob)) issues.push("Brazil nuts are 2 a day.");
+    if (isEgg(blob)) issues.push("Eggs are not used.");
+    return issues;
+  }
+
+  function scrubRecipe(recipe) {
+    if (!recipe) return null;
+    ["title", "tip", "script", "source"].forEach(function (key) {
+      if (recipe[key]) recipe[key] = scrubText(recipe[key]);
+    });
+    recipe.ingredients = (recipe.ingredients || []).map(function (item) {
+      var original = item.name || item.text || "";
+      item.name = scrubText(original);
+      if ((/brazil nut/i.test(item.name) || item.skuId === "brazil") && ((+item.qty || 1) < 2 || badBrazil(original))) {
+        item.qty = 2;
+        item.brazilNuts = 2;
+      }
+      return item;
+    }).filter(function (item) { return item.name && !isEgg(item.name); });
+    recipe.method = (recipe.method || []).map(function (step) {
+      step.verb = scrubText(step.verb || "");
+      step.detail = scrubText(step.detail || "");
+      return step;
+    }).filter(function (step) {
+      var blob = ((step.verb || "") + " " + (step.detail || "")).trim();
+      return blob && !isEgg(blob);
+    });
+    if (!recipe.title || isEgg(recipe.title)) return null;
+    return recipe;
+  }
+
+  function normTitle(title) {
+    return String(title || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   }
 
   function todayKey() {
@@ -226,8 +291,8 @@
     var recipes = {};
     function add(recipe) {
       if (!recipe || !recipe.id || recipes[recipe.id]) return;
-      var blob = recipe.title + " " + (recipe.ingredients || []).map(function (item) { return item.name; }).join(" ");
-      if (isEgg(blob)) return;
+      recipe = scrubRecipe(recipe);
+      if (!recipe || isEgg(cardBlob(recipe))) return;
       recipes[recipe.id] = recipe;
     }
     var meals = root.RELIC_FOOD_MEALS;
@@ -330,8 +395,6 @@
     if (!card) return null;
     var title = card.title || card.name || "";
     if (/^AUDIT\b/i.test(title) || /^AUDIT/i.test(card.noteCode || "")) return null;
-    var ingredientText = (card.ingredients || []).map(function (item) { return item.text || item.name || ""; }).join(" ");
-    if (isEgg(title + " " + ingredientText)) return null;
     var tagline = card.tagline || "";
     var tip = card.tip || "";
     if (tagline === "Morning or lunch.") tagline = "";
@@ -356,7 +419,74 @@
     };
     if (!recipe.id) return null;
     if (recipe.kind === "extraction") recipe.purpose = purposeOf(recipe);
-    return recipe;
+    return scrubRecipe(recipe);
+  }
+
+  function dedupeRecipes(store) {
+    var groups = {};
+    Object.keys(store.recipes || {}).forEach(function (id) {
+      var title = normTitle(store.recipes[id] && store.recipes[id].title);
+      if (!title) return;
+      if (!groups[title]) groups[title] = [];
+      groups[title].push(id);
+    });
+    var alias = {};
+    var removed = 0;
+    Object.keys(groups).forEach(function (title) {
+      var ids = groups[title];
+      if (ids.length < 2) return;
+      ids.sort(function (a, b) {
+        var ap = a.indexOf("pack001") === 0 ? 1 : 0;
+        var bp = b.indexOf("pack001") === 0 ? 1 : 0;
+        if (ap !== bp) return ap - bp;
+        var as = store.recipes[a].seed ? 0 : 1;
+        var bs = store.recipes[b].seed ? 0 : 1;
+        if (as !== bs) return as - bs;
+        return a < b ? -1 : 1;
+      });
+      var keep = ids[0];
+      ids.slice(1).forEach(function (id) {
+        alias[id] = keep;
+        delete store.recipes[id];
+        removed += 1;
+      });
+    });
+    if (!removed) return 0;
+    Object.keys(store.months || {}).forEach(function (key) {
+      var days = store.months[key].days || {};
+      Object.keys(days).forEach(function (date) {
+        var day = days[date];
+        ["breakfast", "morning", "lunch", "evening"].forEach(function (slot) {
+          if (alias[day[slot]]) day[slot] = alias[day[slot]];
+        });
+      });
+    });
+    Object.keys(store.templates || {}).forEach(function (id) {
+      var pattern = store.templates[id].weekdayPattern || {};
+      Object.keys(pattern).forEach(function (name) {
+        ["breakfast", "morning", "lunch", "evening"].forEach(function (slot) {
+          if (alias[pattern[name][slot]]) pattern[name][slot] = alias[pattern[name][slot]];
+        });
+      });
+    });
+    return removed;
+  }
+
+  function scrubStore(store) {
+    var changed = false;
+    Object.keys(store.recipes || {}).forEach(function (id) {
+      var before = JSON.stringify(store.recipes[id]);
+      var next = scrubRecipe(store.recipes[id]);
+      if (!next) {
+        delete store.recipes[id];
+        changed = true;
+        return;
+      }
+      store.recipes[id] = next;
+      if (JSON.stringify(next) !== before) changed = true;
+    });
+    if (dedupeRecipes(store)) changed = true;
+    return changed;
   }
 
   function importPlacements(store, record, mapSlot, monthFilter) {
@@ -439,10 +569,86 @@
       store.months["2026-10"].status = "draft";
       store.months["2026-10"].lockedAt = null;
     }
+    scrubStore(store);
+    store.scrubbed = 39;
+    store.rev = 0;
     var kept = Object.keys(store.recipes).length;
     store.notice = "Your plans were moved. " + kept + " cards kept. October plan cleared." +
       (droppedAudit ? " " + droppedAudit + " AUDIT cards removed." : "");
     return store;
+  }
+
+  function rememberBase() {
+    base = cache ? clone(cache) : null;
+  }
+
+  function sameJson(a, b) {
+    return JSON.stringify(a == null ? null : a) === JSON.stringify(b == null ? null : b);
+  }
+
+  function mergeValue(baseVal, localVal, diskVal, label, conflicts) {
+    if (sameJson(localVal, baseVal)) return diskVal;
+    if (sameJson(diskVal, baseVal) || sameJson(diskVal, localVal)) return localVal;
+    conflicts.push(label);
+    return diskVal;
+  }
+
+  function mergeFood(baseSnap, local, disk) {
+    var conflicts = [];
+    var out = clone(disk);
+    out.recipes = out.recipes || {};
+    var ids = {};
+    [baseSnap.recipes, local.recipes, disk.recipes].forEach(function (recipes) {
+      Object.keys(recipes || {}).forEach(function (id) { ids[id] = 1; });
+    });
+    Object.keys(ids).forEach(function (id) {
+      var b = (baseSnap.recipes || {})[id] || null;
+      var l = (local.recipes || {})[id] || null;
+      var d = (disk.recipes || {})[id] || null;
+      var next = mergeValue(b, l, d, "card " + id, conflicts);
+      if (next) out.recipes[id] = next;
+      else delete out.recipes[id];
+    });
+    out.months = out.months || {};
+    var monthKeys = {};
+    [baseSnap.months, local.months, disk.months].forEach(function (months) {
+      Object.keys(months || {}).forEach(function (key) { monthKeys[key] = 1; });
+    });
+    Object.keys(monthKeys).forEach(function (key) {
+      var b = (baseSnap.months || {})[key] || blankMonth(key);
+      var l = (local.months || {})[key] || blankMonth(key);
+      var d = (disk.months || {})[key] || blankMonth(key);
+      if (!out.months[key]) out.months[key] = clone(d);
+      var target = out.months[key];
+      target.slots = mergeValue(b.slots || defaultSlots(), l.slots || defaultSlots(), d.slots || defaultSlots(), key + " slots", conflicts);
+      target.status = mergeValue(b.status || "draft", l.status || "draft", d.status || "draft", key + " status", conflicts);
+      target.days = target.days || {};
+      var dates = {};
+      [b.days, l.days, d.days].forEach(function (days) {
+        Object.keys(days || {}).forEach(function (date) { dates[date] = 1; });
+      });
+      Object.keys(dates).forEach(function (date) {
+        var bd = (b.days || {})[date] || blankDay();
+        var ld = (l.days || {})[date] || blankDay();
+        var dd = (d.days || {})[date] || blankDay();
+        if (!target.days[date]) target.days[date] = clone(dd);
+        ["breakfast", "morning", "lunch", "evening"].forEach(function (slot) {
+          target.days[date][slot] = mergeValue(bd[slot] || "", ld[slot] || "", dd[slot] || "", key + " " + date + " " + slot, conflicts) || "";
+        });
+      });
+    });
+    out.templates = out.templates || {};
+    var templateIds = {};
+    [baseSnap.templates, local.templates, disk.templates].forEach(function (templates) {
+      Object.keys(templates || {}).forEach(function (id) { templateIds[id] = 1; });
+    });
+    Object.keys(templateIds).forEach(function (id) {
+      var next = mergeValue((baseSnap.templates || {})[id] || null, (local.templates || {})[id] || null, (disk.templates || {})[id] || null, "template " + id, conflicts);
+      if (next) out.templates[id] = next;
+      else delete out.templates[id];
+    });
+    if (!sameJson(local.undo, baseSnap.undo)) out.undo = clone(local.undo || []);
+    return { store: out, conflicts: conflicts };
   }
 
   function read() {
@@ -455,6 +661,18 @@
       cache.templates = cache.templates || {};
       cache.undo = cache.undo || [];
       cache.view = cache.view || { month: monthOf(todayKey()) };
+      cache.rev = cache.rev || 0;
+      if ((cache.scrubbed || 0) < 39) {
+        var dirty = scrubStore(cache);
+        cache.scrubbed = 39;
+        if (dirty) {
+          cache.notice = (cache.notice ? cache.notice + " " : "") +
+            "Cards now say 2 Brazil nuts a day. Egg lines were removed. Duplicate cards were merged.";
+        }
+        save();
+      } else {
+        rememberBase();
+      }
       return cache;
     }
     cache = migrate();
@@ -464,9 +682,61 @@
 
   function save() {
     var store = cache || read();
+    var disk = parseJson(storageGet(KEY));
+    if (disk && disk.schema === 1 && (disk.rev || 0) !== (store.rev || 0)) {
+      if (!base) {
+        cache = disk;
+        rememberBase();
+        ui.syncNote = "Another tab saved a newer plan. This change was not written.";
+        return { refused: true };
+      }
+      var merged = mergeFood(base, store, disk);
+      if (merged.conflicts.length) {
+        cache = disk;
+        rememberBase();
+        ui.syncNote = "Another tab saved a newer plan. This change was not written.";
+        return { refused: true };
+      }
+      cache = merged.store;
+      store = cache;
+      ui.syncNote = "Merged with a newer plan from another tab.";
+      disk = merged.store;
+    }
+    store.rev = ((disk && disk.rev) || 0) + 1;
+    if ((store.rev || 0) <= ((disk && disk.rev) || 0)) store.rev = (disk.rev || 0) + 1;
     store.updatedAt = new Date().toISOString();
     storageSet(KEY, JSON.stringify(store));
+    rememberBase();
     return store;
+  }
+
+  function onStorage(event) {
+    if (!event || event.key !== KEY) return;
+    var disk = parseJson(event.newValue);
+    if (!disk || disk.schema !== 1 || !cache) return;
+    if ((disk.rev || 0) === (cache.rev || 0)) return;
+    var board = root.document && root.document.getElementById && root.document.getElementById("planner-board");
+    var showing = !!(board && !board.hidden);
+    var quiet = base && sameJson(cache.recipes, base.recipes) && sameJson(cache.months, base.months) && sameJson(cache.templates, base.templates);
+    if (quiet) {
+      cache = disk;
+      rememberBase();
+      ui.syncNote = "Updated from another tab.";
+      if (showing) paint();
+      return;
+    }
+    var merged = mergeFood(base || cache, cache, disk);
+    if (merged.conflicts.length) {
+      cache = disk;
+      rememberBase();
+      ui.syncNote = "Another tab saved a newer plan. This change was not written.";
+      if (showing) paint();
+      return;
+    }
+    cache = merged.store;
+    ui.syncNote = "Merged with a newer plan from another tab.";
+    save();
+    if (showing) paint();
   }
 
   function ensureMonth(store, key) {
@@ -569,6 +839,9 @@
         if (slot.key === "evening" && (recipe.notDinner || isSmoothie(recipe))) {
           problems.push({ date: info.date, slot: slot.key, reason: "A smoothie cannot be the evening meal." });
         }
+        textIssues(recipe).forEach(function (reason) {
+          problems.push({ date: info.date, slot: "text", reason: reason + " Card " + recipe.id + "." });
+        });
       });
     });
     return problems;
@@ -601,7 +874,8 @@
       day.why[slot] = "";
     }
     applyBrazil(store, month, day);
-    save();
+    var written = save();
+    if (written && written.refused) return { error: ui.syncNote, stale: true };
     return { cleared: cleared };
   }
 
@@ -625,8 +899,15 @@
   }
 
   function candidates(store, slot) {
+    var seen = {};
+    var titles = {};
     return Object.keys(store.recipes).map(function (id) { return store.recipes[id]; }).filter(function (recipe) {
-      return allows(recipe, slot);
+      if (!recipe || seen[recipe.id] || !allows(recipe, slot)) return false;
+      var title = normTitle(recipe.title);
+      if (titles[title]) return false;
+      seen[recipe.id] = true;
+      titles[title] = true;
+      return true;
     }).sort(function (a, b) {
       if (!!b.favourite - !!a.favourite) return b.favourite - a.favourite;
       return a.title < b.title ? -1 : 1;
@@ -807,9 +1088,8 @@
   function commitDraft(draft) {
     var title = String(draft.title || "").trim();
     if (!title) return { error: "Add a name before saving." };
-    if (isEgg(title + " " + (draft.ingredients || []).map(function (item) { return item.name; }).join(" "))) {
-      return { error: "Eggs are not used." };
-    }
+    var issues = textIssues(draft);
+    if (issues.length) return { error: issues[0] };
     if (recipeNuts(draft) > 2) return { error: "A card cannot carry more than 2 Brazil nuts." };
     var store = read();
     var id = draft.id || ("card-" + Date.now().toString(36));
@@ -903,12 +1183,21 @@
     return id;
   }
 
-  function applyTemplate(id, key) {
+  function monthHasEntries(month) {
+    var days = month && month.days || {};
+    return Object.keys(days).some(function (date) {
+      var day = days[date];
+      return day && (day.breakfast || day.morning || day.lunch || day.evening);
+    });
+  }
+
+  function applyTemplate(id, key, force) {
     var store = read();
     var template = store.templates[id];
     if (!template) return { error: "Missing template." };
-    pushUndo("Applied " + template.name);
     var month = ensureMonth(store, key);
+    if (!force && monthHasEntries(month)) return { needsConfirm: true, month: key };
+    pushUndo("Applied " + template.name);
     if (template.slots) month.slots = clone(template.slots);
     var cleared = 0;
     dateList(key).forEach(function (info) {
@@ -1036,16 +1325,18 @@
       html += '<p class="planner-notice" role="status">' + esc(store.notice) +
         ' <button type="button" data-planner-act="dismiss-notice">OK</button></p>';
     }
+    if (ui.syncNote) html += '<p class="planner-error" role="alert">' + esc(ui.syncNote) + "</p>";
     if (ui.error) html += '<p class="planner-error" role="alert">' + esc(ui.error) + "</p>";
     if (ui.screen === "recipes") html += recipesHtml(store);
     if (ui.screen === "plan") html += planHtml(store);
     if (ui.screen === "today") html += todayHtml(store);
-    if (ui.sheet) html += sheetHtml(store);
     if (ui.toast) {
       html += '<p class="planner-undo" role="status">' + esc(ui.toast) +
         (store.undo.length ? ' <button type="button" data-planner-act="undo">Undo</button>' : "") + "</p>";
     }
     rootEl.innerHTML = html;
+    var host = sheetHost();
+    if (host) host.innerHTML = ui.sheet ? sheetHtml(store) : "";
     var gapEl = ui.gap && root.document.getElementById("slot-" + ui.gap.replace("|", "-"));
     if (gapEl && gapEl.scrollIntoView) gapEl.scrollIntoView({ block: "center" });
   }
@@ -1222,9 +1513,50 @@
     return cursor.getUTCFullYear() + "-" + pad(cursor.getUTCMonth() + 1) + "-" + pad(cursor.getUTCDate());
   }
 
+  function realMonth() {
+    return monthOf(todayKey());
+  }
+
+  function clampMonth(key) {
+    var current = realMonth();
+    return !key || key < current ? current : key;
+  }
+
+  function shiftMonthKey(key, delta) {
+    var parts = clampMonth(key).split("-");
+    var cursor = new Date(Date.UTC(+parts[0], +parts[1] - 1 + delta, 1));
+    return clampMonth(cursor.getUTCFullYear() + "-" + pad(cursor.getUTCMonth() + 1));
+  }
+
+  function futureMonths(count) {
+    var list = [];
+    var key = realMonth();
+    var i;
+    for (i = 0; i < (count || 18); i++) {
+      list.push(key);
+      key = shiftMonthKey(key, 1);
+      if (list.indexOf(key) !== -1) break;
+    }
+    return list;
+  }
+
+  function sheetHost() {
+    if (!root.document || !root.document.getElementById || !root.document.createElement || !root.document.body) return null;
+    var host = root.document.getElementById("planner-sheet-host");
+    if (host) return host;
+    host = root.document.createElement("div");
+    host.id = "planner-sheet-host";
+    root.document.body.appendChild(host);
+    host.addEventListener("click", onClick);
+    host.addEventListener("input", onInput);
+    return host;
+  }
+
   function sheetHtml(store) {
     var sheet = ui.sheet;
-    var html = '<div class="planner-sheet" role="dialog">';
+    var html = '<div class="planner-sheet-layer">';
+    html += '<button type="button" class="planner-sheet-backdrop" data-planner-act="close-sheet" aria-label="Close"></button>';
+    html += '<div class="planner-sheet" role="dialog" aria-modal="true">';
     if (sheet.type === "swap") {
       var list = candidates(store, sheet.slot);
       html += "<h3>Choose " + esc(sheet.slot) + "</h3>";
@@ -1238,12 +1570,17 @@
       html += '<button type="button" data-planner-act="repeat">Repeat on every ' + esc(weekdayName(sheet.date)) + "</button>";
     } else if (sheet.type === "add") {
       var recipe = store.recipes[sheet.id];
+      var key = clampMonth(sheet.month || currentMonth());
+      sheet.month = key;
+      if (!sheet.date || sheet.date.slice(0, 7) !== key) sheet.date = defaultDate(key);
       html += "<h3>Add " + esc(recipe ? recipe.title : "") + "</h3>";
-      var key = currentMonth();
+      html += '<div class="planner-bar"><button type="button" data-planner-act="add-month-prev" aria-label="Previous month">Prev</button>' +
+        "<h3 class=\"planner-title\">" + esc(monthName(key)) + "</h3>" +
+        '<button type="button" data-planner-act="add-month-next" aria-label="Next month">Next</button></div>';
       html += '<label>Day<select data-planner-field="add-date">';
       dateList(key).forEach(function (info) {
-        var selected = info.date === (sheet.date || defaultDate(key));
-        html += '<option value="' + info.date + '"' + (selected ? " selected" : "") + ">" + esc(info.name + " " + info.day) + "</option>";
+        var selected = info.date === sheet.date;
+        html += '<option value="' + info.date + '"' + (selected ? " selected" : "") + ">" + esc(info.name + " " + info.day + " " + MONTHS[info.date.slice(5, 7) * 1].slice(0, 3)) + "</option>";
       });
       html += "</select></label>";
       html += '<div class="planner-actions">';
@@ -1252,6 +1589,11 @@
         html += '<button type="button" data-planner-act="add-slot" data-slot="' + slot.key + '">' + slot.label + "</button>";
       });
       html += "</div>";
+    } else if (sheet.type === "apply") {
+      var template = store.templates[sheet.id];
+      html += "<h3>Replace " + esc(monthName(sheet.month || currentMonth())) + "?</h3>" +
+        "<p>" + esc(template ? template.name : "This template") + " will replace meals already in this month. You can undo afterwards.</p>" +
+        '<button type="button" class="planner-primary" data-planner-act="confirm-apply">Replace this month</button>';
     } else if (sheet.type === "delete") {
       var victim = store.recipes[sheet.id];
       var count = usage(sheet.id).length;
@@ -1281,7 +1623,7 @@
     } else if (sheet.type === "delete-template") {
       html += "<h3>Delete this template?</h3><button type=\"button\" data-planner-act=\"confirm-delete-template\">Delete template</button>";
     }
-    html += '<button type="button" data-planner-act="close-sheet">Cancel</button></div>';
+    html += '<button type="button" data-planner-act="close-sheet">Cancel</button></div></div>';
     return html;
   }
 
@@ -1392,11 +1734,20 @@
       paint();
       return;
     }
+    if (act === "add-month-prev" || act === "add-month-next") {
+      ui.sheet.month = shiftMonthKey(ui.sheet.month || currentMonth(), act === "add-month-next" ? 1 : -1);
+      ui.sheet.date = defaultDate(ui.sheet.month);
+      paint();
+      return;
+    }
     if (act === "add-slot") {
       var select = root.document.querySelector("[data-planner-field='add-date']");
-      var result = setSlot(currentMonth(), select ? select.value : ui.sheet.date, button.getAttribute("data-slot"), ui.sheet.id);
+      var date = select ? select.value : ui.sheet.date;
+      var result = setSlot(monthOf(date), date, button.getAttribute("data-slot"), ui.sheet.id);
       ui.sheet = null;
+      if (result.stale) { ui.error = result.error; paint(); return; }
       ui.screen = "plan";
+      setMonth(monthOf(date));
       if (result.cleared) ui.toast = result.cleared + " tick cleared.";
       paint();
       return;
@@ -1455,7 +1806,25 @@
       paint();
       return;
     }
-    if (act === "apply-template") { applyTemplate(button.getAttribute("data-id"), currentMonth()); ui.sheet = null; ui.screen = "plan"; paint(); return; }
+    if (act === "apply-template") {
+      var pending = applyTemplate(button.getAttribute("data-id"), currentMonth(), false);
+      if (pending.needsConfirm) {
+        ui.sheet = { type: "apply", id: button.getAttribute("data-id"), month: currentMonth() };
+        paint();
+        return;
+      }
+      ui.sheet = null;
+      ui.screen = "plan";
+      paint();
+      return;
+    }
+    if (act === "confirm-apply") {
+      applyTemplate(ui.sheet.id, ui.sheet.month || currentMonth(), true);
+      ui.sheet = null;
+      ui.screen = "plan";
+      paint();
+      return;
+    }
     if (act === "ask-rename") {
       var template = store.templates[button.getAttribute("data-id")];
       ui.sheet = { type: "rename", id: button.getAttribute("data-id"), name: template ? template.name : "" };
@@ -1586,6 +1955,24 @@
         var store = read();
         return dayNuts(store, ensureMonth(store, key), ensureDay(ensureMonth(store, key), date));
       },
+      syncNote: function () { return ui.syncNote; },
+      rev: function () { return read().rev; },
+      candidates: function (slot) {
+        return candidates(read(), slot).map(function (recipe) { return recipe.id; });
+      },
+      futureMonths: futureMonths,
+      clampMonth: clampMonth,
+      lint: function (id) { return textIssues(read().recipes[id]); },
+      duplicateTitles: function () {
+        var seen = {};
+        var dups = [];
+        Object.keys(read().recipes).forEach(function (id) {
+          var title = normTitle(read().recipes[id].title);
+          if (seen[title]) dups.push(title);
+          seen[title] = id;
+        });
+        return dups;
+      },
       setNuts: function (id, count) {
         var recipe = read().recipes[id];
         recipe.ingredients.push({ name: "Brazil nuts", qty: count, unit: "each", multiple: 1, skuId: "brazil", brazilNuts: count });
@@ -1605,4 +1992,5 @@
   };
 
   if (root.document && root.document.getElementById) bind();
+  if (root.addEventListener) root.addEventListener("storage", onStorage);
 })(typeof window !== "undefined" ? window : globalThis);
