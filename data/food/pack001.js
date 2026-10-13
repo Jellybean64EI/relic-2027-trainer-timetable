@@ -297,7 +297,7 @@
       method: [
         step("Pour", "water. Milk or Greek yogurt is an ESTIMATE add and is not on the receipt."),
         step("Add", lines.map(function (pair) { return pair[0]; }).join("; ") + "."),
-        step("Blend", "until smooth. 2 Brazil nuts a day, beside the glass, not in the jug."),
+        step("Blend", "until smooth."),
         step("Drink", "at morning or lunch. Extractions aren't dinner.")
       ]
     });
@@ -329,7 +329,7 @@
     glass("extract-mango-date", "Mango Date", "Sunday morning.", [
       ["Frozen mango chunks", "sainsburys-sku-TBD-117"],
       ["Taste the Difference Medjool dates", "sainsburys-sku-TBD-114"]
-    ], "Morning or lunch only. 2 Brazil nuts a day, beside the glass.")
+    ], "Morning or lunch only.")
   ].forEach(function (row) { extractions[row.id] = row; });
 
   var collections = {

@@ -3283,6 +3283,7 @@ body.is-food .schedule-switch {
 
 .planner-tabs button,
 .planner-bar button,
+.planner-daybar button,
 .planner-primary,
 .planner-actions button,
 .planner-chip,
@@ -3372,9 +3373,65 @@ body.is-food .schedule-switch {
 .planner-slot {
   width: 100%;
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+}
+
+.planner-slot {
   flex-direction: column;
   align-items: flex-start;
-  text-align: left;
+}
+
+.planner-card-open strong,
+.planner-slot strong {
+  min-width: 0;
+}
+
+.planner-tag {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #12051d;
+  color: #f6eefe;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.planner-daybar {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.planner-daybar button {
+  flex: 0 0 auto;
+  padding: 8px;
+  font-size: 0.85rem;
+}
+
+.planner-daybar .planner-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: center;
+  font-size: 0.95rem;
+  line-height: 1.15;
+  white-space: normal;
+}
+
+.planner-today-copy {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.planner-today-copy span {
+  color: #f3e8ff;
+  font-weight: 800;
 }
 
 .planner-slot.is-gap {
