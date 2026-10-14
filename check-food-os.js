@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* v41: card fits, day-slot toggles, plain recipe cards. */
+/* v42: scoped undo, week plan, confirms, stale-tab copy. */
 const fs = require("fs");
 const vm = require("vm");
 
@@ -11,7 +11,7 @@ const app = fs.readFileSync("app.js", "utf8");
 const food = fs.readFileSync("food.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v41"') === -1 || html.indexOf("food.js?v=v41") === -1) fail("cache stamp");
+if (html.indexOf('content="v42"') === -1 || html.indexOf("food.js?v=v42") === -1) fail("cache stamp");
 if (css.indexOf("#planner-sheet-host") === -1 || css.indexOf("safe-area-inset-bottom") === -1 || css.indexOf("100dvh") === -1) fail("sheet viewport");
 if (/^\.planner-sheet \{[^}]*position:\s*sticky/m.test(css)) fail("sheet still sticky");
 ["recipes", "plan", "today"].forEach(function (screen) {
@@ -143,10 +143,10 @@ const first = t.lock("2026-10", false);
 if (!first.ok || t.month("2026-10").status !== "locked") fail("lock " + JSON.stringify(first));
 t.toggleTick("2026-10-12", "lunch");
 const again = t.lock("2026-10", false);
-if (!again.needsConfirm) fail("relock confirm");
+if (again.ok || !again.locked) fail("second lock " + JSON.stringify(again));
 const frozen = JSON.stringify(t.month("2026-10"));
 t.lock("2026-10", false);
-if (JSON.stringify(t.month("2026-10")) !== frozen) fail("cancel relock mutated");
+if (JSON.stringify(t.month("2026-10")) !== frozen) fail("second lock mutated");
 
 t.setNuts(seedId, 3);
 const over = t.validate("2026-10").filter(function (item) { return item.slot === "brazil"; });
@@ -219,7 +219,7 @@ clash.months["2026-10"].days["2026-10-12"].evening = "salmon-rice-plate";
 mem.nexus_food_v1 = JSON.stringify(clash);
 const refused = t.setSlot("2026-10", "2026-10-12", "evening", "beef-stuffed-potato-boats");
 if (!refused.stale || t.month("2026-10").days["2026-10-12"].evening !== "salmon-rice-plate") fail("stale write won " + JSON.stringify(refused));
-if (t.syncNote().indexOf("not written") === -1) fail("stale notice " + t.syncNote());
+if (t.syncNote().indexOf("This plan changed in another tab. Reload") === -1) fail("stale notice " + t.syncNote());
 
 t.reset();
 mem.relic_food_meals_v22 = JSON.stringify({ cards: {
@@ -302,8 +302,54 @@ t.setFlag("2027-04", "breakfast", true);
 if (t.enabledSlots("2027-04").indexOf("Breakfast") === -1 || t.month("2027-04").days["2027-04-02"].breakfast !== oats.id) fail("breakfast restore");
 if (food.indexOf("Meals each day") === -1 || food.indexOf("Choose meals each day") === -1) fail("plan helper missing");
 
+t.autoOrganise("2027-06");
+const juneLunch = t.month("2027-06").days["2027-06-01"].lunch;
+const juneLock = t.lock("2027-06");
+if (!juneLock.ok || t.month("2027-06").status !== "locked") fail("june lock " + JSON.stringify(juneLock));
+if (!t.undo() || t.month("2027-06").status === "locked" || t.month("2027-06").days["2027-06-01"].lunch !== juneLunch) fail("lock undo emptied the month");
+const undone = t.toast();
+if (!undone || String(undone.text).indexOf("Undone:") !== 0 || undone.undoId) fail("undone toast " + JSON.stringify(undone));
+const juneTpl = t.saveTemplate("2027-06", "June");
+t.applyTemplate(juneTpl, "2027-06", true);
+t.lock("2027-06");
+if (t.month("2027-06").status !== "locked" || !t.month("2027-06").days["2027-06-02"].lunch) fail("apply then lock");
+if (!t.undo() || t.month("2027-06").status === "locked" || !t.month("2027-06").days["2027-06-02"].lunch) fail("undo after lock kept the lock");
+const filled = t.filled("2027-06");
+const askClear = t.requestClear("2027-06");
+if (!filled || !askClear.needsConfirm || askClear.count !== filled) fail("clear confirm " + filled + " " + JSON.stringify(askClear));
+t.clearMonth("2027-06");
+if (t.filled("2027-06")) fail("month still filled");
+if (!t.undo() || !t.filled("2027-06")) fail("clear undo");
+t.setSlot("2027-06", "2027-06-08", "lunch", "");
+t.setSlot("2027-06", "2027-06-09", "lunch", "salmon-rice-plate");
+t.applyTemplate(juneTpl, "2027-06", "fill");
+if (t.month("2027-06").days["2027-06-09"].lunch !== "salmon-rice-plate") fail("fill replaced a meal");
+if (!t.month("2027-06").days["2027-06-08"].lunch) fail("fill left an empty lunch");
+if (t.slotTitle("2026-12-01", "morning") !== "Tue 1 Dec · Smoothie") fail("slot title " + t.slotTitle("2026-12-01", "morning"));
+t.setMonth("2026-12");
+const oneWeek = t.weekDates("2026-12");
+if (!oneWeek.length || oneWeek.length > 7) fail("week length " + oneWeek.length);
+t.shiftWeek(1);
+const nextWeek = t.weekDates("2026-12");
+if (!nextWeek.length || nextWeek[0].date === oneWeek[0].date || nextWeek.length > 7) fail("next week " + (nextWeek[0] && nextWeek[0].date));
+t.setSlot("2027-08", "2027-08-04", "lunch", "salmon-rice-plate");
+const beforeLunch = t.month("2027-08").days["2027-08-04"].lunch;
+const swapped = t.place("2027-08", "2027-08-04", "lunch", "cheesy-potato-toast");
+if (swapped.error || !t.toast() || t.toast().text.indexOf("Changed") === -1 || !t.toast().undoId) fail("swap toast " + JSON.stringify(t.toast()));
+const blob = mem.nexus_food_v1;
+t.reset();
+mem.nexus_food_v1 = blob;
+if (!t.undo() || t.month("2027-08").days["2027-08-04"].lunch !== beforeLunch) fail("undo after reload");
+if (food.indexOf("Replace it with this version") !== -1) fail("relock sheet remains");
+if (food.indexOf("Unlock the month to change a slot") !== -1) fail("stale unlock copy");
+if (food.indexOf("Synced") !== -1) fail("food says Synced");
+if (food.indexOf("This plan changed in another tab. Reload") === -1) fail("stale copy missing");
+if (food.indexOf("Unlock to edit") === -1 || food.indexOf("Fill only empty") === -1 || food.indexOf("Clear all ") === -1) fail("confirm copy");
+if (food.indexOf('data-planner-act="week-prev"') === -1) fail("week nav");
+if (css.indexOf("#planner-toast-host") === -1 || css.indexOf(".planner-prep-toggle") === -1) fail("toast css");
+
 if (fails.length) {
   console.error(fails.length + " failed");
   process.exit(1);
 }
-console.log("OK food OS v41");
+console.log("OK food OS v42");

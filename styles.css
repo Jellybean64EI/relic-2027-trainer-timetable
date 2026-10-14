@@ -3295,7 +3295,9 @@ body.is-food .schedule-switch {
 .planner-editor button,
 .planner-week-head button,
 .planner-notice button,
-.planner-undo button {
+.planner-undo button,
+.planner-lock-banner button,
+.planner-prep-toggle {
   min-height: 44px;
   min-width: 44px;
   padding: 10px 12px;
@@ -3529,6 +3531,71 @@ body.is-food .schedule-switch {
   border: 1px solid #ff8c00;
   border-radius: 8px;
   padding: 10px;
+}
+
+#planner-toast-host {
+  position: fixed;
+  left: 50%;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  width: min(440px, calc(100% - 16px));
+  z-index: 30;
+  pointer-events: none;
+}
+
+#planner-toast-host:empty {
+  display: none;
+}
+
+#planner-toast-host .planner-undo {
+  pointer-events: auto;
+  margin: 0;
+}
+
+.planner-lock-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 10px;
+  border: 1px solid #ff8c00;
+  border-radius: 10px;
+  background: #3a2410;
+  color: #fff7e8;
+}
+
+.planner-lock-banner p {
+  margin: 0;
+}
+
+.planner-lock-banner button,
+.planner-prep-toggle {
+  min-height: 48px;
+  min-width: 44px;
+}
+
+.planner-prep-toggle {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.planner-slot.is-locked {
+  border-color: #ff8c00;
+  background: #140818;
+}
+
+.planner-sheet .planner-pick {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+}
+
+.planner-sheet .planner-pick strong {
+  min-width: 0;
 }
 
 .planner-prep {
