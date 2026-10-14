@@ -1,4 +1,4 @@
-/* Nexus food planner v41. Meals and smoothies share one store.
+/* Nexus food planner v42. Meals and smoothies share one store.
    Does not read relic_completions or training keys. */
 (function (root) {
   "use strict";
@@ -41,10 +41,12 @@
     draft: null,
     error: "",
     gap: "",
-    toast: "",
-    toastTimer: 0,
+    toast: null,
     syncNote: "",
-    showPrep: false
+    showPrep: false,
+    prepSet: false,
+    week: null,
+    weekKey: ""
   };
 
   function pad(n) { return (n < 10 ? "0" : "") + n; }
@@ -328,6 +330,33 @@
   function weekLabel(week, key) {
     var month = MONTHS[+key.split("-")[1]];
     return week[0].day + "–" + week[week.length - 1].day + " " + month;
+  }
+
+  function weekIndex(key) {
+    var weeks = weeksOf(key);
+    if (ui.weekKey !== key || ui.week == null) {
+      var today = todayKey();
+      var found = 0;
+      weeks.forEach(function (week, index) {
+        week.forEach(function (day) {
+          if (day.date === today) found = index;
+        });
+      });
+      ui.week = found;
+      ui.weekKey = key;
+    }
+    if (ui.week < 0) ui.week = 0;
+    if (ui.week > weeks.length - 1) ui.week = Math.max(0, weeks.length - 1);
+    return ui.week;
+  }
+
+  function visibleWeek(key) {
+    var weeks = weeksOf(key);
+    return weeks[weekIndex(key)] || [];
+  }
+
+  function shortMonth(key) {
+    return MONTHS[+String(key).split("-")[1]] || "";
   }
 
   function storageGet(key) {
@@ -815,11 +844,18 @@
       } else {
         rememberBase();
       }
+      hydrateToast();
       return cache;
     }
     cache = migrate();
     save();
+    hydrateToast();
     return cache;
+  }
+
+  function hydrateToast() {
+    var saved = cache && cache.toast;
+    if (saved && saved.text) ui.toast = { text: saved.text, undoId: saved.undoId || null, unlock: false };
   }
 
   function save() {
@@ -829,14 +865,14 @@
       if (!base) {
         cache = disk;
         rememberBase();
-        ui.syncNote = "Another tab saved a newer plan. This change was not written.";
+        ui.syncNote = "This plan changed in another tab. Reload";
         return { refused: true };
       }
       var merged = mergeFood(base, store, disk);
       if (merged.conflicts.length) {
         cache = disk;
         rememberBase();
-        ui.syncNote = "Another tab saved a newer plan. This change was not written.";
+        ui.syncNote = "This plan changed in another tab. Reload";
         return { refused: true };
       }
       cache = merged.store;
@@ -871,7 +907,7 @@
     if (merged.conflicts.length) {
       cache = disk;
       rememberBase();
-      ui.syncNote = "Another tab saved a newer plan. This change was not written.";
+      ui.syncNote = "This plan changed in another tab. Reload";
       if (showing) paint();
       return;
     }
@@ -901,7 +937,9 @@
 
   function pushUndo(label) {
     var store = read();
+    var id = "u" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     store.undo.push({
+      id: id,
       at: new Date().toISOString(),
       label: label,
       recipes: clone(store.recipes),
@@ -909,18 +947,42 @@
       templates: clone(store.templates)
     });
     if (store.undo.length > 20) store.undo = store.undo.slice(-20);
+    return id;
+  }
+
+  function dropUndo(id) {
+    var store = read();
+    store.undo = store.undo.filter(function (entry) { return entry.id !== id; });
+  }
+
+  function say(text, opts) {
+    ui.toast = {
+      text: String(text || ""),
+      undoId: opts && opts.undoId || null,
+      unlock: !!(opts && opts.unlock)
+    };
+    if (!cache || ui.toast.unlock) return;
+    cache.toast = { text: ui.toast.text, undoId: ui.toast.undoId };
+    save();
   }
 
   function undo() {
     var store = read();
-    var entry = store.undo.pop();
-    if (!entry) return false;
-    store.recipes = entry.recipes;
-    store.months = entry.months;
-    store.templates = entry.templates;
+    if (!store.undo.length || !ui.toast || !ui.toast.undoId) return false;
+    var top = store.undo[store.undo.length - 1];
+    if (top.id !== ui.toast.undoId) return false;
+    store.undo.pop();
+    store.recipes = top.recipes;
+    store.months = top.months;
+    store.templates = top.templates;
+    store.toast = null;
     save();
-    ui.toast = "Undid " + entry.label;
-    return true;
+    ui.toast = { text: "Undone: " + top.label, undoId: null, unlock: false };
+    if (cache) {
+      cache.toast = { text: ui.toast.text, undoId: null };
+      save();
+    }
+    return top.label;
   }
 
   function usage(id) {
@@ -947,7 +1009,24 @@
   function setMonth(key) {
     ui.month = key;
     read().view.month = key;
+    ui.week = null;
+    ui.weekKey = "";
     save();
+  }
+
+  function shiftWeek(delta) {
+    var key = currentMonth();
+    var weeks = weeksOf(key);
+    var index = weekIndex(key) + delta;
+    if (index >= 0 && index < weeks.length) {
+      ui.week = index;
+      ui.weekKey = key;
+      return;
+    }
+    shiftMonth(delta < 0 ? -1 : 1);
+    var landed = weeksOf(currentMonth());
+    ui.week = delta < 0 ? landed.length - 1 : 0;
+    ui.weekKey = currentMonth();
   }
 
   function shiftMonth(delta) {
@@ -1021,6 +1100,66 @@
     return { cleared: cleared };
   }
 
+  function slotMeta(date, slotKey) {
+    var info = dateList(monthOf(date)).filter(function (row) { return row.date === date; })[0];
+    var slot = null;
+    SLOTS.forEach(function (item) { if (item.key === slotKey) slot = item; });
+    return { info: info, slot: slot };
+  }
+
+  function slotTitle(date, slotKey) {
+    var meta = slotMeta(date, slotKey);
+    if (!meta.info) return date + " " + slotKey;
+    var mon = MONTHS[+String(date).slice(5, 7)].slice(0, 3);
+    return meta.info.name + " " + meta.info.day + " " + mon + " · " + (meta.slot ? meta.slot.label : slotKey);
+  }
+
+  function placeChange(key, date, slot, id) {
+    var store = read();
+    var month = ensureMonth(store, key);
+    var day = ensureDay(month, date);
+    var previous = day[slot] || "";
+    var next = id || "";
+    if (previous === next) return { cleared: 0, same: true };
+    var recipe = next ? store.recipes[next] : null;
+    var where = slotTitle(date, slot).replace(" · ", " ");
+    var label = next
+      ? ("Changed " + where + " to " + (recipe ? recipe.title : "card"))
+      : ("Removed " + where);
+    var undoId = pushUndo(label);
+    var result = setSlot(key, date, slot, next);
+    if (result.error || result.stale) {
+      if (!result.stale) dropUndo(undoId);
+      return result;
+    }
+    var text = label + ".";
+    if (result.cleared) text += " " + result.cleared + " tick cleared.";
+    say(text, { undoId: undoId });
+    return result;
+  }
+
+  function filledCount(key) {
+    var month = ensureMonth(read(), key);
+    var n = 0;
+    dateList(key).forEach(function (info) {
+      var day = month.days[info.date];
+      if (!day) return;
+      ["breakfast", "morning", "lunch", "evening"].forEach(function (slot) {
+        if (day[slot]) n += 1;
+      });
+    });
+    return n;
+  }
+
+  function requestClear(key) {
+    var count = filledCount(key);
+    if (!count) {
+      clearMonth(key);
+      return { cleared: true, count: 0 };
+    }
+    return { needsConfirm: true, count: count, month: key };
+  }
+
   function whyFor(recipe, date, slot, store, month) {
     if (!recipe) return "";
     return recipe.id;
@@ -1043,7 +1182,7 @@
   }
 
   function autoOrganise(key) {
-    pushUndo("Auto-organise");
+    var undoId = pushUndo("Auto-organise");
     var store = read();
     var month = ensureMonth(store, key);
     var filled = 0;
@@ -1084,12 +1223,12 @@
     });
     save();
     ui.error = "";
-    ui.toast = "Auto-organise filled " + filled + " empty slots. Each line cites its card. Edit any of them.";
+    say("Auto-organise filled " + filled + " empty slots. Each line cites its card. Edit any of them.", { undoId: undoId });
     return filled;
   }
 
   function clearRange(key, from, to) {
-    pushUndo("Cleared " + from + " to " + to);
+    var undoId = pushUndo("Cleared " + from + " to " + to);
     var store = read();
     var month = ensureMonth(store, key);
     var n = 0;
@@ -1105,7 +1244,7 @@
       applyBrazil(store, month, day);
     });
     save();
-    ui.toast = "Cleared " + n + " slots.";
+    say("Cleared " + n + " slots.", { undoId: undoId });
     return n;
   }
 
@@ -1120,14 +1259,14 @@
     var source = (month.days[date] || {})[slot] || "";
     var wd = dateList(key).filter(function (info) { return info.date === date; })[0];
     if (!wd) return 0;
-    pushUndo("Repeated " + wd.name);
+    var undoId = pushUndo("Repeated " + wd.name);
     var count = 0;
     dateList(key).forEach(function (info) {
       if (info.wd !== wd.wd || info.date === date) return;
       setSlot(key, info.date, slot, source);
       count += 1;
     });
-    ui.toast = "Repeated on " + count + " other " + wd.name + "s.";
+    say("Repeated on " + count + " other " + wd.name + "s.", { undoId: undoId });
     return count;
   }
 
@@ -1141,22 +1280,16 @@
       ui.error = (empty[0] || problems[0]).reason;
       return { ok: false, gaps: empty.length, problems: problems };
     }
-    if (month.status === "locked" && !confirmed) {
-      var live = tickDelta(store, month, key);
-      return { ok: false, needsConfirm: true, kept: live.kept, cleared: live.cleared };
-    }
-    if (month.wasLocked && !confirmed) {
-      var preview = tickDelta(store, month, key);
-      return { ok: false, needsConfirm: true, kept: preview.kept, cleared: preview.cleared };
-    }
+    if (month.status === "locked") return { ok: false, locked: true };
     var delta = tickDelta(store, month, key);
+    var undoId = pushUndo("Locked " + monthName(key));
     month.status = "locked";
     month.lockedAt = new Date().toISOString();
     month.wasLocked = false;
     save();
     ui.error = "";
     ui.gap = "";
-    ui.toast = "Locked " + monthName(key) + ".";
+    say("Locked " + monthName(key) + ".", { undoId: undoId });
     return { ok: true, kept: delta.kept, cleared: delta.cleared };
   }
 
@@ -1178,7 +1311,7 @@
     month.status = "draft";
     month.wasLocked = true;
     save();
-    ui.toast = "Unlocked " + monthName(key) + ". Ticks stay.";
+    say("Unlocked " + monthName(key) + ". Ticks stay.");
     return true;
   }
 
@@ -1248,11 +1381,11 @@
       });
     }
     recipe = simplifyRecipe(recipe);
-    if (!previous) pushUndo("Added " + recipe.title);
+    var undoId = previous ? null : pushUndo("Added " + recipe.title);
     store.recipes[id] = recipe;
     save();
     ui.draft = null;
-    ui.toast = "Saved " + recipe.title + ".";
+    say("Saved " + recipe.title + ".", { undoId: undoId });
     return { id: id };
   }
 
@@ -1261,7 +1394,7 @@
     var recipe = store.recipes[id];
     if (!recipe) return { error: "Missing card." };
     if (recipe.seed) return { error: "Seed cards are hidden, not deleted." };
-    pushUndo("Deleted " + recipe.title);
+    var undoId = pushUndo("Deleted " + recipe.title);
     var hits = usage(id);
     delete store.recipes[id];
     hits.forEach(function (hit) {
@@ -1269,7 +1402,7 @@
       if (month && month.days[hit.date]) month.days[hit.date][hit.slot] = "";
     });
     save();
-    ui.toast = "Deleted " + recipe.title + ".";
+    say("Deleted " + recipe.title + ".", { undoId: undoId });
     return { removed: hits.length };
   }
 
@@ -1277,10 +1410,10 @@
     var store = read();
     var recipe = store.recipes[id];
     if (!recipe) return { error: "Missing card." };
-    pushUndo("Hid " + recipe.title);
+    var undoId = pushUndo("Hid " + recipe.title);
     recipe.hidden = !recipe.hidden;
     save();
-    ui.toast = recipe.hidden ? "Hid " + recipe.title + "." : "Showing " + recipe.title + ".";
+    say(recipe.hidden ? "Hid " + recipe.title + "." : "Showing " + recipe.title + ".", { undoId: undoId });
     return { hidden: recipe.hidden };
   }
 
@@ -1309,7 +1442,7 @@
       weekdayPattern: pattern
     };
     save();
-    ui.toast = "Saved template " + label + ".";
+    say("Saved template " + label + ".");
     return id;
   }
 
@@ -1326,27 +1459,31 @@
     var template = store.templates[id];
     if (!template) return { error: "Missing template." };
     var month = ensureMonth(store, key);
-    if (!force && monthHasEntries(month)) return { needsConfirm: true, month: key };
-    pushUndo("Applied " + template.name);
-    if (template.slots) month.slots = clone(template.slots);
+    var mode = force === "fill" ? "fill" : (force === true || force === "replace" ? "replace" : "");
+    if (!mode && monthHasEntries(month)) return { needsConfirm: true, month: key, count: filledCount(key) };
+    if (!mode) mode = "replace";
+    var undoId = pushUndo("Applied " + template.name);
+    if (mode !== "fill" && template.slots) month.slots = clone(template.slots);
     var cleared = 0;
     dateList(key).forEach(function (info) {
       var pattern = template.weekdayPattern[info.name] || {};
       var day = ensureDay(month, info.date);
       ["breakfast", "morning", "lunch", "evening"].forEach(function (slot) {
+        var incoming = pattern[slot] || "";
+        if (mode === "fill" && day[slot]) return;
         var token = tickKey(info.date, slot);
-        if (month.ticks[token] && day[slot] !== (pattern[slot] || "")) {
+        if (month.ticks[token] && day[slot] !== incoming) {
           delete month.ticks[token];
           cleared += 1;
         }
-        day[slot] = pattern[slot] || "";
+        day[slot] = incoming;
         var recipe = store.recipes[day[slot]];
         day.why[slot] = recipe ? whyFor(recipe, info.date, slot, store, month) : "";
       });
       applyBrazil(store, month, day);
     });
     save();
-    ui.toast = "Applied " + template.name + (cleared ? ". " + cleared + " tick cleared." : ".");
+    say("Applied " + template.name + (cleared ? ". " + cleared + " tick cleared." : "."), { undoId: undoId });
     return { cleared: cleared };
   }
 
@@ -1363,7 +1500,7 @@
     if (!store.templates[id]) return { error: "Missing template." };
     delete store.templates[id];
     save();
-    ui.toast = "Template deleted.";
+    say("Template deleted.");
     return { ok: true };
   }
 
@@ -1460,11 +1597,8 @@
     if (ui.screen === "recipes") html += recipesHtml(store);
     if (ui.screen === "plan") html += planHtml(store);
     if (ui.screen === "today") html += todayHtml(store);
-    if (ui.toast) {
-      html += '<p class="planner-undo" role="status">' + esc(ui.toast) +
-        (store.undo.length ? ' <button type="button" data-planner-act="undo">Undo</button>' : "") + "</p>";
-    }
     rootEl.innerHTML = html;
+    paintToast();
     var host = sheetHost();
     if (host) host.innerHTML = ui.sheet ? sheetHtml(store) : "";
     var gapEl = ui.gap && root.document.getElementById("slot-" + ui.gap.replace("|", "-"));
@@ -1568,6 +1702,12 @@
     return html;
   }
 
+  function lockBanner(key, status) {
+    if (status !== "locked") return "";
+    return '<div class="planner-lock-banner" role="status"><p>' + esc(shortMonth(key)) + " is locked. Ticks are kept.</p>" +
+      '<button type="button" data-planner-act="ask-unlock" data-month="' + esc(key) + '">Unlock to edit</button></div>';
+  }
+
   function planHtml(store) {
     var key = currentMonth();
     var month = ensureMonth(store, key);
@@ -1588,12 +1728,14 @@
     html += '<div class="planner-actions"><button type="button" class="planner-primary" data-planner-act="auto">Auto-organise</button>' +
       '<button type="button" data-planner-act="templates">Templates</button>' +
       '<button type="button" data-planner-act="clear-month">Clear month</button></div>';
-    if (month.status === "locked") {
-      html += '<button type="button" data-planner-act="ask-unlock">Edit this month</button>';
-    }
-    weeksOf(key).forEach(function (week) {
-      html += '<section class="planner-week"><div class="planner-week-head"><h3>' + esc(weekLabel(week, key)) + "</h3>" +
-        '<button type="button" data-planner-act="clear-week" data-from="' + week[0].date + '" data-to="' + week[week.length - 1].date + '">Clear week</button></div>';
+    html += lockBanner(key, month.status);
+    var weeks = weeksOf(key);
+    var week = weeks[weekIndex(key)] || [];
+    if (week.length) {
+      html += '<section class="planner-week"><div class="planner-bar"><button type="button" data-planner-act="week-prev" aria-label="Previous week">Prev week</button>' +
+        '<h3 class="planner-title">' + esc(weekLabel(week, key)) + "</h3>" +
+        '<button type="button" data-planner-act="week-next" aria-label="Next week">Next week</button></div>' +
+        '<div class="planner-week-head"><span></span><button type="button" data-planner-act="clear-week" data-from="' + week[0].date + '" data-to="' + week[week.length - 1].date + '">Clear week</button></div>';
       week.forEach(function (info) {
         var day = ensureDay(month, info.date);
         applyBrazil(store, month, day);
@@ -1603,16 +1745,17 @@
           var id = day[slot.key];
           var recipe = id && store.recipes[id];
           var marked = ui.gap === info.date + "|" + slot.key;
-          html += '<button type="button" class="planner-slot' + (marked ? " is-gap" : "") + '" id="slot-' + info.date + "-" + slot.key +
-            '" data-planner-act="swap" data-date="' + info.date + '" data-slot="' + slot.key + '">' +
-            '<span class="planner-slot-k">' + slot.label + "</span>" +
+          var locked = month.status === "locked";
+          html += '<button type="button" class="planner-slot' + (marked ? " is-gap" : "") + (locked ? " is-locked" : "") + '" id="slot-' + info.date + "-" + slot.key +
+            '" data-planner-act="swap" data-date="' + info.date + '" data-slot="' + slot.key + '"' + (locked ? ' data-locked="true"' : "") + ">" +
+            '<span class="planner-slot-k">' + slot.label + (locked ? " · Locked" : "") + "</span>" +
             "<strong>" + esc(recipe ? recipe.title : "Empty") + "</strong>" +
             "</button>";
         });
         html += "</article>";
       });
       html += "</section>";
-    });
+    }
     html += '<button type="button" class="planner-lock" data-planner-act="lock">' + esc(lockLabel) + "</button>";
     return html;
   }
@@ -1626,6 +1769,7 @@
     var html = '<div class="planner-daybar"><button type="button" data-planner-act="day-prev" aria-label="Yesterday">Yesterday</button>' +
       "<h2 class=\"planner-title\">" + esc(info ? info.name + " " + info.day + " " + monthName(key) : date) + "</h2>" +
       '<button type="button" data-planner-act="day-next" aria-label="Tomorrow">Tomorrow</button></div>';
+    html += lockBanner(key, month.status);
     enabled(month).forEach(function (slot) {
       var id = day[slot.key];
       var recipe = id && store.recipes[id];
@@ -1635,8 +1779,11 @@
         (done ? "Done" : "Mark done") + "</button></div>";
     });
     applyBrazil(store, month, day);
-    if (info && info.sunday) ui.showPrep = true;
-    html += '<button type="button" data-planner-act="toggle-prep">' + (ui.showPrep ? "Hide Sunday prep" : "Sunday prep") + "</button>";
+    if (info && (info.wd === 6 || info.sunday) && !ui.prepSet) {
+      ui.showPrep = true;
+      ui.prepSet = true;
+    }
+    html += '<button type="button" class="planner-prep-toggle" data-planner-act="toggle-prep">' + (ui.showPrep ? "Hide Sunday prep" : "Sunday prep") + "</button>";
     if (ui.showPrep) {
       var sunday = info && info.sunday ? date : nextSunday(date);
       var prep = prepFor(sunday);
@@ -1681,6 +1828,31 @@
     return list;
   }
 
+  function toastHost() {
+    if (!root.document || !root.document.getElementById || !root.document.createElement || !root.document.body) return null;
+    var host = root.document.getElementById("planner-toast-host");
+    if (host) return host;
+    host = root.document.createElement("div");
+    host.id = "planner-toast-host";
+    root.document.body.appendChild(host);
+    host.addEventListener("click", onClick);
+    return host;
+  }
+
+  function paintToast() {
+    var host = toastHost();
+    if (!host) return;
+    if (!ui.toast || !ui.toast.text) {
+      host.innerHTML = "";
+      return;
+    }
+    var html = '<p class="planner-undo" role="status">' + esc(ui.toast.text);
+    if (ui.toast.undoId) html += ' <button type="button" data-planner-act="undo">Undo</button>';
+    if (ui.toast.unlock) html += ' <button type="button" data-planner-act="ask-unlock">Unlock</button>';
+    html += "</p>";
+    host.innerHTML = html;
+  }
+
   function sheetHost() {
     if (!root.document || !root.document.getElementById || !root.document.createElement || !root.document.body) return null;
     var host = root.document.getElementById("planner-sheet-host");
@@ -1700,15 +1872,24 @@
     html += '<div class="planner-sheet" role="dialog" aria-modal="true">';
     if (sheet.type === "swap") {
       var list = candidates(store, sheet.slot);
-      var slotName = SLOTS.filter(function (slot) { return slot.key === sheet.slot; })[0];
-      html += "<h3>Choose " + esc(slotName ? slotName.label : sheet.slot) + "</h3>";
+      var pickedDay = (ensureMonth(store, monthOf(sheet.date)).days || {})[sheet.date] || {};
+      var picked = pickedDay[sheet.slot] || "";
+      html += "<h3>" + esc(slotTitle(sheet.date, sheet.slot)) + "</h3>";
       html += '<label class="planner-search">Search<input type="search" data-planner-field="sheet-query" value="' + esc(sheet.query || "") + '"></label>';
       var q = (sheet.query || "").toLowerCase();
-      list.filter(function (recipe) { return !q || recipe.title.toLowerCase().indexOf(q) !== -1; }).forEach(function (recipe) {
-        html += '<button type="button" data-planner-act="place" data-id="' + esc(recipe.id) + '">' + esc(recipe.title) +
-          "<span>" + esc(tagFor(recipe)) + "</span></button>";
+      var shown = list.filter(function (recipe) { return !q || recipe.title.toLowerCase().indexOf(q) !== -1 || recipe.id === picked; });
+      shown.sort(function (a, b) {
+        if (a.id === picked) return -1;
+        if (b.id === picked) return 1;
+        return 0;
       });
-      html += '<button type="button" data-planner-act="place" data-id="">Remove</button>';
+      shown.forEach(function (recipe) {
+        var current = recipe.id === picked;
+        html += '<button type="button" class="planner-pick' + (current ? " is-current" : "") + '" data-planner-act="place" data-id="' + esc(recipe.id) + '">' +
+          (current ? '<span class="planner-tick" aria-hidden="true">✓</span>' : "") +
+          "<strong>" + esc(recipe.title) + '</strong><span class="planner-tag">' + esc(tagFor(recipe)) + "</span></button>";
+      });
+      if (picked) html += '<button type="button" data-planner-act="place" data-id="">Remove</button>';
       html += '<button type="button" data-planner-act="repeat">Repeat on every ' + esc(weekdayName(sheet.date)) + "</button>";
     } else if (sheet.type === "add") {
       var recipe = store.recipes[sheet.id];
@@ -1733,18 +1914,20 @@
       html += "</div>";
     } else if (sheet.type === "apply") {
       var template = store.templates[sheet.id];
-      html += "<h3>Replace " + esc(monthName(sheet.month || currentMonth())) + "?</h3>" +
-        "<p>" + esc(template ? template.name : "This template") + " will replace meals already in this month. You can undo afterwards.</p>" +
-        '<button type="button" class="planner-primary" data-planner-act="confirm-apply">Replace this month</button>';
+      var target = sheet.month || currentMonth();
+      var count = sheet.count || filledCount(target);
+      html += "<h3>Replace " + esc(monthName(target)) + "?</h3>" +
+        "<p>" + esc(template ? template.name : "This template") + " — this month has " + count + " entries. You can undo afterwards.</p>" +
+        '<button type="button" class="planner-primary" data-planner-act="confirm-apply" data-mode="replace">Replace</button>' +
+        '<button type="button" data-planner-act="confirm-apply" data-mode="fill">Fill only empty</button>';
+    } else if (sheet.type === "clear") {
+      html += "<h3>Clear all " + sheet.count + " entries in " + esc(monthName(sheet.month)) + "?</h3>" +
+        '<button type="button" class="planner-primary" data-planner-act="confirm-clear">Clear</button>';
     } else if (sheet.type === "delete") {
       var victim = store.recipes[sheet.id];
       var count = usage(sheet.id).length;
       html += "<h3>Delete " + esc(victim ? victim.title : "") + "?</h3><p>It is used on " + count + " slots.</p>" +
         '<button type="button" data-planner-act="confirm-delete">Delete and clear those slots</button>';
-    } else if (sheet.type === "relock") {
-      html += "<h3>" + esc(monthName(sheet.month)) + " is locked.</h3><p>Replace it with this version? " +
-        sheet.kept + " ticks will be kept, " + sheet.cleared + " will be cleared.</p>" +
-        '<button type="button" data-planner-act="confirm-lock">Replace</button>';
     } else if (sheet.type === "unlock") {
       html += "<h3>Unlock " + esc(monthName(sheet.month)) + " to edit?</h3><p>Your ticks stay.</p>" +
         '<button type="button" data-planner-act="confirm-unlock">Unlock</button>';
@@ -1817,7 +2000,6 @@
     if (button.hasAttribute("data-planner-screen")) {
       ui.screen = button.getAttribute("data-planner-screen");
       ui.sheet = null;
-      ui.toast = "";
       paint();
       return;
     }
@@ -1885,27 +2067,30 @@
     if (act === "add-slot") {
       var select = root.document.querySelector("[data-planner-field='add-date']");
       var date = select ? select.value : ui.sheet.date;
-      var result = setSlot(monthOf(date), date, button.getAttribute("data-slot"), ui.sheet.id);
+      var result = placeChange(monthOf(date), date, button.getAttribute("data-slot"), ui.sheet.id);
       ui.sheet = null;
-      if (result.stale) { ui.error = result.error; paint(); return; }
+      if (result.stale || result.error) { ui.error = result.error || ui.syncNote; paint(); return; }
+      ui.error = "";
       ui.screen = "plan";
       setMonth(monthOf(date));
-      if (result.cleared) ui.toast = result.cleared + " tick cleared.";
       paint();
       return;
     }
     if (act === "swap") {
       var month = ensureMonth(store, currentMonth());
-      if (month.status === "locked") { ui.error = "Unlock the month to change a slot."; paint(); return; }
+      if (month.status === "locked") {
+        say(shortMonth(currentMonth()) + " is locked.", { unlock: true });
+        paint();
+        return;
+      }
       ui.sheet = { type: "swap", date: button.getAttribute("data-date"), slot: button.getAttribute("data-slot"), query: "" };
       paint();
       return;
     }
     if (act === "place") {
-      var placed = setSlot(currentMonth(), ui.sheet.date, ui.sheet.slot, button.getAttribute("data-id"));
+      var placed = placeChange(currentMonth(), ui.sheet.date, ui.sheet.slot, button.getAttribute("data-id"));
       if (placed.error) ui.error = placed.error;
       else ui.error = "";
-      if (placed.cleared) ui.toast = placed.cleared + " tick cleared.";
       ui.sheet = null;
       paint();
       return;
@@ -1914,8 +2099,16 @@
     if (act === "close-sheet") { ui.sheet = null; paint(); return; }
     if (act === "auto") { autoOrganise(currentMonth()); paint(); return; }
     if (act === "clear-week") { clearRange(currentMonth(), button.getAttribute("data-from"), button.getAttribute("data-to")); paint(); return; }
-    if (act === "clear-month") { clearMonth(currentMonth()); paint(); return; }
+    if (act === "clear-month") {
+      var askClear = requestClear(currentMonth());
+      if (askClear.needsConfirm) ui.sheet = { type: "clear", month: askClear.month, count: askClear.count };
+      paint();
+      return;
+    }
+    if (act === "confirm-clear") { clearMonth(ui.sheet.month || currentMonth()); ui.sheet = null; paint(); return; }
     if (act === "undo") { undo(); paint(); return; }
+    if (act === "week-prev") { shiftWeek(-1); paint(); return; }
+    if (act === "week-next") { shiftWeek(1); paint(); return; }
     if (act === "month-prev") { shiftMonth(-1); paint(); return; }
     if (act === "month-next") { shiftMonth(1); paint(); return; }
     if (act === "fit") {
@@ -1954,16 +2147,21 @@
       return;
     }
     if (act === "lock") {
-      var locked = lockMonth(currentMonth(), false);
-      if (locked.needsConfirm) {
-        ui.sheet = { type: "relock", month: currentMonth(), kept: locked.kept, cleared: locked.cleared };
+      if (ensureMonth(store, currentMonth()).status === "locked") {
+        ui.sheet = { type: "unlock", month: currentMonth() };
+        paint();
+        return;
       }
+      lockMonth(currentMonth());
       paint();
       return;
     }
-    if (act === "confirm-lock") { lockMonth(currentMonth(), true); ui.sheet = null; paint(); return; }
-    if (act === "ask-unlock") { ui.sheet = { type: "unlock", month: currentMonth() }; paint(); return; }
-    if (act === "confirm-unlock") { unlockMonth(currentMonth()); ui.sheet = null; paint(); return; }
+    if (act === "ask-unlock") {
+      ui.sheet = { type: "unlock", month: button.getAttribute("data-month") || currentMonth() };
+      paint();
+      return;
+    }
+    if (act === "confirm-unlock") { unlockMonth((ui.sheet && ui.sheet.month) || currentMonth()); ui.sheet = null; paint(); return; }
     if (act === "templates") { ui.sheet = { type: "templates", name: "" }; paint(); return; }
     if (act === "save-template") {
       var nameInput = root.document.querySelector("[data-planner-field='template-name']");
@@ -1975,7 +2173,7 @@
     if (act === "apply-template") {
       var pending = applyTemplate(button.getAttribute("data-id"), currentMonth(), false);
       if (pending.needsConfirm) {
-        ui.sheet = { type: "apply", id: button.getAttribute("data-id"), month: currentMonth() };
+        ui.sheet = { type: "apply", id: button.getAttribute("data-id"), month: currentMonth(), count: pending.count };
         paint();
         return;
       }
@@ -1985,7 +2183,7 @@
       return;
     }
     if (act === "confirm-apply") {
-      applyTemplate(ui.sheet.id, ui.sheet.month || currentMonth(), true);
+      applyTemplate(ui.sheet.id, ui.sheet.month || currentMonth(), button.getAttribute("data-mode") || "replace");
       ui.sheet = null;
       ui.screen = "plan";
       paint();
@@ -2008,7 +2206,7 @@
     if (act === "confirm-delete-template") { deleteTemplate(ui.sheet.id); ui.sheet = { type: "templates" }; paint(); return; }
     if (act === "done") { toggleTick(button.getAttribute("data-date"), button.getAttribute("data-slot")); paint(); return; }
     if (act === "day-prev" || act === "day-next") { shiftToday(act === "day-next" ? 1 : -1); paint(); return; }
-    if (act === "toggle-prep") { ui.showPrep = !ui.showPrep; paint(); return; }
+    if (act === "toggle-prep") { ui.prepSet = true; ui.showPrep = !ui.showPrep; paint(); return; }
     if (act === "dismiss-notice") { read().notice = ""; save(); paint(); return; }
   }
 
@@ -2104,6 +2302,7 @@
       setSlot: setSlot,
       autoOrganise: autoOrganise,
       clearRange: clearRange,
+      clearMonth: clearMonth,
       validate: validate,
       gaps: gaps,
       lock: lockMonth,
@@ -2168,7 +2367,15 @@
       enabledSlots: function (key) {
         return enabled(ensureMonth(read(), key)).map(function (slot) { return slot.label; });
       },
-      month: function (key) { return ensureMonth(read(), key); }
+      month: function (key) { return ensureMonth(read(), key); },
+      toast: function () { return ui.toast; },
+      filled: filledCount,
+      slotTitle: slotTitle,
+      weekDates: function (key) { return visibleWeek(key); },
+      shiftWeek: shiftWeek,
+      setMonth: setMonth,
+      requestClear: requestClear,
+      place: placeChange
     }
   };
 
