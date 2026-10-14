@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* v42: scoped undo, week plan, confirms, stale-tab copy. */
+/* v43: cabin banners, scoped undo, week plan. */
 const fs = require("fs");
 const vm = require("vm");
 
@@ -11,7 +11,7 @@ const app = fs.readFileSync("app.js", "utf8");
 const food = fs.readFileSync("food.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v42"') === -1 || html.indexOf("food.js?v=v42") === -1) fail("cache stamp");
+if (html.indexOf('content="v43"') === -1 || html.indexOf("food.js?v=v43") === -1) fail("cache stamp");
 if (css.indexOf("#planner-sheet-host") === -1 || css.indexOf("safe-area-inset-bottom") === -1 || css.indexOf("100dvh") === -1) fail("sheet viewport");
 if (/^\.planner-sheet \{[^}]*position:\s*sticky/m.test(css)) fail("sheet still sticky");
 ["recipes", "plan", "today"].forEach(function (screen) {
@@ -307,8 +307,7 @@ const juneLunch = t.month("2027-06").days["2027-06-01"].lunch;
 const juneLock = t.lock("2027-06");
 if (!juneLock.ok || t.month("2027-06").status !== "locked") fail("june lock " + JSON.stringify(juneLock));
 if (!t.undo() || t.month("2027-06").status === "locked" || t.month("2027-06").days["2027-06-01"].lunch !== juneLunch) fail("lock undo emptied the month");
-const undone = t.toast();
-if (!undone || String(undone.text).indexOf("Undone:") !== 0 || undone.undoId) fail("undone toast " + JSON.stringify(undone));
+if (t.toast()) fail("undo follow-up banner " + JSON.stringify(t.toast()));
 const juneTpl = t.saveTemplate("2027-06", "June");
 t.applyTemplate(juneTpl, "2027-06", true);
 t.lock("2027-06");
@@ -333,23 +332,34 @@ t.shiftWeek(1);
 const nextWeek = t.weekDates("2026-12");
 if (!nextWeek.length || nextWeek[0].date === oneWeek[0].date || nextWeek.length > 7) fail("next week " + (nextWeek[0] && nextWeek[0].date));
 t.setSlot("2027-08", "2027-08-04", "lunch", "salmon-rice-plate");
+ctx.NexusBanner.clear();
+const plain = t.place("2027-08", "2027-08-04", "lunch", "cheesy-potato-toast");
+if (plain.error || t.toast()) fail("plain swap banner " + JSON.stringify(t.toast()));
+t.toggleTick("2027-08-04", "lunch");
 const beforeLunch = t.month("2027-08").days["2027-08-04"].lunch;
-const swapped = t.place("2027-08", "2027-08-04", "lunch", "cheesy-potato-toast");
-if (swapped.error || !t.toast() || t.toast().text.indexOf("Changed") === -1 || !t.toast().undoId) fail("swap toast " + JSON.stringify(t.toast()));
-const blob = mem.nexus_food_v1;
+const swapped = t.place("2027-08", "2027-08-04", "lunch", "turkey-mince-rice-skillet");
+if (swapped.error || !swapped.cleared || !t.toast() || !t.toast().undoId || t.toast().text.indexOf("tick cleared") === -1) fail("tick banner " + JSON.stringify(t.toast()));
+if (!t.undo() || t.month("2027-08").days["2027-08-04"].lunch !== beforeLunch || t.toast()) fail("tick undo");
+const stale = JSON.parse(mem.nexus_food_v1);
+stale.toast = { text: "Stuck banner", undoId: "old" };
+mem.nexus_food_v1 = JSON.stringify(stale);
 t.reset();
-mem.nexus_food_v1 = blob;
-if (!t.undo() || t.month("2027-08").days["2027-08-04"].lunch !== beforeLunch) fail("undo after reload");
+t.read();
+if (t.toast()) fail("reloaded banner");
+if (JSON.parse(mem.nexus_food_v1).toast) fail("toast key kept");
 if (food.indexOf("Replace it with this version") !== -1) fail("relock sheet remains");
 if (food.indexOf("Unlock the month to change a slot") !== -1) fail("stale unlock copy");
 if (food.indexOf("Synced") !== -1) fail("food says Synced");
 if (food.indexOf("This plan changed in another tab. Reload") === -1) fail("stale copy missing");
 if (food.indexOf("Unlock to edit") === -1 || food.indexOf("Fill only empty") === -1 || food.indexOf("Clear all ") === -1) fail("confirm copy");
 if (food.indexOf('data-planner-act="week-prev"') === -1) fail("week nav");
-if (css.indexOf("#planner-toast-host") === -1 || css.indexOf(".planner-prep-toggle") === -1) fail("toast css");
+if (css.indexOf("#nexus-banner") === -1 || css.indexOf(".planner-prep-toggle") === -1) fail("banner css");
+if (css.indexOf("#planner-toast-host") !== -1 || css.indexOf(".food-toast") !== -1) fail("dead toast css");
+if (food.indexOf("planner-toast-host") !== -1 || food.indexOf("Undone:") !== -1) fail("toast host remains");
+if (app.indexOf("foodToastUntil") !== -1 || app.indexOf("smoothieToastUntil") !== -1) fail("dead toast fields");
 
 if (fails.length) {
   console.error(fails.length + " failed");
   process.exit(1);
 }
-console.log("OK food OS v42");
+console.log("OK food OS v43");
