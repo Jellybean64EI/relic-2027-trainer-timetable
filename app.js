@@ -73,8 +73,6 @@
     foodPackAsk: "",
     foodLandCell: "",
     foodOffer: "",
-    foodToast: "",
-    foodToastUntil: 0,
     foodFlyError: "",
     smoothieRoom: "",
     smoothieFocusId: "",
@@ -89,8 +87,6 @@
     smoothieLandCell: "",
     smoothieOffer: "",
     smoothieFlyError: "",
-    smoothieToast: "",
-    smoothieToastUntil: 0,
     osDoor: "training",
     menuCabin: null,
     futureLock: false,
@@ -2890,7 +2886,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v42",
+    build: "v43",
     get phaseState() { return player.phaseState || "idle"; },
     get advanceCount() { return player.advanceCount | 0; },
     get playerIndex() { return player.index | 0; },

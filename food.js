@@ -1,4 +1,4 @@
-/* Nexus food planner v42. Meals and smoothies share one store.
+/* Nexus food planner v43. Meals and smoothies share one store.
    Does not read relic_completions or training keys. */
 (function (root) {
   "use strict";
@@ -844,18 +844,19 @@
       } else {
         rememberBase();
       }
-      hydrateToast();
+      dropStoredToast();
       return cache;
     }
     cache = migrate();
     save();
-    hydrateToast();
+    dropStoredToast();
     return cache;
   }
 
-  function hydrateToast() {
-    var saved = cache && cache.toast;
-    if (saved && saved.text) ui.toast = { text: saved.text, undoId: saved.undoId || null, unlock: false };
+  function dropStoredToast() {
+    if (!cache || !cache.toast) return;
+    delete cache.toast;
+    save();
   }
 
   function save() {
@@ -955,34 +956,121 @@
     store.undo = store.undo.filter(function (entry) { return entry.id !== id; });
   }
 
-  function say(text, opts) {
+  var bannerTimer = 0;
+  var bannerLeave = 0;
+
+  function stopBannerTimer() {
+    if (bannerTimer) root.clearTimeout(bannerTimer);
+    if (bannerLeave) root.clearTimeout(bannerLeave);
+    bannerTimer = 0;
+    bannerLeave = 0;
+  }
+
+  function motionReduced() {
+    try {
+      return !!(root.matchMedia && root.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function showBanner(text, opts) {
+    opts = opts || {};
+    stopBannerTimer();
+    var clean = String(text || "").replace(/!/g, "");
     ui.toast = {
-      text: String(text || ""),
-      undoId: opts && opts.undoId || null,
-      unlock: !!(opts && opts.unlock)
+      cabin: opts.cabin || ui.door || "food",
+      text: clean,
+      undoId: opts.undoId || null,
+      onUndo: opts.onUndo || null,
+      label: opts.label || clean
     };
-    if (!cache || ui.toast.unlock) return;
-    cache.toast = { text: ui.toast.text, undoId: ui.toast.undoId };
-    save();
+    armBanner(ui.toast.undoId || ui.toast.onUndo ? 6000 : 4000);
+    paintBanner();
+  }
+
+  function say(text, opts) {
+    showBanner(text, opts);
+  }
+
+  function clearBanner(cabin) {
+    if (cabin && (!ui.toast || ui.toast.cabin !== cabin)) return;
+    ui.toast = null;
+    stopBannerTimer();
+    paintBanner();
+  }
+
+  function armBanner(ms) {
+    if (bannerTimer) root.clearTimeout(bannerTimer);
+    if (bannerLeave) root.clearTimeout(bannerLeave);
+    bannerTimer = 0;
+    bannerLeave = 0;
+    if (!ui.toast || !root.setTimeout) return;
+    bannerTimer = root.setTimeout(function () {
+      bannerTimer = 0;
+      fadeBanner();
+    }, ms);
+  }
+
+  function fadeBanner() {
+    var host = root.document && root.document.getElementById && root.document.getElementById("nexus-banner");
+    if (motionReduced() || !host) {
+      ui.toast = null;
+      paintBanner();
+      return;
+    }
+    host.classList.add("is-out");
+    host.classList.remove("is-in");
+    bannerLeave = root.setTimeout(function () {
+      bannerLeave = 0;
+      ui.toast = null;
+      paintBanner();
+    }, 200);
+  }
+
+  function pauseBanner() {
+    if (!ui.toast) return;
+    if (bannerTimer) {
+      root.clearTimeout(bannerTimer);
+      bannerTimer = 0;
+    }
+    if (bannerLeave) {
+      root.clearTimeout(bannerLeave);
+      bannerLeave = 0;
+      var host = root.document && root.document.getElementById("nexus-banner");
+      if (host) host.classList.remove("is-out");
+    }
+  }
+
+  function resumeBanner() {
+    if (!ui.toast) return;
+    armBanner(2000);
   }
 
   function undo() {
+    if (!ui.toast) return false;
+    if (ui.toast.cabin && ui.toast.cabin !== ui.door) return false;
+    if (ui.toast.onUndo) {
+      var fn = ui.toast.onUndo;
+      clearBanner();
+      fn();
+      paint();
+      return true;
+    }
     var store = read();
-    if (!store.undo.length || !ui.toast || !ui.toast.undoId) return false;
+    if (!store.undo.length || !ui.toast.undoId) return false;
     var top = store.undo[store.undo.length - 1];
     if (top.id !== ui.toast.undoId) return false;
     store.undo.pop();
     store.recipes = top.recipes;
     store.months = top.months;
     store.templates = top.templates;
-    store.toast = null;
+    if (store.toast) delete store.toast;
     save();
-    ui.toast = { text: "Undone: " + top.label, undoId: null, unlock: false };
-    if (cache) {
-      cache.toast = { text: ui.toast.text, undoId: null };
-      save();
-    }
-    return top.label;
+    var label = top.label;
+    clearBanner();
+    paint();
+    return label;
   }
 
   function usage(id) {
@@ -1132,9 +1220,14 @@
       if (!result.stale) dropUndo(undoId);
       return result;
     }
-    var text = label + ".";
-    if (result.cleared) text += " " + result.cleared + " tick cleared.";
-    say(text, { undoId: undoId });
+    if (!next || result.cleared) {
+      var text = label + ".";
+      if (result.cleared) text += " " + result.cleared + " tick cleared.";
+      say(text, { undoId: undoId, label: label });
+    } else {
+      dropUndo(undoId);
+      save();
+    }
     return result;
   }
 
@@ -1311,7 +1404,6 @@
     month.status = "draft";
     month.wasLocked = true;
     save();
-    say("Unlocked " + monthName(key) + ". Ticks stay.");
     return true;
   }
 
@@ -1381,11 +1473,9 @@
       });
     }
     recipe = simplifyRecipe(recipe);
-    var undoId = previous ? null : pushUndo("Added " + recipe.title);
     store.recipes[id] = recipe;
     save();
     ui.draft = null;
-    say("Saved " + recipe.title + ".", { undoId: undoId });
     return { id: id };
   }
 
@@ -1442,7 +1532,6 @@
       weekdayPattern: pattern
     };
     save();
-    say("Saved template " + label + ".");
     return id;
   }
 
@@ -1500,7 +1589,6 @@
     if (!store.templates[id]) return { error: "Missing template." };
     delete store.templates[id];
     save();
-    say("Template deleted.");
     return { ok: true };
   }
 
@@ -1588,17 +1676,13 @@
     if (!rootEl) return;
     var html = "";
     var store = read();
-    if (store.notice) {
-      html += '<p class="planner-notice" role="status">' + esc(store.notice) +
-        ' <button type="button" data-planner-act="dismiss-notice">OK</button></p>';
-    }
     if (ui.syncNote) html += '<p class="planner-error" role="alert">' + esc(ui.syncNote) + "</p>";
     if (ui.error) html += '<p class="planner-error" role="alert">' + esc(ui.error) + "</p>";
     if (ui.screen === "recipes") html += recipesHtml(store);
     if (ui.screen === "plan") html += planHtml(store);
     if (ui.screen === "today") html += todayHtml(store);
     rootEl.innerHTML = html;
-    paintToast();
+    paintBanner();
     var host = sheetHost();
     if (host) host.innerHTML = ui.sheet ? sheetHtml(store) : "";
     var gapEl = ui.gap && root.document.getElementById("slot-" + ui.gap.replace("|", "-"));
@@ -1828,29 +1912,87 @@
     return list;
   }
 
-  function toastHost() {
-    if (!root.document || !root.document.getElementById || !root.document.createElement || !root.document.body) return null;
-    var host = root.document.getElementById("planner-toast-host");
-    if (host) return host;
-    host = root.document.createElement("div");
-    host.id = "planner-toast-host";
-    root.document.body.appendChild(host);
-    host.addEventListener("click", onClick);
+  function bannerVisible() {
+    if (!ui.toast || !ui.toast.text) return false;
+    if ((ui.toast.cabin || "food") !== (ui.door || "food")) return false;
+    if (!root.document || !root.document.body || !root.document.body.classList.contains("is-food")) return false;
+    var board = root.document.getElementById("planner-board");
+    if (!board || board.hidden) return false;
+    return true;
+  }
+
+  function bannerMarkup(text) {
+    return esc(text).replace(/(\d+)/g, '<span class="nexus-banner-num">$1</span>');
+  }
+
+  function bannerHost() {
+    var board = root.document && root.document.getElementById && root.document.getElementById("planner-board");
+    if (!board || !root.document.createElement) return null;
+    var host = root.document.getElementById("nexus-banner");
+    if (!host) {
+      host = root.document.createElement("div");
+      host.id = "nexus-banner";
+      host.hidden = true;
+      host.innerHTML = '<div class="nexus-banner-bar" role="status" aria-live="polite" aria-atomic="true">' +
+        '<button type="button" class="nexus-banner-dismiss" aria-label="Dismiss"><span class="nexus-banner-text"></span></button>' +
+        '<button type="button" class="nexus-banner-undo" hidden>UNDO</button></div>';
+      host.addEventListener("pointerdown", function () { pauseBanner(); });
+      host.addEventListener("pointerup", function () { if (ui.toast) resumeBanner(); });
+      host.addEventListener("pointercancel", function () { if (ui.toast) resumeBanner(); });
+      host.addEventListener("focusin", function () { pauseBanner(); });
+      host.addEventListener("focusout", function () { if (ui.toast) resumeBanner(); });
+      host.addEventListener("click", function (event) {
+        event.stopPropagation();
+        if (event.target.closest(".nexus-banner-undo")) {
+          event.preventDefault();
+          undo();
+          return;
+        }
+        event.preventDefault();
+        clearBanner();
+      });
+    }
+    board.appendChild(host);
     return host;
   }
 
-  function paintToast() {
-    var host = toastHost();
+  function paintBanner() {
+    var host = bannerHost();
     if (!host) return;
-    if (!ui.toast || !ui.toast.text) {
-      host.innerHTML = "";
+    var board = root.document.getElementById("planner-board");
+    if (!bannerVisible()) {
+      host.hidden = true;
+      host.classList.remove("is-in");
+      if (board) board.style.paddingBottom = "";
       return;
     }
-    var html = '<p class="planner-undo" role="status">' + esc(ui.toast.text);
-    if (ui.toast.undoId) html += ' <button type="button" data-planner-act="undo">Undo</button>';
-    if (ui.toast.unlock) html += ' <button type="button" data-planner-act="ask-unlock">Unlock</button>';
-    html += "</p>";
-    host.innerHTML = html;
+    var textEl = host.querySelector(".nexus-banner-text");
+    var undoBtn = host.querySelector(".nexus-banner-undo");
+    if (textEl) textEl.innerHTML = bannerMarkup(ui.toast.text);
+    if (undoBtn) {
+      var withUndo = !!(ui.toast.undoId || ui.toast.onUndo);
+      undoBtn.hidden = !withUndo;
+      if (withUndo) undoBtn.setAttribute("aria-label", "Undo: " + (ui.toast.label || ui.toast.text));
+    }
+    var wasHidden = host.hidden || host.classList.contains("is-out");
+    host.hidden = false;
+    host.classList.remove("is-out");
+    if (wasHidden) {
+      host.classList.remove("is-in");
+      var reveal = function () { if (!host.hidden) host.classList.add("is-in"); };
+      if (motionReduced() || !root.requestAnimationFrame) reveal();
+      else root.requestAnimationFrame(reveal);
+    }
+    if (board) board.style.paddingBottom = (host.offsetHeight || 48) + "px";
+  }
+
+  function revealNotice() {
+    var store = read();
+    if (!store.notice) return;
+    var text = store.notice;
+    store.notice = "";
+    save();
+    showBanner(text, { cabin: ui.door });
   }
 
   function sheetHost() {
@@ -2079,7 +2221,7 @@
     if (act === "swap") {
       var month = ensureMonth(store, currentMonth());
       if (month.status === "locked") {
-        say(shortMonth(currentMonth()) + " is locked.", { unlock: true });
+        say(shortMonth(currentMonth()) + " is locked.");
         paint();
         return;
       }
@@ -2246,16 +2388,20 @@
   }
 
   function open(door, screen) {
-    ui.door = door === "smoothies" ? "smoothies" : "food";
+    var next = door === "smoothies" ? "smoothies" : "food";
+    if (ui.toast && ui.toast.cabin !== next) clearBanner();
+    ui.door = next;
     ui.screen = screen || "recipes";
     if (ui.screen === "recipes") ui.filter = ui.door === "smoothies" ? "smoothie" : "meal";
     ui.sheet = null;
     read();
+    revealNotice();
     paint();
   }
 
   function sync(door, screen) {
     if (door !== "food" && door !== "smoothies") {
+      clearBanner();
       ui.screen = "";
       paint();
       var board = root.document && root.document.getElementById("planner-board");
@@ -2272,6 +2418,10 @@
   }
 
   function dismiss() {
+    if (ui.toast) {
+      clearBanner();
+      return true;
+    }
     if (ui.sheet || ui.draft) {
       ui.sheet = null;
       ui.draft = null;
@@ -2280,6 +2430,19 @@
     }
     return false;
   }
+
+  root.NexusBanner = {
+    show: function (opts) {
+      opts = opts || {};
+      showBanner(opts.text, {
+        cabin: opts.cabin,
+        undoId: opts.undoId || null,
+        onUndo: typeof opts.undo === "function" ? opts.undo : null,
+        label: opts.label || opts.text
+      });
+    },
+    clear: function (cabin) { clearBanner(cabin); }
+  };
 
   root.NexusFood = {
     open: open,
@@ -2380,5 +2543,8 @@
   };
 
   if (root.document && root.document.getElementById) bind();
-  if (root.addEventListener) root.addEventListener("storage", onStorage);
+  if (root.addEventListener) {
+    root.addEventListener("storage", onStorage);
+    root.addEventListener("pagehide", function () { clearBanner(); });
+  }
 })(typeof window !== "undefined" ? window : globalThis);
