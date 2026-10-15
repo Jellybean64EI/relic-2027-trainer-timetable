@@ -3592,6 +3592,8 @@ body.player-open #nexus-banner {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
+  white-space: normal;
+  overflow-wrap: break-word;
   font-variant-numeric: tabular-nums;
 }
 
