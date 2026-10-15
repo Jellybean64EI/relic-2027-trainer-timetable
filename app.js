@@ -2886,7 +2886,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v43",
+    build: "v44",
     get phaseState() { return player.phaseState || "idle"; },
     get advanceCount() { return player.advanceCount | 0; },
     get playerIndex() { return player.index | 0; },

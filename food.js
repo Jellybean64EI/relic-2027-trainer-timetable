@@ -1,4 +1,4 @@
-/* Nexus food planner v43. Meals and smoothies share one store.
+/* Nexus food planner v44. Meals and smoothies share one store.
    Does not read relic_completions or training keys. */
 (function (root) {
   "use strict";
@@ -1274,7 +1274,8 @@
     });
   }
 
-  function autoOrganise(key) {
+  function autoOrganise(key, cabin) {
+    var door = cabin === "smoothies" || cabin === "food" ? cabin : (ui.door === "smoothies" ? "smoothies" : "food");
     var undoId = pushUndo("Auto-organise");
     var store = read();
     var month = ensureMonth(store, key);
@@ -1285,6 +1286,8 @@
       var day = ensureDay(month, info.date);
       var want = index % 2 === 0 ? "energy" : "recovery";
       enabled(month).forEach(function (slot) {
+        var smoothieSlot = slot.key === "morning";
+        if (door === "smoothies" ? !smoothieSlot : smoothieSlot) return;
         if (day[slot.key]) {
           prev[slot.key] = day[slot.key];
           return;
@@ -1316,7 +1319,7 @@
     });
     save();
     ui.error = "";
-    say("Auto-organise filled " + filled + " empty slots. Each line cites its card. Edit any of them.", { undoId: undoId });
+    say("Auto-organise filled " + filled + " empty slots.", { undoId: undoId, cabin: door });
     return filled;
   }
 

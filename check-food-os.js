@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* v43: cabin banners, scoped undo, week plan. */
+/* v44: cabin auto-organise, cabin banners, scoped undo, week plan. */
 const fs = require("fs");
 const vm = require("vm");
 
@@ -11,7 +11,7 @@ const app = fs.readFileSync("app.js", "utf8");
 const food = fs.readFileSync("food.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v43"') === -1 || html.indexOf("food.js?v=v43") === -1) fail("cache stamp");
+if (html.indexOf('content="v44"') === -1 || html.indexOf("food.js?v=v44") === -1) fail("cache stamp");
 if (css.indexOf("#planner-sheet-host") === -1 || css.indexOf("safe-area-inset-bottom") === -1 || css.indexOf("100dvh") === -1) fail("sheet viewport");
 if (/^\.planner-sheet \{[^}]*position:\s*sticky/m.test(css)) fail("sheet still sticky");
 ["recipes", "plan", "today"].forEach(function (screen) {
@@ -110,9 +110,10 @@ t.setSlot("2026-10", "2026-10-05", "lunch", "plate-batch-chicken-veg");
 const held = t.month("2026-10").days["2026-10-05"].lunch;
 t.autoOrganise("2026-10");
 if (t.month("2026-10").days["2026-10-05"].lunch !== held) fail("auto replaced a filled slot");
-if (t.gaps("2026-10").length) fail("auto left gaps " + t.gaps("2026-10").length);
 t.dates("2026-10").forEach(function (day) {
   const row = t.month("2026-10").days[day.date];
+  if (row.morning) fail("food auto filled smoothie " + day.date);
+  if (!row.lunch || !row.evening) fail("food auto left a meal " + day.date);
   const evening = t.recipes()[row.evening];
   if (evening && (evening.types || []).indexOf("smoothie") !== -1) fail("evening smoothie " + day.date);
   const nuts = t.nuts("2026-10", day.date);
@@ -139,6 +140,21 @@ const locked = t.lock("2026-10", false);
 if (locked.ok) fail("locked with gaps");
 
 t.autoOrganise("2026-10");
+const mealsBeforeSmoothie = t.dates("2026-10").map(function (day) {
+  const row = t.month("2026-10").days[day.date];
+  return row.breakfast + "|" + row.lunch + "|" + row.evening;
+}).join(",");
+t.autoOrganise("2026-10", "smoothies");
+const mealsAfterSmoothie = t.dates("2026-10").map(function (day) {
+  const row = t.month("2026-10").days[day.date];
+  return row.breakfast + "|" + row.lunch + "|" + row.evening;
+}).join(",");
+if (mealsBeforeSmoothie !== mealsAfterSmoothie) fail("smoothie auto changed food slots");
+t.dates("2026-10").forEach(function (day) {
+  const card = t.recipes()[t.month("2026-10").days[day.date].morning];
+  if (!card || card.fits.indexOf("smoothie") === -1) fail("smoothie auto left " + day.date);
+});
+if (!t.toast() || t.toast().text.indexOf("empty slots.") === -1 || t.toast().text.indexOf("cites") !== -1) fail("auto banner " + JSON.stringify(t.toast()));
 const first = t.lock("2026-10", false);
 if (!first.ok || t.month("2026-10").status !== "locked") fail("lock " + JSON.stringify(first));
 t.toggleTick("2026-10-12", "lunch");
@@ -303,6 +319,7 @@ if (t.enabledSlots("2027-04").indexOf("Breakfast") === -1 || t.month("2027-04").
 if (food.indexOf("Meals each day") === -1 || food.indexOf("Choose meals each day") === -1) fail("plan helper missing");
 
 t.autoOrganise("2027-06");
+t.autoOrganise("2027-06", "smoothies");
 const juneLunch = t.month("2027-06").days["2027-06-01"].lunch;
 const juneLock = t.lock("2027-06");
 if (!juneLock.ok || t.month("2027-06").status !== "locked") fail("june lock " + JSON.stringify(juneLock));
@@ -362,4 +379,4 @@ if (fails.length) {
   console.error(fails.length + " failed");
   process.exit(1);
 }
-console.log("OK food OS v43");
+console.log("OK food OS v44");
