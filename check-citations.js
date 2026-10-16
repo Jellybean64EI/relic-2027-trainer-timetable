@@ -11,8 +11,8 @@ const css = fs.readFileSync("styles.css", "utf8");
 const html = fs.readFileSync("index.html", "utf8");
 if (app.indexOf("relic-pair") !== -1) fail("app.js still renders relic-pair");
 if (css.indexOf(".relic-pair") !== -1) fail("styles.css still defines .relic-pair");
-if (app.indexOf('build: "v45"') === -1 || html.indexOf('content="v45"') === -1) {
-  fail("build stamp is not v45");
+if (app.indexOf('build: "v46"') === -1 || html.indexOf('content="v46"') === -1) {
+  fail("build stamp is not v46");
 }
 
 const ctx = { window: {} };
@@ -80,4 +80,4 @@ if (fails.length) {
   fails.forEach(function (msg) { console.error(" -", msg); });
   process.exit(1);
 }
-console.log("OK citations v45");
+console.log("OK citations v46");

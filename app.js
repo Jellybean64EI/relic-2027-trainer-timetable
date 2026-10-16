@@ -7,6 +7,7 @@
    Badge paint reads normalizeTier(tier) only. completed never invents a shield.
    Mode preference stays in memory.
    v15: viewYear 2026 was the Q4 bridge. v45 keeps the timetable on 2027.
+   v46: the 2027 row opens and closes Upper Body and Full Body.
    Month-row cache keys are year:mode:month. v29 ticks every day unless the menu
    lock is on. Lock on allows today and past only, and each day opens on its London date.
    v16: the CUE panel slides up from the bottom of the stage. Week chips keep a single
@@ -2484,6 +2485,19 @@
     if (!player.awaitingReveal) $("relic-player-close").focus();
   }
 
+  function setYearSchedulesOpen(open) {
+    var cabin = $("year-schedules");
+    var btn = $("btn-year-schedules");
+    var panel = $("year-schedule-panel");
+    if (!cabin || !btn || !panel) return;
+    var next = !!open;
+    cabin.classList.toggle("is-open", next);
+    btn.setAttribute("aria-expanded", next ? "true" : "false");
+    panel.setAttribute("aria-hidden", next ? "false" : "true");
+    if (next) panel.removeAttribute("inert");
+    else panel.setAttribute("inert", "");
+  }
+
   function wire() {
     document.querySelectorAll(".mbtn").forEach(function (btn) {
       btn.addEventListener("click", function () { pickMonth(+btn.getAttribute("data-month")); });
@@ -2530,6 +2544,15 @@
         setNavOpen(false);
       });
     });
+    var yearSchedulesBtn = $("btn-year-schedules");
+    if (yearSchedulesBtn) {
+      yearSchedulesBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        var cabin = $("year-schedules");
+        setYearSchedulesOpen(!(cabin && cabin.classList.contains("is-open")));
+      });
+    }
     var futureLockBtn = $("btn-future-lock");
     if (futureLockBtn) {
       futureLockBtn.addEventListener("click", function (event) {
@@ -2714,7 +2737,7 @@
       stage.addEventListener("click", onStageHudClickCapture, true);
     }
     document.addEventListener("pointerdown", function (event) {
-      var calm = event.target.closest(".mbtn, .wtab, #btn-schedule-mode, [data-set-mode], [data-set-branch]");
+      var calm = event.target.closest(".mbtn, .wtab, #btn-schedule-mode, [data-set-mode], [data-set-branch], #btn-year-schedules");
       if (!calm || event.button > 0) return;
       surfacePress = { x: event.clientX, y: event.clientY, id: event.pointerId, moved: false };
     }, true);
@@ -2726,7 +2749,7 @@
     }, true);
     document.addEventListener("click", function (event) {
       if (!surfacePress || !surfacePress.moved) return;
-      if (!event.target.closest(".mbtn, .wtab, #btn-schedule-mode, [data-set-mode], [data-set-branch]")) return;
+      if (!event.target.closest(".mbtn, .wtab, #btn-schedule-mode, [data-set-mode], [data-set-branch], #btn-year-schedules")) return;
       event.preventDefault();
       event.stopPropagation();
     }, true);
@@ -2838,7 +2861,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v45",
+    build: "v46",
     get phaseState() { return player.phaseState || "idle"; },
     get advanceCount() { return player.advanceCount | 0; },
     get playerIndex() { return player.index | 0; },
