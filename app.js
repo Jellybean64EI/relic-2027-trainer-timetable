@@ -10,14 +10,15 @@
    v46: the 2027 row opens and closes Upper Body and Full Body.
    v47: that row sits above Training lock. The Ambient Hub label is gone.
    v48: the Hub is the start screen. Notes is gone. Food and Smoothies locks are separate.
+   v49: the Hub reads 2027 ticks from 1 Jan, view-only, with separate year stats.
    Month-row cache keys are year:mode:month. v29 ticks every day unless the menu
    lock is on. Lock on allows today and past only, and each day opens on its London date.
    v16: the CUE panel slides up from the bottom of the stage. Week chips keep a single
    slot and a dual slot. Calisthenics is Q4 2027 only.
    v18: Food OS is four rooms behind the drawer. It does not write
    relic_completions, move the player timer, or open the CUE panel.
-   v19: day ticks glow, cabin switches keep their scroll, weekly rows carry
-   portions, and the Sainsbury’s list locks into localStorage only. */
+   v19: day ticks glow, cabin switches keep their scroll, and weekly rows carry
+   portions. */
 (function () {
   "use strict";
 
@@ -99,10 +100,7 @@
     foodFocusId: "",
     foodFocusBand: "moderate",
     foodEditing: false,
-    scanPreview: null,
-    shopFilter: "all",
-    basketDrafts: null,
-    basketOpen: false
+    scanPreview: null
   };
   state.futureLock = readFutureLock();
 
@@ -853,7 +851,7 @@
     "Your future self is already watching.",
     "Stop at strong, not at sloppy.",
     "A full breath is a fresh start.",
-    "Piece by piece, the week gets done."
+    "The week gets done one clean day at a time."
   ];
 
   function dayOfYear(parts) {
@@ -868,95 +866,123 @@
     return HUB_QUOTES[index];
   }
 
-  function hubWeekDays(mode) {
-    var parts = londonParts(state.now || getNow());
-    var source = mode === "upper" ? (upperSchedule() || S) : S;
-    if (!source || !source.buildMonthDays) return [];
-    var week = S.weekOfMonth(parts.day);
-    return source.buildMonthDays(2027, parts.month).filter(function (day) {
-      return !day.isRecovery && day.dayIndex < 6 && day.weekOfMonth === week;
-    });
+  function planFocusDate() {
+    var override = parseDateOverride();
+    var parts = londonParts(override || new Date());
+    if (parts.year < 2027) return new Date(Date.UTC(2027, 0, 1, 12, 0, 0));
+    if (parts.year > 2027) return new Date(Date.UTC(2027, 11, 31, 12, 0, 0));
+    return new Date(Date.UTC(parts.year, parts.month - 1, parts.day, 12, 0, 0));
   }
 
-  function hubScore(mode) {
-    var days = hubWeekDays(mode);
-    var ticks = 0;
-    var dual = 0;
-    days.forEach(function (day) {
-      var tier = normalizeTier(maskFor(day.dateKey, mode));
-      ticks += popcount(tier);
-      if (tier === 3) dual += 1;
+  function hubTrainingDays(mode) {
+    var source = mode === "upper" ? (upperSchedule() || S) : S;
+    var days = [];
+    if (!source || !source.buildMonthDays) return days;
+    var month;
+    for (month = 1; month <= 12; month++) {
+      source.buildMonthDays(2027, month).forEach(function (day) {
+        if (!day.isRecovery && day.dayIndex < 6) days.push(day);
+      });
+    }
+    return days;
+  }
+
+  function hubCredit(tier) {
+    if (tier === 3) return 1;
+    if (tier === 1 || tier === 2) return 0.5;
+    return 0;
+  }
+
+  function hubCreditText(value) {
+    var doubled = Math.round(value * 2);
+    if (doubled % 2 === 0) return String(doubled / 2);
+    return (doubled / 2).toFixed(1);
+  }
+
+  function hubYear(mode) {
+    var days = hubTrainingDays(mode);
+    var credit = 0;
+    var videos = 0;
+    var best = 0;
+    var run = 0;
+    var latest = -1;
+    days.forEach(function (day, index) {
+      var tier = state.loaded ? normalizeTier(maskFor(day.dateKey, mode)) : 0;
+      credit += hubCredit(tier);
+      videos += popcount(tier);
+      if (tier >= 1) {
+        run += 1;
+        latest = index;
+        if (run > best) best = run;
+      } else run = 0;
     });
+    var clock = londonParts(parseDateOverride() || new Date());
+    var focusKey = londonParts(planFocusDate()).dateKey;
+    var current = 0;
+    var start = -1;
+    if (clock.year < 2027) start = latest;
+    else {
+      days.forEach(function (day, index) {
+        if (day.dateKey <= focusKey) start = index;
+      });
+      if (start >= 0 && normalizeTier(maskFor(days[start].dateKey, mode)) < 1) start -= 1;
+    }
+    var i;
+    for (i = start; i >= 0; i--) {
+      if (normalizeTier(maskFor(days[i].dateKey, mode)) >= 1) current += 1;
+      else break;
+    }
+    var total = days.length;
     return {
-      month: londonParts(state.now || getNow()).month,
-      week: S.weekOfMonth(londonParts(state.now || getNow()).day),
-      days: days.length,
-      ticks: ticks,
-      dual: dual,
-      max: days.length * 2,
-      loaded: !!state.loaded
+      days: total,
+      credit: credit,
+      videos: videos,
+      pct: total ? Math.round((credit / total) * 100) : 0,
+      streak: current,
+      best: best,
+      focus: focusKey
     };
   }
 
-  function hubFill(now, max) {
-    if (!max) return 0;
-    return Math.max(0, Math.min(100, Math.round((now / max) * 100)));
+  function hubStatsHtml(mode) {
+    var score = hubYear(mode);
+    var width = score.days ? Math.max(0, Math.min(100, (score.credit / score.days) * 100)) : 0;
+    return '<p class="hub-pct">' + score.pct + '%</p>' +
+      '<p class="hub-days-line">' + hubCreditText(score.credit) + " of " + score.days + " days</p>" +
+      '<span class="hub-track" role="progressbar" aria-valuemin="0" aria-valuemax="' + score.days +
+      '" aria-valuenow="' + score.credit + '" aria-label="Training days"><span class="hub-fill" style="width:' +
+      width + '%"></span></span>' +
+      '<p class="hub-videos">' + score.videos + " of " + (score.days * 2) + " videos</p>" +
+      '<p class="hub-streaks"><span>Streak ' + score.streak + "</span><span>Best " + score.best + "</span></p>";
   }
 
-  function hubStatsHtml(mode) {
-    var score = hubScore(mode);
-    var days = hubWeekDays(mode);
-    if (!score.days) {
-      return '<span class="hub-rest">Rest week</span>';
-    }
-    var fresh = !score.loaded || score.ticks === 0;
-    var shownTicks = fresh ? 0 : score.ticks;
-    var shownDual = fresh ? 0 : score.dual;
-    var html = '<span class="hub-meter"><span class="hub-meter-label"><span>Exercises</span><span>' +
-      shownTicks + " / " + score.max + "</span></span>" +
-      '<span class="hub-track" role="progressbar" aria-valuemin="0" aria-valuemax="' + score.max +
-      '" aria-valuenow="' + shownTicks + '" aria-label="Exercises"><span class="hub-fill" style="width:' +
-      hubFill(shownTicks, score.max) + '%"></span></span></span>';
-    html += '<span class="hub-meter"><span class="hub-meter-label"><span>Days</span><span>' +
-      shownDual + " / 6</span></span>" +
-      '<span class="hub-track" role="progressbar" aria-valuemin="0" aria-valuemax="6" aria-valuenow="' +
-      shownDual + '" aria-label="Days"><span class="hub-fill" style="width:' + hubFill(shownDual, 6) +
-      '%"></span></span><span class="hub-days">';
-    var i;
-    for (i = 0; i < 6; i++) {
-      if (i >= days.length) html += '<span class="hub-dash"></span>';
-      else {
-        var tier = fresh ? 0 : normalizeTier(maskFor(days[i].dateKey, mode));
-        html += '<span class="hub-day' + (tier === 3 ? " is-full" : "") + '"></span>';
-      }
-    }
-    html += "</span></span>";
-    if (fresh) html += '<span class="hub-fresh">Fresh week.</span>';
-    return html;
+  function hubSummaryText(view) {
+    if (!view || view.empty) return "No schedule yet.";
+    var lines = [];
+    if (view.heading) lines.push(view.heading);
+    (view.rows || []).forEach(function (row) { lines.push(row); });
+    if (view.nuts) lines.push(view.nuts);
+    if (view.lock) lines.push(view.lock);
+    (view.next || []).forEach(function (row) { lines.push(row); });
+    return lines.join("\n");
   }
 
   function paintHub() {
     var root = $("hub-root");
     if (!root) return;
-    var parts = londonParts(state.now || getNow());
+    var focus = londonParts(planFocusDate());
     var quote = $("hub-quote");
-    if (quote) quote.textContent = hubQuote(parts);
+    if (quote) quote.textContent = hubQuote(londonParts(parseDateOverride() || new Date()));
     document.querySelectorAll("[data-hub-stats]").forEach(function (node) {
       node.innerHTML = hubStatsHtml(node.getAttribute("data-hub-stats"));
     });
     var foodLine = $("hub-food-summary");
     var smoothLine = $("hub-smoothie-summary");
-    var food = window.NexusFood && window.NexusFood.todaySummary ? window.NexusFood.todaySummary("food") : null;
-    var smooth = window.NexusFood && window.NexusFood.todaySummary ? window.NexusFood.todaySummary("smoothies") : null;
-    if (foodLine) {
-      if (!food || food.empty) foodLine.textContent = "Nothing planned today.";
-      else foodLine.textContent = "Lunch " + (food.lunch || "Empty") + " · Evening " + (food.evening || "Empty");
-    }
-    if (smoothLine) {
-      var text = !smooth || !smooth.smoothie ? "Nothing planned today." : smooth.smoothie;
-      if (smooth && smooth.prep) text += (text ? " · " : "") + "Prep day";
-      smoothLine.textContent = text;
-    }
+    var foodApi = window.NexusFood;
+    var food = foodApi && foodApi.hubView ? foodApi.hubView("food", focus.dateKey) : null;
+    var smooth = foodApi && foodApi.hubView ? foodApi.hubView("smoothies", focus.dateKey) : null;
+    if (foodLine) foodLine.textContent = hubSummaryText(food);
+    if (smoothLine) smoothLine.textContent = hubSummaryText(smooth);
   }
 
   function openTrainingDoor(mode) {
@@ -1001,9 +1027,9 @@
     state.osDoor = door;
     var titles = {
       training: "Training Schedules",
-      food: "Food & Shopping",
-      smoothies: "Smoothies & Prep",
-      hub: "Nexus",
+      food: "Food Schedules",
+      smoothies: "Smoothies Schedules",
+      hub: "Main Menu Hub",
       account: "Account Profile"
     };
     var shown = state.menuCabin && titles[state.menuCabin] ? state.menuCabin : door;
@@ -1082,7 +1108,6 @@
     document.body.setAttribute("data-phase", phase.suffix);
 
     var onTraining = state.osDoor === "training";
-    $("banner-live").hidden = preview || !onTraining;
     var coach = $("banner-coach");
     if (state.coachOverride && onTraining) {
       coach.hidden = false;
@@ -1099,12 +1124,6 @@
     $("month-blurb").textContent = blurb;
     $("meta-today").innerHTML = "TODAY <strong>" + parts.dateKey + "</strong> · " + parts.weekday;
     paintLondonClock();
-    var liveBanner = $("banner-live");
-    if (liveBanner) {
-      liveBanner.textContent = state.futureLock
-        ? "LIVE · Europe/London · Today and past can tick · Future days locked"
-        : "LIVE · Europe/London · Any training day can tick";
-    }
 
     document.querySelectorAll(".phase").forEach(function (el) {
       el.classList.toggle("is-active", el.getAttribute("data-phase") === phase.suffix);
@@ -2790,32 +2809,6 @@
         paintOsDoors();
       });
     });
-    document.querySelectorAll("[data-hub-mode]").forEach(function (hubBtn) {
-      hubBtn.addEventListener("click", function (event) {
-        event.preventDefault();
-        openTrainingDoor(hubBtn.getAttribute("data-hub-mode"));
-        setNavOpen(false);
-      });
-    });
-    document.querySelectorAll("[data-hub-door]").forEach(function (hubBtn) {
-      hubBtn.addEventListener("click", function (event) {
-        event.preventDefault();
-        var name = hubBtn.getAttribute("data-hub-door");
-        if (name !== "food" && name !== "smoothies") return;
-        state.osDoor = name;
-        state.menuCabin = name;
-        if (name === "food") {
-          state.foodRoom = "today";
-          state.smoothieRoom = "";
-        } else {
-          state.smoothieRoom = "today";
-          state.foodRoom = "";
-        }
-        render();
-        if (window.NexusFood) window.NexusFood.open(name, "today");
-        setNavOpen(false);
-      });
-    });
     var accountDismiss = $("account-banner-dismiss");
     if (accountDismiss) {
       accountDismiss.addEventListener("click", function (event) {
@@ -3095,7 +3088,15 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v48",
+    build: "v49",
+    planFocusDate: planFocusDate,
+    hubSnapshot: function () {
+      return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };
+    },
+    loadTickMap: function (map) {
+      state.videos = map || {};
+      state.loaded = true;
+    },
     get phaseState() { return player.phaseState || "idle"; },
     get advanceCount() { return player.advanceCount | 0; },
     get playerIndex() { return player.index | 0; },

@@ -10,10 +10,10 @@ const html = fs.readFileSync("index.html", "utf8");
 const app = fs.readFileSync("app.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v48"') === -1 || html.indexOf("app.js?v=v48") === -1) {
-  fail("index.html is not stamped v48");
+if (html.indexOf('content="v49"') === -1 || html.indexOf("app.js?v=v49") === -1) {
+  fail("index.html is not stamped v49");
 }
-if (app.indexOf('build: "v48"') === -1) fail("RelicArchitect.build is not v48");
+if (app.indexOf('build: "v49"') === -1) fail("RelicArchitect.build is not v49");
 if (html.indexOf("JOSEPH · LONDON") !== -1 || html.indexOf("corner-who") !== -1 || html.indexOf("meta-mode") !== -1) {
   fail("public corner still has the name or lock status");
 }
@@ -23,7 +23,9 @@ if (html.indexOf("ambient-nix is-orange") !== -1 || html.indexOf("ambient-orb is
 if (app.indexOf("NAV_GUARD_MS") === -1) fail("menu tap guard is missing");
 if (app.indexOf("meta-mode") !== -1) fail("corner lock status is still painted");
 if (html.indexOf("Future days locked") !== -1) fail("default banner still says future days are locked");
-if (html.indexOf("Any training day can tick") === -1) fail("default banner is missing");
+if (html.indexOf("Any training day can tick") !== -1 || html.indexOf("LIVE · Europe/London") !== -1) {
+  fail("live banner is still in the page");
+}
 if (html.indexOf('id="btn-future-lock"') === -1 || html.indexOf(">Training lock<") === -1) {
   fail("menu lock label is not Training lock");
 }
@@ -34,7 +36,7 @@ if (html.indexOf('data-cabin="notes"') !== -1 || html.indexOf('data-os-door="not
 if (html.indexOf(">Notes &amp; Ideas<") !== -1 || html.indexOf(">Notes & Ideas<") !== -1) {
   fail("Notes label remains");
 }
-if (html.indexOf('data-os-door="hub"') === -1 || html.indexOf('aria-label="Nexus Main Menu Hub"') === -1) {
+if (html.indexOf('data-os-door="hub"') === -1 || html.indexOf(">Main Menu Hub<") === -1) {
   fail("Hub door is missing");
 }
 if (html.indexOf('data-os-door="account"') === -1 || html.indexOf("Account Profile: coming soon.") === -1) {
@@ -45,7 +47,7 @@ const doorOrder = [];
 const doorRe = /data-os-door="(training|food|smoothies|hub|account)"/g;
 let doorMatch;
 while ((doorMatch = doorRe.exec(drawer))) doorOrder.push(doorMatch[1]);
-if (doorOrder.join(",") !== "training,food,smoothies,hub,account") {
+if (doorOrder.join(",") !== "hub,training,food,smoothies,account") {
   fail("drawer order " + doorOrder.join(","));
 }
 if (/🔒|🏋️|🛍️|🍎|🍌|os-door-icon/.test(drawer)) fail("menu still has emoji or door pills");
@@ -160,7 +162,7 @@ function expect(arch, dateKey, want, label) {
 
 const open = load("?date=2026-10-06");
 const arch = open.RelicArchitect;
-if (!arch || arch.build !== "v48" || arch.futureLock !== false) fail("default lock is not off");
+if (!arch || arch.build !== "v49" || arch.futureLock !== false) fail("default lock is not off");
 else {
   expect(arch, "2026-10-06", true, "open today");
   ["2026-10-07", "2026-12-31", "2027-01-01", "2027-10-07"].forEach(function (dateKey) {
@@ -211,7 +213,7 @@ if (arch && typeof arch.applyOsDoor === "function") {
   if (arch.applyOsDoor("notes") !== false || !open.nodes["nav-lock"].hidden) {
     fail("notes door did not land on the Hub");
   }
-  if (open.nodes["nav-drawer-title"].textContent !== "Nexus") fail("notes door title");
+  if (open.nodes["nav-drawer-title"].textContent !== "Main Menu Hub") fail("notes door title");
   if (arch.applyOsDoor("hub") !== false || !open.nodes["nav-lock"].hidden) fail("hub shows the lock");
   if (arch.applyOsDoor("account") !== false || !open.nodes["nav-lock"].hidden) fail("account shows the lock");
   if (arch.applyOsDoor("training") !== true || open.nodes["nav-lock"].hidden) fail("training lock did not return");
@@ -223,4 +225,4 @@ if (fails.length) {
   fails.forEach(function (msg) { console.error("FAIL", msg); });
   process.exit(1);
 }
-console.log("OK ticks v48");
+console.log("OK ticks v49");

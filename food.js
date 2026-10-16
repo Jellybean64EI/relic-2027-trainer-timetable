@@ -1,4 +1,4 @@
-/* Nexus food planner v48. Meals and smoothies share one store.
+/* Nexus food planner v49. Meals and smoothies share one store.
    Month locks are separate: nexus_food_lock_food_v1 and nexus_food_lock_smoothies_v1.
    Does not read relic_completions or training keys. */
 (function (root) {
@@ -232,7 +232,6 @@
     var brazil = false;
     recipe.ingredients = (recipe.ingredients || []).map(function (item) {
       var original = item.name || item.text || "";
-      if (/sainsbury/i.test(original) && !item.brand) item.brand = "Sainsbury's";
       item.name = plainName(original);
       if (item.name === "2 Brazil nuts" || item.skuId === "brazil") {
         item.name = "2 Brazil nuts";
@@ -278,17 +277,32 @@
     return String(title || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
   }
 
+  function isoLondon(date) {
+    try {
+      return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+    } catch (err) {
+      return date.toISOString().slice(0, 10);
+    }
+  }
+
+  function wallKey() {
+    return isoLondon(new Date());
+  }
+
   function todayKey() {
     if (ui._today) return ui._today;
     var search = "";
     try { search = root.location && root.location.search || ""; } catch (err) { search = ""; }
     var match = /[?&]date=(\d{4}-\d{2}-\d{2})/.exec(search);
-    if (match) return match[1];
-    try {
-      return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-    } catch (err2) {
-      return new Date().toISOString().slice(0, 10);
+    var arch = root.RelicArchitect;
+    if (!match && arch && typeof arch.planFocusDate === "function") {
+      var focused = arch.planFocusDate();
+      if (focused && !isNaN(focused.getTime())) return isoLondon(focused);
     }
+    var real = match ? match[1] : wallKey();
+    if (real < "2027-01-01") return "2027-01-01";
+    if (real > "2027-12-31") return "2027-12-31";
+    return real;
   }
 
   function monthOf(dateKey) { return String(dateKey || "").slice(0, 7); }
@@ -628,7 +642,7 @@
           favourite: false,
           forward: {},
           band: "",
-          source: "Sainsbury's meal card"
+          source: "Meal card"
         });
       });
     }
@@ -652,7 +666,7 @@
           favourite: false,
           forward: {},
           band: card.band || "",
-          source: "Sainsbury's smoothie card"
+          source: "Smoothie card"
         };
         recipe.purpose = purposeOf(recipe);
         add(recipe);
@@ -1659,9 +1673,24 @@
     };
   }
 
+  function ensureSmoothieNuts(draft) {
+    var types = draft.types || [];
+    var smoothie = types.indexOf("smoothie") !== -1 || draft.kind === "extraction";
+    if (!smoothie || recipeNuts(draft) !== 0) return;
+    draft.ingredients = (draft.ingredients || []).concat([{
+      name: "2 Brazil nuts",
+      qty: 2,
+      unit: "each",
+      multiple: 1,
+      skuId: "brazil",
+      brazilNuts: 2
+    }]);
+  }
+
   function commitDraft(draft) {
     var title = String(draft.title || "").trim();
     if (!title) return { error: "Add a name before saving." };
+    ensureSmoothieNuts(draft);
     var issues = textIssues(draft);
     if (issues.length) return { error: issues[0] };
     if (recipeNuts(draft) > 2) return { error: "A card cannot carry more than 2 Brazil nuts." };
@@ -1867,7 +1896,15 @@
       if (ui.filter === "favourite" && !recipe.favourite) return false;
       if (q && recipe.title.toLowerCase().indexOf(q) === -1) return false;
       return true;
-    }).sort(function (a, b) { return a.title < b.title ? -1 : 1; });
+    }).sort(function (a, b) {
+      if (!!a.hidden !== !!b.hidden) return a.hidden ? 1 : -1;
+      if (!!a.favourite !== !!b.favourite) return a.favourite ? -1 : 1;
+      var at = String(a.title || "").toLowerCase();
+      var bt = String(b.title || "").toLowerCase();
+      if (at < bt) return -1;
+      if (at > bt) return 1;
+      return 0;
+    });
   }
 
   function paint() {
@@ -2054,7 +2091,7 @@
         var day = ensureDay(month, info.date);
         applyBrazil(store, month, day);
         html += '<article class="planner-day"><header><span>' + esc(info.name + " " + info.day) + "</span>" +
-          (info.sunday ? '<span class="planner-prep">Prep day</span>' : "") + "</header>";
+          "</header>";
         enabledFor(month, door).forEach(function (slot) {
           var id = day[slot.key];
           var recipe = id && store.recipes[id];
@@ -2090,23 +2127,13 @@
       var id = day[slot.key];
       var recipe = id && store.recipes[id];
       var done = !!month.ticks[tickKey(date, slot.key)];
-      html += '<div class="planner-today"><div class="planner-today-copy"><span>' + slot.label + "</span><strong>" + esc(recipe ? recipe.title : "Empty") + "</strong>" +
+      html += '<div class="planner-today"><div class="planner-today-copy"><span>' + slot.label + "</span><strong>" + esc(recipe ? recipe.title : "—") + "</strong>" +
         "</div><button type=\"button\" data-planner-act=\"done\" data-date=\"" + date + "\" data-slot=\"" + slot.key + "\">" +
         (done ? "Done" : "Mark done") + "</button></div>";
     });
     applyBrazil(store, month, day);
-    if (info && (info.wd === 6 || info.sunday) && !ui.prepSet) {
-      ui.showPrep = true;
-      ui.prepSet = true;
-    }
-    html += '<button type="button" class="planner-prep-toggle" data-planner-act="toggle-prep">' + (ui.showPrep ? "Hide Sunday prep" : "Sunday prep") + "</button>";
-    if (ui.showPrep) {
-      var sunday = info && info.sunday ? date : nextSunday(date);
-      var prep = prepFor(sunday);
-      html += '<section class="planner-prep-list"><h3>Sunday prep ' + esc(prep.from) + " – " + esc(prep.to) + "</h3><ul>";
-      prep.lines.forEach(function (line) { html += "<li>" + esc(line) + "</li>"; });
-      html += "</ul></section>";
-    }
+    var view = hubView(todayDoor, date);
+    if (view && view.heading) html += '<p class="planner-focus">' + esc(view.heading) + "</p>";
     return html;
   }
 
@@ -2245,6 +2272,50 @@
     return host;
   }
 
+  function addDays(date, delta) {
+    var parts = String(date || "").split("-");
+    var cursor = new Date(Date.UTC(+parts[0], +parts[1] - 1, +parts[2] + delta));
+    return cursor.getUTCFullYear() + "-" + pad(cursor.getUTCMonth() + 1) + "-" + pad(cursor.getUTCDate());
+  }
+
+  function monthReady(store, key) {
+    return (store.months && store.months[key]) || blankMonth(key);
+  }
+
+  function matchingSlots(store, recipe, date) {
+    var door = doorOf(ui.door);
+    return enabledFor(monthReady(store, monthOf(date)), door).filter(function (slot) {
+      return allows(recipe, slot.key);
+    });
+  }
+
+  function slotOnDate(store, recipe, date) {
+    var slots = matchingSlots(store, recipe, date);
+    var month = monthReady(store, monthOf(date));
+    var day = month.days && month.days[date];
+    var i;
+    for (i = 0; i < slots.length; i++) {
+      if (!day || !day[slots[i].key]) return slots[i];
+    }
+    return slots[0] || null;
+  }
+
+  function nextEmptyPlacement(store, recipeId) {
+    var recipe = store.recipes[recipeId];
+    if (!recipe) return null;
+    var date = todayKey();
+    var i;
+    for (i = 0; i < 370; i++) {
+      var slot = slotOnDate(store, recipe, date);
+      var month = monthReady(store, monthOf(date));
+      var day = month.days && month.days[date];
+      if (slot && (!day || !day[slot.key])) return { date: date, slot: slot.key, label: slot.label };
+      date = addDays(date, 1);
+      if (date > "2028-01-15") break;
+    }
+    return null;
+  }
+
   function sheetHtml(store) {
     var sheet = ui.sheet;
     var html = '<div class="planner-sheet-layer">';
@@ -2273,22 +2344,24 @@
       html += '<button type="button" data-planner-act="repeat">Repeat on every ' + esc(weekdayName(sheet.date)) + "</button>";
     } else if (sheet.type === "add") {
       var recipe = store.recipes[sheet.id];
-      var key = clampMonth(sheet.month || currentMonth());
-      sheet.month = key;
-      if (!sheet.date || sheet.date.slice(0, 7) !== key) sheet.date = defaultDate(key);
+      if (!sheet.date) {
+        var preset = nextEmptyPlacement(store, sheet.id);
+        sheet.date = preset ? preset.date : todayKey();
+        sheet.slot = preset ? preset.slot : (sheet.slot || "");
+      }
+      var chosen = slotOnDate(store, recipe, sheet.date);
+      if (!sheet.slot && chosen) sheet.slot = chosen.key;
+      var info = dateList(monthOf(sheet.date)).filter(function (row) { return row.date === sheet.date; })[0];
+      var when = info ? info.name + " " + info.day + " " + monthName(monthOf(sheet.date)).slice(0, 3) : sheet.date;
+      var chosenLabel = chosen ? chosen.label : "slot";
       html += "<h3>Add " + esc(recipe ? recipe.title : "") + "</h3>";
-      html += '<div class="planner-bar"><button type="button" data-planner-act="add-month-prev" aria-label="Previous month">Prev</button>' +
-        "<h3 class=\"planner-title\">" + esc(monthName(key)) + "</h3>" +
-        '<button type="button" data-planner-act="add-month-next" aria-label="Next month">Next</button></div>';
-      html += '<label>Day<select data-planner-field="add-date">';
-      dateList(key).forEach(function (info) {
-        var selected = info.date === sheet.date;
-        html += '<option value="' + info.date + '"' + (selected ? " selected" : "") + ">" + esc(info.name + " " + info.day + " " + MONTHS[info.date.slice(5, 7) * 1].slice(0, 3)) + "</option>";
-      });
-      html += "</select></label>";
+      html += '<div class="planner-bar"><button type="button" data-planner-act="add-day-prev" aria-label="Previous day">Prev day</button>' +
+        "<h3 class=\"planner-title\">" + esc(when) + "</h3>" +
+        '<button type="button" data-planner-act="add-day-next" aria-label="Next day">Next day</button></div>';
       html += '<div class="planner-actions">';
-      enabledFor(ensureMonth(store, key), doorOf(ui.door)).forEach(function (slot) {
-        if (!recipe || !allows(recipe, slot.key)) return;
+      html += '<button type="button" class="planner-primary" data-planner-act="add-slot" data-slot="' + esc(sheet.slot || (chosen && chosen.key) || "") + '">Add to ' + esc(when) + " · " + esc(chosenLabel) + "</button>";
+      matchingSlots(store, recipe, sheet.date).forEach(function (slot) {
+        if (slot.key === sheet.slot) return;
         html += '<button type="button" data-planner-act="add-slot" data-slot="' + slot.key + '">' + slot.label + "</button>";
       });
       html += "</div>";
@@ -2434,19 +2507,25 @@
     if (act === "ask-delete") { ui.sheet = { type: "delete", id: button.getAttribute("data-id") }; paint(); return; }
     if (act === "confirm-delete") { deleteRecipe(ui.sheet.id); ui.sheet = null; ui.focusId = ""; paint(); return; }
     if (act === "add-plan") {
-      ui.sheet = { type: "add", id: button.getAttribute("data-id"), date: defaultDate(currentMonth()) };
+      var presetPlace = nextEmptyPlacement(store, button.getAttribute("data-id"));
+      ui.sheet = {
+        type: "add",
+        id: button.getAttribute("data-id"),
+        date: presetPlace ? presetPlace.date : todayKey(),
+        slot: presetPlace ? presetPlace.slot : ""
+      };
       paint();
       return;
     }
-    if (act === "add-month-prev" || act === "add-month-next") {
-      ui.sheet.month = shiftMonthKey(ui.sheet.month || currentMonth(), act === "add-month-next" ? 1 : -1);
-      ui.sheet.date = defaultDate(ui.sheet.month);
+    if (act === "add-day-prev" || act === "add-day-next") {
+      ui.sheet.date = addDays(ui.sheet.date || todayKey(), act === "add-day-next" ? 1 : -1);
+      var moved = slotOnDate(store, store.recipes[ui.sheet.id], ui.sheet.date);
+      ui.sheet.slot = moved ? moved.key : "";
       paint();
       return;
     }
     if (act === "add-slot") {
-      var select = root.document.querySelector("[data-planner-field='add-date']");
-      var date = select ? select.value : ui.sheet.date;
+      var date = ui.sheet.date;
       var result = placeChange(monthOf(date), date, button.getAttribute("data-slot"), ui.sheet.id);
       ui.sheet = null;
       if (result.stale || result.error) { ui.error = result.error || ui.syncNote; paint(); return; }
@@ -2683,24 +2762,76 @@
     clear: function (cabin) { clearBanner(cabin); }
   };
 
-  function todaySummary(door) {
-    var date = todayKey();
-    var key = monthOf(date);
+  function slotMealTitle(store, day, slotKey) {
+    var id = day && day[slotKey];
+    var recipe = id && store.recipes[id];
+    return recipe ? recipe.title : "—";
+  }
+
+  function hubView(door, focusDate) {
+    var name = door === "smoothies" ? "smoothies" : "food";
+    var date = focusDate || todayKey();
     var store = read();
-    var month = store.months[key];
-    var day = month && month.days ? month.days[date] : null;
+    var key = monthOf(date);
+    var month = monthReady(store, key);
+    var day = month.days && month.days[date];
+    var slots = enabledFor(month, name);
+    var filled = false;
+    var rows = slots.map(function (slot) {
+      var title = slotMealTitle(store, day, slot.key);
+      if (title !== "—") filled = true;
+      return slot.label + " " + title;
+    });
+    var next = [];
+    var n;
+    for (n = 1; n <= 6; n++) {
+      var nextDate = addDays(date, n);
+      var nextMonth = monthReady(store, monthOf(nextDate));
+      var nextDay = nextMonth.days && nextMonth.days[nextDate];
+      var nextSlots = enabledFor(nextMonth, name);
+      var parts = nextDate.split("-");
+      var stamp = new Date(Date.UTC(+parts[0], +parts[1] - 1, +parts[2]));
+      var bits = nextSlots.map(function (slot) {
+        var title = slotMealTitle(store, nextDay, slot.key);
+        if (title !== "—") filled = true;
+        return slot.label + " " + title;
+      });
+      next.push(WD[stamp.getUTCDay()].toUpperCase() + " " + (+parts[2]) + " · " + bits.join(" · "));
+    }
     var info = dateList(key).filter(function (row) { return row.date === date; })[0];
-    function title(id) {
-      var recipe = id && store.recipes[id];
-      return recipe ? recipe.title : "";
+    var heading = "";
+    if (date !== wallKey()) {
+      heading = "Today · " + (info ? info.name + " " + info.day + " " + MONTHS[info.date.slice(5, 7) * 1].slice(0, 3) : date);
     }
-    if (door === "smoothies") {
-      var smoothie = day ? title(day.morning) : "";
-      return { smoothie: smoothie, prep: !!(info && info.sunday), empty: !smoothie };
+    var nuts = "";
+    if (name === "smoothies") {
+      var count = 0;
+      if (day && day.morning && store.recipes[day.morning]) count = recipeNuts(store.recipes[day.morning]);
+      if (count === 2) nuts = "2 Brazil nuts";
+      else if (count) nuts = count + " Brazil nuts";
     }
-    var lunch = day ? title(day.lunch) : "";
-    var evening = day ? title(day.evening) : "";
-    return { lunch: lunch, evening: evening, empty: !lunch && !evening };
+    var lock = readLock(name, key).status === "locked" ? "Locked" : "Draft";
+    var empty = !filled;
+    var lunch = day ? slotMealTitle(store, day, "lunch") : "—";
+    var evening = day ? slotMealTitle(store, day, "evening") : "—";
+    var smoothie = day ? slotMealTitle(store, day, "morning") : "—";
+    return {
+      date: date,
+      heading: heading,
+      rows: rows,
+      next: next,
+      nuts: nuts,
+      lock: lock,
+      empty: empty,
+      lunch: lunch === "—" ? "" : lunch,
+      evening: evening === "—" ? "" : evening,
+      smoothie: smoothie === "—" ? "" : smoothie,
+      prep: false
+    };
+  }
+
+  function todaySummary(door) {
+    return hubView(door, todayKey());
   }
 
   root.NexusFood = {
@@ -2709,6 +2840,7 @@
     dismiss: dismiss,
     paint: paint,
     todaySummary: todaySummary,
+    hubView: hubView,
     testing: {
       reset: function () {
         cache = null;
@@ -2807,6 +2939,7 @@
       },
       legacyLock: function () { return lockLegacy; },
       marker: function () { return storageGet(LOCK_SPLIT); },
+      nextSlot: function (id) { return nextEmptyPlacement(read(), id); },
       door: function (name) {
         if (name === "food" || name === "smoothies") ui.door = name;
         return ui.door;
