@@ -1,10 +1,14 @@
-/* Nexus food planner v45. Meals and smoothies share one store.
+/* Nexus food planner v48. Meals and smoothies share one store.
+   Month locks are separate: nexus_food_lock_food_v1 and nexus_food_lock_smoothies_v1.
    Does not read relic_completions or training keys. */
 (function (root) {
   "use strict";
 
   var PLAN_START = "2027-01";
   var KEY = "nexus_food_v1";
+  var LOCK_FOOD = "nexus_food_lock_food_v1";
+  var LOCK_SMOOTHIES = "nexus_food_lock_smoothies_v1";
+  var LOCK_SPLIT = "nexus_food_lock_split_v1";
   var BACKUP = "nexus_food_backup_v22";
   var V22_KEYS = [
     "relic_food_meals_v22",
@@ -32,6 +36,8 @@
   var FIT_ORDER = ["breakfast", "lunch", "evening", "smoothie"];
   var cache = null;
   var base = null;
+  var lockMaps = { food: null, smoothies: null };
+  var lockLegacy = false;
   var ui = {
     door: "food",
     screen: "recipes",
@@ -368,6 +374,15 @@
     try { root.localStorage.setItem(key, value); } catch (err) { /* private mode */ }
   }
 
+  function storageSetOk(key, value) {
+    try {
+      root.localStorage.setItem(key, value);
+      return storageGet(key) === String(value);
+    } catch (err) {
+      return false;
+    }
+  }
+
   function parseJson(raw) {
     if (!raw) return null;
     try {
@@ -399,6 +414,138 @@
   function enabled(month) {
     var flags = month && month.slots || defaultSlots();
     return SLOTS.filter(function (slot) { return !!flags[slot.flag]; });
+  }
+
+  function slotsForDoor(door) {
+    if (door === "smoothies") return ["morning"];
+    if (door === "food") return ["breakfast", "lunch", "evening"];
+    return ["breakfast", "morning", "lunch", "evening"];
+  }
+
+  function enabledFor(month, door) {
+    var rows = enabled(month);
+    if (door !== "food" && door !== "smoothies") return rows;
+    var keys = slotsForDoor(door);
+    return rows.filter(function (slot) { return keys.indexOf(slot.key) !== -1; });
+  }
+
+  function lockKey(door) {
+    if (door === "food") return LOCK_FOOD;
+    if (door === "smoothies") return LOCK_SMOOTHIES;
+    var live = root.document && root.document.getElementById && root.document.getElementById("relic-card");
+    if (!live) throw new Error("lock door " + door);
+    return null;
+  }
+
+  function doorOf(door) {
+    if (door === "food" || door === "smoothies") return door;
+    return ui.door === "smoothies" ? "smoothies" : "food";
+  }
+
+  function lockEntry(src) {
+    return {
+      status: src && src.status === "locked" ? "locked" : "draft",
+      lockedAt: src && src.lockedAt || null,
+      wasLocked: !!(src && src.wasLocked)
+    };
+  }
+
+  function readLockMap(door) {
+    if (lockMaps[door]) return lockMaps[door];
+    var key = lockKey(door);
+    var parsed = key ? parseJson(storageGet(key)) : null;
+    lockMaps[door] = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    return lockMaps[door];
+  }
+
+  function readLock(door, month) {
+    door = doorOf(door);
+    var map = readLockMap(door);
+    var entry = map && map[month];
+    if (entry && entry.status) return lockEntry(entry);
+    if (lockLegacy) {
+      var row = cache && cache.months && cache.months[month];
+      if (row && row.status === "locked") return lockEntry(row);
+    }
+    return { status: "draft", lockedAt: null, wasLocked: false };
+  }
+
+  function writeLock(door, month, entry) {
+    door = doorOf(door);
+    var key = lockKey(door);
+    if (!key) return null;
+    var disk = parseJson(storageGet(key));
+    if (!disk || typeof disk !== "object" || Array.isArray(disk)) disk = {};
+    disk[month] = lockEntry(entry);
+    if (!storageSetOk(key, JSON.stringify(disk))) return null;
+    lockMaps[door] = disk;
+    return disk[month];
+  }
+
+  function snapshotLocks() {
+    return {
+      food: clone(readLockMap("food")),
+      smoothies: clone(readLockMap("smoothies"))
+    };
+  }
+
+  function restoreLocks(snap) {
+    if (!snap) return;
+    ["food", "smoothies"].forEach(function (door) {
+      if (!snap[door]) return;
+      var key = lockKey(door);
+      var body = JSON.stringify(snap[door]);
+      if (storageSetOk(key, body)) lockMaps[door] = clone(snap[door]);
+    });
+  }
+
+  function migrateLocks(store) {
+    if (storageGet(LOCK_SPLIT) === "done") {
+      lockLegacy = false;
+      lockMaps.food = null;
+      lockMaps.smoothies = null;
+      readLockMap("food");
+      readLockMap("smoothies");
+      return;
+    }
+    var locked = [];
+    Object.keys((store && store.months) || {}).forEach(function (key) {
+      if (store.months[key] && store.months[key].status === "locked") locked.push(key);
+    });
+    var foodMap = parseJson(storageGet(LOCK_FOOD)) || {};
+    var smoothMap = parseJson(storageGet(LOCK_SMOOTHIES)) || {};
+    if (Array.isArray(foodMap)) foodMap = {};
+    if (Array.isArray(smoothMap)) smoothMap = {};
+    locked.forEach(function (key) {
+      var entry = lockEntry(store.months[key]);
+      entry.status = "locked";
+      if (!foodMap[key]) foodMap[key] = lockEntry(entry);
+      if (!smoothMap[key]) smoothMap[key] = lockEntry(entry);
+    });
+    if (!storageSetOk(LOCK_FOOD, JSON.stringify(foodMap)) || !storageSetOk(LOCK_SMOOTHIES, JSON.stringify(smoothMap))) {
+      lockLegacy = true;
+      lockMaps.food = null;
+      lockMaps.smoothies = null;
+      return;
+    }
+    var backFood = parseJson(storageGet(LOCK_FOOD));
+    var backSmooth = parseJson(storageGet(LOCK_SMOOTHIES));
+    var ok = !!(backFood && backSmooth && !Array.isArray(backFood) && !Array.isArray(backSmooth));
+    if (ok) {
+      locked.forEach(function (key) {
+        if (!backFood[key] || backFood[key].status !== "locked") ok = false;
+        if (!backSmooth[key] || backSmooth[key].status !== "locked") ok = false;
+      });
+    }
+    if (!ok || !storageSetOk(LOCK_SPLIT, "done") || storageGet(LOCK_SPLIT) !== "done") {
+      lockLegacy = true;
+      lockMaps.food = null;
+      lockMaps.smoothies = null;
+      return;
+    }
+    lockLegacy = false;
+    lockMaps.food = backFood;
+    lockMaps.smoothies = backSmooth;
   }
 
   function recipeNuts(recipe) {
@@ -782,7 +929,6 @@
       if (!out.months[key]) out.months[key] = clone(d);
       var target = out.months[key];
       target.slots = mergeValue(b.slots || defaultSlots(), l.slots || defaultSlots(), d.slots || defaultSlots(), key + " slots", conflicts);
-      target.status = mergeValue(b.status || "draft", l.status || "draft", d.status || "draft", key + " status", conflicts);
       target.days = target.days || {};
       var dates = {};
       [b.days, l.days, d.days].forEach(function (days) {
@@ -892,11 +1038,13 @@
       if (mustSave) save();
       else rememberBase();
       dropStoredToast();
+      migrateLocks(cache);
       return cache;
     }
     cache = migrate();
     save();
     dropStoredToast();
+    migrateLocks(cache);
     return cache;
   }
 
@@ -941,7 +1089,16 @@
   }
 
   function onStorage(event) {
-    if (!event || event.key !== KEY) return;
+    if (!event) return;
+    if (event.key === LOCK_FOOD || event.key === LOCK_SMOOTHIES) {
+      var door = event.key === LOCK_FOOD ? "food" : "smoothies";
+      var parsed = parseJson(event.newValue);
+      lockMaps[door] = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+      var board = root.document && root.document.getElementById && root.document.getElementById("planner-board");
+      if (board && !board.hidden) paint();
+      return;
+    }
+    if (event.key !== KEY) return;
     var disk = parseJson(event.newValue);
     if (!disk || disk.schema !== 1 || !cache) return;
     if ((disk.rev || 0) === (cache.rev || 0)) return;
@@ -998,7 +1155,8 @@
       label: label,
       recipes: clone(store.recipes),
       months: clone(store.months),
-      templates: clone(store.templates)
+      templates: clone(store.templates),
+      locks: snapshotLocks()
     });
     if (store.undo.length > 20) store.undo = store.undo.slice(-20);
     return id;
@@ -1118,6 +1276,7 @@
     store.recipes = top.recipes;
     store.months = top.months;
     store.templates = top.templates;
+    if (top.locks) restoreLocks(top.locks);
     if (store.toast) delete store.toast;
     save();
     var label = top.label;
@@ -1178,17 +1337,18 @@
     setMonth(cursor.getUTCFullYear() + "-" + pad(cursor.getUTCMonth() + 1));
   }
 
-  function validate(key) {
+  function validate(key, door) {
     var store = read();
     var month = ensureMonth(store, key);
     var problems = [];
     dateList(key).forEach(function (info) {
       var day = ensureDay(month, info.date);
       var nuts = applyBrazil(store, month, day);
-      if (nuts.total !== 0 && nuts.total !== 2) {
+      var brazilBad = door === "smoothies" ? nuts.total !== 2 : (door === "food" ? false : (nuts.total !== 0 && nuts.total !== 2));
+      if (brazilBad) {
         problems.push({ date: info.date, slot: "brazil", reason: "Brazil nuts are 2 (" + nuts.total + " on this day)." });
       }
-      enabled(month).forEach(function (slot) {
+      enabledFor(month, door).forEach(function (slot) {
         var id = day[slot.key];
         if (!id) {
           problems.push({ date: info.date, slot: slot.key, reason: info.name + " " + info.day + " " + slot.label + " is empty." });
@@ -1210,8 +1370,8 @@
     return problems;
   }
 
-  function gaps(key) {
-    return validate(key).filter(function (item) { return item.slot !== "brazil" && /empty/.test(item.reason); });
+  function gaps(key, door) {
+    return validate(key, door).filter(function (item) { return item.slot !== "brazil" && /empty/.test(item.reason); });
   }
 
   function tickKey(date, slot) { return date + "|" + slot; }
@@ -1420,26 +1580,30 @@
     return count;
   }
 
-  function lockMonth(key, confirmed) {
+  function lockMonth(key, confirmed, door) {
+    door = doorOf(door);
     var store = read();
     var month = ensureMonth(store, key);
-    var problems = validate(key);
+    var problems = validate(key, door);
     var empty = problems.filter(function (item) { return item.slot !== "brazil"; });
     if (empty.length || problems.length) {
       ui.gap = (empty[0] || problems[0]).date + "|" + (empty[0] || problems[0]).slot;
       ui.error = (empty[0] || problems[0]).reason;
       return { ok: false, gaps: empty.length, problems: problems };
     }
-    if (month.status === "locked") return { ok: false, locked: true };
+    if (readLock(door, key).status === "locked") return { ok: false, locked: true };
     var delta = tickDelta(store, month, key);
+    var cabin = door === "smoothies" ? "Smoothies" : "Food";
     var undoId = pushUndo("Locked " + monthName(key));
-    month.status = "locked";
-    month.lockedAt = new Date().toISOString();
-    month.wasLocked = false;
+    var written = writeLock(door, key, { status: "locked", lockedAt: new Date().toISOString(), wasLocked: false });
+    if (!written) {
+      dropUndo(undoId);
+      return { ok: false, gaps: empty.length, problems: problems };
+    }
     save();
     ui.error = "";
     ui.gap = "";
-    say("Locked " + monthName(key) + ".", { undoId: undoId });
+    say(cabin + ": " + shortMonth(key) + " is locked.", { undoId: undoId });
     return { ok: true, kept: delta.kept, cleared: delta.cleared };
   }
 
@@ -1455,11 +1619,11 @@
     return { kept: kept, cleared: cleared };
   }
 
-  function unlockMonth(key) {
-    var store = read();
-    var month = ensureMonth(store, key);
-    month.status = "draft";
-    month.wasLocked = true;
+  function unlockMonth(key, door) {
+    door = doorOf(door);
+    read();
+    var current = readLock(door, key);
+    writeLock(door, key, { status: "draft", lockedAt: current.lockedAt, wasLocked: true });
     save();
     return true;
   }
@@ -1696,6 +1860,8 @@
     var q = ui.query.trim().toLowerCase();
     return Object.keys(store.recipes).map(function (id) { return store.recipes[id]; }).filter(function (recipe) {
       if (recipe.hidden) return false;
+      if (ui.door === "smoothies" && !isSmoothie(recipe)) return false;
+      if (ui.door === "food" && isSmoothie(recipe)) return false;
       if (ui.filter === "smoothie" && !isSmoothie(recipe)) return false;
       if (ui.filter === "meal" && isSmoothie(recipe)) return false;
       if (ui.filter === "favourite" && !recipe.favourite) return false;
@@ -1843,33 +2009,40 @@
     return html;
   }
 
-  function lockBanner(key, status) {
+  function lockBanner(key, status, door) {
     if (status !== "locked") return "";
-    return '<div class="planner-lock-banner" role="status"><p>' + esc(shortMonth(key)) + " is locked. Ticks are kept.</p>" +
+    var cabin = door === "smoothies" ? "Smoothies" : "Food";
+    return '<div class="planner-lock-banner" role="status"><p>' + esc(cabin + ": " + shortMonth(key) + " is locked.") + " Ticks are kept.</p>" +
       '<button type="button" data-planner-act="ask-unlock" data-month="' + esc(key) + '">Unlock to edit</button></div>';
   }
 
   function planHtml(store) {
     var key = currentMonth();
     var month = ensureMonth(store, key);
-    var empty = gaps(key);
-    var lockLabel = empty.length ? (empty.length + " gaps") : (month.status === "locked" ? "Locked" : ("Lock " + monthName(key)));
+    var door = doorOf(ui.door);
+    var status = readLock(door, key).status;
+    var empty = gaps(key, door);
+    var problems = validate(key, door);
+    var lockLabel = status === "locked" ? "Locked" : (empty.length ? (empty.length + " gaps") : (problems.length ? (problems.length + (problems.length === 1 ? " problem" : " problems")) : ("Lock " + monthName(key))));
     var html = '<p class="planner-help">1. Choose meals each day  2. Auto-organise or tap a slot  3. Lock month</p>';
     html += '<div class="planner-bar"><button type="button" data-planner-act="month-prev" aria-label="Previous month">Prev</button>' +
       "<h2 class=\"planner-title\">" + esc(monthName(key)) + "</h2>" +
       '<button type="button" data-planner-act="month-next" aria-label="Next month">Next</button></div>';
-    html += '<p class="planner-status">' + (month.status === "locked" ? "Locked" : "Draft") + "</p>";
-    html += '<p class="planner-kicker">Meals each day</p><div class="planner-slot-toggles" role="group" aria-label="Meals each day">';
-    SLOTS.forEach(function (slot) {
-      var on = !!month.slots[slot.flag];
-      html += '<button type="button" class="planner-chip' + (on ? " is-active" : "") + '" data-planner-act="toggle-slot" data-flag="' +
-        slot.flag + '" aria-pressed="' + on + '">' + slot.label + "</button>";
-    });
-    html += "</div>";
+    html += '<p class="planner-status">' + (status === "locked" ? "Locked" : "Draft") + "</p>";
+    if (door !== "smoothies") {
+      html += '<p class="planner-kicker">Meals each day</p><div class="planner-slot-toggles" role="group" aria-label="Meals each day">';
+      SLOTS.forEach(function (slot) {
+        if (slotsForDoor(door).indexOf(slot.key) === -1) return;
+        var on = !!month.slots[slot.flag];
+        html += '<button type="button" class="planner-chip' + (on ? " is-active" : "") + '" data-planner-act="toggle-slot" data-flag="' +
+          slot.flag + '" aria-pressed="' + on + '">' + slot.label + "</button>";
+      });
+      html += "</div>";
+    }
     html += '<div class="planner-actions"><button type="button" class="planner-primary" data-planner-act="auto">Auto-organise</button>' +
       '<button type="button" data-planner-act="templates">Templates</button>' +
       '<button type="button" data-planner-act="clear-month">Clear month</button></div>';
-    html += lockBanner(key, month.status);
+    html += lockBanner(key, status, door);
     var weeks = weeksOf(key);
     var week = weeks[weekIndex(key)] || [];
     if (week.length) {
@@ -1882,11 +2055,11 @@
         applyBrazil(store, month, day);
         html += '<article class="planner-day"><header><span>' + esc(info.name + " " + info.day) + "</span>" +
           (info.sunday ? '<span class="planner-prep">Prep day</span>' : "") + "</header>";
-        enabled(month).forEach(function (slot) {
+        enabledFor(month, door).forEach(function (slot) {
           var id = day[slot.key];
           var recipe = id && store.recipes[id];
           var marked = ui.gap === info.date + "|" + slot.key;
-          var locked = month.status === "locked";
+          var locked = status === "locked";
           html += '<button type="button" class="planner-slot' + (marked ? " is-gap" : "") + (locked ? " is-locked" : "") + '" id="slot-' + info.date + "-" + slot.key +
             '" data-planner-act="swap" data-date="' + info.date + '" data-slot="' + slot.key + '"' + (locked ? ' data-locked="true"' : "") + ">" +
             '<span class="planner-slot-k">' + slot.label + (locked ? " · Locked" : "") + "</span>" +
@@ -1910,8 +2083,10 @@
     var html = '<div class="planner-daybar"><button type="button" data-planner-act="day-prev" aria-label="Yesterday">Yesterday</button>' +
       "<h2 class=\"planner-title\">" + esc(info ? info.name + " " + info.day + " " + monthName(key) : date) + "</h2>" +
       '<button type="button" data-planner-act="day-next" aria-label="Tomorrow">Tomorrow</button></div>';
-    html += lockBanner(key, month.status);
-    enabled(month).forEach(function (slot) {
+    var todayDoor = doorOf(ui.door);
+    var todayStatus = readLock(todayDoor, key).status;
+    html += lockBanner(key, todayStatus, todayDoor);
+    enabledFor(month, todayDoor).forEach(function (slot) {
       var id = day[slot.key];
       var recipe = id && store.recipes[id];
       var done = !!month.ticks[tickKey(date, slot.key)];
@@ -2112,7 +2287,7 @@
       });
       html += "</select></label>";
       html += '<div class="planner-actions">';
-      enabled(ensureMonth(store, key)).forEach(function (slot) {
+      enabledFor(ensureMonth(store, key), doorOf(ui.door)).forEach(function (slot) {
         if (!recipe || !allows(recipe, slot.key)) return;
         html += '<button type="button" data-planner-act="add-slot" data-slot="' + slot.key + '">' + slot.label + "</button>";
       });
@@ -2282,9 +2457,10 @@
       return;
     }
     if (act === "swap") {
-      var month = ensureMonth(store, currentMonth());
-      if (month.status === "locked") {
-        say(shortMonth(currentMonth()) + " is locked.");
+      var swapDoor = doorOf(ui.door);
+      if (readLock(swapDoor, currentMonth()).status === "locked") {
+        var swapCabin = swapDoor === "smoothies" ? "Smoothies" : "Food";
+        say(swapCabin + ": " + shortMonth(currentMonth()) + " is locked.");
         paint();
         return;
       }
@@ -2352,7 +2528,7 @@
       return;
     }
     if (act === "lock") {
-      if (ensureMonth(store, currentMonth()).status === "locked") {
+      if (readLock(doorOf(ui.door), currentMonth()).status === "locked") {
         ui.sheet = { type: "unlock", month: currentMonth() };
         paint();
         return;
@@ -2507,13 +2683,39 @@
     clear: function (cabin) { clearBanner(cabin); }
   };
 
+  function todaySummary(door) {
+    var date = todayKey();
+    var key = monthOf(date);
+    var store = read();
+    var month = store.months[key];
+    var day = month && month.days ? month.days[date] : null;
+    var info = dateList(key).filter(function (row) { return row.date === date; })[0];
+    function title(id) {
+      var recipe = id && store.recipes[id];
+      return recipe ? recipe.title : "";
+    }
+    if (door === "smoothies") {
+      var smoothie = day ? title(day.morning) : "";
+      return { smoothie: smoothie, prep: !!(info && info.sunday), empty: !smoothie };
+    }
+    var lunch = day ? title(day.lunch) : "";
+    var evening = day ? title(day.evening) : "";
+    return { lunch: lunch, evening: evening, empty: !lunch && !evening };
+  }
+
   root.NexusFood = {
     open: open,
     sync: sync,
     dismiss: dismiss,
     paint: paint,
+    todaySummary: todaySummary,
     testing: {
-      reset: function () { cache = null; },
+      reset: function () {
+        cache = null;
+        lockMaps.food = null;
+        lockMaps.smoothies = null;
+        lockLegacy = false;
+      },
       read: read,
       today: function () { return ui._today || todayKey(); },
       recipeCount: function () { return Object.keys(read().recipes).length; },
@@ -2531,8 +2733,16 @@
       clearMonth: clearMonth,
       validate: validate,
       gaps: gaps,
-      lock: lockMonth,
-      unlock: unlockMonth,
+      lock: function (door, month) {
+        if (door === "food" || door === "smoothies") return lockMonth(month, false, door);
+        return lockMonth(door, false, "food");
+      },
+      unlock: function (door, month) {
+        if (door === "food" || door === "smoothies") return unlockMonth(month, door);
+        return unlockMonth(door, "food");
+      },
+      lockOf: readLock,
+      lockKey: lockKey,
       saveTemplate: saveTemplate,
       applyTemplate: applyTemplate,
       renameTemplate: renameTemplate,
@@ -2590,8 +2800,16 @@
         ensureMonth(read(), key).slots[flag] = !!on;
         save();
       },
-      enabledSlots: function (key) {
-        return enabled(ensureMonth(read(), key)).map(function (slot) { return slot.label; });
+      enabledSlots: function (key, door) {
+        var month = ensureMonth(read(), key);
+        var rows = door ? enabledFor(month, door) : enabled(month);
+        return rows.map(function (slot) { return slot.label; });
+      },
+      legacyLock: function () { return lockLegacy; },
+      marker: function () { return storageGet(LOCK_SPLIT); },
+      door: function (name) {
+        if (name === "food" || name === "smoothies") ui.door = name;
+        return ui.door;
       },
       month: function (key) { return ensureMonth(read(), key); },
       toast: function () { return ui.toast; },

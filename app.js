@@ -9,6 +9,7 @@
    v15: viewYear 2026 was the Q4 bridge. v45 keeps the timetable on 2027.
    v46: the 2027 row opens and closes Upper Body and Full Body.
    v47: that row sits above Training lock. The Ambient Hub label is gone.
+   v48: the Hub is the start screen. Notes is gone. Food and Smoothies locks are separate.
    Month-row cache keys are year:mode:month. v29 ticks every day unless the menu
    lock is on. Lock on allows today and past only, and each day opens on its London date.
    v16: the CUE panel slides up from the bottom of the stage. Week chips keep a single
@@ -88,7 +89,7 @@
     smoothieLandCell: "",
     smoothieOffer: "",
     smoothieFlyError: "",
-    osDoor: "training",
+    osDoor: "hub",
     menuCabin: null,
     futureLock: false,
     foodRefuse: "",
@@ -268,9 +269,23 @@
     return dateKey <= parts.dateKey;
   }
 
+  function normDoor(v) {
+    if (v === "training" || v === "food" || v === "smoothies" || v === "hub" || v === "account") return v;
+    return "hub";
+  }
+
+  function trainingDeepLink() {
+    return /[?&]mode=(upper|full)\b/.test(location.search || "") || /[?&]date=\d{4}-\d{2}-\d{2}/.test(location.search || "");
+  }
+
+  function doorOverride() {
+    var match = /[?&]door=([a-z]+)/.exec(location.search || "");
+    return match ? normDoor(match[1]) : "";
+  }
+
   function paintFutureLock() {
     var section = $("nav-lock");
-    var training = state.osDoor !== "food" && state.osDoor !== "smoothies";
+    var training = state.osDoor === "training";
     if (section) section.hidden = !training;
     var btn = $("btn-future-lock");
     if (!btn) return;
@@ -807,9 +822,180 @@
   function foodExtractions() { return window.RELIC_FOOD_EXTRACTIONS || null; }
   function foodSchedule() { return window.RELIC_FOOD_SCHEDULE || null; }
 
+  var HUB_QUOTES = [
+    "Show up before the day asks you to.",
+    "One clean rep is a whole conversation.",
+    "Strength is a quiet kind of honesty.",
+    "Leave the week better than you found it.",
+    "The work you repeat becomes the work you trust.",
+    "Rest is part of the set, not a detour.",
+    "Stand tall and let the breath lead.",
+    "Small plates, steady hands, full days.",
+    "Train the muscle you will thank in winter.",
+    "Keep the promise you made on Monday.",
+    "A calm week still counts.",
+    "Eat like you intend to train tomorrow.",
+    "The bar does not care about yesterday.",
+    "Finish the set you started.",
+    "Water first, then the hard thing.",
+    "Shoulders down, eyes up, then move.",
+    "You do not need a louder plan.",
+    "Two good meals beat a perfect theory.",
+    "Let the clock be a coach, not a critic.",
+    "Build the body that can carry your life.",
+    "Saturday still belongs to the work.",
+    "Soft voice, firm standard.",
+    "The next rep is the only one you own.",
+    "Cook simply and train completely.",
+    "Leave room in the day for a walk.",
+    "Consistency is a kind of mercy.",
+    "Do the plain thing well.",
+    "Your future self is already watching.",
+    "Stop at strong, not at sloppy.",
+    "A full breath is a fresh start.",
+    "Piece by piece, the week gets done."
+  ];
+
+  function dayOfYear(parts) {
+    var start = Date.UTC(parts.year, 0, 1);
+    var now = Date.UTC(parts.year, parts.month - 1, parts.day);
+    return Math.floor((now - start) / 86400000) + 1;
+  }
+
+  function hubQuote(parts) {
+    var index = dayOfYear(parts) % HUB_QUOTES.length;
+    if (index < 0) index = 0;
+    return HUB_QUOTES[index];
+  }
+
+  function hubWeekDays(mode) {
+    var parts = londonParts(state.now || getNow());
+    var source = mode === "upper" ? (upperSchedule() || S) : S;
+    if (!source || !source.buildMonthDays) return [];
+    var week = S.weekOfMonth(parts.day);
+    return source.buildMonthDays(2027, parts.month).filter(function (day) {
+      return !day.isRecovery && day.dayIndex < 6 && day.weekOfMonth === week;
+    });
+  }
+
+  function hubScore(mode) {
+    var days = hubWeekDays(mode);
+    var ticks = 0;
+    var dual = 0;
+    days.forEach(function (day) {
+      var tier = normalizeTier(maskFor(day.dateKey, mode));
+      ticks += popcount(tier);
+      if (tier === 3) dual += 1;
+    });
+    return {
+      month: londonParts(state.now || getNow()).month,
+      week: S.weekOfMonth(londonParts(state.now || getNow()).day),
+      days: days.length,
+      ticks: ticks,
+      dual: dual,
+      max: days.length * 2,
+      loaded: !!state.loaded
+    };
+  }
+
+  function hubFill(now, max) {
+    if (!max) return 0;
+    return Math.max(0, Math.min(100, Math.round((now / max) * 100)));
+  }
+
+  function hubStatsHtml(mode) {
+    var score = hubScore(mode);
+    var days = hubWeekDays(mode);
+    if (!score.days) {
+      return '<span class="hub-rest">Rest week</span>';
+    }
+    var fresh = !score.loaded || score.ticks === 0;
+    var shownTicks = fresh ? 0 : score.ticks;
+    var shownDual = fresh ? 0 : score.dual;
+    var html = '<span class="hub-meter"><span class="hub-meter-label"><span>Exercises</span><span>' +
+      shownTicks + " / " + score.max + "</span></span>" +
+      '<span class="hub-track" role="progressbar" aria-valuemin="0" aria-valuemax="' + score.max +
+      '" aria-valuenow="' + shownTicks + '" aria-label="Exercises"><span class="hub-fill" style="width:' +
+      hubFill(shownTicks, score.max) + '%"></span></span></span>';
+    html += '<span class="hub-meter"><span class="hub-meter-label"><span>Days</span><span>' +
+      shownDual + " / 6</span></span>" +
+      '<span class="hub-track" role="progressbar" aria-valuemin="0" aria-valuemax="6" aria-valuenow="' +
+      shownDual + '" aria-label="Days"><span class="hub-fill" style="width:' + hubFill(shownDual, 6) +
+      '%"></span></span><span class="hub-days">';
+    var i;
+    for (i = 0; i < 6; i++) {
+      if (i >= days.length) html += '<span class="hub-dash"></span>';
+      else {
+        var tier = fresh ? 0 : normalizeTier(maskFor(days[i].dateKey, mode));
+        html += '<span class="hub-day' + (tier === 3 ? " is-full" : "") + '"></span>';
+      }
+    }
+    html += "</span></span>";
+    if (fresh) html += '<span class="hub-fresh">Fresh week.</span>';
+    return html;
+  }
+
+  function paintHub() {
+    var root = $("hub-root");
+    if (!root) return;
+    var parts = londonParts(state.now || getNow());
+    var quote = $("hub-quote");
+    if (quote) quote.textContent = hubQuote(parts);
+    document.querySelectorAll("[data-hub-stats]").forEach(function (node) {
+      node.innerHTML = hubStatsHtml(node.getAttribute("data-hub-stats"));
+    });
+    var foodLine = $("hub-food-summary");
+    var smoothLine = $("hub-smoothie-summary");
+    var food = window.NexusFood && window.NexusFood.todaySummary ? window.NexusFood.todaySummary("food") : null;
+    var smooth = window.NexusFood && window.NexusFood.todaySummary ? window.NexusFood.todaySummary("smoothies") : null;
+    if (foodLine) {
+      if (!food || food.empty) foodLine.textContent = "Nothing planned today.";
+      else foodLine.textContent = "Lunch " + (food.lunch || "Empty") + " · Evening " + (food.evening || "Empty");
+    }
+    if (smoothLine) {
+      var text = !smooth || !smooth.smoothie ? "Nothing planned today." : smooth.smoothie;
+      if (smooth && smooth.prep) text += (text ? " · " : "") + "Prep day";
+      smoothLine.textContent = text;
+    }
+  }
+
+  function openTrainingDoor(mode) {
+    if (mode) setScheduleMode(mode);
+    state.foodRoom = "";
+    state.smoothieRoom = "";
+    state.foodFocusId = "";
+    state.smoothieFocusId = "";
+    state.foodEditing = false;
+    state.smoothieEditing = false;
+    state.osDoor = "training";
+    render();
+    warmVisibleLeads();
+  }
+
+  var accountTimer = 0;
+  function dismissAccountBanner() {
+    var host = $("account-banner");
+    if (accountTimer) clearTimeout(accountTimer);
+    accountTimer = 0;
+    if (!host) return;
+    host.classList.remove("is-in");
+    host.classList.add("is-out");
+    host.hidden = true;
+  }
+
+  function showAccountBanner() {
+    var host = $("account-banner");
+    if (!host) return;
+    host.hidden = false;
+    host.classList.remove("is-out");
+    host.classList.add("is-in");
+    if (accountTimer) clearTimeout(accountTimer);
+    accountTimer = setTimeout(dismissAccountBanner, 4000);
+  }
+
   function paintOsDoors() {
     var prevPainted = state.paintedDoor;
-    var door = state.osDoor === "food" || state.osDoor === "smoothies" ? state.osDoor : "training";
+    var door = normDoor(state.osDoor);
     if (prevPainted && prevPainted !== door) state.menuCabin = null;
     state.paintedDoor = door;
     state.osDoor = door;
@@ -817,7 +1003,8 @@
       training: "Training Schedules",
       food: "Food & Shopping",
       smoothies: "Smoothies & Prep",
-      notes: "Notes & Ideas"
+      hub: "Nexus",
+      account: "Account Profile"
     };
     var shown = state.menuCabin && titles[state.menuCabin] ? state.menuCabin : door;
     var title = $("nav-drawer-title");
@@ -831,7 +1018,7 @@
     document.querySelectorAll("[data-os-panel]").forEach(function (panel) {
       panel.hidden = panel.getAttribute("data-os-panel") !== door;
     });
-    var open = state.menuCabin == null ? door : state.menuCabin;
+    var open = state.menuCabin || "";
     document.querySelectorAll(".cabin").forEach(function (cabin) {
       var name = cabin.getAttribute("data-cabin");
       var on = !!open && name === open;
@@ -851,6 +1038,10 @@
     paintFutureLock();
     paintModeChrome();
     paintBranchChrome();
+    if (document.body) {
+      document.body.classList.toggle("is-hub", door === "hub");
+    }
+    if (door === "hub") paintHub();
   }
 
   function render() {
@@ -890,9 +1081,10 @@
     document.body.setAttribute("data-branch", state.branch);
     document.body.setAttribute("data-phase", phase.suffix);
 
-    $("banner-live").hidden = preview;
+    var onTraining = state.osDoor === "training";
+    $("banner-live").hidden = preview || !onTraining;
     var coach = $("banner-coach");
-    if (state.coachOverride) {
+    if (state.coachOverride && onTraining) {
       coach.hidden = false;
       coach.textContent = "COACH OVERRIDE · ?date=" + state.coachOverride + " · Europe/London";
     } else {
@@ -970,7 +1162,7 @@
       window.NexusFood.sync(plannerDoor, plannerScreen);
     }
     paintOsDoors();
-    warmVisibleLeads();
+    if (state.osDoor === "training") warmVisibleLeads();
     if (state.restoreTickDate) {
       var again = tbody.querySelector('button.tick-hit[data-date="' + state.restoreTickDate + '"]');
       state.restoreTickDate = "";
@@ -1062,8 +1254,7 @@
   function paintModeChrome() {
     var currentKey = viewingUpper() ? "upper" : "full";
     var otherKey = currentKey === "upper" ? "full" : "upper";
-    var notesUp = !!(document.body && document.body.classList.contains("nav-open") && state.menuCabin === "notes");
-    var training = state.osDoor !== "food" && state.osDoor !== "smoothies" && !notesUp;
+    var training = state.osDoor === "training";
     var line = $("schedule-mode");
     if (line) {
       line.hidden = !training;
@@ -1107,7 +1298,7 @@
   }
 
   function paintBranchChrome() {
-    var training = state.osDoor !== "food" && state.osDoor !== "smoothies";
+    var training = state.osDoor === "training";
     var markBranch = training && resolvedMark() === "branch";
     document.querySelectorAll("[data-set-branch]").forEach(function (opt) {
       var on = opt.getAttribute("data-set-branch") === state.branch;
@@ -1149,7 +1340,10 @@
       state.menuCabin = null;
       paintOsDoors();
     }
-    if (!next) navToggleAt = 0;
+    if (!next) {
+      navToggleAt = 0;
+      dismissAccountBanner();
+    }
     var drawer = $("nav-drawer");
     var scrim = $("nav-scrim");
     var btn = $("btn-nav-toggle");
@@ -2276,6 +2470,7 @@
       return;
     }
     reconcileVisibility();
+    if (state.osDoor === "hub") paintHub();
   }
 
   function bindMediaSession() {
@@ -2568,33 +2763,68 @@
         event.preventDefault();
         event.stopPropagation();
         var name = doorBtn.getAttribute("data-os-door");
-        var door = state.osDoor === "food" || state.osDoor === "smoothies" ? state.osDoor : "training";
-        var current = state.menuCabin == null ? door : state.menuCabin;
+        if (name === "account") {
+          showAccountBanner();
+          return;
+        }
+        if (name === "hub") {
+          state.osDoor = "hub";
+          state.menuCabin = "";
+          setNavOpen(false);
+          render();
+          return;
+        }
+        if (name !== "training" && name !== "food" && name !== "smoothies") return;
+        var current = state.menuCabin || "";
         if (current === name) {
           state.menuCabin = "";
           paintOsDoors();
           return;
         }
         state.menuCabin = name;
-        if (name === "notes") {
-          paintOsDoors();
-          return;
-        }
         if (name === "training") {
-          state.foodRoom = "";
-          state.smoothieRoom = "";
-          state.foodFocusId = "";
-          state.smoothieFocusId = "";
-          state.foodEditing = false;
-          state.smoothieEditing = false;
-          state.osDoor = "training";
-          render();
+          openTrainingDoor();
           return;
         }
         state.osDoor = name;
         paintOsDoors();
       });
     });
+    document.querySelectorAll("[data-hub-mode]").forEach(function (hubBtn) {
+      hubBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        openTrainingDoor(hubBtn.getAttribute("data-hub-mode"));
+        setNavOpen(false);
+      });
+    });
+    document.querySelectorAll("[data-hub-door]").forEach(function (hubBtn) {
+      hubBtn.addEventListener("click", function (event) {
+        event.preventDefault();
+        var name = hubBtn.getAttribute("data-hub-door");
+        if (name !== "food" && name !== "smoothies") return;
+        state.osDoor = name;
+        state.menuCabin = name;
+        if (name === "food") {
+          state.foodRoom = "today";
+          state.smoothieRoom = "";
+        } else {
+          state.smoothieRoom = "today";
+          state.foodRoom = "";
+        }
+        render();
+        if (window.NexusFood) window.NexusFood.open(name, "today");
+        setNavOpen(false);
+      });
+    });
+    var accountDismiss = $("account-banner-dismiss");
+    if (accountDismiss) {
+      accountDismiss.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        dismissAccountBanner();
+      });
+    }
+    window.addEventListener("pagehide", dismissAccountBanner);
     document.querySelectorAll("[data-food-room]").forEach(function (foodBtn) {
       foodBtn.addEventListener("click", function (event) {
         event.preventDefault();
@@ -2839,6 +3069,9 @@
     state.mode = parseModeOverride() || readStoredMode() || "full";
     state.navMark = readStoredMark();
     if (state.mode === "upper" && !upperSchedule()) state.mode = "full";
+    if (trainingDeepLink()) state.osDoor = "training";
+    else if (doorOverride()) state.osDoor = doorOverride();
+    else state.osDoor = "hub";
     wire();
     render();
     pullCompletions().then(render);
@@ -2862,7 +3095,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v47",
+    build: "v48",
     get phaseState() { return player.phaseState || "idle"; },
     get advanceCount() { return player.advanceCount | 0; },
     get playerIndex() { return player.index | 0; },
@@ -2885,7 +3118,7 @@
     get futureLock() { return !!state.futureLock; },
     setFutureLock: setFutureLock,
     applyOsDoor: function (door) {
-      state.osDoor = door === "food" || door === "smoothies" ? door : "training";
+      state.osDoor = normDoor(door);
       paintOsDoors();
       var section = $("nav-lock");
       return !section || section.hidden !== true;

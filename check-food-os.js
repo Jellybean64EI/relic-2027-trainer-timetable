@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* v47: planner starts January 2027 and drops 2026 plan months. */
+/* v48: planner starts January 2027. Food and Smoothies locks are separate. */
 const fs = require("fs");
 const vm = require("vm");
 
@@ -11,7 +11,7 @@ const app = fs.readFileSync("app.js", "utf8");
 const food = fs.readFileSync("food.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v47"') === -1 || html.indexOf("food.js?v=v47") === -1) fail("cache stamp");
+if (html.indexOf('content="v48"') === -1 || html.indexOf("food.js?v=v48") === -1) fail("cache stamp");
 if (css.indexOf("#planner-sheet-host") === -1 || css.indexOf("safe-area-inset-bottom") === -1 || css.indexOf("100dvh") === -1) fail("sheet viewport");
 if (/^\.planner-sheet \{[^}]*position:\s*sticky/m.test(css)) fail("sheet still sticky");
 ["recipes", "plan", "today"].forEach(function (screen) {
@@ -20,7 +20,10 @@ if (/^\.planner-sheet \{[^}]*position:\s*sticky/m.test(css)) fail("sheet still s
 });
 if (html.indexOf("Monthly Shop") !== -1 || html.indexOf('data-food-room="shop"') !== -1) fail("shop module remains");
 if (html.indexOf('data-os-door="food"') === -1 || html.indexOf('data-os-door="smoothies"') === -1) fail("cabins");
-if (html.indexOf('data-os-door="training"') === -1 || html.indexOf('data-os-door="notes"') === -1) fail("other cabins");
+if (html.indexOf('data-os-door="training"') === -1) fail("training cabin");
+if (html.indexOf('data-os-door="notes"') !== -1 || html.indexOf('data-cabin="notes"') !== -1) fail("notes cabin remains");
+if (html.indexOf('data-os-door="hub"') === -1 || html.indexOf('data-os-door="account"') === -1) fail("hub doors");
+if (food.indexOf('cabin: "notes"') !== -1 || food.indexOf("notes:") !== -1) fail("notes banner");
 if (html.indexOf("Prep &amp; Today") === -1) fail("today label");
 ["paintFuelWeek", "finishWeek", "placeHg", "btn-food-close", "relic_food_cards_v20", "relic_food_week_v20", "relic_food_shop_v19"].forEach(function (needle) {
   if (app.indexOf(needle) !== -1 || food.indexOf(needle) !== -1 || html.indexOf(needle) !== -1) fail("dead " + needle);
@@ -136,7 +139,7 @@ t.clearRange("2027-10", "2027-10-01", "2027-10-01");
 });
 const gapList = t.gaps("2027-10");
 if (gapList.length < 3) fail("gap count " + gapList.length);
-const locked = t.lock("2027-10", false);
+const locked = t.lock("food", "2027-10");
 if (locked.ok) fail("locked with gaps");
 
 t.autoOrganise("2027-10");
@@ -155,13 +158,15 @@ t.dates("2027-10").forEach(function (day) {
   if (!card || card.fits.indexOf("smoothie") === -1) fail("smoothie auto left " + day.date);
 });
 if (!t.toast() || t.toast().text.indexOf("empty slots.") === -1 || t.toast().text.indexOf("cites") !== -1) fail("auto banner " + JSON.stringify(t.toast()));
-const first = t.lock("2027-10", false);
-if (!first.ok || t.month("2027-10").status !== "locked") fail("lock " + JSON.stringify(first));
+const first = t.lock("food", "2027-10");
+if (!first.ok || t.lockOf("food", "2027-10").status !== "locked") fail("lock " + JSON.stringify(first));
+if (t.month("2027-10").status === "locked") fail("legacy month status was written");
+if (t.lockOf("smoothies", "2027-10").status === "locked") fail("food lock wrote the smoothies key");
 t.toggleTick("2027-10-12", "lunch");
-const again = t.lock("2027-10", false);
+const again = t.lock("food", "2027-10");
 if (again.ok || !again.locked) fail("second lock " + JSON.stringify(again));
 const frozen = JSON.stringify(t.month("2027-10"));
-t.lock("2027-10", false);
+t.lock("food", "2027-10");
 if (JSON.stringify(t.month("2027-10")) !== frozen) fail("second lock mutated");
 
 t.setNuts(seedId, 3);
@@ -347,15 +352,16 @@ if (food.indexOf("Meals each day") === -1 || food.indexOf("Choose meals each day
 t.autoOrganise("2027-06");
 t.autoOrganise("2027-06", "smoothies");
 const juneLunch = t.month("2027-06").days["2027-06-01"].lunch;
-const juneLock = t.lock("2027-06");
-if (!juneLock.ok || t.month("2027-06").status !== "locked") fail("june lock " + JSON.stringify(juneLock));
-if (!t.undo() || t.month("2027-06").status === "locked" || t.month("2027-06").days["2027-06-01"].lunch !== juneLunch) fail("lock undo emptied the month");
+const juneLock = t.lock("food", "2027-06");
+if (!juneLock.ok || t.lockOf("food", "2027-06").status !== "locked") fail("june lock " + JSON.stringify(juneLock));
+if (t.lockOf("smoothies", "2027-06").status === "locked") fail("apply path locked smoothies");
+if (!t.undo() || t.lockOf("food", "2027-06").status === "locked" || t.month("2027-06").days["2027-06-01"].lunch !== juneLunch) fail("lock undo emptied the month");
 if (t.toast()) fail("undo follow-up banner " + JSON.stringify(t.toast()));
 const juneTpl = t.saveTemplate("2027-06", "June");
 t.applyTemplate(juneTpl, "2027-06", true);
-t.lock("2027-06");
-if (t.month("2027-06").status !== "locked" || !t.month("2027-06").days["2027-06-02"].lunch) fail("apply then lock");
-if (!t.undo() || t.month("2027-06").status === "locked" || !t.month("2027-06").days["2027-06-02"].lunch) fail("undo after lock kept the lock");
+t.lock("food", "2027-06");
+if (t.lockOf("food", "2027-06").status !== "locked" || t.lockOf("smoothies", "2027-06").status === "locked" || !t.month("2027-06").days["2027-06-02"].lunch) fail("apply then lock");
+if (!t.undo() || t.lockOf("food", "2027-06").status === "locked" || !t.month("2027-06").days["2027-06-02"].lunch) fail("undo after lock kept the lock");
 const filled = t.filled("2027-06");
 const askClear = t.requestClear("2027-06");
 if (!filled || !askClear.needsConfirm || askClear.count !== filled) fail("clear confirm " + filled + " " + JSON.stringify(askClear));
@@ -405,4 +411,4 @@ if (fails.length) {
   console.error(fails.length + " failed");
   process.exit(1);
 }
-console.log("OK food OS v47");
+console.log("OK food OS v48");

@@ -3029,7 +3029,17 @@ body.is-food .phase-bar,
 body.is-food .month-bar,
 body.is-food .week-tabs,
 body.is-food .week-meta,
-body.is-food .schedule-switch {
+body.is-food .schedule-switch,
+body.is-hub .live-stack,
+body.is-hub .phase-bar,
+body.is-hub .month-bar,
+body.is-hub .week-tabs,
+body.is-hub .week-meta,
+body.is-hub .schedule-switch,
+body.is-hub #training-board,
+body.is-hub #planner-board,
+body.is-hub #banner-live,
+body.is-hub #banner-coach {
   display: none;
 }
 
@@ -3752,4 +3762,235 @@ body.player-open #nexus-banner {
 
 body.is-food .storage-note {
   display: none;
+}
+
+#hub-root {
+  min-width: 0;
+  padding: 8px 0 24px;
+}
+
+.hub-mark {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2px;
+  min-height: 44px;
+}
+
+.hub-n {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+}
+
+.hub-exus {
+  color: #f6eefe;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.hub-quote {
+  margin: 8px 0 16px;
+  color: #cbb6e4;
+  font-size: 16px;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.hub-cards,
+.hub-summaries {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.hub-card,
+.hub-summary {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid rgba(216, 180, 254, 0.18);
+  border-radius: 16px;
+  background: #1b0a2a;
+  box-shadow: none;
+  color: #f6eefe;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.hub-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 180px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: #150724;
+  overflow: hidden;
+}
+
+.hub-art svg {
+  width: 70%;
+  height: 80%;
+}
+
+.hub-card-title,
+.hub-summary-title {
+  display: block;
+  color: #f6eefe;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.hub-summary-title {
+  font-size: 16px;
+}
+
+.hub-summary-body,
+.hub-kicker,
+.hub-fresh,
+.hub-rest {
+  display: block;
+  margin-top: 8px;
+  color: #cbb6e4;
+  font-family: ui-monospace, "Courier New", monospace;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.hub-fresh,
+.hub-rest {
+  text-transform: none;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 14px;
+  font-style: italic;
+  letter-spacing: 0;
+}
+
+.hub-meter {
+  display: block;
+  margin-top: 10px;
+}
+
+.hub-meter-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #cbb6e4;
+  font-family: ui-monospace, "Courier New", monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.hub-track {
+  display: block;
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 3px;
+  background: #150724;
+  overflow: hidden;
+}
+
+.hub-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: #ff8c00;
+}
+
+.hub-days {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.hub-day,
+.hub-dash {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 6px;
+  border-radius: 3px;
+  background: #150724;
+}
+
+.hub-day.is-full {
+  background: #0c6b32;
+}
+
+.hub-dash {
+  background: transparent;
+  border-bottom: 1px solid #cbb6e4;
+  opacity: 0.7;
+}
+
+.hub-summaries {
+  margin-top: 16px;
+}
+
+.hub-door .nav-row-label {
+  display: flex;
+  align-items: center;
+  min-height: 20px;
+}
+
+.account-banner {
+  margin: 8px 0 0;
+}
+
+.account-banner-dismiss {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 12px;
+  border: 0;
+  border-top: 1px solid rgba(216, 180, 254, 0.28);
+  background: #1b0a2a;
+  color: #f6eefe;
+  font: inherit;
+  font-size: 0.84rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.account-banner.is-in .account-banner-dismiss {
+  animation: account-in 300ms ease-out;
+}
+
+.account-banner.is-out .account-banner-dismiss {
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+}
+
+@keyframes account-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (min-width: 768px) {
+  .hub-art {
+    height: 220px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-banner.is-in .account-banner-dismiss,
+  .account-banner.is-out .account-banner-dismiss {
+    animation: none;
+    transition: none;
+  }
 }
