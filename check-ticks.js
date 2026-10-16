@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* v44: future days tick unless Training lock is on. Public corner has no lock chrome. */
+/* v45: future days tick unless Training lock is on. Drawer rows have no tags. */
 const fs = require("fs");
 const vm = require("vm");
 
@@ -10,10 +10,10 @@ const html = fs.readFileSync("index.html", "utf8");
 const app = fs.readFileSync("app.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v44"') === -1 || html.indexOf("app.js?v=v44") === -1) {
-  fail("index.html is not stamped v44");
+if (html.indexOf('content="v45"') === -1 || html.indexOf("app.js?v=v45") === -1) {
+  fail("index.html is not stamped v45");
 }
-if (app.indexOf('build: "v44"') === -1) fail("RelicArchitect.build is not v44");
+if (app.indexOf('build: "v45"') === -1) fail("RelicArchitect.build is not v45");
 if (html.indexOf("JOSEPH · LONDON") !== -1 || html.indexOf("corner-who") !== -1 || html.indexOf("meta-mode") !== -1) {
   fail("public corner still has the name or lock status");
 }
@@ -37,7 +37,10 @@ if (/🔒|🏋️|🛍️|🍎|🍌|os-door-icon/.test(drawer)) fail("menu still
 if (html.indexOf("Lock future days") !== -1) fail("old lock label is still in the menu");
 const lockMarkup = html.slice(html.indexOf('id="nav-lock"'), html.indexOf("</section>", html.indexOf('id="nav-lock"')));
 if (/future days|training days/i.test(lockMarkup)) fail("lock row still says future days or training days");
-if (lockMarkup.indexOf(">OFF<") === -1) fail("OFF tag missing");
+if (lockMarkup.indexOf(">OFF<") !== -1 || lockMarkup.indexOf("nav-row-tag") !== -1) fail("lock row still has a tag");
+if (html.indexOf("nav-row-tag") !== -1) fail("drawer still has a module tag");
+if (html.indexOf("2026 pre Training") !== -1) fail("2026 module remains");
+if (app.indexOf("BRIDGE_LOCK_START") !== -1 || app.indexOf("Q4 2026") !== -1) fail("bridge logic remains");
 if (html.indexOf('aria-label="Lock off"') === -1) fail("aria is not Lock off");
 const lockClick = app.indexOf("setFutureLock(!state.futureLock)");
 const lockClose = app.indexOf("setNavOpen(false)", lockClick);
@@ -137,7 +140,7 @@ function expect(arch, dateKey, want, label) {
 
 const open = load("?date=2026-10-06");
 const arch = open.RelicArchitect;
-if (!arch || arch.build !== "v44" || arch.futureLock !== false) fail("default lock is not off");
+if (!arch || arch.build !== "v45" || arch.futureLock !== false) fail("default lock is not off");
 else {
   expect(arch, "2026-10-06", true, "open today");
   ["2026-10-07", "2026-12-31", "2027-01-01", "2027-10-07"].forEach(function (dateKey) {
@@ -182,7 +185,6 @@ if (arch && typeof arch.applyOsDoor === "function") {
   if (arch.applyOsDoor("training") !== true || open.nodes["nav-lock"].hidden || trainingPanelNode.hidden) {
     fail("lock row did not return with Training");
   }
-  if (open.nodes["future-lock-tag"].textContent !== "OFF") fail("OFF tag was not kept");
   if (open.nodes["btn-future-lock"].getAttribute("aria-label") !== "Lock off") {
     fail("aria did not stay Lock off");
   }
@@ -194,4 +196,4 @@ if (fails.length) {
   fails.forEach(function (msg) { console.error("FAIL", msg); });
   process.exit(1);
 }
-console.log("OK ticks v44");
+console.log("OK ticks v45");
