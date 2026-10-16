@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* v47: future days tick unless Training lock is on. Drawer rows have no tags. */
+/* v48: future days tick unless Training lock is on. Notes is gone. The Hub is a door. */
 const fs = require("fs");
 const vm = require("vm");
 
@@ -10,10 +10,10 @@ const html = fs.readFileSync("index.html", "utf8");
 const app = fs.readFileSync("app.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v47"') === -1 || html.indexOf("app.js?v=v47") === -1) {
-  fail("index.html is not stamped v47");
+if (html.indexOf('content="v48"') === -1 || html.indexOf("app.js?v=v48") === -1) {
+  fail("index.html is not stamped v48");
 }
-if (app.indexOf('build: "v47"') === -1) fail("RelicArchitect.build is not v47");
+if (app.indexOf('build: "v48"') === -1) fail("RelicArchitect.build is not v48");
 if (html.indexOf("JOSEPH · LONDON") !== -1 || html.indexOf("corner-who") !== -1 || html.indexOf("meta-mode") !== -1) {
   fail("public corner still has the name or lock status");
 }
@@ -28,11 +28,26 @@ if (html.indexOf('id="btn-future-lock"') === -1 || html.indexOf(">Training lock<
   fail("menu lock label is not Training lock");
 }
 if ((html.match(/>The Cabins</g) || []).length !== 1) fail("The Cabins header must appear once");
-if (html.indexOf(">Notes &amp; Ideas<") === -1 && html.indexOf(">Notes & Ideas<") === -1) {
-  fail("Notes & Ideas cabin is missing");
+if (html.indexOf('data-cabin="notes"') !== -1 || html.indexOf('data-os-door="notes"') !== -1) {
+  fail("Notes cabin remains");
 }
-if (html.indexOf(">Coming soon<") === -1) fail("Notes placeholder is missing");
+if (html.indexOf(">Notes &amp; Ideas<") !== -1 || html.indexOf(">Notes & Ideas<") !== -1) {
+  fail("Notes label remains");
+}
+if (html.indexOf('data-os-door="hub"') === -1 || html.indexOf('aria-label="Nexus Main Menu Hub"') === -1) {
+  fail("Hub door is missing");
+}
+if (html.indexOf('data-os-door="account"') === -1 || html.indexOf("Account Profile: coming soon.") === -1) {
+  fail("Account door is missing");
+}
 const drawer = html.slice(html.indexOf('id="nav-drawer"'), html.indexOf('id="relic-deck-park"'));
+const doorOrder = [];
+const doorRe = /data-os-door="(training|food|smoothies|hub|account)"/g;
+let doorMatch;
+while ((doorMatch = doorRe.exec(drawer))) doorOrder.push(doorMatch[1]);
+if (doorOrder.join(",") !== "training,food,smoothies,hub,account") {
+  fail("drawer order " + doorOrder.join(","));
+}
 if (/🔒|🏋️|🛍️|🍎|🍌|os-door-icon/.test(drawer)) fail("menu still has emoji or door pills");
 if (html.indexOf("Lock future days") !== -1) fail("old lock label is still in the menu");
 const lockMarkup = html.slice(html.indexOf('id="nav-lock"'), html.indexOf("</section>", html.indexOf('id="nav-lock"')));
@@ -145,7 +160,7 @@ function expect(arch, dateKey, want, label) {
 
 const open = load("?date=2026-10-06");
 const arch = open.RelicArchitect;
-if (!arch || arch.build !== "v47" || arch.futureLock !== false) fail("default lock is not off");
+if (!arch || arch.build !== "v48" || arch.futureLock !== false) fail("default lock is not off");
 else {
   expect(arch, "2026-10-06", true, "open today");
   ["2026-10-07", "2026-12-31", "2027-01-01", "2027-10-07"].forEach(function (dateKey) {
@@ -193,6 +208,13 @@ if (arch && typeof arch.applyOsDoor === "function") {
   if (open.nodes["btn-future-lock"].getAttribute("aria-label") !== "Lock off") {
     fail("aria did not stay Lock off");
   }
+  if (arch.applyOsDoor("notes") !== false || !open.nodes["nav-lock"].hidden) {
+    fail("notes door did not land on the Hub");
+  }
+  if (open.nodes["nav-drawer-title"].textContent !== "Nexus") fail("notes door title");
+  if (arch.applyOsDoor("hub") !== false || !open.nodes["nav-lock"].hidden) fail("hub shows the lock");
+  if (arch.applyOsDoor("account") !== false || !open.nodes["nav-lock"].hidden) fail("account shows the lock");
+  if (arch.applyOsDoor("training") !== true || open.nodes["nav-lock"].hidden) fail("training lock did not return");
 } else {
   fail("applyOsDoor missing");
 }
@@ -201,4 +223,4 @@ if (fails.length) {
   fails.forEach(function (msg) { console.error("FAIL", msg); });
   process.exit(1);
 }
-console.log("OK ticks v47");
+console.log("OK ticks v48");
