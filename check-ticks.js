@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* v46: future days tick unless Training lock is on. Drawer rows have no tags. */
+/* v47: future days tick unless Training lock is on. Drawer rows have no tags. */
 const fs = require("fs");
 const vm = require("vm");
 
@@ -10,10 +10,10 @@ const html = fs.readFileSync("index.html", "utf8");
 const app = fs.readFileSync("app.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v46"') === -1 || html.indexOf("app.js?v=v46") === -1) {
-  fail("index.html is not stamped v46");
+if (html.indexOf('content="v47"') === -1 || html.indexOf("app.js?v=v47") === -1) {
+  fail("index.html is not stamped v47");
 }
-if (app.indexOf('build: "v46"') === -1) fail("RelicArchitect.build is not v46");
+if (app.indexOf('build: "v47"') === -1) fail("RelicArchitect.build is not v47");
 if (html.indexOf("JOSEPH · LONDON") !== -1 || html.indexOf("corner-who") !== -1 || html.indexOf("meta-mode") !== -1) {
   fail("public corner still has the name or lock status");
 }
@@ -57,6 +57,11 @@ function panelSlice(name) {
 }
 const trainingPanel = panelSlice("training");
 if (trainingPanel.indexOf('id="btn-future-lock"') === -1) fail("lock row is outside the training door");
+const yearAt = trainingPanel.indexOf('id="btn-year-schedules"');
+const lockAt = trainingPanel.indexOf('id="btn-future-lock"');
+if (yearAt < 0 || lockAt < 0 || yearAt > lockAt || trainingPanel.indexOf("Ambient Hub") !== -1) {
+  fail("training drawer order is not 2027 Training Schedules then Training lock");
+}
 if (panelSlice("food").indexOf("btn-future-lock") !== -1) fail("lock row is inside the food door");
 if (panelSlice("smoothies").indexOf("btn-future-lock") !== -1) fail("lock row is inside the smoothies door");
 if (app.indexOf("section.hidden = !training") === -1) fail("nav paint does not hide the lock row");
@@ -140,7 +145,7 @@ function expect(arch, dateKey, want, label) {
 
 const open = load("?date=2026-10-06");
 const arch = open.RelicArchitect;
-if (!arch || arch.build !== "v46" || arch.futureLock !== false) fail("default lock is not off");
+if (!arch || arch.build !== "v47" || arch.futureLock !== false) fail("default lock is not off");
 else {
   expect(arch, "2026-10-06", true, "open today");
   ["2026-10-07", "2026-12-31", "2027-01-01", "2027-10-07"].forEach(function (dateKey) {
@@ -196,4 +201,4 @@ if (fails.length) {
   fails.forEach(function (msg) { console.error("FAIL", msg); });
   process.exit(1);
 }
-console.log("OK ticks v46");
+console.log("OK ticks v47");

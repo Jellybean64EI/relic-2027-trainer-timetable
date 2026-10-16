@@ -8,6 +8,7 @@
    Mode preference stays in memory.
    v15: viewYear 2026 was the Q4 bridge. v45 keeps the timetable on 2027.
    v46: the 2027 row opens and closes Upper Body and Full Body.
+   v47: that row sits above Training lock. The Ambient Hub label is gone.
    Month-row cache keys are year:mode:month. v29 ticks every day unless the menu
    lock is on. Lock on allows today and past only, and each day opens on its London date.
    v16: the CUE panel slides up from the bottom of the stage. Week chips keep a single
@@ -2861,7 +2862,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v46",
+    build: "v47",
     get phaseState() { return player.phaseState || "idle"; },
     get advanceCount() { return player.advanceCount | 0; },
     get playerIndex() { return player.index | 0; },
