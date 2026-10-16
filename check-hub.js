@@ -9,9 +9,9 @@ function fail(msg) { fails.push(msg); console.error("FAIL", msg); }
 const html = fs.readFileSync("index.html", "utf8");
 const food = fs.readFileSync("food.js", "utf8");
 const app = fs.readFileSync("app.js", "utf8");
-if (html.indexOf('id="hub-root"') === -1 || html.indexOf('aria-label="Nexus"') === -1) fail("hub screen");
-if (html.indexOf(">exus<") === -1) fail("exus wordmark");
-if (html.indexOf('data-hub-mode="upper"') === -1 || html.indexOf('data-hub-mode="full"') === -1) fail("hub mode cards");
+if (html.indexOf('id="hub-root"') === -1 || html.indexOf(">Main Menu Hub<") === -1) fail("hub screen");
+if (html.indexOf(">exus<") !== -1 || html.indexOf("hub-mark") !== -1) fail("N mark remains");
+if (html.indexOf('data-hub-mode="upper"') !== -1 || html.indexOf('data-hub-mode="full"') !== -1) fail("hub cards are still buttons");
 if (html.indexOf(">Upper Body<") === -1 || html.indexOf(">Full Body<") === -1) fail("hub card titles");
 if (app.indexOf('state.osDoor === "training"') === -1) fail("training whitelist");
 if (app.indexOf('osDoor !== "food" && state.osDoor !== "smoothies"') !== -1) fail("training still uses exclusion");
@@ -199,8 +199,12 @@ const plain = t.commit({
   method: [{ verb: "Blend", detail: "until smooth" }]
 });
 if (plain.error) fail("L7 card " + plain.error);
+const plainNuts = (t.recipes()[plain.id].ingredients || []).reduce(function (sum, item) {
+  return sum + (+item.brazilNuts || 0);
+}, 0);
+if (plainNuts !== 2) fail("F2 smoothie save did not add 2 Brazil nuts");
 t.dates("2027-09").forEach(function (day) {
-  t.setSlot("2027-09", day.date, "morning", plain.id);
+  t.setSlot("2027-09", day.date, "morning", "cherry-banana-cream");
 });
 const nutProblems = t.validate("2027-09", "smoothies").filter(function (item) { return item.slot === "brazil"; });
 const foodNuts = t.validate("2027-09", "food").filter(function (item) { return item.slot === "brazil"; });
@@ -232,4 +236,4 @@ if (fails.length) {
   console.error(fails.length + " failed");
   process.exit(1);
 }
-console.log("OK hub v48");
+console.log("OK hub v49");
