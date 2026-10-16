@@ -996,7 +996,7 @@
   function paintOsDoors() {
     var prevPainted = state.paintedDoor;
     var door = normDoor(state.osDoor);
-    if (prevPainted && prevPainted !== door) state.menuCabin = null;
+    if (prevPainted && prevPainted !== door && state.menuCabin && state.menuCabin !== door) state.menuCabin = null;
     state.paintedDoor = door;
     state.osDoor = door;
     var titles = {
