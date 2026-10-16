@@ -1,8 +1,9 @@
-/* Nexus food planner v44. Meals and smoothies share one store.
+/* Nexus food planner v45. Meals and smoothies share one store.
    Does not read relic_completions or training keys. */
 (function (root) {
   "use strict";
 
+  var PLAN_START = "2027-01";
   var KEY = "nexus_food_v1";
   var BACKUP = "nexus_food_backup_v22";
   var V22_KEYS = [
@@ -658,7 +659,7 @@
     if (!record) return;
     var months = record.months || {};
     Object.keys(months).forEach(function (key) {
-      if (key === "2026-10") return;
+      if (key < PLAN_START) return;
       if (monthFilter && !monthFilter(key)) return;
       var bucket = months[key] && months[key].placements || {};
       var month = ensureMonth(store, key);
@@ -690,7 +691,7 @@
       months: {},
       templates: {},
       undo: [],
-      view: { month: monthOf(todayKey()) || "2026-10" },
+      view: { month: clampMonth(monthOf(todayKey()) || PLAN_START) },
       migratedFrom: V22_KEYS.slice()
     };
     var foodMeals = parseJson(backup.relic_food_meals_v22);
@@ -728,12 +729,7 @@
     importPlacements(store, smoothHg, { morning: "morning" });
     importPlacements(store, foodFinal, { lunch: "lunch", dinner: "evening", breakfast: "breakfast" });
     importPlacements(store, smoothFinal, { morning: "morning" });
-    if (store.months["2026-10"]) {
-      store.months["2026-10"].days = {};
-      store.months["2026-10"].ticks = {};
-      store.months["2026-10"].status = "draft";
-      store.months["2026-10"].lockedAt = null;
-    }
+    dropPre2027(store);
     scrubStore(store);
     store.scrubbed = 41;
     store.rev = 0;
@@ -816,6 +812,55 @@
     return { store: out, conflicts: conflicts };
   }
 
+  function stripYear(text) {
+    return String(text || "").replace(/2026/g, "").replace(/\s{2,}/g, " ").trim();
+  }
+
+  function dropPre2027(store) {
+    if (!store) return false;
+    var changed = false;
+    Object.keys(store.months || {}).forEach(function (key) {
+      if (key < PLAN_START) {
+        delete store.months[key];
+        changed = true;
+      }
+    });
+    store.view = store.view || {};
+    if (!store.view.month || store.view.month < PLAN_START) {
+      store.view.month = PLAN_START;
+      changed = true;
+    }
+    (store.undo || []).forEach(function (entry) {
+      Object.keys(entry.months || {}).forEach(function (key) {
+        if (key < PLAN_START) {
+          delete entry.months[key];
+          changed = true;
+        }
+      });
+      if (entry.label && entry.label.indexOf("2026") !== -1) {
+        entry.label = stripYear(entry.label);
+        changed = true;
+      }
+    });
+    Object.keys(store.templates || {}).forEach(function (id) {
+      var template = store.templates[id];
+      if (!template) return;
+      if (template.fromMonth && template.fromMonth < PLAN_START) {
+        template.fromMonth = "";
+        changed = true;
+      }
+      if (template.name && template.name.indexOf("2026") !== -1) {
+        template.name = stripYear(template.name);
+        changed = true;
+      }
+    });
+    if (store.notice && String(store.notice).indexOf("2026") !== -1) {
+      store.notice = stripYear(store.notice);
+      changed = true;
+    }
+    return changed;
+  }
+
   function read() {
     if (cache) return cache;
     var existing = parseJson(storageGet(KEY));
@@ -825,8 +870,9 @@
       cache.months = cache.months || {};
       cache.templates = cache.templates || {};
       cache.undo = cache.undo || [];
-      cache.view = cache.view || { month: monthOf(todayKey()) };
+      cache.view = cache.view || { month: clampMonth(monthOf(todayKey())) };
       cache.rev = cache.rev || 0;
+      var mustSave = false;
       if ((cache.scrubbed || 0) < 41) {
         var before = cache.scrubbed || 0;
         var dirty = before < 40 ? scrubStore(cache) : false;
@@ -840,10 +886,11 @@
         cache.scrubbed = 41;
         if (dirty) cache.notice = "Recipes simplified.";
         else if (slotted && before >= 40) cache.notice = "Meal slots updated.";
-        save();
-      } else {
-        rememberBase();
+        mustSave = true;
       }
+      if (dropPre2027(cache)) mustSave = true;
+      if (mustSave) save();
+      else rememberBase();
       dropStoredToast();
       return cache;
     }
@@ -861,9 +908,11 @@
 
   function save() {
     var store = cache || read();
+    dropPre2027(store);
     var disk = parseJson(storageGet(KEY));
     if (disk && disk.schema === 1 && (disk.rev || 0) !== (store.rev || 0)) {
       if (!base) {
+        dropPre2027(disk);
         cache = disk;
         rememberBase();
         ui.syncNote = "This plan changed in another tab. Reload";
@@ -871,6 +920,7 @@
       }
       var merged = mergeFood(base, store, disk);
       if (merged.conflicts.length) {
+        dropPre2027(disk);
         cache = disk;
         rememberBase();
         ui.syncNote = "This plan changed in another tab. Reload";
@@ -881,6 +931,7 @@
       ui.syncNote = "Merged with a newer plan from another tab.";
       disk = merged.store;
     }
+    dropPre2027(store);
     store.rev = ((disk && disk.rev) || 0) + 1;
     if ((store.rev || 0) <= ((disk && disk.rev) || 0)) store.rev = (disk.rev || 0) + 1;
     store.updatedAt = new Date().toISOString();
@@ -898,6 +949,7 @@
     var showing = !!(board && !board.hidden);
     var quiet = base && sameJson(cache.recipes, base.recipes) && sameJson(cache.months, base.months) && sameJson(cache.templates, base.templates);
     if (quiet) {
+      dropPre2027(disk);
       cache = disk;
       rememberBase();
       ui.syncNote = "Updated from another tab.";
@@ -906,6 +958,7 @@
     }
     var merged = mergeFood(base || cache, cache, disk);
     if (merged.conflicts.length) {
+      dropPre2027(disk);
       cache = disk;
       rememberBase();
       ui.syncNote = "This plan changed in another tab. Reload";
@@ -1090,13 +1143,14 @@
 
   function currentMonth() {
     var store = read();
-    if (!ui.month) ui.month = (store.view && store.view.month) || monthOf(todayKey());
+    if (!ui.month) ui.month = clampMonth((store.view && store.view.month) || monthOf(todayKey()));
+    ui.month = clampMonth(ui.month);
     return ui.month;
   }
 
   function setMonth(key) {
-    ui.month = key;
-    read().view.month = key;
+    ui.month = clampMonth(key);
+    read().view.month = ui.month;
     ui.week = null;
     ui.weekKey = "";
     save();
@@ -1892,9 +1946,15 @@
     return monthOf(todayKey());
   }
 
-  function clampMonth(key) {
+  function floorMonth() {
     var current = realMonth();
-    return !key || key < current ? current : key;
+    if (!current || current < PLAN_START) return PLAN_START;
+    return current;
+  }
+
+  function clampMonth(key) {
+    var floor = floorMonth();
+    return !key || key < floor ? floor : key;
   }
 
   function shiftMonthKey(key, delta) {
@@ -1905,7 +1965,7 @@
 
   function futureMonths(count) {
     var list = [];
-    var key = realMonth();
+    var key = floorMonth();
     var i;
     for (i = 0; i < (count || 18); i++) {
       list.push(key);

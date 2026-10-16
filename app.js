@@ -6,7 +6,7 @@
    v14: each day has two trainer videos. tier is a bitmask (1 first, 2 second, 3 dual).
    Badge paint reads normalizeTier(tier) only. completed never invents a shield.
    Mode preference stays in memory.
-   v15: viewYear 2026 is the Q4 bridge; 2027 is the year timetable.
+   v15: viewYear 2026 was the Q4 bridge. v45 keeps the timetable on 2027.
    Month-row cache keys are year:mode:month. v29 ticks every day unless the menu
    lock is on. Lock on allows today and past only, and each day opens on its London date.
    v16: the CUE panel slides up from the bottom of the stage. Week chips keep a single
@@ -39,7 +39,6 @@
   var viewScroll = {};
   var surfacePress = null;
   var EMPTY_MSG = "No video file IDs mapped for this cabin.";
-  var BRIDGE_LOCK_START = "2026-10-01";
   var FUTURE_LOCK_KEY = "relic_future_lock";
 
   var MODE_LABEL = {
@@ -65,9 +64,9 @@
     mode: "full",
     foodRoom: "",
     hgPick: "",
-    hgWindow: "2026-10",
-    hgMonth: 10,
-    hgYear: 2026,
+    hgWindow: "2027-01",
+    hgMonth: 1,
+    hgYear: 2027,
     hgWeek: 1,
     foodGrid: null,
     foodPackAsk: "",
@@ -78,9 +77,9 @@
     smoothieFocusId: "",
     smoothieEditing: false,
     smoothiePick: "",
-    smoothieWindow: "2026-10",
-    smoothieMonth: 10,
-    smoothieYear: 2026,
+    smoothieWindow: "2027-01",
+    smoothieMonth: 1,
+    smoothieYear: 2027,
     smoothieWeek: 1,
     smoothieGrid: null,
     smoothiePackAsk: "",
@@ -202,7 +201,7 @@
   function readStoredMark() {
     try {
       var stored = localStorage.getItem(NAV_MARK_KEY);
-      if (stored === "mode" || stored === "branch") return stored;
+      if (stored === "mode") return stored;
     } catch (err) { /* private mode */ }
     return "";
   }
@@ -215,15 +214,9 @@
     return window.RELIC_UPPER_BODY || null;
   }
 
-  function preconditionSchedule() {
-    return window.RELIC_PRECONDITION || null;
-  }
-
-  /* Full Body bridge months come from RELIC_PRECONDITION.
-     The 2027 year stays on RELIC_SCHEDULE. Upper Body stays on RELIC_UPPER_BODY. */
-  function timetableSource(year) {
+  /* 2027 Full Body stays on RELIC_SCHEDULE. Upper Body stays on RELIC_UPPER_BODY. */
+  function timetableSource() {
     if (viewingUpper()) return upperSchedule() || S;
-    if (year === 2026 && preconditionSchedule()) return preconditionSchedule();
     return S;
   }
 
@@ -282,8 +275,6 @@
     var on = !!state.futureLock;
     btn.setAttribute("aria-pressed", on ? "true" : "false");
     btn.setAttribute("aria-label", on ? "Lock on" : "Lock off");
-    var tag = $("future-lock-tag");
-    if (tag) tag.textContent = on ? "ON" : "OFF";
   }
 
   function setFutureLock(on) {
@@ -294,12 +285,11 @@
   }
 
   function syncBranch() {
-    if (state.viewYear !== 2026 && state.viewYear !== 2027) state.viewYear = 2027;
-    state.branch = state.viewYear === 2026 ? "bridge" : "year";
+    state.viewYear = 2027;
+    state.branch = "year";
   }
 
   function periodMonths() {
-    if (state.viewYear === 2026) return [10, 11, 12];
     return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
   }
 
@@ -575,7 +565,7 @@
     if (!state.monthCache) state.monthCache = {};
     var key = monthCacheKey(y, mode, month);
     if (!state.monthCache[key]) {
-      var source = timetableSource(y);
+      var source = timetableSource();
       var days = source.buildMonthDays(y, month).filter(function (day) {
         return !day.isRecovery && day.dayIndex < 6;
       });
@@ -869,47 +859,20 @@
     syncBranch();
 
     if (!state.userPicked) {
-      /* Q4 2026 is the live Full Body cabin. Cold open must land on that
-         bridge month, not January 2027 or the October 2027 Till Failure grid. */
-      if (parts.dateKey >= BRIDGE_LOCK_START && parts.dateKey < S.LIVE_START) {
-        state.viewYear = 2026;
-        state.branch = "bridge";
-        state.viewMonth = parts.month;
-        state.viewWeek = S.weekOfMonth(parts.day);
-      } else if (state.viewYear === 2026) {
-        if (parts.year === 2026 && parts.month >= 10 && parts.month <= 12) {
-          state.viewMonth = parts.month;
-          state.viewWeek = S.weekOfMonth(parts.day);
-        } else {
-          state.viewMonth = 10;
-          state.viewWeek = 1;
-        }
-      } else if (preview || parts.year < 2027) {
-        state.viewYear = 2027;
-        state.branch = "year";
+      if (preview || parts.year < 2027) {
         state.viewMonth = 1;
         state.viewWeek = 1;
       } else if (parts.year === 2027) {
-        state.viewYear = 2027;
-        state.branch = "year";
         state.viewMonth = parts.month;
         state.viewWeek = S.weekOfMonth(parts.day);
       } else {
-        state.viewYear = 2027;
-        state.branch = "year";
         state.viewMonth = 12;
         state.viewWeek = 4;
       }
-    } else if (state.branch === "bridge" && (state.viewMonth < 10 || state.viewMonth > 12)) {
-      state.viewMonth = 10;
-      state.viewWeek = 1;
     }
 
-    var bridgeFull = state.branch === "bridge" && !viewingUpper() && preconditionSchedule();
-    var phase = bridgeFull
-      ? preconditionSchedule().phaseForMonth(state.viewMonth)
-      : S.phaseForMonth(state.viewMonth);
-    var metaSource = viewingUpper() ? upperSchedule() : (bridgeFull ? preconditionSchedule() : S);
+    var phase = S.phaseForMonth(state.viewMonth);
+    var metaSource = viewingUpper() ? upperSchedule() : S;
     var meta = (metaSource.MONTH_META && metaSource.MONTH_META[state.viewMonth]) ||
       S.MONTH_META[state.viewMonth] || { phaseLine: phase.label, blurb: "" };
     paintModeChrome();
@@ -936,11 +899,9 @@
 
     var phaseShort = String(meta.phaseLine || phase.label).replace(/^PHASE:\s*/i, "");
     var monthTitle = S.MONTH_NAMES[state.viewMonth] || "";
-    if (state.branch === "bridge") monthTitle += " " + state.viewYear;
     $("identity-line").textContent =
       monthTitle + " · WEEK " + state.viewWeek + " OF 4 · " + phaseShort;
     var blurb = meta.blurb || "";
-    if (state.branch === "bridge") blurb = "Q4 2026 Pre-Recondition · " + blurb;
     $("month-blurb").textContent = blurb;
     $("meta-today").innerHTML = "TODAY <strong>" + parts.dateKey + "</strong> · " + parts.weekday;
     paintLondonClock();
@@ -958,7 +919,7 @@
     var monthBar = document.querySelector(".month-bar");
     if (monthBar) {
       monthBar.setAttribute("data-branch", state.branch);
-      monthBar.setAttribute("aria-label", state.branch === "bridge" ? "Q4 2026 Pre-Recondition" : "Months of 2027");
+      monthBar.setAttribute("aria-label", "Months of 2027");
     }
     document.querySelectorAll(".mbtn").forEach(function (btn) {
       var month = +btn.getAttribute("data-month");
@@ -1093,7 +1054,6 @@
   function resolvedMark() {
     if (state.navMark === "branch" || state.navMark === "mode") return state.navMark;
     if (state.mode === "upper") return "mode";
-    if (state.branch === "bridge") return "branch";
     return "mode";
   }
 
@@ -1155,24 +1115,16 @@
   }
 
   function setBranch(branch) {
+    if (branch === "bridge") return;
     state.navMark = "branch";
     writeStoredMark("branch");
-    var year = branch === "bridge" ? 2026 : 2027;
-    var changing = state.viewYear !== year;
+    var changing = state.viewYear !== 2027;
     clearClientCache();
-    state.viewYear = year;
+    state.viewYear = 2027;
     syncBranch();
     if (changing) {
       var parts = londonParts(state.now || getNow());
-      if (state.branch === "bridge") {
-        if (parts.year === 2026 && parts.month >= 10 && parts.month <= 12) {
-          state.viewMonth = parts.month;
-          state.viewWeek = S.weekOfMonth(parts.day);
-        } else {
-          state.viewMonth = 10;
-          state.viewWeek = 1;
-        }
-      } else if (parts.year === 2027) {
+      if (parts.year === 2027) {
         state.viewMonth = parts.month;
         state.viewWeek = S.weekOfMonth(parts.day);
       } else if (parts.dateKey < S.LIVE_START) {
@@ -1413,14 +1365,14 @@
     var lib = window.RELIC_FORENSIC;
     if (lib && typeof lib.readClip === "function") {
       entry = lib.readClip({
-        branch: state.branch === "bridge" ? "bridge" : "year",
+        branch: "year",
         cabinKey: cabinKey,
         clipId: clip && clip.id,
         title: clip && clip.title,
         phase: player.phase || "Base"
       });
     } else if (lib && typeof lib.read === "function") {
-      entry = lib.read(state.branch === "bridge" ? "bridge" : "year", cabinKey);
+      entry = lib.read("year", cabinKey);
     }
     var cabinEl = $("forensic-cabin");
     if (cabinEl) cabinEl.textContent = cabinKey ? cabinKey.replace(/_/g, " ") : "";
@@ -2886,7 +2838,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v44",
+    build: "v45",
     get phaseState() { return player.phaseState || "idle"; },
     get advanceCount() { return player.advanceCount | 0; },
     get playerIndex() { return player.index | 0; },

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* v44: cabin auto-organise, cabin banners, scoped undo, week plan. */
+/* v45: planner starts January 2027 and drops 2026 plan months. */
 const fs = require("fs");
 const vm = require("vm");
 
@@ -11,7 +11,7 @@ const app = fs.readFileSync("app.js", "utf8");
 const food = fs.readFileSync("food.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v44"') === -1 || html.indexOf("food.js?v=v44") === -1) fail("cache stamp");
+if (html.indexOf('content="v45"') === -1 || html.indexOf("food.js?v=v45") === -1) fail("cache stamp");
 if (css.indexOf("#planner-sheet-host") === -1 || css.indexOf("safe-area-inset-bottom") === -1 || css.indexOf("100dvh") === -1) fail("sheet viewport");
 if (/^\.planner-sheet \{[^}]*position:\s*sticky/m.test(css)) fail("sheet still sticky");
 ["recipes", "plan", "today"].forEach(function (screen) {
@@ -86,12 +86,12 @@ const card = t.recipes()[saved.id];
 if (edited.error || card.ingredients[0].skuId !== "chicken" || card.forward.keep !== "yes" || card.ingredients[0].multiple !== 4) {
   fail("edit dropped sku or forward " + JSON.stringify(card));
 }
-t.setSlot("2026-10", "2026-10-12", "lunch", saved.id);
+t.setSlot("2027-10", "2027-10-12", "lunch", saved.id);
 if (t.usage(saved.id).length !== 1) fail("usage");
 t.deleteRecipe(saved.id);
-if (t.recipes()[saved.id] || t.month("2026-10").days["2026-10-12"].lunch) fail("delete");
+if (t.recipes()[saved.id] || t.month("2027-10").days["2027-10-12"].lunch) fail("delete");
 if (!t.undo()) fail("undo missing");
-if (!t.recipes()[saved.id] || t.month("2026-10").days["2026-10-12"].lunch !== saved.id) fail("undo restore");
+if (!t.recipes()[saved.id] || t.month("2027-10").days["2027-10-12"].lunch !== saved.id) fail("undo restore");
 
 const seedId = "berry-banana-brazil";
 if (!t.recipes()[seedId]) fail("seed smoothie missing");
@@ -99,93 +99,93 @@ t.hideRecipe(seedId);
 if (!t.recipes()[seedId].hidden) fail("hide");
 t.undo();
 
-const weeks = t.weeks("2026-10");
+const weeks = t.weeks("2027-10");
 const dates = weeks.reduce(function (all, week) { return all.concat(week.map(function (day) { return day.date; })); }, []);
-if (dates.length !== 31 || dates[0] !== "2026-10-01" || dates[dates.length - 1] !== "2026-10-31") fail("october dates");
-if (dates.some(function (date) { return date.slice(0, 7) !== "2026-10"; })) fail("spill");
-const nov = t.dates("2026-11").map(function (day) { return day.date; });
-if (nov[0] !== "2026-11-01" || dates.indexOf("2026-11-01") !== -1) fail("november");
+if (dates.length !== 31 || dates[0] !== "2027-10-01" || dates[dates.length - 1] !== "2027-10-31") fail("october dates");
+if (dates.some(function (date) { return date.slice(0, 7) !== "2027-10"; })) fail("spill");
+const nov = t.dates("2027-11").map(function (day) { return day.date; });
+if (nov[0] !== "2027-11-01" || dates.indexOf("2027-11-01") !== -1) fail("november");
 
-t.setSlot("2026-10", "2026-10-05", "lunch", "plate-batch-chicken-veg");
-const held = t.month("2026-10").days["2026-10-05"].lunch;
-t.autoOrganise("2026-10");
-if (t.month("2026-10").days["2026-10-05"].lunch !== held) fail("auto replaced a filled slot");
-t.dates("2026-10").forEach(function (day) {
-  const row = t.month("2026-10").days[day.date];
+t.setSlot("2027-10", "2027-10-05", "lunch", "plate-batch-chicken-veg");
+const held = t.month("2027-10").days["2027-10-05"].lunch;
+t.autoOrganise("2027-10");
+if (t.month("2027-10").days["2027-10-05"].lunch !== held) fail("auto replaced a filled slot");
+t.dates("2027-10").forEach(function (day) {
+  const row = t.month("2027-10").days[day.date];
   if (row.morning) fail("food auto filled smoothie " + day.date);
   if (!row.lunch || !row.evening) fail("food auto left a meal " + day.date);
   const evening = t.recipes()[row.evening];
   if (evening && (evening.types || []).indexOf("smoothie") !== -1) fail("evening smoothie " + day.date);
-  const nuts = t.nuts("2026-10", day.date);
+  const nuts = t.nuts("2027-10", day.date);
   if (nuts.total !== 0 && nuts.total !== 2) fail("brazil " + day.date + " " + nuts.total);
 });
 const week = weeks[1];
-const snapshot = JSON.stringify(t.month("2026-10").days);
-t.clearRange("2026-10", week[0].date, week[week.length - 1].date);
+const snapshot = JSON.stringify(t.month("2027-10").days);
+t.clearRange("2027-10", week[0].date, week[week.length - 1].date);
 if (week.length !== 7) fail("week length");
 week.forEach(function (day) {
-  const row = t.month("2026-10").days[day.date];
+  const row = t.month("2027-10").days[day.date];
   if (row.morning || row.lunch || row.evening) fail("clear " + day.date);
 });
 t.undo();
-if (JSON.stringify(t.month("2026-10").days) !== snapshot) fail("clear undo");
+if (JSON.stringify(t.month("2027-10").days) !== snapshot) fail("clear undo");
 
-t.clearRange("2026-10", "2026-10-01", "2026-10-01");
+t.clearRange("2027-10", "2027-10-01", "2027-10-01");
 ["morning", "lunch", "evening"].forEach(function (slot) {
-  t.month("2026-10").days["2026-10-01"][slot] = "";
+  t.month("2027-10").days["2027-10-01"][slot] = "";
 });
-const gapList = t.gaps("2026-10");
+const gapList = t.gaps("2027-10");
 if (gapList.length < 3) fail("gap count " + gapList.length);
-const locked = t.lock("2026-10", false);
+const locked = t.lock("2027-10", false);
 if (locked.ok) fail("locked with gaps");
 
-t.autoOrganise("2026-10");
-const mealsBeforeSmoothie = t.dates("2026-10").map(function (day) {
-  const row = t.month("2026-10").days[day.date];
+t.autoOrganise("2027-10");
+const mealsBeforeSmoothie = t.dates("2027-10").map(function (day) {
+  const row = t.month("2027-10").days[day.date];
   return row.breakfast + "|" + row.lunch + "|" + row.evening;
 }).join(",");
-t.autoOrganise("2026-10", "smoothies");
-const mealsAfterSmoothie = t.dates("2026-10").map(function (day) {
-  const row = t.month("2026-10").days[day.date];
+t.autoOrganise("2027-10", "smoothies");
+const mealsAfterSmoothie = t.dates("2027-10").map(function (day) {
+  const row = t.month("2027-10").days[day.date];
   return row.breakfast + "|" + row.lunch + "|" + row.evening;
 }).join(",");
 if (mealsBeforeSmoothie !== mealsAfterSmoothie) fail("smoothie auto changed food slots");
-t.dates("2026-10").forEach(function (day) {
-  const card = t.recipes()[t.month("2026-10").days[day.date].morning];
+t.dates("2027-10").forEach(function (day) {
+  const card = t.recipes()[t.month("2027-10").days[day.date].morning];
   if (!card || card.fits.indexOf("smoothie") === -1) fail("smoothie auto left " + day.date);
 });
 if (!t.toast() || t.toast().text.indexOf("empty slots.") === -1 || t.toast().text.indexOf("cites") !== -1) fail("auto banner " + JSON.stringify(t.toast()));
-const first = t.lock("2026-10", false);
-if (!first.ok || t.month("2026-10").status !== "locked") fail("lock " + JSON.stringify(first));
-t.toggleTick("2026-10-12", "lunch");
-const again = t.lock("2026-10", false);
+const first = t.lock("2027-10", false);
+if (!first.ok || t.month("2027-10").status !== "locked") fail("lock " + JSON.stringify(first));
+t.toggleTick("2027-10-12", "lunch");
+const again = t.lock("2027-10", false);
 if (again.ok || !again.locked) fail("second lock " + JSON.stringify(again));
-const frozen = JSON.stringify(t.month("2026-10"));
-t.lock("2026-10", false);
-if (JSON.stringify(t.month("2026-10")) !== frozen) fail("second lock mutated");
+const frozen = JSON.stringify(t.month("2027-10"));
+t.lock("2027-10", false);
+if (JSON.stringify(t.month("2027-10")) !== frozen) fail("second lock mutated");
 
 t.setNuts(seedId, 3);
-const over = t.validate("2026-10").filter(function (item) { return item.slot === "brazil"; });
+const over = t.validate("2027-10").filter(function (item) { return item.slot === "brazil"; });
 if (!over.length) fail("3 brazil nuts allowed");
 t.undo();
 
-const tpl = t.saveTemplate("2026-10", "October base");
-t.applyTemplate(tpl, "2026-11");
-const octMon = t.month("2026-10").days["2026-10-05"];
-const novMon = t.month("2026-11").days["2026-11-02"];
+const tpl = t.saveTemplate("2027-10", "October base");
+t.applyTemplate(tpl, "2027-11");
+const octMon = t.month("2027-10").days["2027-10-05"];
+const novMon = t.month("2027-11").days["2027-11-02"];
 if (!novMon || novMon.morning !== octMon.morning) fail("template apply");
 if (!t.renameTemplate(tpl, "Base month").name) fail("rename");
 t.deleteTemplate(tpl);
 if (t.read().templates[tpl]) fail("template delete");
 
-const prep = t.prep("2026-10-11");
+const prep = t.prep("2027-10-11");
 if (prep.brazilTin !== 14 || prep.lines.join(" ").toLowerCase().indexOf("egg") !== -1) fail("prep " + JSON.stringify(prep));
-if (t.defaultDate("2026-10") < "2026-10-12") fail("past default");
+if (t.defaultDate("2027-10") !== "2027-10-01") fail("past default " + t.defaultDate("2027-10"));
 if (t.allows(t.recipes()[seedId], "evening")) fail("smoothie offered at evening");
 
 const months = t.futureMonths();
-if (months[0] !== "2026-10" || months.indexOf("2026-11") === -1 || months.indexOf("2026-09") !== -1) fail("future months " + months.slice(0, 3));
-if (t.clampMonth("2026-09") !== "2026-10" || t.clampMonth("2027-01") !== "2027-01") fail("clamp month");
+if (months[0] !== "2027-01" || months.indexOf("2027-02") === -1 || months.indexOf("2026-09") !== -1 || months.indexOf("2026-10") !== -1 || months.indexOf("2026-11") !== -1) fail("future months " + months.slice(0, 4));
+if (t.clampMonth("2026-09") !== "2027-01" || t.clampMonth("2026-10") !== "2027-01" || t.clampMonth("2027-01") !== "2027-01") fail("clamp month");
 if (t.duplicateTitles().length) fail("duplicate titles " + t.duplicateTitles().join(","));
 const lunchIds = t.candidates("lunch");
 if (lunchIds.length !== new Set(lunchIds).size) fail("picker ids repeat");
@@ -203,38 +203,38 @@ const nutDraft = t.beginNew("meal");
 const nutSave = t.commit(Object.assign(nutDraft, { title: "Nut note", tip: "one Brazil nut a day", ingredients: [{ name: "Chicken" }], method: [] }));
 if (!nutSave.error) fail("one brazil card saved");
 t.cancelNew();
-t.setSlot("2026-10", "2026-10-12", "lunch", "cheesy-potato-toast");
+t.setSlot("2027-10", "2027-10-12", "lunch", "cheesy-potato-toast");
 t.recipes()["cheesy-potato-toast"].tip = "1 Brazil nut maximum";
-if (!t.validate("2026-10").some(function (item) { return item.slot === "text"; })) fail("validator ignored brazil text");
+if (!t.validate("2027-10").some(function (item) { return item.slot === "text"; })) fail("validator ignored brazil text");
 t.recipes()["cheesy-potato-toast"].tip = "Seal the mozzarella inside the round so it stays in the middle.";
 
-t.setSlot("2026-12", "2026-12-01", "lunch", "cheesy-potato-toast");
-const december = t.saveTemplate("2026-12", "December");
-t.setSlot("2026-12", "2026-12-02", "lunch", "salmon-rice-plate");
-const beforeApply = JSON.stringify(t.month("2026-12").days);
-const ask = t.applyTemplate(december, "2026-12", false);
-if (!ask.needsConfirm || JSON.stringify(t.month("2026-12").days) !== beforeApply) fail("apply confirm " + JSON.stringify(ask));
-t.applyTemplate(december, "2026-12", true);
-if (t.month("2026-12").days["2026-12-02"].lunch === "salmon-rice-plate") fail("confirmed apply kept the old lunch");
-if (!t.undo() || t.month("2026-12").days["2026-12-02"].lunch !== "salmon-rice-plate") fail("apply undo");
+t.setSlot("2027-12", "2027-12-01", "lunch", "cheesy-potato-toast");
+const december = t.saveTemplate("2027-12", "December");
+t.setSlot("2027-12", "2027-12-02", "lunch", "salmon-rice-plate");
+const beforeApply = JSON.stringify(t.month("2027-12").days);
+const ask = t.applyTemplate(december, "2027-12", false);
+if (!ask.needsConfirm || JSON.stringify(t.month("2027-12").days) !== beforeApply) fail("apply confirm " + JSON.stringify(ask));
+t.applyTemplate(december, "2027-12", true);
+if (t.month("2027-12").days["2027-12-02"].lunch === "salmon-rice-plate") fail("confirmed apply kept the old lunch");
+if (!t.undo() || t.month("2027-12").days["2027-12-02"].lunch !== "salmon-rice-plate") fail("apply undo");
 
 const staleRev = t.rev();
 const disk = JSON.parse(mem.nexus_food_v1);
 disk.rev = staleRev + 2;
-disk.months["2026-10"].days["2026-10-20"] = disk.months["2026-10"].days["2026-10-20"] || { breakfast: "", morning: "", lunch: "", evening: "", why: {}, brazilExtra: 2 };
-disk.months["2026-10"].days["2026-10-20"].lunch = "salmon-rice-plate";
+disk.months["2027-10"].days["2027-10-20"] = disk.months["2027-10"].days["2027-10-20"] || { breakfast: "", morning: "", lunch: "", evening: "", why: {}, brazilExtra: 2 };
+disk.months["2027-10"].days["2027-10-20"].lunch = "salmon-rice-plate";
 mem.nexus_food_v1 = JSON.stringify(disk);
-const merged = t.setSlot("2026-10", "2026-10-21", "lunch", "turkey-mince-rice-skillet");
+const merged = t.setSlot("2027-10", "2027-10-21", "lunch", "turkey-mince-rice-skillet");
 if (merged.stale) fail("merge refused a different slot");
-if (t.month("2026-10").days["2026-10-20"].lunch !== "salmon-rice-plate") fail("lost other tab lunch");
-if (t.month("2026-10").days["2026-10-21"].lunch !== "turkey-mince-rice-skillet") fail("lost this tab lunch");
+if (t.month("2027-10").days["2027-10-20"].lunch !== "salmon-rice-plate") fail("lost other tab lunch");
+if (t.month("2027-10").days["2027-10-21"].lunch !== "turkey-mince-rice-skillet") fail("lost this tab lunch");
 if (t.syncNote().indexOf("Merged") === -1) fail("merge notice " + t.syncNote());
 const clash = JSON.parse(mem.nexus_food_v1);
 clash.rev = t.rev() + 3;
-clash.months["2026-10"].days["2026-10-12"].evening = "salmon-rice-plate";
+clash.months["2027-10"].days["2027-10-12"].evening = "salmon-rice-plate";
 mem.nexus_food_v1 = JSON.stringify(clash);
-const refused = t.setSlot("2026-10", "2026-10-12", "evening", "beef-stuffed-potato-boats");
-if (!refused.stale || t.month("2026-10").days["2026-10-12"].evening !== "salmon-rice-plate") fail("stale write won " + JSON.stringify(refused));
+const refused = t.setSlot("2027-10", "2027-10-12", "evening", "beef-stuffed-potato-boats");
+if (!refused.stale || t.month("2027-10").days["2027-10-12"].evening !== "salmon-rice-plate") fail("stale write won " + JSON.stringify(refused));
 if (t.syncNote().indexOf("This plan changed in another tab. Reload") === -1) fail("stale notice " + t.syncNote());
 
 t.reset();
@@ -250,7 +250,8 @@ mem.relic_smoothie_meals_v22 = JSON.stringify({ cards: {
 mem.relic_food_hg_v22 = JSON.stringify({ months: { "2026-10": { placements: { "2026-10-01": { lunch: "audit" } } } } });
 mem.relic_food_final_v22 = JSON.stringify({ months: {
   "2026-10": { placements: { "2026-10-02": { dinner: "audit" } } },
-  "2026-11": { placements: { "2026-11-02": { lunch: "dup-boats" } } }
+  "2026-11": { placements: { "2026-11-02": { lunch: "dup-boats" } } },
+  "2027-01": { placements: { "2027-01-04": { lunch: "dup-boats" } } }
 } });
 ["relic_food_cabinet_v22", "relic_food_savelater_v22", "relic_food_shop_v22", "relic_food_flylog_v22", "relic_smoothie_cabinet_v22", "relic_smoothie_hg_v22", "relic_smoothie_final_v22", "relic_smoothie_savelater_v22", "relic_smoothie_flylog_v22"].forEach(function (key) {
   mem[key] = "{}";
@@ -260,13 +261,13 @@ const migrated = t.read();
 const backup = JSON.parse(mem.nexus_food_backup_v22);
 if (Object.keys(backup).length !== 13) fail("backup " + Object.keys(backup).length);
 if (migrated.recipes.audit || migrated.recipes.audits) fail("audit cards kept");
-const oct = migrated.months["2026-10"];
-if (oct && oct.days && (oct.days["2026-10-01"] || oct.days["2026-10-02"])) fail("october plan kept");
+if (migrated.months["2026-10"] || migrated.months["2026-11"]) fail("2026 plan kept");
+if (migrated.view.month < "2027-01") fail("view month " + migrated.view.month);
 if (migrated.recipes["dup-boats"]) fail("duplicate boats kept");
 const boats = Object.keys(migrated.recipes).filter(function (id) { return migrated.recipes[id].title === "Beef-Stuffed Potato Boats"; });
 if (boats.length !== 1) fail("boats " + boats.join(","));
-const novLunch = migrated.months["2026-11"] && migrated.months["2026-11"].days["2026-11-02"];
-if (!novLunch || novLunch.lunch !== boats[0]) fail("duplicate slot not remapped " + JSON.stringify(novLunch));
+const janLunch = migrated.months["2027-01"] && migrated.months["2027-01"].days["2027-01-04"];
+if (!janLunch || janLunch.lunch !== boats[0]) fail("2027 slot not remapped " + JSON.stringify(janLunch));
 const cathedral = migrated.recipes.cathedral;
 const berry = migrated.recipes["berry-banana-brazil"];
 if (!cathedral || /\beggs?\b|egg white|one brazil nut|1 brazil nut/i.test(JSON.stringify(cathedral))) fail("cathedral text " + JSON.stringify(cathedral));
@@ -275,6 +276,31 @@ if (!berry.ingredients.some(function (item) { return item.name === "2 Brazil nut
 const once = mem.nexus_food_v1;
 t.read();
 if (mem.nexus_food_v1 !== once) fail("second migrate wrote");
+
+t.reset();
+const live = JSON.parse(mem.nexus_food_v1);
+const recipeCount = Object.keys(live.recipes).length;
+live.months["2026-11"] = { days: { "2026-11-02": { breakfast: "", morning: "", lunch: "salmon-rice-plate", evening: "", why: {}, brazilExtra: 2 } }, ticks: {}, status: "draft", slots: { breakfast: false, lunch: true, dinner: true, smoothie: true } };
+live.months["2027-05"] = { days: { "2027-05-03": { breakfast: "", morning: "", lunch: "salmon-rice-plate", evening: "", why: {}, brazilExtra: 2 } }, ticks: {}, status: "draft", slots: { breakfast: false, lunch: true, dinner: true, smoothie: true } };
+live.view = { month: "2026-11" };
+live.templates.drop2026 = { id: "drop2026", name: "December 2026 base", fromMonth: "2026-12", weekdayPattern: { Mon: { breakfast: "", morning: "", lunch: "", evening: "" } } };
+live.undo = live.undo || [];
+live.undo.push({ id: "u-drop", label: "Locked December 2026", months: { "2026-11": { days: {} }, "2027-05": { days: { "2027-05-03": { lunch: "salmon-rice-plate" } } } }, recipes: {}, templates: {} });
+live.scrubbed = 41;
+live.notice = "";
+mem.nexus_food_v1 = JSON.stringify(live);
+const dropped = t.read();
+if (dropped.months["2026-11"] || dropped.months["2026-12"]) fail("2026 months kept on read");
+if (!dropped.months["2027-05"] || dropped.months["2027-05"].days["2027-05-03"].lunch !== "salmon-rice-plate") fail("2027 plan dropped");
+if (Object.keys(dropped.recipes).length !== recipeCount) fail("recipe count " + Object.keys(dropped.recipes).length);
+if (dropped.view.month !== "2027-01") fail("stored view " + dropped.view.month);
+if (!dropped.templates.drop2026 || dropped.templates.drop2026.name.indexOf("2026") !== -1 || dropped.templates.drop2026.fromMonth) fail("template year " + JSON.stringify(dropped.templates.drop2026));
+const undoDrop = dropped.undo.filter(function (entry) { return entry.id === "u-drop"; })[0];
+if (!undoDrop || undoDrop.label.indexOf("2026") !== -1 || undoDrop.months["2026-11"] || !undoDrop.months["2027-05"]) fail("undo year " + JSON.stringify(undoDrop));
+const savedDrop = mem.nexus_food_v1;
+t.reset();
+t.read();
+if (mem.nexus_food_v1 !== savedDrop) fail("2026 drop wrote twice");
 
 const botanical = t.cardView("recovery-botanical-extraction");
 if (!botanical || botanical.title !== "Botanical" || botanical.tag.indexOf("Smoothie") === -1 || botanical.tag.indexOf("Recovery") === -1 || botanical.blend !== "Blend all until smooth.") {
@@ -341,12 +367,12 @@ t.setSlot("2027-06", "2027-06-09", "lunch", "salmon-rice-plate");
 t.applyTemplate(juneTpl, "2027-06", "fill");
 if (t.month("2027-06").days["2027-06-09"].lunch !== "salmon-rice-plate") fail("fill replaced a meal");
 if (!t.month("2027-06").days["2027-06-08"].lunch) fail("fill left an empty lunch");
-if (t.slotTitle("2026-12-01", "morning") !== "Tue 1 Dec · Smoothie") fail("slot title " + t.slotTitle("2026-12-01", "morning"));
-t.setMonth("2026-12");
-const oneWeek = t.weekDates("2026-12");
+if (t.slotTitle("2027-12-01", "morning") !== "Wed 1 Dec · Smoothie") fail("slot title " + t.slotTitle("2027-12-01", "morning"));
+t.setMonth("2027-12");
+const oneWeek = t.weekDates("2027-12");
 if (!oneWeek.length || oneWeek.length > 7) fail("week length " + oneWeek.length);
 t.shiftWeek(1);
-const nextWeek = t.weekDates("2026-12");
+const nextWeek = t.weekDates("2027-12");
 if (!nextWeek.length || nextWeek[0].date === oneWeek[0].date || nextWeek.length > 7) fail("next week " + (nextWeek[0] && nextWeek[0].date));
 t.setSlot("2027-08", "2027-08-04", "lunch", "salmon-rice-plate");
 ctx.NexusBanner.clear();
@@ -379,4 +405,4 @@ if (fails.length) {
   console.error(fails.length + " failed");
   process.exit(1);
 }
-console.log("OK food OS v44");
+console.log("OK food OS v45");
