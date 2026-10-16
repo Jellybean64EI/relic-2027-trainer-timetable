@@ -1675,7 +1675,9 @@ body.nav-open .nav-drawer {
   .cabin-panel-inner,
   .cabin-panel .nav-row,
   .cabin-panel .nav-kicker,
-  .cabin-chevron {
+  .cabin-chevron,
+  .sub-panel,
+  .sub-panel-inner {
     transition: none;
   }
 }
@@ -3116,6 +3118,35 @@ body.is-food .schedule-switch {
   padding-left: 22px;
 }
 
+.sub-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 300ms ease-out, opacity 300ms ease-out;
+}
+
+.sub-cabin.is-open > .sub-panel {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.sub-cabin:not(.is-open) > .sub-panel {
+  pointer-events: none;
+}
+
+.sub-panel-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sub-cabin.is-open > .sub-toggle .cabin-chevron {
+  transform: rotate(45deg);
+}
+
+.sub-panel .nav-row {
+  padding-left: 40px;
+}
+
 .cabin-panel .nav-kicker {
   margin-left: 22px;
   margin-top: 8px;
@@ -3141,7 +3172,10 @@ body.is-food .schedule-switch {
   .cabin.is-open .cabin-panel .nav-kicker,
   .cabin.is-open .cabin-panel .nav-row,
   .cabin-chevron,
-  .cabin.is-open > .cabin-toggle .cabin-chevron {
+  .cabin.is-open > .cabin-toggle .cabin-chevron,
+  .sub-panel,
+  .sub-panel-inner,
+  .sub-cabin.is-open > .sub-toggle .cabin-chevron {
     transition: none;
   }
 }

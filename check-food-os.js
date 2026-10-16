@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* v45: planner starts January 2027 and drops 2026 plan months. */
+/* v46: planner starts January 2027 and drops 2026 plan months. */
 const fs = require("fs");
 const vm = require("vm");
 
@@ -11,7 +11,7 @@ const app = fs.readFileSync("app.js", "utf8");
 const food = fs.readFileSync("food.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v45"') === -1 || html.indexOf("food.js?v=v45") === -1) fail("cache stamp");
+if (html.indexOf('content="v46"') === -1 || html.indexOf("food.js?v=v46") === -1) fail("cache stamp");
 if (css.indexOf("#planner-sheet-host") === -1 || css.indexOf("safe-area-inset-bottom") === -1 || css.indexOf("100dvh") === -1) fail("sheet viewport");
 if (/^\.planner-sheet \{[^}]*position:\s*sticky/m.test(css)) fail("sheet still sticky");
 ["recipes", "plan", "today"].forEach(function (screen) {
@@ -405,4 +405,4 @@ if (fails.length) {
   console.error(fails.length + " failed");
   process.exit(1);
 }
-console.log("OK food OS v45");
+console.log("OK food OS v46");
