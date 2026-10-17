@@ -64,6 +64,13 @@ assert(css.indexOf("body.is-deck .card > .ambient-field") !== -1, "deck ambient 
 assert(css.indexOf("body.is-deck .brand-main") !== -1, "deck title centred");
 assert(css.indexOf(".deck-x-fixed") !== -1 && css.indexOf("position: fixed") !== -1, "close stays fixed");
 assert(css.indexOf("touch-action: none") !== -1, "page pinch does not zoom the layout");
+assert(deckSrc.indexOf("textContent = \"Added\"") === -1 && deckSrc.indexOf("Adding ") === -1, "upload status stays silent");
+assert(deckSrc.indexOf("deck-log") === -1, "no upload log host");
+assert(html.indexOf("deck-log") === -1, "upload log removed from the page");
+assert(deckSrc.indexOf("deck-topbar") !== -1 && deckSrc.indexOf("deck-card-chrome") === -1, "viewer uses the top bar");
+assert(deckSrc.indexOf("is-chrome-hidden") !== -1 && deckSrc.indexOf("4000") !== -1, "chrome hides after 4s");
+assert(deckSrc.indexOf("visualViewport") !== -1 && deckSrc.indexOf("is-open") !== -1, "edit panel tracks the keyboard and slides");
+assert(css.indexOf(".deck-edit.is-open") !== -1, "edit panel can slide open");
 
 assert(api.fiveADay([{ veg: 2, fruit: 1 }], []) === 3, "five food");
 assert(api.fiveADay([], [{ veg: 1, fruit: 2 }, { veg: 2, fruit: 0 }]) === 1, "five smoothies capped");
@@ -190,4 +197,4 @@ if (fails.length) {
   console.error(fails.length + " failed");
   process.exit(1);
 }
-console.log("OK v53 deck");
+console.log("OK v54 deck");

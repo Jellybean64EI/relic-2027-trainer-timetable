@@ -7,9 +7,9 @@ const fails = [];
 function fail(msg) { fails.push(msg); }
 
 const html = fs.readFileSync("index.html", "utf8");
-if (html.indexOf('content="v53"') === -1 || html.indexOf("styles.css?v=v53") === -1 ||
-    html.indexOf("data/schedule.js?v=v53") === -1 || html.indexOf("data/precondition.js?v=v53") === -1) {
-  fail("index.html is not stamped ?v=v53");
+if (html.indexOf('content="v54"') === -1 || html.indexOf("styles.css?v=v54") === -1 ||
+    html.indexOf("data/schedule.js?v=v54") === -1 || html.indexOf("data/precondition.js?v=v54") === -1) {
+  fail("index.html is not stamped ?v=v54");
 }
 
 const ctx = { window: {} };

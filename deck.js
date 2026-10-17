@@ -1,4 +1,4 @@
-/* Nexus v53 card decks. Training, food.js and supabaseConfig.js stay untouched. */
+/* Nexus v54 card decks. Training, food.js and supabaseConfig.js stay untouched. */
 (function (root) {
   var CARDS_KEY = "nexus_cards_cache_v1";
   var SLOTS_KEY = "nexus_slots_cache_v1";
@@ -234,8 +234,16 @@
     if (!node) return;
     node.textContent = message;
     node.hidden = false;
+    node.classList.remove("is-fading");
     clearTimeout(showToast.timer);
-    showToast.timer = setTimeout(function () { node.hidden = true; }, 4200);
+    clearTimeout(showToast.hide);
+    showToast.timer = setTimeout(function () {
+      node.classList.add("is-fading");
+      showToast.hide = setTimeout(function () {
+        node.hidden = true;
+        node.classList.remove("is-fading");
+      }, 400);
+    }, 4000);
   }
 
   function cfg() {
@@ -469,6 +477,8 @@
     });
     state.picker = null;
     state.card = null;
+    clearChromeTimer();
+    unwatchEdit();
     if (root.document && root.document.body) root.document.body.classList.remove("is-card-open");
   }
 
@@ -565,7 +575,27 @@
     paintCard();
   }
 
-  function bindImageZoom(stage, img) {
+  function clearChromeTimer() {
+    clearTimeout(clearChromeTimer.timer);
+    clearChromeTimer.timer = 0;
+  }
+
+  function armChrome(host) {
+    clearChromeTimer();
+    if (!host || !state.card || state.card.editing) return;
+    clearChromeTimer.timer = setTimeout(function () {
+      if (!state.card || state.card.editing) return;
+      host.classList.add("is-chrome-hidden");
+    }, 4000);
+  }
+
+  function revealChrome(host) {
+    if (!host || (state.card && state.card.editing)) return;
+    host.classList.remove("is-chrome-hidden");
+    armChrome(host);
+  }
+
+  function bindImageZoom(stage, img, hooks) {
     var view = { scale: 1, x: 0, y: 0 };
     var pointers = {};
     var pinch = null;
@@ -573,6 +603,9 @@
     var lastTap = 0;
     var tapX = 0;
     var tapY = 0;
+    var tracking = false;
+    var moved = false;
+    hooks = hooks || {};
     stage.style.touchAction = "none";
     img.style.touchAction = "none";
     img.style.transformOrigin = "center center";
@@ -611,19 +644,28 @@
       if (event.button != null && event.button !== 0) return;
       pointers[event.pointerId] = { x: event.clientX, y: event.clientY };
       var pts = points();
+      if (!tracking) {
+        tracking = true;
+        moved = false;
+        clearChromeTimer();
+      }
       if (pts.length >= 2) {
+        moved = true;
         pinch = { dist: span(pts[0], pts[1]), scale: view.scale };
         drag = null;
       } else {
-        drag = { x: event.clientX, y: event.clientY, ox: view.x, oy: view.y, moved: false };
+        drag = { x: event.clientX, y: event.clientY, ox: view.x, oy: view.y };
       }
     });
 
     stage.addEventListener("pointermove", function (event) {
       if (!pointers[event.pointerId]) return;
+      var prev = pointers[event.pointerId];
       pointers[event.pointerId] = { x: event.clientX, y: event.clientY };
+      if (Math.hypot(event.clientX - prev.x, event.clientY - prev.y) > 8) moved = true;
       var pts = points();
       if (pts.length >= 2 && pinch) {
+        moved = true;
         view.scale = Math.min(6, Math.max(1, pinch.scale * (span(pts[0], pts[1]) / pinch.dist)));
         if (view.scale === 1) { view.x = 0; view.y = 0; }
         else clampPan();
@@ -633,7 +675,7 @@
       if (!drag || pts.length !== 1) return;
       var dx = event.clientX - drag.x;
       var dy = event.clientY - drag.y;
-      if (Math.hypot(dx, dy) > 8) drag.moved = true;
+      if (Math.hypot(dx, dy) > 8) moved = true;
       if (view.scale <= 1) return;
       view.x = drag.ox + dx;
       view.y = drag.oy + dy;
@@ -647,11 +689,14 @@
       var pts = points();
       if (pts.length < 2) pinch = null;
       if (pts.length === 1) {
-        drag = { x: pts[0].x, y: pts[0].y, ox: view.x, oy: view.y, moved: true };
+        drag = { x: pts[0].x, y: pts[0].y, ox: view.x, oy: view.y };
         return;
       }
       if (pts.length > 0) return;
-      if (drag && !drag.moved && point) {
+      var wasTap = tracking && !moved && point;
+      tracking = false;
+      drag = null;
+      if (wasTap) {
         var now = Date.now();
         if (now - lastTap < 320 && Math.hypot(point.x - tapX, point.y - tapY) < 36) {
           reset();
@@ -661,8 +706,10 @@
           tapX = point.x;
           tapY = point.y;
         }
+        if (hooks.onTap) hooks.onTap();
+        return;
       }
-      drag = null;
+      if (hooks.onGestureEnd) hooks.onGestureEnd();
     }
 
     stage.addEventListener("pointerup", endPointer);
@@ -670,6 +717,11 @@
       delete pointers[event.pointerId];
       pinch = null;
       drag = null;
+      if (!points().length && tracking) {
+        tracking = false;
+        moved = true;
+        if (hooks.onGestureEnd) hooks.onGestureEnd();
+      }
     });
     stage.addEventListener("dblclick", function (event) {
       event.preventDefault();
@@ -682,8 +734,54 @@
       if (view.scale === 1) { view.x = 0; view.y = 0; }
       else clampPan();
       apply();
+      if (hooks.onGestureEnd) hooks.onGestureEnd();
     }, { passive: false });
     apply();
+  }
+
+  function placeEdit(form) {
+    if (!form) return;
+    var vv = root.visualViewport;
+    var top = 60;
+    if (vv) {
+      form.style.top = (vv.offsetTop + top) + "px";
+      form.style.maxHeight = Math.max(180, vv.height - top - 12) + "px";
+    } else {
+      form.style.top = top + "px";
+    }
+  }
+
+  function unwatchEdit() {
+    if (!unwatchEdit.fn || !root.visualViewport) {
+      unwatchEdit.fn = null;
+      return;
+    }
+    root.visualViewport.removeEventListener("resize", unwatchEdit.fn);
+    root.visualViewport.removeEventListener("scroll", unwatchEdit.fn);
+    unwatchEdit.fn = null;
+  }
+
+  function watchEdit(form) {
+    unwatchEdit();
+    placeEdit(form);
+    if (!root.visualViewport) return;
+    unwatchEdit.fn = function () { placeEdit(form); };
+    root.visualViewport.addEventListener("resize", unwatchEdit.fn);
+    root.visualViewport.addEventListener("scroll", unwatchEdit.fn);
+  }
+
+  function slideEditAway(then) {
+    var form = root.document && root.document.querySelector("#deck-card .deck-edit");
+    if (!form) { then(); return; }
+    var finished = false;
+    function done() {
+      if (finished) return;
+      finished = true;
+      then();
+    }
+    form.addEventListener("transitionend", done);
+    form.classList.remove("is-open");
+    setTimeout(done, 340);
   }
 
   function paintCard() {
@@ -693,11 +791,6 @@
     host.hidden = false;
     host.textContent = "";
     if (root.document.body) root.document.body.classList.add("is-card-open");
-    var close = el("button", "deck-x deck-x-fixed", "×");
-    close.type = "button";
-    close.setAttribute("aria-label", "Close");
-    close.setAttribute("data-deck-close", "card");
-    host.appendChild(close);
     var stage = el("div", "deck-card-stage");
     var img = el("img", "deck-card-img");
     img.alt = card.name || "";
@@ -714,27 +807,51 @@
     }
     stage.appendChild(img);
     host.appendChild(stage);
-    bindImageZoom(stage, img);
+    var chrome = topBar(card);
+    host.appendChild(chrome);
+    bindImageZoom(stage, img, {
+      onTap: function () { revealChrome(host); },
+      onGestureEnd: function () {
+        if (!host.classList.contains("is-chrome-hidden")) armChrome(host);
+      }
+    });
+    host.classList.remove("is-chrome-hidden");
     if (state.card.editing && state.card.from === "deck") {
-      host.appendChild(editSheet(card));
+      var form = editSheet(card);
+      host.appendChild(form);
+      watchEdit(form);
+      clearChromeTimer();
+      root.requestAnimationFrame(function () {
+        root.requestAnimationFrame(function () { form.classList.add("is-open"); });
+      });
       return;
     }
-    var chrome = el("div", "deck-card-chrome");
-    chrome.appendChild(el("h2", "deck-card-name", card.name || "Untitled card"));
-    chrome.appendChild(el("p", "deck-card-meta", portionsLine(card)));
-    if (state.card.from === "deck") {
-      var actions = el("div", "deck-card-actions");
-      var edit = el("button", "deck-text", "Edit");
+    armChrome(host);
+  }
+
+  function topBar(card) {
+    var bar = el("div", "deck-topbar");
+    bar.setAttribute("data-deck-chrome", "1");
+    var close = el("button", "deck-x deck-x-fixed", "×");
+    close.type = "button";
+    close.setAttribute("aria-label", "Close");
+    close.setAttribute("data-deck-close", "card");
+    bar.appendChild(close);
+    var copy = el("div", "deck-topbar-copy");
+    copy.appendChild(el("p", "deck-card-name", card.name || "Untitled card"));
+    copy.appendChild(el("p", "deck-card-meta", portionsLine(card)));
+    bar.appendChild(copy);
+    if (state.card.from === "deck" && !state.card.editing) {
+      var edit = el("button", "deck-bar-btn", "Edit");
       edit.type = "button";
       edit.setAttribute("data-deck-edit", card.id);
-      var remove = el("button", "deck-text", "Remove");
+      var remove = el("button", "deck-bar-btn", "Remove");
       remove.type = "button";
       remove.setAttribute("data-deck-hide", card.id);
-      actions.appendChild(edit);
-      actions.appendChild(remove);
-      chrome.appendChild(actions);
+      bar.appendChild(edit);
+      bar.appendChild(remove);
     }
-    host.appendChild(chrome);
+    return bar;
   }
 
   function stepper(name, label, value) {
@@ -772,9 +889,12 @@
     var nameLabel = el("label", "deck-field-label");
     nameLabel.appendChild(el("span", "deck-stepper-label", "Name"));
     var name = el("input", "deck-field");
+    name.type = "text";
     name.name = "name";
     name.value = card.name || "";
     name.maxLength = 80;
+    name.enterKeyHint = "done";
+    name.setAttribute("autocomplete", "off");
     name.setAttribute("aria-label", "Name");
     nameLabel.appendChild(name);
     form.appendChild(nameLabel);
@@ -1058,20 +1178,23 @@
     });
   }
 
+  function failNote(text) {
+    showToast(text);
+  }
+
   function uploadOne(file, deck) {
     var name = tidyName(file && file.name);
-    var log = logLine(deck, "Adding " + name + "…");
     if (!file || String(file.type || "").indexOf("image/") !== 0) {
       var label = (file && file.name) || "file";
-      log.textContent = "*" + label + "* isn't an image. Pick a PNG, JPG or WebP card.";
+      failNote("*" + label + "* isn't an image. Pick a PNG, JPG or WebP card.");
       return Promise.resolve();
     }
     if (!baseUrl()) {
-      log.textContent = "Card storage isn't set up yet";
+      failNote("Card storage isn't set up yet");
       return Promise.resolve();
     }
     if (!online()) {
-      log.textContent = "Couldn't add " + name + ": no connection. Try again.";
+      failNote("Couldn't add " + name + ": no connection. Try again.");
       return Promise.resolve();
     }
     return resizeToWebp(file).then(function (images) {
@@ -1104,26 +1227,17 @@
             var saved = Array.isArray(body) ? body[0] : row;
             state.cards.unshift(saved || row);
             writeCards();
-            log.textContent = "Added";
             renderDeck(deck);
             return saved;
           });
         });
       });
     }).catch(function (err) {
-      if (err && err.message === "too-big") log.textContent = "Image is over 6000 px. Pick a smaller card.";
-      else if (err && err.message === "too-heavy") log.textContent = "Image is still too large after compression.";
-      else if (err && err.message === "setup") log.textContent = "Card storage isn't set up yet";
-      else log.textContent = "Couldn't add " + name + ": no connection. Try again.";
+      if (err && err.message === "too-big") failNote("Image is over 6000 px. Pick a smaller card.");
+      else if (err && err.message === "too-heavy") failNote("Image is still too large after compression.");
+      else if (err && err.message === "setup") failNote("Card storage isn't set up yet");
+      else failNote("Couldn't add " + name + ": no connection. Try again.");
     });
-  }
-
-  function logLine(deck, text) {
-    var hostId = deck === "smoothie" ? "deck-log-smoothie" : "deck-log-food";
-    var host = root.document.getElementById(hostId);
-    var line = el("p", "deck-log-line", text);
-    if (host) host.prepend(line);
-    return line;
   }
 
   function fallbackId() {
@@ -1183,8 +1297,10 @@
       fruit: clampPortion(form.elements.fruit.value)
     };
     patchCard(card, fields).then(function () {
-      state.card.editing = false;
-      paintCard();
+      slideEditAway(function () {
+        if (state.card) state.card.editing = false;
+        paintCard();
+      });
     }).catch(function () {
       if (error) error.textContent = "Couldn't add " + card.name + ": no connection. Try again.";
     });
@@ -1261,8 +1377,10 @@
       return;
     }
     if (target.hasAttribute("data-deck-cancel")) {
-      if (state.card) state.card.editing = false;
-      paintCard();
+      slideEditAway(function () {
+        if (state.card) state.card.editing = false;
+        paintCard();
+      });
       return;
     }
     if (target.hasAttribute("data-deck-close")) {

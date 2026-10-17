@@ -4440,9 +4440,9 @@ body.is-card-open { touch-action: none; }
 
 .deck-x-fixed {
   position: fixed;
-  top: max(12px, env(safe-area-inset-top));
-  left: max(12px, env(safe-area-inset-left));
-  z-index: 5;
+  top: max(8px, env(safe-area-inset-top));
+  left: max(8px, env(safe-area-inset-left));
+  z-index: 8;
 }
 
 #deck-card .deck-card-stage {
@@ -4467,21 +4467,85 @@ body.is-card-open { touch-action: none; }
   -webkit-user-drag: none;
 }
 
-.deck-card-chrome,
+.deck-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 52px;
+  padding: max(8px, env(safe-area-inset-top)) 8px 8px 8px;
+  background: rgba(11, 2, 22, 0.82);
+  transition: opacity 0.35s ease;
+}
+
+.deck-topbar .deck-x-fixed {
+  position: static;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+}
+
+.deck-topbar-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.deck-topbar .deck-card-name,
+.deck-topbar .deck-card-meta {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.deck-topbar .deck-card-name { font-size: 14px; line-height: 1.2; }
+
+.deck-topbar .deck-card-meta { font-size: 12px; line-height: 1.2; }
+
+.deck-bar-btn {
+  flex: 0 0 auto;
+  height: 36px;
+  min-height: 36px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+#deck-card.is-chrome-hidden .deck-topbar {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .deck-edit {
   position: fixed;
   left: 12px;
   right: 12px;
-  bottom: max(12px, env(safe-area-inset-bottom));
-  z-index: 4;
+  top: 60px;
+  bottom: auto;
+  z-index: 6;
+  max-height: 70dvh;
+  overflow: auto;
   padding: 12px;
   border-radius: 12px;
-  background: rgba(11, 2, 22, 0.92);
+  background: rgba(11, 2, 22, 0.94);
+  transform: translateY(calc(-100% - 72px));
+  transition: transform 0.28s ease;
+  pointer-events: none;
 }
 
-.deck-card-chrome .deck-card-name { font-size: 20px; }
-
-.deck-card-chrome .deck-card-meta { margin-top: 4px; }
+.deck-edit.is-open {
+  transform: translateY(0);
+  pointer-events: auto;
+}
 
 .deck-field-label { display: block; }
 
@@ -4536,4 +4600,11 @@ body.is-card-open { touch-action: none; }
   font: inherit;
 }
 
-.deck-edit .deck-field { margin-top: 0; }
+.deck-edit .deck-field {
+  margin-top: 0;
+  font-size: 16px;
+}
+
+.deck-toast { transition: opacity 0.4s ease; }
+
+.deck-toast.is-fading { opacity: 0; }
