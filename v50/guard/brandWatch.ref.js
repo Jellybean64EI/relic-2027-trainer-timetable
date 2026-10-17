@@ -51,7 +51,7 @@ if (require.main === module) {
   var strip = i > 0 ? require(path.resolve(process.argv[i + 1])).stripBrands : null;
   var only = process.argv.indexOf("--only") > 0 ? process.argv[process.argv.indexOf("--only") + 1].split(",") : null;
   // Scope = the food data files index.html actually loads (Training data such as data/cues is never scanned).
-  var files = ["data/nutrition/shop.js", "data/nutrition/meals.js", "data/nutrition/extractions.js", "data/nutrition/schedule.js", "data/food/pack001.js"];
+  var files = ["data/nutrition/shop.js", "data/backup/845c93a/meals.js", "data/backup/845c93a/extractions.js", "data/nutrition/schedule.js", "data/backup/845c93a/pack001.js"];
   if (process.argv.indexOf("--all-food") > 0) files = walk("data/food", []).concat(walk("data/nutrition", []));
   files = files.filter(function (f) { return !only || only.some(function (o) { return f.indexOf(o) === 0; }); });
   var hits = {};

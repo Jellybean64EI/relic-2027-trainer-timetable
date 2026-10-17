@@ -11,9 +11,11 @@ function assert(cond, msg) { if (!cond) fail(msg); }
 
 const html = fs.readFileSync("index.html", "utf8");
 const hub = html.slice(html.indexOf('id="hub-root"'), html.indexOf("</section>", html.indexOf('id="hub-root"')));
-assert((hub.match(/<button/g) || []).length === 6, "H2 button count");
+assert((hub.match(/<button/g) || []).length === 4, "H2 button count");
 assert((hub.match(/role="tab"/g) || []).length === 2, "H2 tabs");
-assert((hub.match(/class="hub-week"/g) || []).length === 4, "H2 weeks");
+assert((hub.match(/class="hub-week"/g) || []).length === 0, "H2 weeks");
+assert(hub.indexOf('id="hub-month-label"') !== -1, "H2 month stepper");
+assert(html.indexOf(">Food deck<") !== -1 && html.indexOf(">Smoothies deck<") !== -1, "cabin deck labels");
 assert((hub.match(/tabindex=/g) || []).length === 2, "H2 tabindex");
 assert(hub.indexOf("<a ") === -1, "H2 links");
 assert(hub.indexOf("<svg") === -1, "H4 svg");
@@ -87,7 +89,7 @@ function bootFood(file, seed, iso) {
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  ["data/nutrition/shop.js", "data/nutrition/meals.js", "data/nutrition/extractions.js", "data/nutrition/schedule.js", "data/food/pack001.js", file].forEach(function (src) {
+  ["data/nutrition/shop.js", "data/backup/845c93a/meals.js", "data/backup/845c93a/extractions.js", "data/nutrition/schedule.js", "data/backup/845c93a/pack001.js", file].forEach(function (src) {
     vm.runInContext(fs.readFileSync(src, "utf8"), ctx, { filename: src });
   });
   return { ctx: ctx, mem: mem, api: ctx.NexusFood };
@@ -248,7 +250,7 @@ assert(shipped.stripBrands(burger.title) === "Beef Burger & Brioche", "B2 burger
 const crisp = t.recipes()["crispy-potato-snack"];
 const step = shipped.stripBrands(((crisp.method[0].verb || "") + " " + (crisp.method[0].detail || "")).trim());
 assert(step === "Rinse 400 g diced Maris Piper Potatoes and place them in a microwave-safe bowl.", "B2 potato " + step);
-const pack = fs.readFileSync("data/food/pack001.js", "utf8");
+const pack = fs.readFileSync("data/backup/845c93a/pack001.js", "utf8");
 const tipSrc = pack.match(/Cathedral City stands in for mozzarella[^"]+/)[0];
 const tip = shipped.stripBrands(tipSrc);
 assert(tip.indexOf("Cheddar stands in for mozzarella, buttery spread for butter") === 0, "B2 garlic " + tip);

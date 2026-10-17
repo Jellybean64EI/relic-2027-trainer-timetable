@@ -44,10 +44,10 @@ function boot(mem, setItem) {
   vm.createContext(ctx);
   [
     "data/nutrition/shop.js",
-    "data/nutrition/meals.js",
-    "data/nutrition/extractions.js",
+    "data/backup/845c93a/meals.js",
+    "data/backup/845c93a/extractions.js",
     "data/nutrition/schedule.js",
-    "data/food/pack001.js",
+    "data/backup/845c93a/pack001.js",
     "food.js"
   ].forEach(function (file) {
     vm.runInContext(fs.readFileSync(file, "utf8"), ctx, { filename: file });
