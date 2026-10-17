@@ -1396,13 +1396,16 @@
 
   function storagePublicUrl(objectParts) {
     var cfg = supabaseCfg();
-    var base = String(cfg.url || "").replace(/\/$/, "");
     var bucket = cfg.bucket || "relic-videos";
-    if (!base) return "";
-    var parts = [bucket].concat(objectParts).filter(function (part) { return !!part; });
-    return base + "/storage/v1/object/public/" + parts.map(function (part) {
+    var key = (objectParts || []).filter(function (part) { return !!part; }).map(function (part) {
       return encodeURIComponent(part);
-    }).join("/") + "?v=v34";
+    }).join("/");
+    if (bucket === "relic-videos" && cfg.videoBase) {
+      return String(cfg.videoBase).replace(/\/$/, "") + "/" + key;
+    }
+    var base = String(cfg.url || "").replace(/\/$/, "");
+    if (!base) return "";
+    return base + "/storage/v1/object/public/" + encodeURIComponent(bucket) + (key ? "/" + key : "") + "?v=v34";
   }
 
   function resolveClipSrc(cabinKey, clip) {
@@ -3077,7 +3080,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v54",
+    build: "v55",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };
