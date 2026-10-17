@@ -4383,3 +4383,157 @@ body.is-deck #banner-coach {
 }
 
 .deck-empty { color: var(--muted); }
+
+/* v53 deck polish. Header stays centred. Ambient marks stay off the words. The card image zooms on its own. */
+
+body.is-deck .brand-bar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "toggle spacer clock"
+    "title title title";
+  align-items: center;
+  column-gap: 8px;
+}
+
+body.is-deck .nav-toggle { grid-area: toggle; }
+
+body.is-deck .header-corner {
+  grid-area: clock;
+  max-width: none;
+}
+
+body.is-deck .brand-main {
+  grid-area: title;
+  justify-self: center;
+  width: max-content;
+  max-width: 100%;
+  padding-top: 2px;
+  text-align: center;
+}
+
+body.is-deck .card > .ambient-field { display: none; }
+
+body.is-deck .deck-head {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-align: center;
+  gap: 4px;
+}
+
+body.is-deck .deck-head h2,
+body.is-deck .deck-add {
+  width: 100%;
+  text-align: center;
+}
+
+body.is-card-open { touch-action: none; }
+
+#deck-card.deck-overlay {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.deck-x-fixed {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  z-index: 5;
+}
+
+#deck-card .deck-card-stage {
+  position: absolute;
+  inset: 0;
+  flex: none;
+  min-height: 0;
+  overflow: hidden;
+  touch-action: none;
+  border-radius: 0;
+  background: #0b0216;
+}
+
+#deck-card .deck-card-img {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  object-fit: contain;
+  touch-action: none;
+  transform-origin: center center;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.deck-card-chrome,
+.deck-edit {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 4;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(11, 2, 22, 0.92);
+}
+
+.deck-card-chrome .deck-card-name { font-size: 20px; }
+
+.deck-card-chrome .deck-card-meta { margin-top: 4px; }
+
+.deck-field-label { display: block; }
+
+.deck-field-label .deck-stepper-label { display: block; margin-bottom: 4px; }
+
+.deck-stepper {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px 36px 44px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.deck-stepper-label { font-weight: 700; }
+
+.deck-stepper-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--container);
+  color: var(--gold);
+  font: inherit;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.deck-stepper-btn:disabled { opacity: 0.35; }
+
+.deck-stepper-value {
+  min-width: 36px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.deck-edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.deck-cancel {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--container);
+  color: var(--text);
+  font: inherit;
+}
+
+.deck-edit .deck-field { margin-top: 0; }
