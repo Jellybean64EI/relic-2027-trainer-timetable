@@ -6,10 +6,10 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v49" />
+  <meta name="relic-build" content="v50" />
   <title>Nexus</title>
-  <link rel="manifest" href="manifest.webmanifest?v=v49" />
-  <link rel="stylesheet" href="styles.css?v=v49" />
+  <link rel="manifest" href="manifest.webmanifest?v=v50" />
+  <link rel="stylesheet" href="styles.css?v=v50" />
 </head>
 <body>
   <div class="wrap">
@@ -47,48 +47,33 @@
       <p class="banner warn" id="sync-status" hidden></p>
 
       <section id="hub-root" data-os-panel="hub" hidden>
-        <p class="hub-quote" id="hub-quote"></p>
-        <div class="hub-cards">
-          <article class="hub-card">
-            <span class="hub-art" aria-hidden="true">
-              <svg viewBox="0 0 200 220" width="100%" height="100%" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-                <path d="M58 92C58 52 72 36 100 36C128 36 142 52 142 92C142 118 128 142 100 150C72 142 58 118 58 92Z" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M74 54C78 42 86 40 90 50M86 52C90 38 98 36 102 48M100 50C104 36 112 38 116 50M114 52C118 40 126 42 130 54M70 58C74 48 80 48 84 58M128 58C132 48 138 48 142 56" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M72 78C80 74 88 74 94 78M106 78C114 74 122 74 128 78" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M74 88C80 82 88 82 92 88C88 94 80 94 74 88M108 88C114 82 122 82 126 88C122 94 114 94 108 88M86 88A3 3 0 1 0 80 88A3 3 0 1 0 86 88M120 88A3 3 0 1 0 114 88A3 3 0 1 0 120 88" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M100 82L100 112M94 112C96 116 104 116 106 112" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M87 124C93 118 107 118 113 124M87 128C94 134 106 134 113 128" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M58 100L100 150M142 100L100 150" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M80 142L80 190M120 142L120 190M64 104L100 192M136 104L100 192M40 196C62 188 78 202 100 192C122 182 140 202 160 196" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </span>
-            <h2 class="hub-card-title">Upper Body</h2>
-            <div class="hub-stats" data-hub-stats="upper"></div>
+        <div class="hub-tabs" role="tablist" aria-label="Hub">
+          <button type="button" class="hub-tab" role="tab" id="hub-tab-food" data-hub-tab="food" aria-controls="hub-panel-food" aria-selected="true" tabindex="0">Food &amp; Smoothies</button>
+          <button type="button" class="hub-tab" role="tab" id="hub-tab-training" data-hub-tab="training" aria-controls="hub-panel-training" aria-selected="false" tabindex="-1">Training Stats</button>
+        </div>
+        <div id="hub-panel-food" role="tabpanel" aria-labelledby="hub-tab-food">
+          <div class="hub-weeks" role="group" aria-label="Week">
+            <button type="button" class="hub-week" data-hub-week="1" aria-pressed="true" aria-label="Week 1, 1 to 7 January">Week 1</button>
+            <button type="button" class="hub-week" data-hub-week="2" aria-pressed="false" aria-label="Week 2, 8 to 14 January">Week 2</button>
+            <button type="button" class="hub-week" data-hub-week="3" aria-pressed="false" aria-label="Week 3, 15 to 21 January">Week 3</button>
+            <button type="button" class="hub-week" data-hub-week="4" aria-pressed="false" aria-label="Week 4, 22 to 28 January">Week 4</button>
+          </div>
+          <div id="hub-week-body"></div>
+        </div>
+        <div id="hub-panel-training" role="tabpanel" aria-labelledby="hub-tab-training" hidden>
+          <article class="hub-row">
+            <div class="hub-tile"><img data-src="assets/hub/upper-face.webp" alt="" width="96" height="96" loading="lazy" decoding="async" fetchpriority="low"></div>
+            <div class="hub-row-copy">
+              <h2 class="hub-row-title">Upper Body</h2>
+              <div data-hub-stats="upper"></div>
+            </div>
           </article>
-          <article class="hub-card">
-            <span class="hub-art" aria-hidden="true">
-              <svg viewBox="0 0 200 220" width="100%" height="100%" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-                <path d="M100 13C106 13 111 18 111 24C111 30 106 35 100 35C94 35 89 30 89 24C89 18 94 13 100 13Z" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M94 34L94 46M106 34L106 46M68 50C82 42 92 46 100 48C108 46 118 42 132 50" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M68 52L84 112M132 52L116 112M82 64C88 72 94 72 98 64M102 64C108 72 114 72 118 64" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M100 72L100 108M92 84L108 84M90 94L110 94M88 104L112 104" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M68 52C58 74 54 104 58 130C54 136 64 136 60 128M132 52C142 76 148 104 142 130C148 136 138 136 140 128" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M84 112C92 122 108 122 116 112M92 118L108 118" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M92 118L90 164L90 204" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M108 118C114 140 116 152 110 162L114 202" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M80 210L100 210M108 210L126 208" fill="none" stroke="#ff8c00" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </span>
-            <h2 class="hub-card-title">Full Body</h2>
-            <div class="hub-stats" data-hub-stats="full"></div>
-          </article>
-          <article class="hub-summary">
-            <h2 class="hub-summary-title">Food Schedules</h2>
-            <div class="hub-summary-body" id="hub-food-summary">No schedule yet.</div>
-          </article>
-          <article class="hub-summary">
-            <h2 class="hub-summary-title">Smoothies Schedules</h2>
-            <div class="hub-summary-body" id="hub-smoothie-summary">No schedule yet.</div>
+          <article class="hub-row">
+            <div class="hub-tile"><img data-src="assets/hub/full-body.webp" alt="" width="96" height="96" loading="lazy" decoding="async" fetchpriority="low"></div>
+            <div class="hub-row-copy">
+              <h2 class="hub-row-title">Full Body</h2>
+              <div data-hub-stats="full"></div>
+            </div>
           </article>
         </div>
       </section>
@@ -248,21 +233,9 @@
   </div>
 
   <div class="nav-scrim" id="nav-scrim" inert></div>
-  <aside class="nav-drawer" id="nav-drawer" aria-hidden="true" inert aria-labelledby="nav-drawer-title">
-    <div class="ambient-field" aria-hidden="true">
-      <span class="ambient-nix is-lilac drift-b" style="--x:72%;--y:14%;--s:24px;--d:-14s"></span>
-      <span class="ambient-nix is-lilac drift-d" style="--x:10%;--y:48%;--s:20px;--d:-19s"></span>
-      <span class="ambient-nix is-lilac drift-a" style="--x:68%;--y:76%;--s:16px;--d:-8s"></span>
-      <span class="ambient-orb is-lilac is-stroke drift-a" style="--x:40%;--y:8%;--s:40px;--d:-12s"></span>
-      <span class="ambient-orb is-lilac is-fill drift-c" style="--x:82%;--y:36%;--s:12px;--d:-16s"></span>
-      <span class="ambient-orb is-lilac is-stroke drift-b" style="--x:8%;--y:72%;--s:32px;--d:-6s"></span>
-    </div>
+  <aside class="nav-drawer" id="nav-drawer" aria-hidden="true" inert aria-label="Menu">
     <div class="nav-drawer-scroll">
-    <div class="nav-drawer-head">
-      <div class="brand-lockup">
-        <h2 id="nav-drawer-title">Training Schedules</h2>
-      </div>
-    </div>
+    <div class="nav-drawer-head"></div>
     <nav class="nav-drawer-nav" aria-label="Primary">
       <button type="button" class="nav-row drawer-door" data-os-door="hub">
         <span class="nav-row-label">Main Menu Hub</span>
@@ -353,13 +326,13 @@
           </div>
         </div>
       </div>
+      <div id="account-banner" class="account-banner" hidden>
+        <button type="button" class="account-banner-dismiss" id="account-banner-dismiss">Account Profile: coming soon.</button>
+      </div>
       <button type="button" class="nav-row drawer-door" data-os-door="account">
         <span class="nav-row-label">Account Profile</span>
       </button>
     </nav>
-    <div id="account-banner" class="account-banner" hidden>
-      <button type="button" class="account-banner-dismiss" id="account-banner-dismiss">Account Profile: coming soon.</button>
-    </div>
     </div>
   </aside>
 
@@ -426,21 +399,21 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v49"></script>
-  <script src="data/precondition.js?v=v49"></script>
-  <script src="data/upperBody.js?v=v49"></script>
-  <script src="data/citations.js?v=v49"></script>
-  <script src="data/forensic.js?v=v49"></script>
-  <script src="data/cues/cues.js?v=v49"></script>
-  <script src="data/forensicClips.js?v=v49"></script>
-  <script src="data/videoArchive.js?v=v49"></script>
-  <script src="data/nutrition/shop.js?v=v49"></script>
-  <script src="data/nutrition/meals.js?v=v49"></script>
-  <script src="data/nutrition/extractions.js?v=v49"></script>
-  <script src="data/nutrition/schedule.js?v=v49"></script>
-  <script src="data/food/pack001.js?v=v49"></script>
-  <script src="food.js?v=v49"></script>
-  <script src="data/supabaseConfig.js?v=v49"></script>
-  <script src="app.js?v=v49"></script>
+  <script src="data/schedule.js?v=v50"></script>
+  <script src="data/precondition.js?v=v50"></script>
+  <script src="data/upperBody.js?v=v50"></script>
+  <script src="data/citations.js?v=v50"></script>
+  <script src="data/forensic.js?v=v50"></script>
+  <script src="data/cues/cues.js?v=v50"></script>
+  <script src="data/forensicClips.js?v=v50"></script>
+  <script src="data/videoArchive.js?v=v50"></script>
+  <script src="data/nutrition/shop.js?v=v50"></script>
+  <script src="data/nutrition/meals.js?v=v50"></script>
+  <script src="data/nutrition/extractions.js?v=v50"></script>
+  <script src="data/nutrition/schedule.js?v=v50"></script>
+  <script src="data/food/pack001.js?v=v50"></script>
+  <script src="food.js?v=v50"></script>
+  <script src="data/supabaseConfig.js?v=v50"></script>
+  <script src="app.js?v=v50"></script>
 </body>
 </html>

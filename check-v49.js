@@ -101,7 +101,7 @@ const cold = loadApp("", "2026-10-16T11:00:00Z");
 cold.loadTickMap({});
 const empty = cold.hubSnapshot();
 if (empty.focus !== "2027-01-01") fail("S3 focus " + empty.focus);
-if (empty.upper.pct !== 0 || empty.upper.credit !== 0 || empty.upper.streak !== 0 || empty.full.pct !== 0) {
+if (empty.upper.pct !== 0 || empty.upper.credit !== 0 || empty.full.pct !== 0) {
   fail("S3 zero " + JSON.stringify(empty.upper));
 }
 const total = empty.upper.days;
@@ -114,8 +114,8 @@ const expectPct = Math.round((6 / total) * 100);
 if (snap.focus !== "2027-01-01") fail("S1 focus " + snap.focus);
 if (snap.upper.credit !== 6 || snap.full.credit !== 6) fail("S1 credit " + snap.upper.credit + "/" + snap.full.credit);
 if (snap.upper.pct !== expectPct || snap.full.pct !== expectPct) fail("S1 pct " + snap.upper.pct + " expected " + expectPct);
-if (snap.upper.streak !== 6 || snap.upper.best !== 6 || snap.full.streak !== 6 || snap.full.best !== 6) {
-  fail("J-ST streak " + JSON.stringify({ u: snap.upper, f: snap.full }));
+if (!(snap.upper.streak === undefined && snap.full.best === undefined)) {
+  fail("J-ST streak removed");
 }
 if (snap.upper.videos !== 12 || snap.full.videos !== 12) fail("S1 videos " + snap.upper.videos);
 
