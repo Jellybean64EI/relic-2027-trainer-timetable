@@ -177,6 +177,39 @@ body.is-hub .schedule-mode {
   display: none;
 }
 
+/* Hub header: hamburger and clock stay on the top row; the title block is centred under them. */
+body.is-hub .brand-bar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "toggle spacer clock"
+    "title title title";
+  align-items: center;
+  column-gap: 8px;
+}
+
+body.is-hub .nav-toggle {
+  grid-area: toggle;
+}
+
+body.is-hub .header-corner {
+  grid-area: clock;
+  max-width: none;
+}
+
+body.is-hub .brand-main {
+  grid-area: title;
+  justify-self: center;
+  width: max-content;
+  max-width: 100%;
+  padding-top: 2px;
+  text-align: center;
+}
+
+body.is-hub .card > .ambient-field {
+  display: none;
+}
+
 .header-corner {
   display: flex;
   flex-direction: column;
@@ -3585,6 +3618,7 @@ body.is-food .storage-note {
 
 .hub-tabs {
   display: flex;
+  justify-content: center;
   gap: 16px;
   margin: 0 0 12px;
 }
@@ -3622,6 +3656,7 @@ body.is-food .storage-note {
 .hub-weeks {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
   margin: 0 0 12px;
 }
@@ -3655,11 +3690,13 @@ body.is-food .storage-note {
   font-weight: 700;
   letter-spacing: 0.04em;
   line-height: 1.4;
+  text-align: center;
 }
 
 .hub-locks {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 6px 10px;
   margin: 0 0 12px;
 }
@@ -3701,13 +3738,16 @@ body.is-food .storage-note {
   gap: 12px;
   min-width: 0;
   margin: 0;
-  padding: 8px 8px 8px 10px;
-  border-left: 2px solid transparent;
+  padding: 12px;
+  border: 1px solid rgba(216, 180, 254, 0.25);
+  border-radius: 12px;
+  background: #1b0a2a;
   box-shadow: none;
+  box-sizing: border-box;
 }
 
 .hub-day.is-focus {
-  border-left-color: #ff8c00;
+  border-left: 2px solid #ff8c00;
 }
 
 .hub-day-date {
@@ -3835,6 +3875,7 @@ body.is-food .storage-note {
 }
 
 .hub-metric {
+  width: 100%;
   min-width: 0;
   margin: 0 0 8px;
 }
@@ -3844,17 +3885,23 @@ body.is-food .storage-note {
 }
 
 .hub-track {
+  position: relative;
   display: block;
+  width: 100%;
   height: 4px;
   margin: 0 0 4px;
   border-radius: 2px;
   background: #150724;
+  box-shadow: inset 0 0 0 1px rgba(216, 180, 254, 0.55);
   overflow: hidden;
 }
 
 .hub-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
   display: block;
-  height: 100%;
+  height: 4px;
   border-radius: 2px;
   background: #ff8c00;
 }
