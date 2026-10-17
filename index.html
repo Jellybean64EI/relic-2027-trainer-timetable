@@ -6,10 +6,10 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v50" />
+  <meta name="relic-build" content="v52" />
   <title>Nexus</title>
-  <link rel="manifest" href="manifest.webmanifest?v=v50" />
-  <link rel="stylesheet" href="styles.css?v=v50" />
+  <link rel="manifest" href="manifest.webmanifest?v=v52" />
+  <link rel="stylesheet" href="styles.css?v=v52" />
 </head>
 <body>
   <div class="wrap">
@@ -52,13 +52,12 @@
           <button type="button" class="hub-tab" role="tab" id="hub-tab-training" data-hub-tab="training" aria-controls="hub-panel-training" aria-selected="false" tabindex="-1">Training Stats</button>
         </div>
         <div id="hub-panel-food" role="tabpanel" aria-labelledby="hub-tab-food">
-          <div class="hub-weeks" role="group" aria-label="Week">
-            <button type="button" class="hub-week" data-hub-week="1" aria-pressed="true" aria-label="Week 1, 1 to 7 January">Week 1</button>
-            <button type="button" class="hub-week" data-hub-week="2" aria-pressed="false" aria-label="Week 2, 8 to 14 January">Week 2</button>
-            <button type="button" class="hub-week" data-hub-week="3" aria-pressed="false" aria-label="Week 3, 15 to 21 January">Week 3</button>
-            <button type="button" class="hub-week" data-hub-week="4" aria-pressed="false" aria-label="Week 4, 22 to 28 January">Week 4</button>
+          <div class="deck-step" role="group" aria-label="Month">
+            <button type="button" class="deck-step-btn" id="hub-month-prev" aria-label="Previous month">‹</button>
+            <p class="deck-step-label" id="hub-month-label">January 2027</p>
+            <button type="button" class="deck-step-btn" id="hub-month-next" aria-label="Next month">›</button>
           </div>
-          <div id="hub-week-body"></div>
+          <div id="hub-month-body"></div>
         </div>
         <div id="hub-panel-training" role="tabpanel" aria-labelledby="hub-tab-training" hidden>
           <article class="hub-row">
@@ -76,6 +75,36 @@
             </div>
           </article>
         </div>
+      </section>
+
+      <section id="deck-root-food" data-os-panel="food" hidden>
+        <div class="deck-head">
+          <h2 data-deck-count>Food · 0 cards</h2>
+          <label class="deck-add" for="deck-file" data-deck-add="food">+ Add cards</label>
+        </div>
+        <details class="deck-details">
+          <summary>Details</summary>
+          <label class="deck-paste-label">Paste line
+            <input id="deck-paste-food" type="text" autocomplete="off" placeholder="NAME | FOOD | veg | fruit">
+          </label>
+        </details>
+        <div data-deck-grid class="deck-grid"></div>
+        <div id="deck-log-food" class="deck-log"></div>
+        <button type="button" class="deck-backup" data-deck-backup hidden>Download old food backup</button>
+      </section>
+      <section id="deck-root-smoothie" data-os-panel="smoothies" hidden>
+        <div class="deck-head">
+          <h2 data-deck-count>Smoothies · 0 cards</h2>
+          <label class="deck-add" for="deck-file" data-deck-add="smoothie">+ Add cards</label>
+        </div>
+        <details class="deck-details">
+          <summary>Details</summary>
+          <label class="deck-paste-label">Paste line
+            <input id="deck-paste-smoothie" type="text" autocomplete="off" placeholder="NAME | SMOOTHIE | veg | fruit">
+          </label>
+        </details>
+        <div data-deck-grid class="deck-grid"></div>
+        <div id="deck-log-smoothie" class="deck-log"></div>
       </section>
 
       <div class="live-stack">
@@ -218,11 +247,6 @@
       </div>
 
       <section class="food-board" id="planner-board" hidden aria-label="Food and smoothies">
-        <div class="planner-tabs" role="tablist" aria-label="Planner">
-          <button type="button" data-planner-screen="recipes" aria-pressed="false">Recipes</button>
-          <button type="button" data-planner-screen="plan" aria-pressed="false">Plan</button>
-          <button type="button" data-planner-screen="today" aria-pressed="false">Today</button>
-        </div>
         <div id="planner-root"></div>
       </section>
 
@@ -277,54 +301,12 @@
             </div>
           </div>
         </div>
-        <div class="cabin" data-cabin="food">
-          <button type="button" class="nav-row cabin-toggle drawer-door" data-os-door="food" aria-expanded="false" aria-controls="cabin-panel-food">
-            <span class="nav-row-label">Food Schedules</span>
-            <span class="cabin-chevron" aria-hidden="true"></span>
-          </button>
-          <div class="cabin-panel" id="cabin-panel-food" data-os-panel="food" hidden>
-            <div class="cabin-panel-inner">
-              <section class="nav-section" aria-labelledby="nav-food-label">
-                <h3 id="nav-food-label" class="nav-kicker" style="--stagger:1">Food</h3>
-                <div class="nav-rows" role="group" aria-label="Food">
-                  <button type="button" class="nav-row" data-food-room="recipes" style="--stagger:1" aria-pressed="false">
-                    <span class="nav-row-label">Recipes</span>
-                  </button>
-                  <button type="button" class="nav-row" data-food-room="plan" style="--stagger:2" aria-pressed="false">
-                    <span class="nav-row-label">Plan</span>
-                  </button>
-                  <button type="button" class="nav-row" data-food-room="today" style="--stagger:3" aria-pressed="false">
-                    <span class="nav-row-label">Today</span>
-                  </button>
-                </div>
-              </section>
-            </div>
-          </div>
-        </div>
-        <div class="cabin" data-cabin="smoothies">
-          <button type="button" class="nav-row cabin-toggle drawer-door" data-os-door="smoothies" aria-expanded="false" aria-controls="cabin-panel-smoothies">
-            <span class="nav-row-label">Smoothies Schedules</span>
-            <span class="cabin-chevron" aria-hidden="true"></span>
-          </button>
-          <div class="cabin-panel" id="cabin-panel-smoothies" data-os-panel="smoothies" hidden>
-            <div class="cabin-panel-inner">
-              <section class="nav-section" aria-labelledby="nav-smoothie-label">
-                <h3 id="nav-smoothie-label" class="nav-kicker" style="--stagger:1">Smoothies</h3>
-                <div class="nav-rows" role="group" aria-label="Smoothies">
-                  <button type="button" class="nav-row" data-smoothie-room="recipes" style="--stagger:1" aria-pressed="false">
-                    <span class="nav-row-label">Recipes</span>
-                  </button>
-                  <button type="button" class="nav-row" data-smoothie-room="plan" style="--stagger:2" aria-pressed="false">
-                    <span class="nav-row-label">Plan</span>
-                  </button>
-                  <button type="button" class="nav-row" data-smoothie-room="today" style="--stagger:3" aria-pressed="false">
-                    <span class="nav-row-label">Today</span>
-                  </button>
-                </div>
-              </section>
-            </div>
-          </div>
-        </div>
+        <button type="button" class="nav-row drawer-door" data-os-door="food">
+          <span class="nav-row-label">Food deck</span>
+        </button>
+        <button type="button" class="nav-row drawer-door" data-os-door="smoothies">
+          <span class="nav-row-label">Smoothies deck</span>
+        </button>
       </div>
       <div id="account-banner" class="account-banner" hidden>
         <button type="button" class="account-banner-dismiss" id="account-banner-dismiss">Account Profile: coming soon.</button>
@@ -335,6 +317,12 @@
     </nav>
     </div>
   </aside>
+
+  <input id="deck-file" class="deck-file" type="file" multiple accept="image/*,android/allowDrive" hidden>
+  <div id="deck-picker" class="deck-overlay" role="dialog" aria-modal="true" aria-label="Meal picker" hidden></div>
+  <div id="deck-card" class="deck-overlay" role="dialog" aria-modal="true" aria-label="Card" hidden></div>
+  <div id="deck-copy" class="deck-overlay" role="dialog" aria-modal="true" aria-label="Copy meal" hidden></div>
+  <p id="deck-toast" class="deck-toast" role="status" hidden></p>
 
   <div id="relic-deck-park" aria-hidden="true">
     <video id="relic-active-video" class="deck-video is-front" preload="auto" muted playsinline webkit-playsinline disablepictureinpicture disableremoteplayback tabindex="-1"></video>
@@ -399,21 +387,19 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v50"></script>
-  <script src="data/precondition.js?v=v50"></script>
-  <script src="data/upperBody.js?v=v50"></script>
-  <script src="data/citations.js?v=v50"></script>
-  <script src="data/forensic.js?v=v50"></script>
-  <script src="data/cues/cues.js?v=v50"></script>
-  <script src="data/forensicClips.js?v=v50"></script>
-  <script src="data/videoArchive.js?v=v50"></script>
-  <script src="data/nutrition/shop.js?v=v50"></script>
-  <script src="data/nutrition/meals.js?v=v50"></script>
-  <script src="data/nutrition/extractions.js?v=v50"></script>
-  <script src="data/nutrition/schedule.js?v=v50"></script>
-  <script src="data/food/pack001.js?v=v50"></script>
-  <script src="food.js?v=v50"></script>
-  <script src="data/supabaseConfig.js?v=v50"></script>
-  <script src="app.js?v=v50"></script>
+  <script src="data/schedule.js?v=v52"></script>
+  <script src="data/precondition.js?v=v52"></script>
+  <script src="data/upperBody.js?v=v52"></script>
+  <script src="data/citations.js?v=v52"></script>
+  <script src="data/forensic.js?v=v52"></script>
+  <script src="data/cues/cues.js?v=v52"></script>
+  <script src="data/forensicClips.js?v=v52"></script>
+  <script src="data/videoArchive.js?v=v52"></script>
+  <script src="data/nutrition/shop.js?v=v52"></script>
+  <script src="data/nutrition/schedule.js?v=v52"></script>
+  <script src="food.js?v=v52"></script>
+  <script src="data/supabaseConfig.js?v=v52"></script>
+  <script src="deck.js?v=v52"></script>
+  <script src="app.js?v=v52"></script>
 </body>
 </html>

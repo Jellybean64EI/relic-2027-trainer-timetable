@@ -29,7 +29,7 @@ const drawer = html.slice(html.indexOf('id="nav-drawer"'), html.indexOf('id="rel
 while ((doorMatch = doorRe.exec(drawer))) doors.push(doorMatch[1]);
 if (doors.join(",") !== "hub,training,food,smoothies,account") fail("door keys " + doors.join(","));
 if (drawer.split(">Nexus<").length - 1) fail("drawer repeats Nexus");
-const labels = ["Main Menu Hub", "Training Schedules", "Food Schedules", "Smoothies Schedules", "Account Profile"];
+const labels = ["Main Menu Hub", "Training Schedules", "Food deck", "Smoothies deck", "Account Profile"];
 labels.forEach(function (label) {
   if (drawer.indexOf(">" + label + "<") === -1) fail("missing label " + label);
 });
@@ -193,7 +193,7 @@ function bootFood(search) {
   };
   ctx.window = ctx;
   vm.createContext(ctx);
-  ["data/nutrition/shop.js", "data/nutrition/meals.js", "data/nutrition/extractions.js", "data/nutrition/schedule.js", "data/food/pack001.js", "food.js"].forEach(function (file) {
+  ["data/nutrition/shop.js", "data/backup/845c93a/meals.js", "data/backup/845c93a/extractions.js", "data/nutrition/schedule.js", "data/backup/845c93a/pack001.js", "food.js"].forEach(function (file) {
     vm.runInContext(fs.readFileSync(file, "utf8"), ctx, { filename: file });
   });
   return ctx.NexusFood;

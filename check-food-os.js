@@ -11,25 +11,26 @@ const app = fs.readFileSync("app.js", "utf8");
 const food = fs.readFileSync("food.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v50"') === -1 || html.indexOf("food.js?v=v50") === -1) fail("cache stamp");
+if (html.indexOf('content="v52"') === -1 || html.indexOf("food.js?v=v52") === -1) fail("cache stamp");
 if (css.indexOf("#planner-sheet-host") === -1 || css.indexOf("safe-area-inset-bottom") === -1 || css.indexOf("100dvh") === -1) fail("sheet viewport");
 if (/^\.planner-sheet \{[^}]*position:\s*sticky/m.test(css)) fail("sheet still sticky");
 ["recipes", "plan", "today"].forEach(function (screen) {
-  if (html.indexOf('data-food-room="' + screen + '"') === -1) fail("food screen " + screen);
-  if (html.indexOf('data-smoothie-room="' + screen + '"') === -1) fail("smoothie screen " + screen);
+  if (html.indexOf('data-food-room="' + screen + '"') !== -1) fail("food screen " + screen);
+  if (html.indexOf('data-smoothie-room="' + screen + '"') !== -1) fail("smoothie screen " + screen);
 });
+if (html.indexOf('id="deck-root-food"') === -1 || html.indexOf('id="deck-root-smoothie"') === -1) fail("deck rooms");
 if (html.indexOf("Monthly Shop") !== -1 || html.indexOf('data-food-room="shop"') !== -1) fail("shop module remains");
 if (html.indexOf('data-os-door="food"') === -1 || html.indexOf('data-os-door="smoothies"') === -1) fail("cabins");
 if (html.indexOf('data-os-door="training"') === -1) fail("training cabin");
 if (html.indexOf('data-os-door="notes"') !== -1 || html.indexOf('data-cabin="notes"') !== -1) fail("notes cabin remains");
 if (html.indexOf('data-os-door="hub"') === -1 || html.indexOf('data-os-door="account"') === -1) fail("hub doors");
 if (food.indexOf('cabin: "notes"') !== -1 || food.indexOf("notes:") !== -1) fail("notes banner");
-if (html.indexOf(">Today<") === -1 || html.indexOf("Prep &amp; Today") !== -1) fail("today label");
+if (html.indexOf(">Today<") !== -1 || html.indexOf("Prep &amp; Today") !== -1) fail("today label");
 ["paintFuelWeek", "finishWeek", "placeHg", "btn-food-close", "relic_food_cards_v20", "relic_food_week_v20", "relic_food_shop_v19"].forEach(function (needle) {
   if (app.indexOf(needle) !== -1 || food.indexOf(needle) !== -1 || html.indexOf(needle) !== -1) fail("dead " + needle);
 });
-if (/\beggs?\b/i.test(fs.readFileSync("data/nutrition/meals.js", "utf8"))) fail("eggs in meals");
-if (/\beggs?\b/i.test(fs.readFileSync("data/food/pack001.js", "utf8"))) fail("eggs in pack");
+if (/\beggs?\b/i.test(fs.readFileSync("data/backup/845c93a/meals.js", "utf8"))) fail("eggs in meals");
+if (/\beggs?\b/i.test(fs.readFileSync("data/backup/845c93a/pack001.js", "utf8"))) fail("eggs in pack");
 if (/\beggs?\b/i.test(fs.readFileSync("data/nutrition/shop.js", "utf8").replace(/eggsBanned|eggPreference/g, ""))) fail("eggs in shop");
 
 const mem = {};
@@ -51,10 +52,10 @@ ctx.window = ctx;
 vm.createContext(ctx);
 [
   "data/nutrition/shop.js",
-  "data/nutrition/meals.js",
-  "data/nutrition/extractions.js",
+  "data/backup/845c93a/meals.js",
+  "data/backup/845c93a/extractions.js",
   "data/nutrition/schedule.js",
-  "data/food/pack001.js",
+  "data/backup/845c93a/pack001.js",
   "food.js"
 ].forEach(function (file) {
   vm.runInContext(fs.readFileSync(file, "utf8"), ctx, { filename: file });

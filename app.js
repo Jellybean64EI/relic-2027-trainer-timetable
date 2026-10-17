@@ -976,32 +976,10 @@
     root.querySelectorAll("[data-hub-stats]").forEach(function (node) {
       node.innerHTML = hubStatsHtml(node.getAttribute("data-hub-stats"));
     });
-    var focus = londonParts(planFocusDate());
     var clock = londonParts(parseDateOverride() || new Date());
-    var api = window.NexusFood;
-    var body = $("hub-week-body");
-    if (api && api.weekView) {
-      if (!state.hubWeek) {
-        var probe = api.weekView(focus.dateKey, 0);
-        state.hubWeek = probe && probe.week ? probe.week : 1;
-      }
-      var view = api.weekView(focus.dateKey, state.hubWeek);
-      if (view && view.weeksInBlock && state.hubWeek > view.weeksInBlock) {
-        state.hubWeek = view.weeksInBlock;
-        view = api.weekView(focus.dateKey, state.hubWeek);
-      }
-      root.querySelectorAll("[data-hub-week]").forEach(function (btn) {
-        var n = +btn.getAttribute("data-hub-week");
-        var info = api.weekView(focus.dateKey, n);
-        var pressed = n === state.hubWeek;
-        btn.setAttribute("aria-pressed", pressed ? "true" : "false");
-        if (info && info.aria) btn.setAttribute("aria-label", info.aria);
-        if (info && info.weeksInBlock && n > info.weeksInBlock) btn.setAttribute("hidden", "");
-        else btn.removeAttribute("hidden");
-      });
-      if (body) body.innerHTML = hubWeekHtml(view, clock.year < 2027);
-    } else if (body) {
-      body.innerHTML = hubWeekHtml(null, clock.year < 2027);
+    if (window.NexusDeck && window.NexusDeck.renderHubMonth) {
+      var focusKey = clock.year < 2027 ? "2027-01-01" : (clock.year > 2027 ? "2027-12-31" : clock.dateKey);
+      window.NexusDeck.renderHubMonth({ year: clock.year, month: clock.month, focus: focusKey });
     }
   }
 
@@ -1047,8 +1025,8 @@
     state.osDoor = door;
     var titles = {
       training: "Training Schedules",
-      food: "Food Schedules",
-      smoothies: "Smoothies Schedules",
+      food: "Food deck",
+      smoothies: "Smoothies deck",
       hub: "Main Menu Hub",
       account: "Account Profile"
     };
@@ -1086,8 +1064,12 @@
     paintBranchChrome();
     if (document.body) {
       document.body.classList.toggle("is-hub", door === "hub");
+      document.body.classList.toggle("is-deck", door === "food" || door === "smoothies");
     }
     if (door === "hub") paintHub();
+    if ((door === "food" || door === "smoothies") && window.NexusDeck && window.NexusDeck.renderDeck) {
+      window.NexusDeck.renderDeck(door === "smoothies" ? "smoothie" : "food");
+    }
   }
 
   function render() {
@@ -1195,11 +1177,6 @@
     tbody.innerHTML = html;
     applyPeriodMarks(weekDays);
     paintForensic();
-    if (window.NexusFood) {
-      var plannerDoor = state.osDoor === "food" || state.osDoor === "smoothies" ? state.osDoor : "";
-      var plannerScreen = plannerDoor === "food" ? state.foodRoom : (plannerDoor === "smoothies" ? state.smoothieRoom : "");
-      window.NexusFood.sync(plannerDoor, plannerScreen);
-    }
     paintOsDoors();
     if (state.osDoor === "training") warmVisibleLeads();
     if (state.restoreTickDate) {
@@ -2819,12 +2796,6 @@
         if (selected && selected.focus) selected.focus();
       });
     });
-    document.querySelectorAll("[data-hub-week]").forEach(function (weekBtn) {
-      weekBtn.addEventListener("click", function () {
-        state.hubWeek = +weekBtn.getAttribute("data-hub-week") || 1;
-        paintHub();
-      });
-    });
     document.querySelectorAll("[data-os-door]").forEach(function (doorBtn) {
       doorBtn.addEventListener("click", function (event) {
         event.preventDefault();
@@ -2841,7 +2812,14 @@
           render();
           return;
         }
-        if (name !== "training" && name !== "food" && name !== "smoothies") return;
+        if (name === "food" || name === "smoothies") {
+          state.osDoor = name;
+          state.menuCabin = "";
+          setNavOpen(false);
+          render();
+          return;
+        }
+        if (name !== "training") return;
         var current = state.menuCabin || "";
         if (current === name) {
           state.menuCabin = "";
@@ -2849,12 +2827,7 @@
           return;
         }
         state.menuCabin = name;
-        if (name === "training") {
-          openTrainingDoor();
-          return;
-        }
-        state.osDoor = name;
-        paintOsDoors();
+        openTrainingDoor();
       });
     });
     var accountDismiss = $("account-banner-dismiss");
@@ -2866,30 +2839,6 @@
       });
     }
     window.addEventListener("pagehide", dismissAccountBanner);
-    document.querySelectorAll("[data-food-room]").forEach(function (foodBtn) {
-      foodBtn.addEventListener("click", function (event) {
-        event.preventDefault();
-        event.stopPropagation();
-        state.osDoor = "food";
-        state.foodRoom = foodBtn.getAttribute("data-food-room") || "recipes";
-        state.smoothieRoom = "";
-        paintOsDoors();
-        if (window.NexusFood) window.NexusFood.open("food", state.foodRoom);
-        setNavOpen(false);
-      });
-    });
-    document.querySelectorAll("[data-smoothie-room]").forEach(function (smoothieBtn) {
-      smoothieBtn.addEventListener("click", function (event) {
-        event.preventDefault();
-        event.stopPropagation();
-        state.osDoor = "smoothies";
-        state.smoothieRoom = smoothieBtn.getAttribute("data-smoothie-room") || "recipes";
-        state.foodRoom = "";
-        paintOsDoors();
-        if (window.NexusFood) window.NexusFood.open("smoothies", state.smoothieRoom);
-        setNavOpen(false);
-      });
-    });
     var forensicTab = $("forensic-tab");
     var forensicPanel = $("forensic-panel");
     var forensicDock = $("forensic-dock");
@@ -2942,15 +2891,6 @@
       if (event.key !== "Escape") return;
       var playerRoot = $("relic-player");
       var playerOpen = playerRoot && !playerRoot.hidden;
-      if ((state.foodRoom || state.smoothieRoom) && !playerOpen && !document.body.classList.contains("nav-open")) {
-        event.preventDefault();
-        if (window.NexusFood && window.NexusFood.dismiss()) return;
-        state.foodRoom = "";
-        state.smoothieRoom = "";
-        state.osDoor = "training";
-        render();
-        return;
-      }
       if (!document.body.classList.contains("nav-open")) return;
       if (playerOpen) return;
       event.preventDefault();
@@ -3110,6 +3050,7 @@
     state.mode = parseModeOverride() || readStoredMode() || "full";
     state.navMark = readStoredMark();
     if (state.mode === "upper" && !upperSchedule()) state.mode = "full";
+    if (window.NexusDeck && window.NexusDeck.boot) window.NexusDeck.boot();
     if (trainingDeepLink()) state.osDoor = "training";
     else if (doorOverride()) state.osDoor = doorOverride();
     else state.osDoor = "hub";
@@ -3136,7 +3077,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v50",
+    build: "v52",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };
