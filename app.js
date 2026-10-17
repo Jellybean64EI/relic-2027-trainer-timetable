@@ -91,6 +91,9 @@
     smoothieOffer: "",
     smoothieFlyError: "",
     osDoor: "hub",
+    hubTab: "food",
+    hubWeek: 0,
+    hubArtLoaded: false,
     menuCabin: null,
     futureLock: false,
     foodRefuse: "",
@@ -820,52 +823,6 @@
   function foodExtractions() { return window.RELIC_FOOD_EXTRACTIONS || null; }
   function foodSchedule() { return window.RELIC_FOOD_SCHEDULE || null; }
 
-  var HUB_QUOTES = [
-    "Show up before the day asks you to.",
-    "One clean rep is a whole conversation.",
-    "Strength is a quiet kind of honesty.",
-    "Leave the week better than you found it.",
-    "The work you repeat becomes the work you trust.",
-    "Rest is part of the set, not a detour.",
-    "Stand tall and let the breath lead.",
-    "Small plates, steady hands, full days.",
-    "Train the muscle you will thank in winter.",
-    "Keep the promise you made on Monday.",
-    "A calm week still counts.",
-    "Eat like you intend to train tomorrow.",
-    "The bar does not care about yesterday.",
-    "Finish the set you started.",
-    "Water first, then the hard thing.",
-    "Shoulders down, eyes up, then move.",
-    "You do not need a louder plan.",
-    "Two good meals beat a perfect theory.",
-    "Let the clock be a coach, not a critic.",
-    "Build the body that can carry your life.",
-    "Saturday still belongs to the work.",
-    "Soft voice, firm standard.",
-    "The next rep is the only one you own.",
-    "Cook simply and train completely.",
-    "Leave room in the day for a walk.",
-    "Consistency is a kind of mercy.",
-    "Do the plain thing well.",
-    "Your future self is already watching.",
-    "Stop at strong, not at sloppy.",
-    "A full breath is a fresh start.",
-    "The week gets done one clean day at a time."
-  ];
-
-  function dayOfYear(parts) {
-    var start = Date.UTC(parts.year, 0, 1);
-    var now = Date.UTC(parts.year, parts.month - 1, parts.day);
-    return Math.floor((now - start) / 86400000) + 1;
-  }
-
-  function hubQuote(parts) {
-    var index = dayOfYear(parts) % HUB_QUOTES.length;
-    if (index < 0) index = 0;
-    return HUB_QUOTES[index];
-  }
-
   function planFocusDate() {
     var override = parseDateOverride();
     var parts = londonParts(override || new Date());
@@ -903,86 +860,149 @@
     var days = hubTrainingDays(mode);
     var credit = 0;
     var videos = 0;
-    var best = 0;
-    var run = 0;
-    var latest = -1;
-    days.forEach(function (day, index) {
+    days.forEach(function (day) {
       var tier = state.loaded ? normalizeTier(maskFor(day.dateKey, mode)) : 0;
       credit += hubCredit(tier);
       videos += popcount(tier);
-      if (tier >= 1) {
-        run += 1;
-        latest = index;
-        if (run > best) best = run;
-      } else run = 0;
     });
-    var clock = londonParts(parseDateOverride() || new Date());
     var focusKey = londonParts(planFocusDate()).dateKey;
-    var current = 0;
-    var start = -1;
-    if (clock.year < 2027) start = latest;
-    else {
-      days.forEach(function (day, index) {
-        if (day.dateKey <= focusKey) start = index;
-      });
-      if (start >= 0 && normalizeTier(maskFor(days[start].dateKey, mode)) < 1) start -= 1;
-    }
-    var i;
-    for (i = start; i >= 0; i--) {
-      if (normalizeTier(maskFor(days[i].dateKey, mode)) >= 1) current += 1;
-      else break;
-    }
     var total = days.length;
+    var videoTotal = total * 2;
     return {
       days: total,
       credit: credit,
       videos: videos,
       pct: total ? Math.round((credit / total) * 100) : 0,
-      streak: current,
-      best: best,
+      videoPct: videoTotal ? Math.round((videos / videoTotal) * 100) : 0,
       focus: focusKey
     };
   }
 
-  function hubStatsHtml(mode) {
-    var score = hubYear(mode);
-    var width = score.days ? Math.max(0, Math.min(100, (score.credit / score.days) * 100)) : 0;
-    return '<p class="hub-pct">' + score.pct + '%</p>' +
-      '<p class="hub-days-line">' + hubCreditText(score.credit) + " of " + score.days + " days</p>" +
-      '<span class="hub-track" role="progressbar" aria-valuemin="0" aria-valuemax="' + score.days +
-      '" aria-valuenow="' + score.credit + '" aria-label="Training days"><span class="hub-fill" style="width:' +
-      width + '%"></span></span>' +
-      '<p class="hub-videos">' + score.videos + " of " + (score.days * 2) + " videos</p>" +
-      '<p class="hub-streaks"><span>Streak ' + score.streak + "</span><span>Best " + score.best + "</span></p>";
+  function hubEsc(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 
-  function hubSummaryText(view) {
-    if (!view || view.empty) return "No schedule yet.";
-    var lines = [];
-    if (view.heading) lines.push(view.heading);
-    (view.rows || []).forEach(function (row) { lines.push(row); });
-    if (view.nuts) lines.push(view.nuts);
-    if (view.lock) lines.push(view.lock);
-    (view.next || []).forEach(function (row) { lines.push(row); });
-    return lines.join("\n");
+  function hubStatsHtml(mode) {
+    var score = hubYear(mode);
+    var dayWidth = score.days ? Math.max(0, Math.min(100, (score.credit / score.days) * 100)) : 0;
+    var videoTotal = score.days * 2;
+    var videoWidth = videoTotal ? Math.max(0, Math.min(100, (score.videos / videoTotal) * 100)) : 0;
+    return '<div class="hub-metric"><span class="hub-track" role="progressbar" aria-valuemin="0" aria-valuemax="' + score.days +
+      '" aria-valuenow="' + score.credit + '" aria-label="Training days"><span class="hub-fill" style="width:' + dayWidth +
+      '%"></span></span><p class="hub-metric-line"><span>DAYS ' + hubCreditText(score.credit) + " / " + score.days +
+      '</span><span class="hub-pct">' + score.pct + '%</span></p></div>' +
+      '<div class="hub-metric"><span class="hub-track" role="progressbar" aria-valuemin="0" aria-valuemax="' + videoTotal +
+      '" aria-valuenow="' + score.videos + '" aria-label="Videos"><span class="hub-fill" style="width:' + videoWidth +
+      '%"></span></span><p class="hub-metric-line"><span>VIDEOS ' + score.videos + " / " + videoTotal +
+      '</span><span class="hub-pct">' + score.videoPct + "%</span></p></div>";
+  }
+
+  function hubLockChips(months) {
+    var many = months.length > 1;
+    var html = "";
+    months.forEach(function (month) {
+      [["food", "FOOD", month.food], ["smoothies", "SMOOTHIES", month.smoothies]].forEach(function (row) {
+        var prefix = many ? month.name.slice(0, 3).toUpperCase() + " " : "";
+        var word = row[2] === "Locked" ? "LOCKED" : "DRAFT";
+        html += '<span class="hub-lock">' + hubEsc(prefix + row[1] + " · " + word) + "</span>";
+      });
+    });
+    return html;
+  }
+
+  function hubWeekHtml(view, planStart) {
+    if (!view) return '<p class="hub-empty-week">No schedule yet.</p>';
+    var head = "WEEK " + view.week + " · " + view.label;
+    if (planStart) head += " · PLAN START";
+    var html = '<p class="hub-week-head">' + hubEsc(head) + "</p>";
+    html += '<div class="hub-locks">' + hubLockChips(view.months || []) + "</div>";
+    if (view.empty) html += '<p class="hub-empty-week">No schedule yet.</p>';
+    html += '<div class="hub-days">';
+    (view.days || []).forEach(function (day) {
+      html += '<article class="hub-day' + (day.focus ? " is-focus" : "") + '" data-date="' + hubEsc(day.date) + '">';
+      html += '<div class="hub-day-date"><span class="hub-dow">' + hubEsc((day.label || "").split(" ")[0] || "") +
+        '</span><span class="hub-date">' + hubEsc(String(+String(day.date).slice(8))) + "</span></div>";
+      html += '<div class="hub-day-slots">';
+      var meals = day.meals || {};
+      var groups = [
+        ["Breakfast", meals.breakfast, (day.smoothies || []).filter(function (row) { return row.at === "breakfast"; })],
+        ["Lunch", meals.lunch, []],
+        ["Dinner", meals.dinner, (day.smoothies || []).filter(function (row) { return row.at === "dinner"; })]
+      ];
+      var drawn = false;
+      groups.forEach(function (group) {
+        if (!group[1] && !group[2].length) return;
+        drawn = true;
+        html += '<p class="hub-slot-label">' + group[0] + "</p>";
+        if (group[1]) html += '<p class="hub-meal">' + hubEsc(group[1]) + "</p>";
+        group[2].forEach(function (row) {
+          html += '<p class="hub-smoothie">Smoothie · ' + hubEsc(row.title) + "</p>";
+        });
+      });
+      if (day.more) html += '<p class="hub-more">+' + day.more + " more</p>";
+      if (!drawn) html += '<p class="hub-quiet">Nothing planned</p>';
+      var count = (day.smoothies || []).length + (day.more || 0);
+      if (count && !day.nutsOk) html += '<p class="hub-brazil">Brazil nuts: ' + day.nuts + " (needs 2)</p>";
+      html += "</div></article>";
+    });
+    html += '</div><p class="hub-daily">Daily: 2 Brazil nuts</p>';
+    return html;
   }
 
   function paintHub() {
     var root = $("hub-root");
     if (!root) return;
-    var focus = londonParts(planFocusDate());
-    var quote = $("hub-quote");
-    if (quote) quote.textContent = hubQuote(londonParts(parseDateOverride() || new Date()));
-    document.querySelectorAll("[data-hub-stats]").forEach(function (node) {
+    if (state.hubTab !== "training") state.hubTab = "food";
+    root.querySelectorAll("[data-hub-tab]").forEach(function (tab) {
+      var on = tab.getAttribute("data-hub-tab") === state.hubTab;
+      tab.setAttribute("aria-selected", on ? "true" : "false");
+      tab.tabIndex = on ? 0 : -1;
+    });
+    var foodPanel = $("hub-panel-food");
+    var trainPanel = $("hub-panel-training");
+    if (foodPanel) foodPanel.hidden = state.hubTab !== "food";
+    if (trainPanel) trainPanel.hidden = state.hubTab !== "training";
+    if (state.hubTab === "training" && !state.hubArtLoaded) {
+      root.querySelectorAll(".hub-tile img").forEach(function (img) {
+        var src = img.getAttribute("data-src");
+        if (src && !img.getAttribute("src")) img.setAttribute("src", src);
+      });
+      state.hubArtLoaded = true;
+    }
+    root.querySelectorAll("[data-hub-stats]").forEach(function (node) {
       node.innerHTML = hubStatsHtml(node.getAttribute("data-hub-stats"));
     });
-    var foodLine = $("hub-food-summary");
-    var smoothLine = $("hub-smoothie-summary");
-    var foodApi = window.NexusFood;
-    var food = foodApi && foodApi.hubView ? foodApi.hubView("food", focus.dateKey) : null;
-    var smooth = foodApi && foodApi.hubView ? foodApi.hubView("smoothies", focus.dateKey) : null;
-    if (foodLine) foodLine.textContent = hubSummaryText(food);
-    if (smoothLine) smoothLine.textContent = hubSummaryText(smooth);
+    var focus = londonParts(planFocusDate());
+    var clock = londonParts(parseDateOverride() || new Date());
+    var api = window.NexusFood;
+    var body = $("hub-week-body");
+    if (api && api.weekView) {
+      if (!state.hubWeek) {
+        var probe = api.weekView(focus.dateKey, 0);
+        state.hubWeek = probe && probe.week ? probe.week : 1;
+      }
+      var view = api.weekView(focus.dateKey, state.hubWeek);
+      if (view && view.weeksInBlock && state.hubWeek > view.weeksInBlock) {
+        state.hubWeek = view.weeksInBlock;
+        view = api.weekView(focus.dateKey, state.hubWeek);
+      }
+      root.querySelectorAll("[data-hub-week]").forEach(function (btn) {
+        var n = +btn.getAttribute("data-hub-week");
+        var info = api.weekView(focus.dateKey, n);
+        var pressed = n === state.hubWeek;
+        btn.setAttribute("aria-pressed", pressed ? "true" : "false");
+        if (info && info.aria) btn.setAttribute("aria-label", info.aria);
+        if (info && info.weeksInBlock && n > info.weeksInBlock) btn.setAttribute("hidden", "");
+        else btn.removeAttribute("hidden");
+      });
+      if (body) body.innerHTML = hubWeekHtml(view, clock.year < 2027);
+    } else if (body) {
+      body.innerHTML = hubWeekHtml(null, clock.year < 2027);
+    }
   }
 
   function openTrainingDoor(mode) {
@@ -2777,6 +2797,34 @@
         setNavOpen(false);
       });
     }
+    document.querySelectorAll("[data-hub-tab]").forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        state.hubTab = tab.getAttribute("data-hub-tab") || "food";
+        paintHub();
+      });
+      tab.addEventListener("keydown", function (event) {
+        var order = ["food", "training"];
+        var index = order.indexOf(state.hubTab);
+        if (index < 0) index = 0;
+        var next = index;
+        if (event.key === "ArrowRight" || event.key === "ArrowDown") next = (index + 1) % order.length;
+        else if (event.key === "ArrowLeft" || event.key === "ArrowUp") next = (index + order.length - 1) % order.length;
+        else if (event.key === "Home") next = 0;
+        else if (event.key === "End") next = order.length - 1;
+        else return;
+        event.preventDefault();
+        state.hubTab = order[next];
+        paintHub();
+        var selected = document.querySelector('.hub-tab[data-hub-tab="' + state.hubTab + '"]');
+        if (selected && selected.focus) selected.focus();
+      });
+    });
+    document.querySelectorAll("[data-hub-week]").forEach(function (weekBtn) {
+      weekBtn.addEventListener("click", function () {
+        state.hubWeek = +weekBtn.getAttribute("data-hub-week") || 1;
+        paintHub();
+      });
+    });
     document.querySelectorAll("[data-os-door]").forEach(function (doorBtn) {
       doorBtn.addEventListener("click", function (event) {
         event.preventDefault();
@@ -3088,7 +3136,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v49",
+    build: "v50",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };

@@ -31,7 +31,7 @@
     { key: "breakfast", flag: "breakfast", label: "Breakfast" },
     { key: "morning", flag: "smoothie", label: "Smoothie" },
     { key: "lunch", flag: "lunch", label: "Lunch" },
-    { key: "evening", flag: "dinner", label: "Evening" }
+    { key: "evening", flag: "dinner", label: "Dinner" }
   ];
   var FIT_ORDER = ["breakfast", "lunch", "evening", "smoothie"];
   var cache = null;
@@ -105,13 +105,61 @@
     return name;
   }
 
+  var BRANDS = [
+    /Sainsbury[\u2019']?s?\b/gi,
+    /\bSO Organic\b/gi,
+    /\bTaste the Difference\b/gi,
+    /\bTtD\b/g,
+    /Nescaf[eé](\s+Gold(\s+Blend)?)?/gi,
+    /\bWaitrose\b/g,
+    /\bDettol\s*/g,
+    [/\bCathedral City\s+(?=(?:Mini|mini|Mature|mature|Extra|extra|High|cheddar|Cheddar)\b)/g, ""],
+    [/\bCathedral City\b/g, "cheddar"],
+    [/\bFlora\b(?:\s+Buttery)?(?:\s+[Ss]pread)?/g, "buttery spread"]
+  ];
+
+  function brandSub(rep) {
+    return function (m, off, all) {
+      if (!rep) return rep;
+      var before = all.slice(0, off);
+      return (/^\s*$/.test(before) || /[.!?]\s+$/.test(before)) ? rep.charAt(0).toUpperCase() + rep.slice(1) : rep;
+    };
+  }
+
+  function stripBrands(text) {
+    var v = String(text || "");
+    if (!v) return "";
+    if (!BRANDS.some(function (re) {
+      var pat = Array.isArray(re) ? re[0] : re;
+      pat.lastIndex = 0;
+      return v.search(pat) >= 0;
+    })) return v;
+    BRANDS.forEach(function (re) {
+      if (Array.isArray(re)) {
+        re[0].lastIndex = 0;
+        v = v.replace(re[0], brandSub(re[1]));
+      } else {
+        re.lastIndex = 0;
+        v = v.replace(re, "");
+      }
+    });
+    return v
+      .replace(/\s*·\s*(?=[,.;]|$)/g, "")
+      .replace(/\s{2,}/g, " ")
+      .replace(/\s+([,.;:!?])/g, "$1")
+      .replace(/(^|\s)[&\-–—](?=\s*[&\-–—]|\s*$)/g, "$1")
+      .replace(/^[\s&,\-–—·]+|[\s&,\-–—·]+$/g, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  }
+
   function ingredientLine(item) {
     var name = plainName(item && item.name || "");
     if (!name) return "";
-    if (name === "2 Brazil nuts" || /^\d/.test(name)) return name;
+    if (name === "2 Brazil nuts" || /^\d/.test(name)) return stripBrands(name);
     var mult = item.multiple > 1 ? item.multiple + "× " : "";
     var qty = item.qty > 1 ? String(item.qty) + " " : "";
-    return (mult + qty + name).trim();
+    return stripBrands((mult + qty + name).trim());
   }
 
   function cardBlob(recipe) {
@@ -141,7 +189,7 @@
   function fitLabel(key) {
     if (key === "breakfast") return "Breakfast";
     if (key === "lunch") return "Lunch";
-    if (key === "evening") return "Evening";
+    if (key === "evening") return "Dinner";
     if (key === "smoothie") return "Smoothie";
     return "";
   }
@@ -1374,7 +1422,7 @@
           return;
         }
         if (slot.key === "evening" && (recipe.notDinner || isSmoothie(recipe))) {
-          problems.push({ date: info.date, slot: slot.key, reason: "A smoothie cannot be the evening meal." });
+          problems.push({ date: info.date, slot: slot.key, reason: "A smoothie cannot be dinner." });
         }
         textIssues(recipe).forEach(function (reason) {
           problems.push({ date: info.date, slot: "text", reason: reason + " Card " + recipe.id + "." });
@@ -1967,7 +2015,7 @@
     if (ui.draft) html += editorHtml(ui.draft);
     visibleRecipes().forEach(function (recipe) {
       html += '<article class="planner-card"><button type="button" class="planner-card-open" data-planner-act="open-card" data-id="' + esc(recipe.id) + '">' +
-        "<strong>" + esc(recipe.title) + "</strong><span class=\"planner-tag\">" + esc(tagFor(recipe)) + "</span></button>";
+        "<strong>" + esc(stripBrands(recipe.title)) + "</strong><span class=\"planner-tag\">" + esc(tagFor(recipe)) + "</span></button>";
       if (ui.focusId === recipe.id && !ui.draft) html += detailHtml(recipe);
       html += "</article>";
     });
@@ -1980,6 +2028,11 @@
       var line = ingredientLine(item);
       return line ? "<li>" + esc(line) + "</li>" : "";
     }).join("");
+    var steps = (recipe.method || []).map(function (step) {
+      var line = stripBrands(((step.verb || "") + " " + (step.detail || "")).trim());
+      return line ? "<li>" + esc(line) + "</li>" : "";
+    }).join("");
+    var tip = recipe.tip ? "<p>" + esc(stripBrands(recipe.tip)) + "</p>" : "";
     var blend = isSmoothie(recipe) ? "<p>Blend all until smooth.</p>" : "";
     var fits = recipe.fits || [];
     var fitRow = '<div class="planner-fits" role="group" aria-label="Fits">';
@@ -1997,7 +2050,8 @@
       });
     }
     fitRow += "</div>";
-    return '<div class="planner-detail">' + fitRow + '<h3>Ingredients</h3><ul>' + ingredients + "</ul>" + blend +
+    return '<div class="planner-detail">' + fitRow + '<h3>Ingredients</h3><ul>' + ingredients + "</ul>" +
+      (steps ? "<h3>Method</h3><ol>" + steps + "</ol>" : "") + tip + blend +
       '<div class="planner-actions">' +
       '<button type="button" data-planner-act="add-plan" data-id="' + esc(recipe.id) + '">Add to plan</button>' +
       '<button type="button" data-planner-act="edit" data-id="' + esc(recipe.id) + '">Edit</button>' +
@@ -2011,9 +2065,9 @@
 
   function editorHtml(draft) {
     var html = '<form class="planner-editor" data-planner-form="editor"><h3>' + (draft.id ? "Edit card" : "New card") + "</h3>" +
-      '<label>Name<input name="title" placeholder="Card name" value="' + esc(draft.title) + '"></label>';
+      '<label>Name<input name="title" placeholder="Card name" value="' + esc(stripBrands(draft.title)) + '"></label>';
     html += '<fieldset><legend>Fits</legend>';
-    var fitChoices = [["smoothie", "Smoothie"], ["breakfast", "Breakfast"], ["lunch", "Lunch"], ["evening", "Evening"]];
+    var fitChoices = [["smoothie", "Smoothie"], ["breakfast", "Breakfast"], ["lunch", "Lunch"], ["evening", "Dinner"]];
     var chosen = (draft.fits && draft.fits.length) ? draft.fits : (draft.types || []);
     fitChoices.forEach(function (choice) {
       var on = chosen.indexOf(choice[0]) !== -1;
@@ -2025,7 +2079,7 @@
     html += "<h4>Ingredients</h4>";
     (draft.ingredients || []).forEach(function (item, index) {
       html += '<div class="planner-row">' +
-        '<input name="ing-name" data-index="' + index + '" placeholder="Ingredient" value="' + esc(item.name) + '">' +
+        '<input name="ing-name" data-index="' + index + '" placeholder="Ingredient" value="' + esc(stripBrands(item.name)) + '">' +
         '<input name="ing-qty" data-index="' + index + '" inputmode="decimal" aria-label="Quantity" value="' + esc(item.qty) + '">' +
         '<input name="ing-sku" data-index="' + index + '" type="hidden" value="' + esc(item.skuId || "") + '">' +
         '<label>Multiple<select name="ing-multiple" data-index="' + index + '" aria-label="Quantity multiple">' +
@@ -2036,11 +2090,11 @@
     html += '<button type="button" data-planner-act="add-ing">Add ingredient</button>';
     html += "<h4>Method</h4>";
     (draft.method || []).forEach(function (step, index) {
-      html += '<div class="planner-row"><input name="step-verb" data-index="' + index + '" placeholder="Verb" value="' + esc(step.verb) + '">' +
-        '<input name="step-detail" data-index="' + index + '" placeholder="Detail" value="' + esc(step.detail) + '"></div>';
+      html += '<div class="planner-row"><input name="step-verb" data-index="' + index + '" placeholder="Verb" value="' + esc(stripBrands(step.verb)) + '">' +
+        '<input name="step-detail" data-index="' + index + '" placeholder="Detail" value="' + esc(stripBrands(step.detail)) + '"></div>';
     });
     html += '<button type="button" data-planner-act="add-step">Add step</button>' +
-      '<label>Tip<input name="tip" placeholder="Optional note" value="' + esc(draft.tip || "") + '"></label>' +
+      '<label>Tip<input name="tip" placeholder="Optional note" value="' + esc(stripBrands(draft.tip || "")) + '"></label>' +
       '<div class="planner-actions"><button type="button" class="planner-primary" data-planner-act="save-card">Save</button>' +
       '<button type="button" data-planner-act="cancel-card">Cancel</button></div></form>';
     return html;
@@ -2100,7 +2154,7 @@
           html += '<button type="button" class="planner-slot' + (marked ? " is-gap" : "") + (locked ? " is-locked" : "") + '" id="slot-' + info.date + "-" + slot.key +
             '" data-planner-act="swap" data-date="' + info.date + '" data-slot="' + slot.key + '"' + (locked ? ' data-locked="true"' : "") + ">" +
             '<span class="planner-slot-k">' + slot.label + (locked ? " · Locked" : "") + "</span>" +
-            "<strong>" + esc(recipe ? recipe.title : "Empty") + "</strong>" +
+            "<strong>" + esc(recipe ? stripBrands(recipe.title) : "Empty") + "</strong>" +
             "</button>";
         });
         html += "</article>";
@@ -2127,7 +2181,7 @@
       var id = day[slot.key];
       var recipe = id && store.recipes[id];
       var done = !!month.ticks[tickKey(date, slot.key)];
-      html += '<div class="planner-today"><div class="planner-today-copy"><span>' + slot.label + "</span><strong>" + esc(recipe ? recipe.title : "—") + "</strong>" +
+      html += '<div class="planner-today"><div class="planner-today-copy"><span>' + slot.label + "</span><strong>" + esc(recipe ? stripBrands(recipe.title) : "—") + "</strong>" +
         "</div><button type=\"button\" data-planner-act=\"done\" data-date=\"" + date + "\" data-slot=\"" + slot.key + "\">" +
         (done ? "Done" : "Mark done") + "</button></div>";
     });
@@ -2338,7 +2392,7 @@
         var current = recipe.id === picked;
         html += '<button type="button" class="planner-pick' + (current ? " is-current" : "") + '" data-planner-act="place" data-id="' + esc(recipe.id) + '">' +
           (current ? '<span class="planner-tick" aria-hidden="true">✓</span>' : "") +
-          "<strong>" + esc(recipe.title) + '</strong><span class="planner-tag">' + esc(tagFor(recipe)) + "</span></button>";
+          "<strong>" + esc(stripBrands(recipe.title)) + '</strong><span class="planner-tag">' + esc(tagFor(recipe)) + "</span></button>";
       });
       if (picked) html += '<button type="button" data-planner-act="place" data-id="">Remove</button>';
       html += '<button type="button" data-planner-act="repeat">Repeat on every ' + esc(weekdayName(sheet.date)) + "</button>";
@@ -2354,7 +2408,7 @@
       var info = dateList(monthOf(sheet.date)).filter(function (row) { return row.date === sheet.date; })[0];
       var when = info ? info.name + " " + info.day + " " + monthName(monthOf(sheet.date)).slice(0, 3) : sheet.date;
       var chosenLabel = chosen ? chosen.label : "slot";
-      html += "<h3>Add " + esc(recipe ? recipe.title : "") + "</h3>";
+      html += "<h3>Add " + esc(recipe ? stripBrands(recipe.title) : "") + "</h3>";
       html += '<div class="planner-bar"><button type="button" data-planner-act="add-day-prev" aria-label="Previous day">Prev day</button>' +
         "<h3 class=\"planner-title\">" + esc(when) + "</h3>" +
         '<button type="button" data-planner-act="add-day-next" aria-label="Next day">Next day</button></div>';
@@ -2379,7 +2433,7 @@
     } else if (sheet.type === "delete") {
       var victim = store.recipes[sheet.id];
       var count = usage(sheet.id).length;
-      html += "<h3>Delete " + esc(victim ? victim.title : "") + "?</h3><p>It is used on " + count + " slots.</p>" +
+      html += "<h3>Delete " + esc(victim ? stripBrands(victim.title) : "") + "?</h3><p>It is used on " + count + " slots.</p>" +
         '<button type="button" data-planner-act="confirm-delete">Delete and clear those slots</button>';
     } else if (sheet.type === "unlock") {
       html += "<h3>Unlock " + esc(monthName(sheet.month)) + " to edit?</h3><p>Your ticks stay.</p>" +
@@ -2765,7 +2819,8 @@
   function slotMealTitle(store, day, slotKey) {
     var id = day && day[slotKey];
     var recipe = id && store.recipes[id];
-    return recipe ? recipe.title : "—";
+    if (!recipe) return "—";
+    return stripBrands(recipe.title) || "—";
   }
 
   function hubView(door, focusDate) {
@@ -2834,6 +2889,174 @@
     return hubView(door, todayKey());
   }
 
+  function dateKeyFromOffset(offset) {
+    return new Date(Date.UTC(2027, 0, 1 + offset)).toISOString().slice(0, 10);
+  }
+
+  function weekParts(dateKey) {
+    var parts = String(dateKey || "2027-01-01").split("-");
+    var stamp = new Date(Date.UTC(+parts[0], +parts[1] - 1, +parts[2]));
+    return {
+      wd: WD[stamp.getUTCDay()].toUpperCase(),
+      d: stamp.getUTCDate(),
+      mon: MONTHS[stamp.getUTCMonth() + 1].slice(0, 3).toUpperCase(),
+      month: MONTHS[stamp.getUTCMonth() + 1],
+      y: stamp.getUTCFullYear()
+    };
+  }
+
+  function weekAria(week, start, end) {
+    var a = weekParts(start);
+    var b = weekParts(end);
+    if (start === end) return "Week " + week + ", " + a.d + " " + a.month;
+    if (a.month === b.month) return "Week " + week + ", " + a.d + " to " + b.d + " " + a.month;
+    return "Week " + week + ", " + a.d + " " + a.month + " to " + b.d + " " + b.month;
+  }
+
+  function rangeLabel(start, end) {
+    var a = weekParts(start);
+    var b = weekParts(end);
+    if (start === end) return a.wd + " " + a.d + " " + a.mon + " " + a.y;
+    var left = a.wd + " " + a.d;
+    if (a.mon !== b.mon || a.y !== b.y) left += " " + a.mon;
+    return left + " – " + b.wd + " " + b.d + " " + b.mon + " " + b.y;
+  }
+
+  function blockOf(focusDate) {
+    var focus = String(focusDate || "2027-01-01").slice(0, 10);
+    if (focus < "2027-01-01") focus = "2027-01-01";
+    if (focus > "2027-12-31") focus = "2027-12-31";
+    var d = Math.round((Date.parse(focus + "T00:00:00Z") - Date.UTC(2027, 0, 1)) / 86400000);
+    var block = Math.floor(d / 28) + 1;
+    return {
+      focus: focus,
+      d: d,
+      block: block,
+      week: Math.floor((d % 28) / 7) + 1,
+      weeksInBlock: block === 14 ? 1 : 4
+    };
+  }
+
+  function daySmoothies(day) {
+    var store = read();
+    var list = [];
+    function push(id, at) {
+      if (!id || list.some(function (row) { return row.id === id; })) return;
+      var recipe = store.recipes && store.recipes[id];
+      if (!recipe || !isSmoothie(recipe)) return;
+      var slot = at === "dinner" || at === "evening" ? at : "breakfast";
+      list.push({ id: id, at: slot, title: recipe.title || "", nuts: recipeNuts(recipe) });
+    }
+    if (day && Array.isArray(day.smoothies)) {
+      day.smoothies.forEach(function (entry) {
+        if (!entry) return;
+        if (typeof entry === "string") push(entry, "breakfast");
+        else push(entry.id, entry.at);
+      });
+    } else if (day && day.morning) push(day.morning, "breakfast");
+    if (day && day.breakfast) {
+      var breakfast = store.recipes && store.recipes[day.breakfast];
+      if (breakfast && isSmoothie(breakfast)) push(day.breakfast, "breakfast");
+    }
+    if (day && day.evening) {
+      var evening = store.recipes && store.recipes[day.evening];
+      if (evening && isSmoothie(evening)) push(day.evening, "evening");
+    }
+    return list;
+  }
+
+  function mealTitle(store, day, slotKey) {
+    var id = day && day[slotKey];
+    var recipe = id && store.recipes[id];
+    if (!recipe || isSmoothie(recipe)) return "";
+    return stripBrands(recipe.title);
+  }
+
+  function weekView(focusDate, week) {
+    var place = blockOf(focusDate);
+    var chosen = +week;
+    if (!chosen) chosen = place.week;
+    if (chosen < 1) chosen = 1;
+    if (chosen > 4) chosen = 4;
+    var startOff = (place.block - 1) * 28 + (chosen - 1) * 7;
+    var endOff = startOff + 6;
+    var rawStart = dateKeyFromOffset(startOff);
+    var rawEnd = dateKeyFromOffset(endOff);
+    var store = read();
+    var days = [];
+    var off;
+    for (off = startOff; off <= endOff; off++) {
+      var date = dateKeyFromOffset(off);
+      if (date < "2027-01-01" || date > "2027-12-31") continue;
+      var month = monthReady(store, monthOf(date));
+      var day = (month.days && month.days[date]) || blankDay();
+      var smoothies = daySmoothies(day);
+      var shown = smoothies.slice(0, 3).map(function (row) {
+        return { title: stripBrands(row.title), at: row.at === "evening" ? "dinner" : row.at };
+      });
+      var nuts = 0;
+      smoothies.forEach(function (row) { nuts += row.nuts || 0; });
+      ["breakfast", "lunch", "evening"].forEach(function (slotKey) {
+        var id = day[slotKey];
+        var recipe = id && store.recipes[id];
+        if (recipe && !isSmoothie(recipe)) nuts += recipeNuts(recipe);
+      });
+      var meals = {
+        breakfast: mealTitle(store, day, "breakfast"),
+        lunch: mealTitle(store, day, "lunch"),
+        dinner: mealTitle(store, day, "evening")
+      };
+      var monthKey = monthOf(date);
+      var stamp = weekParts(date);
+      days.push({
+        date: date,
+        label: stamp.wd.charAt(0) + stamp.wd.slice(1).toLowerCase() + " " + stamp.d,
+        focus: date === place.focus,
+        meals: meals,
+        smoothies: shown,
+        more: Math.max(0, smoothies.length - 3),
+        nuts: nuts,
+        nutsOk: nuts === 2,
+        locks: {
+          food: readLock("food", monthKey).status === "locked" ? "Locked" : "Draft",
+          smoothies: readLock("smoothies", monthKey).status === "locked" ? "Locked" : "Draft"
+        }
+      });
+    }
+    var shownStart = days.length ? days[0].date : rawStart;
+    var shownEnd = days.length ? days[days.length - 1].date : rawEnd;
+    var months = [];
+    days.forEach(function (day) {
+      var key = monthOf(day.date);
+      if (months.some(function (row) { return row.month === key; })) return;
+      months.push({
+        month: key,
+        name: MONTHS[+key.slice(5)],
+        food: readLock("food", key).status === "locked" ? "Locked" : "Draft",
+        smoothies: readLock("smoothies", key).status === "locked" ? "Locked" : "Draft"
+      });
+    });
+    var empty = !days.some(function (day) {
+      var meals = day.meals;
+      return meals.breakfast || meals.lunch || meals.dinner || day.smoothies.length || day.more;
+    });
+    var labelStart = days.length ? shownStart : rawStart;
+    var labelEnd = days.length ? shownEnd : rawEnd;
+    return {
+      block: place.block,
+      week: chosen,
+      weeksInBlock: place.weeksInBlock,
+      start: days.length ? shownStart : rawStart,
+      end: days.length ? shownEnd : rawEnd,
+      label: rangeLabel(labelStart, labelEnd),
+      aria: weekAria(chosen, days.length ? shownStart : rawStart, days.length ? shownEnd : rawEnd),
+      months: months,
+      note: empty ? "No schedule yet." : "",
+      empty: empty,
+      days: days
+    };
+  }
+
   root.NexusFood = {
     open: open,
     sync: sync,
@@ -2841,6 +3064,8 @@
     paint: paint,
     todaySummary: todaySummary,
     hubView: hubView,
+    weekView: weekView,
+    daySmoothies: daySmoothies,
     testing: {
       reset: function () {
         cache = null;
@@ -2952,7 +3177,10 @@
       shiftWeek: shiftWeek,
       setMonth: setMonth,
       requestClear: requestClear,
-      place: placeChange
+      place: placeChange,
+      stripBrands: stripBrands,
+      daySmoothies: daySmoothies,
+      weekView: weekView
     }
   };
 
