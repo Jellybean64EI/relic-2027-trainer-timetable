@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* v52: card names, portions, picker, copy, clear-out, and the script-tag gate. */
+/* v53: card names, portions, picker, copy, clear-out, header, viewer, and edit. */
 const fs = require("fs");
 const vm = require("vm");
 
@@ -42,14 +42,35 @@ assert(api.tidyName("__x--y") === "X Y", "tidy messy");
 assert(api.tidyName("") === "Untitled card", "tidy empty");
 assert(api.tidyName("---.jpg") === "Untitled card", "tidy dashes");
 
-const ok = api.parseLine("Garlic Bread | FOOD | 1 | 0", "food");
-assert(ok.name === "Garlic Bread" && ok.veg === 1 && ok.fruit === 0 && !ok.error, "parse valid");
-assert(api.parseLine("A | FOOD | 1", "food").error === "Use 4 parts split by |", "parse parts");
-assert(api.parseLine("A | SNACK | 1 | 0", "food").error === "Type must be FOOD or SMOOTHIE", "parse type");
-assert(api.parseLine("A | SMOOTHIE | 1 | 0", "food").error === "This is the Food deck: type says SMOOTHIE", "parse deck");
-assert(api.parseLine("A | FOOD | 10.5 | 0", "food").error.indexOf("Veg") === 0, "parse 10.5");
-assert(api.parseLine("A | FOOD | 2.25 | 0", "food").error.indexOf("Veg") === 0, "parse 2.25");
-assert(api.parseLine(" | FOOD | 1 | 0", "food").error === "Name is empty", "parse empty name");
+assert(api.portionsLine({ veg: 0, fruit: 0 }) === "Veg 0 · Fruit 0", "veg fruit words");
+assert(api.portionsLine({ veg: 1.5, fruit: 2 }) === "Veg 1.5 · Fruit 2", "veg fruit halves");
+assert(api.stepPortion(0, -1) === 0, "stepper floor");
+assert(api.stepPortion(0, 1) === 0.5, "stepper half");
+assert(api.stepPortion(9.5, 1) === 10, "stepper up");
+assert(api.stepPortion(10, 1) === 10, "stepper ceiling");
+assert(api.stepPortion(1, -1) === 0.5, "stepper down");
+assert(api.clampPortion(10.5) === 10 && api.clampPortion(-1) === 0 && api.clampPortion(2.25) === 2.5, "clamp portions");
+assert(deckSrc.indexOf("parseLine") === -1, "paste parser removed");
+assert(deckSrc.indexOf("Use 4 parts") === -1, "paste error removed");
+assert(deckSrc.indexOf("downloadBackup") === -1, "backup download removed");
+assert(deckSrc.indexOf("deck-paste") === -1, "paste host removed");
+assert(deckSrc.indexOf("nexus_food_clearout_backup_v52") !== -1, "backup key stays");
+assert(deckSrc.indexOf("deck-x-fixed") !== -1, "viewer close is fixed");
+assert(html.indexOf("Download old food backup") === -1, "backup link removed");
+assert(html.indexOf("deck-paste") === -1 && html.indexOf("data-deck-backup") === -1, "no paste or backup control");
+assert(html.indexOf("Use 4 parts") === -1, "paste error not in the page");
+const css = fs.readFileSync("styles.css", "utf8");
+assert(css.indexOf("body.is-deck .card > .ambient-field") !== -1, "deck ambient hidden");
+assert(css.indexOf("body.is-deck .brand-main") !== -1, "deck title centred");
+assert(css.indexOf(".deck-x-fixed") !== -1 && css.indexOf("position: fixed") !== -1, "close stays fixed");
+assert(css.indexOf("touch-action: none") !== -1, "page pinch does not zoom the layout");
+assert(deckSrc.indexOf("textContent = \"Added\"") === -1 && deckSrc.indexOf("Adding ") === -1, "upload status stays silent");
+assert(deckSrc.indexOf("deck-log") === -1, "no upload log host");
+assert(html.indexOf("deck-log") === -1, "upload log removed from the page");
+assert(deckSrc.indexOf("deck-topbar") !== -1 && deckSrc.indexOf("deck-card-chrome") === -1, "viewer uses the top bar");
+assert(deckSrc.indexOf("is-chrome-hidden") !== -1 && deckSrc.indexOf("4000") !== -1, "chrome hides after 4s");
+assert(deckSrc.indexOf("visualViewport") !== -1 && deckSrc.indexOf("is-open") !== -1, "edit panel tracks the keyboard and slides");
+assert(css.indexOf(".deck-edit.is-open") !== -1, "edit panel can slide open");
 
 assert(api.fiveADay([{ veg: 2, fruit: 1 }], []) === 3, "five food");
 assert(api.fiveADay([], [{ veg: 1, fruit: 2 }, { veg: 2, fruit: 0 }]) === 1, "five smoothies capped");
@@ -176,4 +197,4 @@ if (fails.length) {
   console.error(fails.length + " failed");
   process.exit(1);
 }
-console.log("OK v52 deck");
+console.log("OK v54 deck");

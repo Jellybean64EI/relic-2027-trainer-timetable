@@ -1,4 +1,4 @@
-/* Nexus v52 card decks. Training, food.js and supabaseConfig.js stay untouched. */
+/* Nexus v54 card decks. Training, food.js and supabaseConfig.js stay untouched. */
 (function (root) {
   var CARDS_KEY = "nexus_cards_cache_v1";
   var SLOTS_KEY = "nexus_slots_cache_v1";
@@ -54,35 +54,15 @@
     return base || "Untitled card";
   }
 
-  function portionError(raw, label) {
-    if (!/^\d{1,2}(\.5)?$/.test(raw) || Number(raw) > 10) {
-      return label + " must be a number 0-10 (halves allowed)";
-    }
-    return Number(raw);
+  function clampPortion(value) {
+    var n = Math.round(Number(value) * 2) / 2;
+    if (!isFinite(n) || n < 0) n = 0;
+    if (n > 10) n = 10;
+    return n;
   }
 
-  function parseLine(line, deck) {
-    var parts = String(line == null ? "" : line).split("|");
-    if (parts.length !== 4) return { error: "Use 4 parts split by |" };
-    var name = parts[0].trim();
-    var type = parts[1].trim().toLowerCase();
-    var vegRaw = parts[2].trim();
-    var fruitRaw = parts[3].trim();
-    if (type !== "food" && type !== "smoothie") return { error: "Type must be FOOD or SMOOTHIE" };
-    var want = deck === "smoothie" ? "smoothie" : "food";
-    if (type !== want) {
-      var deckLabel = want === "food" ? "Food" : "Smoothies";
-      var said = type === "food" ? "FOOD" : "SMOOTHIE";
-      return { error: "This is the " + deckLabel + " deck: type says " + said };
-    }
-    name = stripName(name);
-    if (!name) return { error: "Name is empty" };
-    if (name.length > 80) return { error: "Name over 80 characters" };
-    var veg = portionError(vegRaw, "Veg");
-    if (typeof veg === "string") return { error: veg };
-    var fruit = portionError(fruitRaw, "Fruit");
-    if (typeof fruit === "string") return { error: fruit };
-    return { name: name, deck: want, veg: veg, fruit: fruit };
+  function stepPortion(value, dir) {
+    return clampPortion(clampPortion(value) + (dir < 0 ? -0.5 : 0.5));
   }
 
   function fiveADay(foods, smoothies) {
@@ -254,8 +234,16 @@
     if (!node) return;
     node.textContent = message;
     node.hidden = false;
+    node.classList.remove("is-fading");
     clearTimeout(showToast.timer);
-    showToast.timer = setTimeout(function () { node.hidden = true; }, 4200);
+    clearTimeout(showToast.hide);
+    showToast.timer = setTimeout(function () {
+      node.classList.add("is-fading");
+      showToast.hide = setTimeout(function () {
+        node.hidden = true;
+        node.classList.remove("is-fading");
+      }, 400);
+    }, 4000);
   }
 
   function cfg() {
@@ -360,7 +348,7 @@
   }
 
   function portionsLine(card) {
-    return "V " + formatPortions(card.veg || 0) + " · F " + formatPortions(card.fruit || 0);
+    return "Veg " + formatPortions(card.veg || 0) + " · Fruit " + formatPortions(card.fruit || 0);
   }
 
   function renderDeck(deck) {
@@ -371,10 +359,8 @@
     if (!host) return;
     var count = host.querySelector("[data-deck-count]");
     var grid = host.querySelector("[data-deck-grid]");
-    var backup = host.querySelector("[data-deck-backup]");
     var cards = sortedCards(which);
     if (count) count.textContent = (which === "food" ? "Food" : "Smoothies") + " · " + cards.length + (cards.length === 1 ? " card" : " cards");
-    if (backup) backup.hidden = !root.localStorage || root.localStorage.getItem(BACKUP_KEY) == null;
     if (!grid) return;
     grid.textContent = "";
     cards.forEach(function (card) {
@@ -491,6 +477,9 @@
     });
     state.picker = null;
     state.card = null;
+    clearChromeTimer();
+    unwatchEdit();
+    if (root.document && root.document.body) root.document.body.classList.remove("is-card-open");
   }
 
   function openPicker(key) {
@@ -586,20 +575,226 @@
     paintCard();
   }
 
+  function clearChromeTimer() {
+    clearTimeout(clearChromeTimer.timer);
+    clearChromeTimer.timer = 0;
+  }
+
+  function armChrome(host) {
+    clearChromeTimer();
+    if (!host || !state.card || state.card.editing) return;
+    clearChromeTimer.timer = setTimeout(function () {
+      if (!state.card || state.card.editing) return;
+      host.classList.add("is-chrome-hidden");
+    }, 4000);
+  }
+
+  function revealChrome(host) {
+    if (!host || (state.card && state.card.editing)) return;
+    host.classList.remove("is-chrome-hidden");
+    armChrome(host);
+  }
+
+  function bindImageZoom(stage, img, hooks) {
+    var view = { scale: 1, x: 0, y: 0 };
+    var pointers = {};
+    var pinch = null;
+    var drag = null;
+    var lastTap = 0;
+    var tapX = 0;
+    var tapY = 0;
+    var tracking = false;
+    var moved = false;
+    hooks = hooks || {};
+    stage.style.touchAction = "none";
+    img.style.touchAction = "none";
+    img.style.transformOrigin = "center center";
+
+    function apply() {
+      img.style.transform = "translate(" + view.x + "px, " + view.y + "px) scale(" + view.scale + ")";
+      img.setAttribute("data-zoom", String(view.scale));
+    }
+
+    function reset() {
+      view.scale = 1;
+      view.x = 0;
+      view.y = 0;
+      apply();
+    }
+
+    function clampPan() {
+      var rect = stage.getBoundingClientRect();
+      var maxX = Math.max(0, (rect.width * (view.scale - 1)) / 2);
+      var maxY = Math.max(0, (rect.height * (view.scale - 1)) / 2);
+      if (view.x > maxX) view.x = maxX;
+      if (view.x < -maxX) view.x = -maxX;
+      if (view.y > maxY) view.y = maxY;
+      if (view.y < -maxY) view.y = -maxY;
+    }
+
+    function points() {
+      return Object.keys(pointers).map(function (id) { return pointers[id]; });
+    }
+
+    function span(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y) || 1;
+    }
+
+    stage.addEventListener("pointerdown", function (event) {
+      if (event.button != null && event.button !== 0) return;
+      pointers[event.pointerId] = { x: event.clientX, y: event.clientY };
+      var pts = points();
+      if (!tracking) {
+        tracking = true;
+        moved = false;
+        clearChromeTimer();
+      }
+      if (pts.length >= 2) {
+        moved = true;
+        pinch = { dist: span(pts[0], pts[1]), scale: view.scale };
+        drag = null;
+      } else {
+        drag = { x: event.clientX, y: event.clientY, ox: view.x, oy: view.y };
+      }
+    });
+
+    stage.addEventListener("pointermove", function (event) {
+      if (!pointers[event.pointerId]) return;
+      var prev = pointers[event.pointerId];
+      pointers[event.pointerId] = { x: event.clientX, y: event.clientY };
+      if (Math.hypot(event.clientX - prev.x, event.clientY - prev.y) > 8) moved = true;
+      var pts = points();
+      if (pts.length >= 2 && pinch) {
+        moved = true;
+        view.scale = Math.min(6, Math.max(1, pinch.scale * (span(pts[0], pts[1]) / pinch.dist)));
+        if (view.scale === 1) { view.x = 0; view.y = 0; }
+        else clampPan();
+        apply();
+        return;
+      }
+      if (!drag || pts.length !== 1) return;
+      var dx = event.clientX - drag.x;
+      var dy = event.clientY - drag.y;
+      if (Math.hypot(dx, dy) > 8) moved = true;
+      if (view.scale <= 1) return;
+      view.x = drag.ox + dx;
+      view.y = drag.oy + dy;
+      clampPan();
+      apply();
+    });
+
+    function endPointer(event) {
+      var point = pointers[event.pointerId];
+      delete pointers[event.pointerId];
+      var pts = points();
+      if (pts.length < 2) pinch = null;
+      if (pts.length === 1) {
+        drag = { x: pts[0].x, y: pts[0].y, ox: view.x, oy: view.y };
+        return;
+      }
+      if (pts.length > 0) return;
+      var wasTap = tracking && !moved && point;
+      tracking = false;
+      drag = null;
+      if (wasTap) {
+        var now = Date.now();
+        if (now - lastTap < 320 && Math.hypot(point.x - tapX, point.y - tapY) < 36) {
+          reset();
+          lastTap = 0;
+        } else {
+          lastTap = now;
+          tapX = point.x;
+          tapY = point.y;
+        }
+        if (hooks.onTap) hooks.onTap();
+        return;
+      }
+      if (hooks.onGestureEnd) hooks.onGestureEnd();
+    }
+
+    stage.addEventListener("pointerup", endPointer);
+    stage.addEventListener("pointercancel", function (event) {
+      delete pointers[event.pointerId];
+      pinch = null;
+      drag = null;
+      if (!points().length && tracking) {
+        tracking = false;
+        moved = true;
+        if (hooks.onGestureEnd) hooks.onGestureEnd();
+      }
+    });
+    stage.addEventListener("dblclick", function (event) {
+      event.preventDefault();
+      reset();
+    });
+    stage.addEventListener("wheel", function (event) {
+      event.preventDefault();
+      var next = view.scale * (event.deltaY < 0 ? 1.12 : 1 / 1.12);
+      view.scale = Math.min(6, Math.max(1, next));
+      if (view.scale === 1) { view.x = 0; view.y = 0; }
+      else clampPan();
+      apply();
+      if (hooks.onGestureEnd) hooks.onGestureEnd();
+    }, { passive: false });
+    apply();
+  }
+
+  function placeEdit(form) {
+    if (!form) return;
+    var vv = root.visualViewport;
+    var top = 60;
+    if (vv) {
+      form.style.top = (vv.offsetTop + top) + "px";
+      form.style.maxHeight = Math.max(180, vv.height - top - 12) + "px";
+    } else {
+      form.style.top = top + "px";
+    }
+  }
+
+  function unwatchEdit() {
+    if (!unwatchEdit.fn || !root.visualViewport) {
+      unwatchEdit.fn = null;
+      return;
+    }
+    root.visualViewport.removeEventListener("resize", unwatchEdit.fn);
+    root.visualViewport.removeEventListener("scroll", unwatchEdit.fn);
+    unwatchEdit.fn = null;
+  }
+
+  function watchEdit(form) {
+    unwatchEdit();
+    placeEdit(form);
+    if (!root.visualViewport) return;
+    unwatchEdit.fn = function () { placeEdit(form); };
+    root.visualViewport.addEventListener("resize", unwatchEdit.fn);
+    root.visualViewport.addEventListener("scroll", unwatchEdit.fn);
+  }
+
+  function slideEditAway(then) {
+    var form = root.document && root.document.querySelector("#deck-card .deck-edit");
+    if (!form) { then(); return; }
+    var finished = false;
+    function done() {
+      if (finished) return;
+      finished = true;
+      then();
+    }
+    form.addEventListener("transitionend", done);
+    form.classList.remove("is-open");
+    setTimeout(done, 340);
+  }
+
   function paintCard() {
     var host = root.document.getElementById("deck-card");
     var card = state.card && cardById(state.cards, state.card.id);
     if (!host || !card) return;
     host.hidden = false;
     host.textContent = "";
-    var close = el("button", "deck-x deck-x-right", "×");
-    close.type = "button";
-    close.setAttribute("aria-label", "Close");
-    close.setAttribute("data-deck-close", "card");
-    host.appendChild(close);
+    if (root.document.body) root.document.body.classList.add("is-card-open");
     var stage = el("div", "deck-card-stage");
     var img = el("img", "deck-card-img");
-    img.alt = "";
+    img.alt = card.name || "";
+    img.draggable = false;
     var thumb = cardSrc(card, "thumb");
     var full = cardSrc(card, "full");
     if (thumb) img.src = thumb;
@@ -612,50 +807,108 @@
     }
     stage.appendChild(img);
     host.appendChild(stage);
-    host.appendChild(el("h2", "deck-card-name", card.name || "Untitled card"));
-    host.appendChild(el("p", "deck-card-meta", portionsLine(card)));
-    if (state.card.from === "deck") {
-      var actions = el("div", "deck-card-actions");
-      var edit = el("button", "deck-text", "Edit");
+    var chrome = topBar(card);
+    host.appendChild(chrome);
+    bindImageZoom(stage, img, {
+      onTap: function () { revealChrome(host); },
+      onGestureEnd: function () {
+        if (!host.classList.contains("is-chrome-hidden")) armChrome(host);
+      }
+    });
+    host.classList.remove("is-chrome-hidden");
+    if (state.card.editing && state.card.from === "deck") {
+      var form = editSheet(card);
+      host.appendChild(form);
+      watchEdit(form);
+      clearChromeTimer();
+      root.requestAnimationFrame(function () {
+        root.requestAnimationFrame(function () { form.classList.add("is-open"); });
+      });
+      return;
+    }
+    armChrome(host);
+  }
+
+  function topBar(card) {
+    var bar = el("div", "deck-topbar");
+    bar.setAttribute("data-deck-chrome", "1");
+    var close = el("button", "deck-x deck-x-fixed", "×");
+    close.type = "button";
+    close.setAttribute("aria-label", "Close");
+    close.setAttribute("data-deck-close", "card");
+    bar.appendChild(close);
+    var copy = el("div", "deck-topbar-copy");
+    copy.appendChild(el("p", "deck-card-name", card.name || "Untitled card"));
+    copy.appendChild(el("p", "deck-card-meta", portionsLine(card)));
+    bar.appendChild(copy);
+    if (state.card.from === "deck" && !state.card.editing) {
+      var edit = el("button", "deck-bar-btn", "Edit");
       edit.type = "button";
       edit.setAttribute("data-deck-edit", card.id);
-      var remove = el("button", "deck-text", "Remove");
+      var remove = el("button", "deck-bar-btn", "Remove");
       remove.type = "button";
       remove.setAttribute("data-deck-hide", card.id);
-      actions.appendChild(edit);
-      actions.appendChild(remove);
-      host.appendChild(actions);
-      if (state.card.editing) host.appendChild(editSheet(card));
+      bar.appendChild(edit);
+      bar.appendChild(remove);
     }
+    return bar;
+  }
+
+  function stepper(name, label, value) {
+    var current = clampPortion(value);
+    var row = el("div", "deck-stepper");
+    row.appendChild(el("span", "deck-stepper-label", label));
+    var minus = el("button", "deck-stepper-btn", "−");
+    minus.type = "button";
+    minus.setAttribute("data-deck-step", name);
+    minus.setAttribute("data-deck-dir", "-1");
+    minus.setAttribute("aria-label", "Less " + label);
+    minus.disabled = current <= 0;
+    var read = el("span", "deck-stepper-value", formatPortions(current));
+    read.setAttribute("data-deck-portion", name);
+    var plus = el("button", "deck-stepper-btn", "+");
+    plus.type = "button";
+    plus.setAttribute("data-deck-step", name);
+    plus.setAttribute("data-deck-dir", "1");
+    plus.setAttribute("aria-label", "More " + label);
+    plus.disabled = current >= 10;
+    var hidden = root.document.createElement("input");
+    hidden.type = "hidden";
+    hidden.name = name;
+    hidden.value = String(current);
+    row.appendChild(minus);
+    row.appendChild(read);
+    row.appendChild(plus);
+    row.appendChild(hidden);
+    return row;
   }
 
   function editSheet(card) {
     var form = el("form", "deck-edit");
     form.setAttribute("data-deck-edit-form", card.id);
+    var nameLabel = el("label", "deck-field-label");
+    nameLabel.appendChild(el("span", "deck-stepper-label", "Name"));
     var name = el("input", "deck-field");
+    name.type = "text";
     name.name = "name";
     name.value = card.name || "";
     name.maxLength = 80;
+    name.enterKeyHint = "done";
+    name.setAttribute("autocomplete", "off");
     name.setAttribute("aria-label", "Name");
-    var veg = el("input", "deck-field");
-    veg.name = "veg";
-    veg.value = formatPortions(card.veg || 0);
-    veg.setAttribute("aria-label", "Veg");
-    var fruit = el("input", "deck-field");
-    fruit.name = "fruit";
-    fruit.value = formatPortions(card.fruit || 0);
-    fruit.setAttribute("aria-label", "Fruit");
-    var paste = el("input", "deck-field");
-    paste.name = "paste";
-    paste.placeholder = "NAME | FOOD or SMOOTHIE | veg | fruit";
-    paste.setAttribute("aria-label", "Paste line");
+    nameLabel.appendChild(name);
+    form.appendChild(nameLabel);
+    form.appendChild(stepper("veg", "Veg portions", card.veg || 0));
+    form.appendChild(stepper("fruit", "Fruit portions", card.fruit || 0));
+    var actions = el("div", "deck-edit-actions");
     var save = el("button", "deck-save", "Save");
     save.type = "submit";
-    form.appendChild(name);
-    form.appendChild(veg);
-    form.appendChild(fruit);
-    form.appendChild(paste);
-    form.appendChild(save);
+    var cancel = el("button", "deck-cancel", "Cancel");
+    cancel.type = "button";
+    cancel.setAttribute("data-deck-cancel", "1");
+    actions.appendChild(save);
+    actions.appendChild(cancel);
+    form.appendChild(actions);
     var error = el("p", "deck-error");
     error.setAttribute("data-deck-error", "1");
     form.appendChild(error);
@@ -925,29 +1178,23 @@
     });
   }
 
-  function uploadOne(file, deck, pasteText) {
+  function failNote(text) {
+    showToast(text);
+  }
+
+  function uploadOne(file, deck) {
     var name = tidyName(file && file.name);
-    var log = logLine(deck, "Adding " + name + "…");
     if (!file || String(file.type || "").indexOf("image/") !== 0) {
       var label = (file && file.name) || "file";
-      log.textContent = "*" + label + "* isn't an image. Pick a PNG, JPG or WebP card.";
+      failNote("*" + label + "* isn't an image. Pick a PNG, JPG or WebP card.");
       return Promise.resolve();
     }
-    var parsed = null;
-    if (String(pasteText || "").trim()) {
-      parsed = parseLine(pasteText, deck);
-      if (parsed.error) {
-        log.textContent = parsed.error;
-        return Promise.resolve();
-      }
-      name = parsed.name;
-    }
     if (!baseUrl()) {
-      log.textContent = "Card storage isn't set up yet";
+      failNote("Card storage isn't set up yet");
       return Promise.resolve();
     }
     if (!online()) {
-      log.textContent = "Couldn't add " + name + ": no connection. Try again.";
+      failNote("Couldn't add " + name + ": no connection. Try again.");
       return Promise.resolve();
     }
     return resizeToWebp(file).then(function (images) {
@@ -960,9 +1207,9 @@
         var row = {
           id: id,
           deck: deck,
-          name: parsed ? parsed.name : name,
-          veg: parsed ? parsed.veg : 0,
-          fruit: parsed ? parsed.fruit : 0,
+          name: name,
+          veg: 0,
+          fruit: 0,
           path: path,
           thumb: thumb,
           hidden: false,
@@ -980,26 +1227,17 @@
             var saved = Array.isArray(body) ? body[0] : row;
             state.cards.unshift(saved || row);
             writeCards();
-            log.textContent = "Added";
             renderDeck(deck);
             return saved;
           });
         });
       });
     }).catch(function (err) {
-      if (err && err.message === "too-big") log.textContent = "Image is over 6000 px. Pick a smaller card.";
-      else if (err && err.message === "too-heavy") log.textContent = "Image is still too large after compression.";
-      else if (err && err.message === "setup") log.textContent = "Card storage isn't set up yet";
-      else log.textContent = "Couldn't add " + name + ": no connection. Try again.";
+      if (err && err.message === "too-big") failNote("Image is over 6000 px. Pick a smaller card.");
+      else if (err && err.message === "too-heavy") failNote("Image is still too large after compression.");
+      else if (err && err.message === "setup") failNote("Card storage isn't set up yet");
+      else failNote("Couldn't add " + name + ": no connection. Try again.");
     });
-  }
-
-  function logLine(deck, text) {
-    var hostId = deck === "smoothie" ? "deck-log-smoothie" : "deck-log-food";
-    var host = root.document.getElementById(hostId);
-    var line = el("p", "deck-log-line", text);
-    if (host) host.prepend(line);
-    return line;
   }
 
   function fallbackId() {
@@ -1011,19 +1249,11 @@
 
   function uploadFiles(files, deck) {
     var list = Array.prototype.slice.call(files || []);
-    var pasteHost = root.document.getElementById(deck === "smoothie" ? "deck-paste-smoothie" : "deck-paste-food");
-    var paste = pasteHost ? pasteHost.value : "";
-    if (paste.trim() && list.length !== 1) {
-      logLine(deck, "Use 4 parts split by |");
-      return Promise.resolve();
-    }
     var chain = Promise.resolve();
     list.forEach(function (file) {
-      chain = chain.then(function () { return uploadOne(file, deck, paste); });
+      chain = chain.then(function () { return uploadOne(file, deck); });
     });
-    return chain.then(function () {
-      if (pasteHost && paste.trim()) pasteHost.value = "";
-    });
+    return chain;
   }
 
   function patchCard(card, fields) {
@@ -1056,36 +1286,21 @@
     var card = cardById(state.cards, id);
     var error = form.querySelector("[data-deck-error]");
     if (!card) return;
-    var paste = form.elements.paste.value.trim();
-    var fields;
-    if (paste) {
-      var parsed = parseLine(paste, card.deck);
-      if (parsed.error) {
-        if (error) error.textContent = parsed.error;
-        return;
-      }
-      fields = parsed;
-    } else {
-      var name = stripName(form.elements.name.value).slice(0, 80).trim();
-      if (!name) {
-        if (error) error.textContent = "Name is empty";
-        return;
-      }
-      var veg = portionError(form.elements.veg.value.trim(), "Veg");
-      if (typeof veg === "string") {
-        if (error) error.textContent = veg;
-        return;
-      }
-      var fruit = portionError(form.elements.fruit.value.trim(), "Fruit");
-      if (typeof fruit === "string") {
-        if (error) error.textContent = fruit;
-        return;
-      }
-      fields = { name: name, veg: veg, fruit: fruit };
+    var name = stripName(form.elements.name.value).slice(0, 80).trim();
+    if (!name) {
+      if (error) error.textContent = "Name is empty";
+      return;
     }
+    var fields = {
+      name: name,
+      veg: clampPortion(form.elements.veg.value),
+      fruit: clampPortion(form.elements.fruit.value)
+    };
     patchCard(card, fields).then(function () {
-      state.card.editing = false;
-      paintCard();
+      slideEditAway(function () {
+        if (state.card) state.card.editing = false;
+        paintCard();
+      });
     }).catch(function () {
       if (error) error.textContent = "Couldn't add " + card.name + ": no connection. Try again.";
     });
@@ -1142,11 +1357,32 @@
   }
 
   function onClick(event) {
-    var target = event.target.closest("[data-deck-close], [data-deck-pick], [data-deck-view], [data-deck-open], [data-deck-copy], [data-deck-toggle], [data-deck-save], [data-deck-clear], [data-deck-edit], [data-deck-hide], [data-deck-copy-month], [data-deck-day], [data-deck-chip], [data-deck-mode], [data-deck-copy-go], [data-deck-backup], #hub-month-prev, #hub-month-next");
+    var target = event.target.closest("[data-deck-close], [data-deck-pick], [data-deck-view], [data-deck-open], [data-deck-copy], [data-deck-toggle], [data-deck-save], [data-deck-clear], [data-deck-edit], [data-deck-hide], [data-deck-copy-month], [data-deck-day], [data-deck-chip], [data-deck-mode], [data-deck-copy-go], [data-deck-step], [data-deck-cancel], #hub-month-prev, #hub-month-next");
     if (!target) return;
     if (target.id === "hub-month-prev") { shiftMonth(-1); return; }
     if (target.id === "hub-month-next") { shiftMonth(1); return; }
-    if (target.hasAttribute("data-deck-backup")) { downloadBackup(); return; }
+    if (target.hasAttribute("data-deck-step")) {
+      var form = target.closest("form");
+      var field = target.getAttribute("data-deck-step");
+      var input = form && form.elements[field];
+      if (!input) return;
+      var next = stepPortion(input.value, Number(target.getAttribute("data-deck-dir")) || 1);
+      input.value = String(next);
+      var read = form.querySelector('[data-deck-portion="' + field + '"]');
+      if (read) read.textContent = formatPortions(next);
+      var minus = form.querySelector('[data-deck-step="' + field + '"][data-deck-dir="-1"]');
+      var plus = form.querySelector('[data-deck-step="' + field + '"][data-deck-dir="1"]');
+      if (minus) minus.disabled = next <= 0;
+      if (plus) plus.disabled = next >= 10;
+      return;
+    }
+    if (target.hasAttribute("data-deck-cancel")) {
+      slideEditAway(function () {
+        if (state.card) state.card.editing = false;
+        paintCard();
+      });
+      return;
+    }
     if (target.hasAttribute("data-deck-close")) {
       var which = target.getAttribute("data-deck-close");
       if (which === "copy") state.copy = null;
@@ -1250,24 +1486,21 @@
     uploadFiles(files, deck).then(function () { input.value = ""; });
   }
 
-  function downloadBackup() {
-    var raw = root.localStorage && root.localStorage.getItem(BACKUP_KEY);
-    if (!raw || !root.document) return;
-    var blob = new Blob([raw], { type: "application/json" });
-    var link = root.document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "nexus-food-backup-v52.json";
-    root.document.body.appendChild(link);
-    link.click();
-    link.remove();
-  }
-
   function wire() {
     if (!root.document || wire.done) return;
     wire.done = true;
     root.document.addEventListener("click", onClick);
     root.document.addEventListener("submit", onSubmit);
     root.document.addEventListener("keydown", onKey, true);
+    var card = root.document.getElementById("deck-card");
+    if (card) {
+      card.addEventListener("touchmove", function (event) {
+        if (!card.hidden) event.preventDefault();
+      }, { passive: false });
+      card.addEventListener("gesturestart", function (event) {
+        event.preventDefault();
+      });
+    }
     root.document.addEventListener("pointerdown", function (event) {
       var add = event.target.closest("[data-deck-add]");
       if (!add) return;
@@ -1292,7 +1525,9 @@
 
   root.NexusDeck = {
     tidyName: tidyName,
-    parseLine: parseLine,
+    clampPortion: clampPortion,
+    stepPortion: stepPortion,
+    portionsLine: portionsLine,
     fiveADay: fiveADay,
     formatPortions: formatPortions,
     reducePick: reducePick,
@@ -1312,7 +1547,6 @@
     openCard: openCard,
     openCopy: openCopy,
     saveSlots: saveSlots,
-    downloadBackup: downloadBackup,
     cardSrc: cardSrc,
     boot: boot
   };

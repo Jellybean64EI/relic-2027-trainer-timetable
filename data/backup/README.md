@@ -8,7 +8,7 @@ These three files are the recipe seeds that used to load in the app:
 
 v52 moved them here so the app can no longer re-seed old recipes. Git still has the bytes.
 
-The phone keeps its own copy. The first time v52 runs, it writes `nexus_food_clearout_backup_v52` in localStorage (the old `nexus_food_v1` plan, including any 1–3 Jan test meals) and then replaces that plan with an empty shell. Download it from the Food deck: **Download old food backup** (`nexus-food-backup-v52.json`).
+The phone keeps its own copy. The first time v52 runs, it writes `nexus_food_clearout_backup_v52` in localStorage (the old `nexus_food_v1` plan, including any 1–3 Jan test meals) and then replaces that plan with an empty shell. That backup stays in localStorage. The deck does not link to it.
 
 ## Restore
 
