@@ -197,4 +197,4 @@ if (fails.length) {
   console.error(fails.length + " failed");
   process.exit(1);
 }
-console.log("OK v54 deck");
+console.log("OK v55 deck");
