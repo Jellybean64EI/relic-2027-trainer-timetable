@@ -10,10 +10,10 @@ const html = fs.readFileSync("index.html", "utf8");
 const app = fs.readFileSync("app.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v55"') === -1 || html.indexOf("app.js?v=v55") === -1) {
-  fail("index.html is not stamped v55");
+if (html.indexOf('content="v56"') === -1 || html.indexOf("app.js?v=v56") === -1) {
+  fail("index.html is not stamped v56");
 }
-if (app.indexOf('build: "v55"') === -1) fail("RelicArchitect.build is not v55");
+if (app.indexOf('build: "v56"') === -1) fail("RelicArchitect.build is not v56");
 if (html.indexOf("JOSEPH · LONDON") !== -1 || html.indexOf("corner-who") !== -1 || html.indexOf("meta-mode") !== -1) {
   fail("public corner still has the name or lock status");
 }
@@ -44,10 +44,10 @@ if (html.indexOf('data-os-door="account"') === -1 || html.indexOf("Account Profi
 }
 const drawer = html.slice(html.indexOf('id="nav-drawer"'), html.indexOf('id="relic-deck-park"'));
 const doorOrder = [];
-const doorRe = /data-os-door="(training|food|smoothies|hub|account)"/g;
+const doorRe = /data-os-door="(training|food|smoothies|porridge|hub|account)"/g;
 let doorMatch;
 while ((doorMatch = doorRe.exec(drawer))) doorOrder.push(doorMatch[1]);
-if (doorOrder.join(",") !== "hub,training,food,smoothies,account") {
+if (doorOrder.join(",") !== "hub,training,food,smoothies,porridge,account") {
   fail("drawer order " + doorOrder.join(","));
 }
 if (/🔒|🏋️|🛍️|🍎|🍌|os-door-icon/.test(drawer)) fail("menu still has emoji or door pills");
@@ -162,7 +162,7 @@ function expect(arch, dateKey, want, label) {
 
 const open = load("?date=2026-10-06");
 const arch = open.RelicArchitect;
-if (!arch || arch.build !== "v55" || arch.futureLock !== false) fail("default lock is not off");
+if (!arch || arch.build !== "v56" || arch.futureLock !== false) fail("default lock is not off");
 else {
   expect(arch, "2026-10-06", true, "open today");
   ["2026-10-07", "2026-12-31", "2027-01-01", "2027-10-07"].forEach(function (dateKey) {

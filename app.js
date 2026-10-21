@@ -1,6 +1,6 @@
-/* Relic Architect V2.0 — timetable, Supabase completions, HTML5 cabin player.
-   Playback is Supabase Storage only. Drive iframes, previews, and embeddedfolderview are refused.
-   Completions upsert relic_completions. localStorage is not the source of truth.
+/* Relic Architect V2.0 — timetable and HTML5 cabin player.
+   Playback uses the Nexus video base. Drive iframes, previews, and embeddedfolderview are refused.
+   Ticks sync through the Nexus API. The phone is not the source of truth.
    Schedule mode (full | upper) swaps the rotation and its own completion namespace.
    Full Body keeps the legacy bare YYYY-MM-DD key. Upper Body uses upper:YYYY-MM-DD.
    v14: each day has two trainer videos. tier is a bitmask (1 first, 2 second, 3 dual).
@@ -16,7 +16,7 @@
    v16: the CUE panel slides up from the bottom of the stage. Week chips keep a single
    slot and a dual slot. Calisthenics is Q4 2027 only.
    v18: Food OS is four rooms behind the drawer. It does not write
-   relic_completions, move the player timer, or open the CUE panel.
+   training ticks, move the player timer, or open the CUE panel.
    v19: day ticks glow, cabin switches keep their scroll, and weekly rows carry
    portions. */
 (function () {
@@ -271,7 +271,7 @@
   }
 
   function normDoor(v) {
-    if (v === "training" || v === "food" || v === "smoothies" || v === "hub" || v === "account") return v;
+    if (v === "training" || v === "food" || v === "smoothies" || v === "porridge" || v === "hub" || v === "account") return v;
     return "hub";
   }
 
@@ -327,25 +327,52 @@
       .replace(/"/g, "&quot;");
   }
 
-  function supabaseCfg() {
-    return window.RELIC_SUPABASE || {};
+  var TICK_DIRTY_KEY = "nexus_ticks_dirty_v2";
+  var tickLoadFailed = false;
+  var trainToastTimer = 0;
+
+  function maskFromLevel(level) {
+    var n = Number(level) || 0;
+    if (n >= 2) return 3;
+    if (n === 1) return 1;
+    return 0;
   }
 
-  function restUrl(pathAndQuery) {
-    var cfg = supabaseCfg();
-    return String(cfg.url || "").replace(/\/$/, "") + pathAndQuery;
+  function readTickDirty() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(TICK_DIRTY_KEY) || "{}");
+      return raw && typeof raw === "object" ? raw : {};
+    } catch (err) { return {}; }
   }
 
-  function restHeaders(extra) {
-    var cfg = supabaseCfg();
-    var headers = {
-      apikey: cfg.anonKey,
-      Authorization: "Bearer " + cfg.anonKey
-    };
-    if (extra) {
-      Object.keys(extra).forEach(function (key) { headers[key] = extra[key]; });
-    }
-    return headers;
+  function writeTickDirty(map) {
+    try { localStorage.setItem(TICK_DIRTY_KEY, JSON.stringify(map)); } catch (err) { /* private mode */ }
+  }
+
+  function rememberTickDirty(storageKey, mask) {
+    var map = readTickDirty();
+    map[storageKey] = normalizeTier(mask);
+    writeTickDirty(map);
+  }
+
+  function forgetTickDirty(storageKey) {
+    var map = readTickDirty();
+    if (!Object.prototype.hasOwnProperty.call(map, storageKey)) return;
+    delete map[storageKey];
+    writeTickDirty(map);
+  }
+
+  function trainToast(message) {
+    if (state.osDoor !== "training") return;
+    var el = $("deck-toast");
+    if (!el) return;
+    el.hidden = false;
+    el.textContent = message;
+    if (trainToastTimer) clearTimeout(trainToastTimer);
+    trainToastTimer = setTimeout(function () {
+      el.hidden = true;
+      el.textContent = "";
+    }, 4000);
   }
 
   function paintSyncDot() {
@@ -435,6 +462,12 @@
     return popcount(maskFor(dateKey, mode));
   }
 
+  function tickMarks(count) {
+    var one = '<svg class="mark-tick" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><path d="M4.5 14.8 11 21.2 23.8 6.6" fill="none" stroke="#ff8c00" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" transform="rotate(-6 14 14)"/></svg>';
+    if (count < 2) return one;
+    return '<svg class="mark-tick is-pair" viewBox="0 0 40 28" aria-hidden="true" focusable="false"><path d="M2 15.2 8.2 21.2 18.4 8" fill="none" stroke="#ff8c00" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 15.2 22.2 21.2 37 7.2" fill="none" stroke="#ff8c00" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+
   function shieldSvg(doubleTick) {
     var open = doubleTick
       ? SHIELD_SVG_OPEN.replace('class="shield-tick"', 'class="shield-tick is-dual"')
@@ -444,59 +477,63 @@
   }
 
   function pullCompletions() {
-    var cfg = supabaseCfg();
-    if (!cfg.url || !cfg.anonKey) {
+    var api = window.NEXUS_API || {};
+    if (!api.base || typeof window.nexusFetch !== "function") {
       state.loaded = true;
-      setSync("Supabase config missing — ticks cannot sync.", true);
+      tickLoadFailed = true;
+      console.error("Nexus API missing — ticks cannot sync.");
       return Promise.resolve();
     }
     beginSyncActivity();
-    return fetch(restUrl("/rest/v1/relic_completions?select=date_key,completed,tier"), {
-      headers: restHeaders()
-    }).then(function (response) {
-      if (!response.ok) throw new Error("load " + response.status);
-      return response.json();
-    }).then(function (rows) {
+    return window.nexusFetch("/ticks").then(function (rows) {
       var next = {};
       if (Array.isArray(rows)) {
         rows.forEach(function (row) {
-          if (row) absorbCompletionRow(next, row.date_key, row.completed, row.tier);
+          if (!row) return;
+          absorbCompletionRow(next, row.date_key, Number(row.level) > 0, maskFromLevel(row.level));
         });
       }
+      var dirty = readTickDirty();
+      Object.keys(dirty).forEach(function (key) {
+        var mask = normalizeTier(dirty[key]);
+        if (mask) next[key] = mask;
+        else delete next[key];
+      });
       state.videos = next;
       state.loaded = true;
-      setSync("Synced", false);
-    }).catch(function () {
+      tickLoadFailed = false;
+      setSync("", false);
+    }).catch(function (err) {
       state.loaded = true;
-      setSync("Could not load relic_completions. Check the connection and try again.", true);
+      tickLoadFailed = true;
+      console.error(err && err.message ? err.message : err);
     }).then(function () {
       endSyncActivity();
+      if (!tickLoadFailed) flushTickDirty();
+    });
+  }
+
+  function flushTickDirty() {
+    var map = readTickDirty();
+    Object.keys(map).forEach(function (key) {
+      upsertCompletion(key, map[key]).then(function (row) {
+        if (!row) return;
+        forgetTickDirty(key);
+        applyReturnedCompletion(key, row);
+      });
     });
   }
 
   function upsertCompletion(storageKey, mask) {
-    var cfg = supabaseCfg();
-    if (!cfg.url || !cfg.anonKey) return Promise.resolve(null);
-    var bits = normalizeTier(mask);
-    return fetch(restUrl("/rest/v1/relic_completions?on_conflict=date_key"), {
-      method: "POST",
-      headers: restHeaders({
-        "Content-Type": "application/json",
-        Prefer: "resolution=merge-duplicates,return=representation"
-      }),
-      body: JSON.stringify({
-        date_key: storageKey,
-        completed: bits !== 0,
-        tier: bits,
-        updated_at: new Date().toISOString()
-      })
-    }).then(function (response) {
-      if (!response.ok) return null;
-      return response.json().catch(function () { return null; }).then(function (payload) {
-        var row = Array.isArray(payload) ? payload[0] : payload;
-        if (row && row.tier !== undefined && row.tier !== null) return row;
-        return { date_key: storageKey, tier: bits, completed: bits !== 0 };
-      });
+    var api = window.NEXUS_API || {};
+    if (!api.base || typeof window.nexusFetch !== "function") return Promise.resolve(null);
+    var level = popcount(normalizeTier(mask));
+    return window.nexusFetch("/ticks/" + encodeURIComponent(storageKey), {
+      method: "PUT",
+      body: { level: level }
+    }).then(function (row) {
+      if (row && row.date_key) return row;
+      return { date_key: storageKey, level: level };
     }).catch(function () {
       return null;
     });
@@ -504,37 +541,33 @@
 
   function applyReturnedCompletion(storageKey, row) {
     var key = storageKeyFromRow(row && row.date_key) || storageKey;
-    var mask = normalizeTier(row ? row.tier : 0);
+    var mask = row && row.level != null ? maskFromLevel(row.level) : 0;
     if (mask) state.videos[key] = mask;
     else delete state.videos[key];
   }
 
   function saveMask(storageKey, mask, dateKey, restoreFocus) {
     var bits = normalizeTier(mask);
-    var previous = state.videos[storageKey] || 0;
     if (bits) state.videos[storageKey] = bits;
     else delete state.videos[storageKey];
+    rememberTickDirty(storageKey, bits);
     state.restoreTickDate = restoreFocus ? dateKey : "";
     render();
 
     var gen = (state.saveGen[storageKey] || 0) + 1;
     state.saveGen[storageKey] = gen;
     beginSyncActivity();
-    setSync("Saving " + dateKey + "…", false);
     upsertCompletion(storageKey, bits).then(function (row) {
       if (state.saveGen[storageKey] !== gen) return;
       if (!row) {
-        if (previous) state.videos[storageKey] = previous;
-        else delete state.videos[storageKey];
-        setSync("Could not save " + dateKey + " to relic_completions.", true);
-        state.restoreTickDate = "";
-        render();
+        trainToast("Tick saved on this phone");
         return;
       }
+      forgetTickDirty(storageKey);
       applyReturnedCompletion(storageKey, row);
       state.restoreTickDate = restoreFocus ? dateKey : "";
       render();
-      setSync("Synced", false);
+      setSync("", false);
     }).then(function () {
       endSyncActivity();
     }, function () {
@@ -807,7 +840,7 @@
     var tier = popcount(mask);
     var dayState = tier >= 2 ? "dual" : (tier === 1 ? "partial" : "empty");
     var checked = tier >= 2 ? "true" : (tier === 1 ? "mixed" : "false");
-    var emblem = tier >= 2 ? shieldSvg(true) : (tier === 1 ? shieldSvg(false) : "");
+    var emblem = tier >= 2 ? tickMarks(2) : (tier === 1 ? tickMarks(1) : "");
     return (
       '<td class="done-cell"><button type="button" class="tick-hit is-' + dayState + '" data-date="' + day.dateKey +
       '" data-tier="' + tier + '" data-videos="' + mask +
@@ -1025,8 +1058,9 @@
     state.osDoor = door;
     var titles = {
       training: "Training Schedules",
-      food: "Food deck",
-      smoothies: "Smoothies deck",
+      food: "Food Deck",
+      smoothies: "Smoothies Deck",
+      porridge: "Porridge Deck",
       hub: "Main Menu Hub",
       account: "Account Profile"
     };
@@ -1064,11 +1098,12 @@
     paintBranchChrome();
     if (document.body) {
       document.body.classList.toggle("is-hub", door === "hub");
-      document.body.classList.toggle("is-deck", door === "food" || door === "smoothies");
+      document.body.classList.toggle("is-deck", door === "food" || door === "smoothies" || door === "porridge");
     }
     if (door === "hub") paintHub();
-    if ((door === "food" || door === "smoothies") && window.NexusDeck && window.NexusDeck.renderDeck) {
-      window.NexusDeck.renderDeck(door === "smoothies" ? "smoothie" : "food");
+    if ((door === "food" || door === "smoothies" || door === "porridge") && window.NexusDeck && window.NexusDeck.renderDeck) {
+      var deckName = door === "smoothies" ? "smoothie" : door === "porridge" ? "porridge" : "food";
+      window.NexusDeck.renderDeck(deckName);
     }
   }
 
@@ -1395,17 +1430,13 @@
   }
 
   function storagePublicUrl(objectParts) {
-    var cfg = supabaseCfg();
-    var bucket = cfg.bucket || "relic-videos";
+    var api = window.NEXUS_API || {};
     var key = (objectParts || []).filter(function (part) { return !!part; }).map(function (part) {
       return encodeURIComponent(part);
     }).join("/");
-    if (bucket === "relic-videos" && cfg.videoBase) {
-      return String(cfg.videoBase).replace(/\/$/, "") + "/" + key;
-    }
-    var base = String(cfg.url || "").replace(/\/$/, "");
-    if (!base) return "";
-    return base + "/storage/v1/object/public/" + encodeURIComponent(bucket) + (key ? "/" + key : "") + "?v=v34";
+    var base = String(api.videoBase || "").replace(/\/$/, "");
+    if (!base || !key) return "";
+    return base + "/" + key;
   }
 
   function resolveClipSrc(cabinKey, clip) {
@@ -3060,6 +3091,12 @@
     wire();
     render();
     pullCompletions().then(render);
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible" && tickLoadFailed) pullCompletions().then(render);
+    });
+    window.addEventListener("focus", function () {
+      if (tickLoadFailed) pullCompletions().then(render);
+    });
     setInterval(function () {
       var previous = state.now && londonParts(state.now).dateKey;
       state.now = getNow();
@@ -3080,7 +3117,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v55",
+    build: "v56",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };

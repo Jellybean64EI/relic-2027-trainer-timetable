@@ -1,8 +1,10 @@
-/* Nexus v54 card decks. Training, food.js and supabaseConfig.js stay untouched. */
+/* Nexus v56 card decks. Training files stay untouched. */
 (function (root) {
-  var CARDS_KEY = "nexus_cards_cache_v1";
-  var SLOTS_KEY = "nexus_slots_cache_v1";
-  var DIRTY_KEY = "nexus_slots_dirty_v1";
+  var CARDS_KEY = "nexus_cards_cache_v2";
+  var SLOTS_KEY = "nexus_slots_cache_v2";
+  var DIRTY_KEY = "nexus_slots_dirty_v2";
+  var STACKS_KEY = "nexus_stacks_cache_v2";
+  var OLD_KEYS = ["nexus_cards_cache_v1", "nexus_slots_cache_v1", "nexus_slots_dirty_v1"];
   var DONE_KEY = "nexus_food_clearout_v52";
   var BACKUP_KEY = "nexus_food_clearout_backup_v52";
   var PLAN_KEY = "nexus_food_v1";
@@ -25,6 +27,9 @@
     picker: null,
     card: null,
     copy: null,
+    stacks: {},
+    upload: null,
+    fileRole: "front",
     booted: false
   };
 
@@ -67,16 +72,40 @@
 
   function fiveADay(foods, smoothies) {
     var foodSum = 0;
-    var smoothieSum = 0;
     (foods || []).forEach(function (card) {
       if (!card || card.hidden) return;
       foodSum += Number(card.veg) + Number(card.fruit);
     });
-    (smoothies || []).forEach(function (card) {
-      if (!card || card.hidden) return;
-      smoothieSum += Number(card.veg) + Number(card.fruit);
+    var smoothieHit = (smoothies || []).some(function (card) {
+      return card && !card.hidden && (Number(card.veg) + Number(card.fruit)) > 0;
     });
-    return foodSum + Math.min(1, smoothieSum);
+    return foodSum + (smoothieHit ? 1 : 0);
+  }
+
+  function parseLine(text) {
+    var parts = String(text || "").split("|").map(function (part) { return part.trim(); });
+    if (parts.length < 4 || !parts[0]) return null;
+    var deck = String(parts[1] || "").toUpperCase();
+    if (deck !== "FOOD" && deck !== "SMOOTHIE" && deck !== "PORRIDGE") return null;
+    return {
+      name: parts[0].slice(0, 80),
+      deck: deck,
+      veg: clampPortion(parts[2]),
+      fruit: clampPortion(parts[3])
+    };
+  }
+
+  function deckCode(which) {
+    var name = String(which || "").toUpperCase();
+    if (name === "SMOOTHIE" || name === "SMOOTHIES") return "SMOOTHIE";
+    if (name === "PORRIDGE") return "PORRIDGE";
+    return "FOOD";
+  }
+
+  function deckSlug(code) {
+    if (code === "SMOOTHIE") return "smoothie";
+    if (code === "PORRIDGE") return "porridge";
+    return "food";
   }
 
   function formatPortions(value) {
@@ -89,10 +118,24 @@
   function reducePick(current, deck, id) {
     var next = {
       food: current && current.food || null,
-      smoothie: current && current.smoothie || null
+      smoothie: current && current.smoothie || null,
+      porridge: current && current.porridge || null,
+      stack: current && current.stack ? current.stack.slice() : [null, null, null]
     };
-    var key = deck === "smoothie" ? "smoothie" : "food";
-    next[key] = next[key] === id ? null : id;
+    if (deck === "smoothie") {
+      var at = next.stack.indexOf(id);
+      if (at !== -1) next.stack[at] = null;
+      else {
+        var empty = next.stack.indexOf(null);
+        if (empty === -1) next.stack[2] = id;
+        else next.stack[empty] = id;
+      }
+      next.smoothie = next.stack.filter(Boolean)[0] || null;
+    } else if (deck === "porridge") {
+      next.porridge = next.porridge === id ? null : id;
+    } else {
+      next.food = next.food === id ? null : id;
+    }
     return next;
   }
 
@@ -115,20 +158,24 @@
 
   function slotHalf(slot, cards, which) {
     if (!slot) return null;
-    var id = which === "smoothie" ? (slot.s || slot.smoothie_id || null) : (slot.f || slot.food_id || null);
+    var id = which === "smoothie" ? (slot.s || slot.smoothie_id || null)
+      : which === "porridge" ? (slot.p || slot.porridge_id || null)
+      : (slot.f || slot.food_id || null);
     return visibleCard(cards, id);
   }
 
   function targetFull(slot, cards) {
-    return !!(slotHalf(slot, cards, "food") || slotHalf(slot, cards, "smoothie"));
+    return !!(slotHalf(slot, cards, "food") || slotHalf(slot, cards, "porridge") || slotHalf(slot, cards, "smoothie"));
   }
 
-  function slotRow(date, slot, foodId, smoothieId, now) {
+  function slotRow(date, meal, foodId, porridgeId, stackId, now) {
     return {
       date_key: date,
-      slot: slot,
+      meal: meal,
+      slot: meal,
       food_id: foodId || null,
-      smoothie_id: smoothieId || null,
+      porridge_id: porridgeId || null,
+      stack_id: stackId || null,
       updated_at: now || new Date().toISOString()
     };
   }
@@ -136,27 +183,30 @@
   function planCopy(slots, source, days, slot, mode, cards, now) {
     var srcDate = source && (source.date || source.date_key) || "";
     var foodId = source && source.food_id || null;
-    var smoothieId = source && source.smoothie_id || null;
+    var porridgeId = source && source.porridge_id || null;
+    var stack = source && source.stack || null;
     var stamp = now || new Date().toISOString();
     var rows = [];
+    var stacks = [];
     var skipped = 0;
     var replaced = 0;
     var seen = {};
+    var hasStack = !!(stack && (stack.slot1 || stack.slot2 || stack.slot3));
     (days || []).forEach(function (date) {
       if (!date || date === srcDate || seen[date]) return;
       seen[date] = true;
       var current = slots && slots[date + "|" + slot];
       var full = targetFull(current, cards || {});
-      if (mode === "overwrite") {
-        if (full) replaced += 1;
-        rows.push(slotRow(date, slot, foodId, smoothieId, stamp));
-      } else if (full) {
+      if (mode !== "overwrite" && full) {
         skipped += 1;
-      } else {
-        rows.push(slotRow(date, slot, foodId, smoothieId, stamp));
+        return;
       }
+      if (mode === "overwrite" && full) replaced += 1;
+      var stackId = hasStack ? "day-" + date : null;
+      rows.push(slotRow(date, slot, foodId, porridgeId, stackId, stamp));
+      if (hasStack) stacks.push({ id: stackId, slot1: stack.slot1 || null, slot2: stack.slot2 || null, slot3: stack.slot3 || null });
     });
-    return { rows: rows, skipped: skipped, replaced: replaced };
+    return { rows: rows, stacks: stacks, skipped: skipped, replaced: replaced };
   }
 
   function emptyShell(raw) {
@@ -246,41 +296,36 @@
     }, 4000);
   }
 
-  function cfg() {
-    return root.RELIC_SUPABASE || {};
-  }
-
-  function baseUrl() {
-    return String((cfg().url) || "").replace(/\/$/, "");
-  }
-
-  function authHeaders(extra) {
-    var key = cfg().anonKey || "";
-    var headers = { apikey: key, Authorization: "Bearer " + key };
-    if (extra) Object.keys(extra).forEach(function (name) { headers[name] = extra[name]; });
-    return headers;
+  function api() {
+    return root.NEXUS_API || {};
   }
 
   function cardSrc(card, kind) {
     if (!card) return "";
-    var path = kind === "full" ? card.path : card.thumb;
-    if (typeof path !== "string" || !PATH_RE.test(path)) return "";
-    var folder = path.slice(0, path.indexOf("/"));
-    if (folder !== card.deck) return "";
-    var base = baseUrl();
-    if (!base) return "";
-    return base + "/storage/v1/object/public/nexus-cards/" + path;
+    if (kind === "back") return card.back_url || "";
+    return card.front_url || "";
+  }
+
+  function dropOldCaches() {
+    var store = root.localStorage;
+    if (!store || typeof store.removeItem !== "function") return;
+    OLD_KEYS.forEach(function (key) {
+      try { store.removeItem(key); } catch (err) { /* cache drop is best-effort */ }
+    });
   }
 
   function readCaches() {
     var store = root.localStorage;
     if (!store) return;
+    dropOldCaches();
     var cards = parseJson(store.getItem(CARDS_KEY));
     state.cards = Array.isArray(cards) ? cards : [];
     var slots = parseJson(store.getItem(SLOTS_KEY));
     state.slots = slots && typeof slots === "object" && !Array.isArray(slots) ? slots : {};
     var dirty = parseJson(store.getItem(DIRTY_KEY));
     state.dirty = Array.isArray(dirty) ? dirty : [];
+    var stacks = parseJson(store.getItem(STACKS_KEY));
+    state.stacks = stacks && typeof stacks === "object" && !Array.isArray(stacks) ? stacks : {};
   }
 
   function writeCards() {
@@ -295,6 +340,10 @@
     try { root.localStorage.setItem(DIRTY_KEY, JSON.stringify(state.dirty)); } catch (err) { /* cache is best-effort */ }
   }
 
+  function writeStacks() {
+    try { root.localStorage.setItem(STACKS_KEY, JSON.stringify(state.stacks)); } catch (err) { /* cache is best-effort */ }
+  }
+
   function markDirty(keys) {
     keys.forEach(function (key) {
       if (state.dirty.indexOf(key) === -1) state.dirty.push(key);
@@ -302,17 +351,27 @@
     writeDirty();
   }
 
-  function setupFailure(status, body) {
-    var text = String(body || "");
-    return status === 404 || /relation|bucket|not found|PGRST|schema cache/i.test(text);
-  }
-
   function sortedCards(deck) {
+    var code = deckCode(deck);
     return state.cards.filter(function (card) {
-      return card && card.deck === deck && !card.hidden;
+      return card && card.deck === code && !card.hidden;
     }).sort(function (a, b) {
       return String(b.created_at || "").localeCompare(String(a.created_at || ""));
     });
+  }
+
+  function dayStack(date) {
+    return state.stacks["day-" + date] || null;
+  }
+
+  function stackCardId(date, meal) {
+    var stack = dayStack(date);
+    var stored = state.slots[date + "|" + meal];
+    if (!stack && stored && stored.st && state.stacks[stored.st]) stack = state.stacks[stored.st];
+    if (!stack) return null;
+    if (meal === "lunch") return stack.slot2 || null;
+    if (meal === "dinner") return stack.slot3 || null;
+    return stack.slot1 || null;
   }
 
   function daysInMonth(month) {
@@ -344,6 +403,7 @@
   function paintAll() {
     renderDeck("food");
     renderDeck("smoothie");
+    renderDeck("porridge");
     if (root.document && root.document.getElementById("hub-month-body")) renderHubMonth();
   }
 
@@ -353,23 +413,30 @@
 
   function renderDeck(deck) {
     if (!root.document) return;
-    var which = deck === "smoothie" || deck === "smoothies" ? "smoothie" : "food";
-    var rootId = which === "smoothie" ? "deck-root-smoothie" : "deck-root-food";
+    var which = deckSlug(deckCode(deck));
+    var rootId = which === "smoothie" ? "deck-root-smoothie" : which === "porridge" ? "deck-root-porridge" : "deck-root-food";
     var host = root.document.getElementById(rootId);
     if (!host) return;
     var count = host.querySelector("[data-deck-count]");
     var grid = host.querySelector("[data-deck-grid]");
     var cards = sortedCards(which);
-    if (count) count.textContent = (which === "food" ? "Food" : "Smoothies") + " · " + cards.length + (cards.length === 1 ? " card" : " cards");
+    var title = which === "smoothie" ? "All Smoothies" : which === "porridge" ? "Porridge" : "Food";
+    if (count) count.textContent = title + " · " + cards.length + (cards.length === 1 ? " card" : " cards");
+    if (which === "smoothie") renderStackHost();
     if (!grid) return;
     grid.textContent = "";
+    if (!cards.length && which === "smoothie") {
+      grid.appendChild(el("p", "deck-empty", "No smoothie cards yet"));
+    }
     cards.forEach(function (card) {
       var tile = el("button", "deck-tile");
       tile.type = "button";
       tile.setAttribute("data-deck-open", card.id);
       var img = el("img", "deck-thumb");
       img.alt = "";
-      var src = cardSrc(card, "thumb") || cardSrc(card, "full");
+      img.loading = "lazy";
+      img.decoding = "async";
+      var src = cardSrc(card, "full");
       if (src) img.src = src;
       var name = el("span", "deck-tile-name", card.name || "Untitled card");
       var meta = el("span", "deck-tile-meta", portionsLine(card));
@@ -378,6 +445,28 @@
       tile.appendChild(meta);
       grid.appendChild(tile);
     });
+  }
+
+  function renderStackHost() {
+    var host = root.document.getElementById("deck-stack-host");
+    if (!host) return;
+    var date = state.focusKey || dateKey(state.month, 1);
+    var stack = dayStack(date) || { slot1: null, slot2: null, slot3: null };
+    host.textContent = "";
+    var wrap = el("div", "deck-stack-build");
+    ["Morning", "Lunch", "Evening"].forEach(function (label, index) {
+      var key = "slot" + (index + 1);
+      var card = visibleCard(state.cards, stack[key]);
+      var btn = el("button", "deck-stack-slot" + (card ? " is-on" : ""));
+      btn.type = "button";
+      btn.setAttribute("data-deck-stack-from", String(index));
+      btn.setAttribute("data-stack-date", date);
+      var kicker = el("span", "deck-stack-kicker", label);
+      btn.appendChild(kicker);
+      btn.appendChild(el("span", "", card ? card.name : "Empty"));
+      wrap.appendChild(btn);
+    });
+    host.appendChild(wrap);
   }
 
   function renderHubMonth(info) {
@@ -410,12 +499,19 @@
   function dayPortions(key) {
     var foods = [];
     var smoothies = [];
+    var seen = {};
     SLOT_ORDER.forEach(function (slot) {
       var stored = state.slots[key + "|" + slot];
       var food = slotHalf(stored, state.cards, "food");
-      var smoothie = slotHalf(stored, state.cards, "smoothie");
+      var porridge = slotHalf(stored, state.cards, "porridge");
       if (food) foods.push(food);
-      if (smoothie) smoothies.push(smoothie);
+      if (porridge) foods.push(porridge);
+      var sid = stackCardId(key, slot);
+      if (sid && !seen[sid]) {
+        seen[sid] = true;
+        var card = visibleCard(state.cards, sid);
+        if (card) smoothies.push(card);
+      }
     });
     return fiveADay(foods, smoothies);
   }
@@ -431,12 +527,14 @@
   }
 
   function slotBlock(key, slot) {
-    var stored = state.slots[key + "|" + slot] || { f: null, s: null };
+    var stored = state.slots[key + "|" + slot] || { f: null, p: null, st: null };
     var food = slotHalf(stored, state.cards, "food");
-    var smoothie = slotHalf(stored, state.cards, "smoothie");
+    var porridge = slotHalf(stored, state.cards, "porridge");
+    var stackId = stackCardId(key, slot);
+    var stackCard = visibleCard(state.cards, stackId);
     var wrap = el("div", "deck-slot");
     wrap.appendChild(el("p", "deck-slot-label", SLOT_LABEL[slot]));
-    if (!food && !smoothie) {
+    if (!food && !porridge && !stackCard) {
       var add = el("button", "deck-slot-add", "+ Add");
       add.type = "button";
       add.setAttribute("data-deck-pick", key + "|" + slot);
@@ -444,7 +542,8 @@
       return wrap;
     }
     if (food) wrap.appendChild(nameLine(food, key, slot));
-    if (smoothie) wrap.appendChild(nameLine(smoothie, key, slot));
+    if (porridge) wrap.appendChild(nameLine(porridge, key, slot));
+    if (stackCard) wrap.appendChild(nameLine(stackCard, key, slot, true));
     var copy = el("button", "deck-copy", "Copy");
     copy.type = "button";
     copy.setAttribute("data-deck-copy", key + "|" + slot);
@@ -452,7 +551,7 @@
     return wrap;
   }
 
-  function nameLine(card, key, slot) {
+  function nameLine(card, key, slot, cycle) {
     var line = el("div", "deck-slot-line");
     var name = el("button", "deck-slot-name", card.name || "Untitled card");
     name.type = "button";
@@ -462,13 +561,14 @@
     arrow.setAttribute("aria-label", "Open " + (card.name || "card"));
     arrow.setAttribute("data-deck-view", card.id);
     arrow.setAttribute("data-deck-from", "hub");
+    if (cycle) arrow.setAttribute("data-deck-cycle", key);
     line.appendChild(name);
     line.appendChild(arrow);
     return line;
   }
 
   function closeOverlays() {
-    ["deck-picker", "deck-card", "deck-copy"].forEach(function (id) {
+    ["deck-picker", "deck-card", "deck-copy", "deck-upload"].forEach(function (id) {
       var node = root.document.getElementById(id);
       if (node) {
         node.hidden = true;
@@ -477,6 +577,7 @@
     });
     state.picker = null;
     state.card = null;
+    state.upload = null;
     clearChromeTimer();
     unwatchEdit();
     if (root.document && root.document.body) root.document.body.classList.remove("is-card-open");
@@ -487,13 +588,17 @@
     var date = parts[0];
     var slot = parts[1];
     if (!date || !SLOT_LABEL[slot]) return;
-    var stored = state.slots[date + "|" + slot] || { f: null, s: null };
+    var stored = state.slots[date + "|" + slot] || { f: null, p: null, st: null };
+    var stack = dayStack(date) || { slot1: null, slot2: null, slot3: null };
     state.picker = {
       date: date,
       slot: slot,
+      shift: false,
       food: visibleCard(state.cards, stored.f) ? stored.f : null,
-      smoothie: visibleCard(state.cards, stored.s) ? stored.s : null,
-      had: targetFull(stored, state.cards) || !!(stored.f || stored.s)
+      porridge: visibleCard(state.cards, stored.p) ? stored.p : null,
+      smoothie: null,
+      stack: [stack.slot1 || null, stack.slot2 || null, stack.slot3 || null],
+      had: targetFull(stored, state.cards) || !!(stored.f || stored.p || stack.slot1 || stack.slot2 || stack.slot3)
     };
     paintPicker();
   }
@@ -514,11 +619,15 @@
     head.appendChild(title);
     host.appendChild(head);
     var cols = el("div", "deck-picker-cols");
-    cols.appendChild(pickerColumn("food", "Food", pick.food));
-    cols.appendChild(pickerColumn("smoothie", "Smoothies", pick.smoothie));
+    var track = el("div", "deck-picker-track" + (pick.shift ? " is-shift" : ""));
+    track.appendChild(pickerColumn("food", "Food", pick.food));
+    track.appendChild(pickerColumn("smoothie", "Smoothies", null));
+    track.appendChild(pickerColumn("porridge", "Porridge", pick.porridge));
+    cols.appendChild(track);
     host.appendChild(cols);
+    bindPickerTrack(cols, track);
     var bar = el("div", "deck-picker-bar");
-    var chosen = (pick.food ? 1 : 0) + (pick.smoothie ? 1 : 0);
+    var chosen = (pick.food ? 1 : 0) + (pick.porridge ? 1 : 0) + (pick.stack || []).filter(Boolean).length;
     if (pick.had) {
       var clear = el("button", "deck-clear", "Clear meal");
       clear.type = "button";
@@ -540,38 +649,88 @@
     var list = el("div", "deck-picker-list");
     var cards = sortedCards(deck);
     if (!cards.length) {
-      list.appendChild(el("p", "deck-empty", deck === "food"
-        ? "No food cards yet. Add some in the Food deck."
-        : "No smoothie cards yet. Add some in the Smoothies deck."));
+      var empty = deck === "porridge" ? "No porridge cards yet. Add some in the Porridge Deck."
+        : deck === "smoothie" ? "No smoothie cards yet"
+        : "No food cards yet. Add some in the Food Deck.";
+      list.appendChild(el("p", "deck-empty", empty));
     }
     cards.forEach(function (card) {
       var btn = el("button", "deck-pick");
       btn.type = "button";
       btn.setAttribute("data-deck-toggle", card.id);
       btn.setAttribute("data-deck-kind", deck);
-      var on = selected === card.id;
+      var stackAt = deck === "smoothie" && state.picker ? state.picker.stack.indexOf(card.id) : -1;
+      var on = deck === "smoothie" ? stackAt !== -1 : selected === card.id;
       btn.setAttribute("aria-pressed", on ? "true" : "false");
       if (on) btn.classList.add("is-on");
       var img = el("img", "deck-pick-img");
       img.alt = "";
-      var src = cardSrc(card, "thumb");
+      img.loading = "lazy";
+      img.decoding = "async";
+      var src = cardSrc(card, "full");
       if (src) img.src = src;
-      var name = el("span", "deck-pick-name", card.name || "Untitled card");
+      var name = el("span", "deck-pick-name", (stackAt >= 0 ? (stackAt + 1) + " · " : "") + (card.name || "Untitled card"));
       var tick = el("span", "deck-tick");
       tick.setAttribute("aria-hidden", "true");
       btn.appendChild(img);
       btn.appendChild(name);
       btn.appendChild(tick);
+      if (deck !== "smoothie") {
+        var flip = el("span", "deck-bar-btn" + (card.back_url ? "" : " is-muted"), card.back_url ? "Flip" : "No recipe back yet");
+        flip.setAttribute("data-deck-peek", card.id);
+        btn.appendChild(flip);
+      }
       list.appendChild(btn);
     });
     col.appendChild(list);
     return col;
   }
 
+  function bindPickerTrack(viewport, track) {
+    var startX = 0;
+    var startY = 0;
+    var dx = 0;
+    var dy = 0;
+    var axis = "";
+    var active = false;
+    viewport.addEventListener("pointerdown", function (event) {
+      if (event.button != null && event.button !== 0) return;
+      active = true;
+      axis = "";
+      startX = event.clientX;
+      startY = event.clientY;
+      dx = 0;
+      dy = 0;
+    });
+    viewport.addEventListener("pointermove", function (event) {
+      if (!active) return;
+      dx = event.clientX - startX;
+      dy = event.clientY - startY;
+      if (!axis && Math.hypot(dx, dy) > 6) axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      if (axis === "x") event.preventDefault();
+    }, { passive: false });
+    function finish() {
+      if (!active) return;
+      active = false;
+      if (axis !== "x" || Math.abs(dx) < 30) return;
+      var shift = dx < 0;
+      track.classList.toggle("is-shift", shift);
+      if (state.picker) state.picker.shift = shift;
+    }
+    viewport.addEventListener("pointerup", finish);
+    viewport.addEventListener("pointercancel", function () { active = false; });
+    viewport.addEventListener("wheel", function (event) {
+      if (Math.abs(event.deltaX) < 30 || Math.abs(event.deltaX) < Math.abs(event.deltaY)) return;
+      var shift = event.deltaX > 0;
+      track.classList.toggle("is-shift", shift);
+      if (state.picker) state.picker.shift = shift;
+    }, { passive: true });
+  }
+
   function openCard(id, from) {
     var card = cardById(state.cards, id);
     if (!card || card.hidden) return;
-    state.card = { id: id, from: from || "hub", editing: false };
+    state.card = { id: id, from: from || "hub", editing: false, face: "front", cycle: null, cycleAt: 0 };
     paintCard();
   }
 
@@ -605,6 +764,8 @@
     var tapY = 0;
     var tracking = false;
     var moved = false;
+    var originX = 0;
+    var originY = 0;
     hooks = hooks || {};
     stage.style.touchAction = "none";
     img.style.touchAction = "none";
@@ -647,6 +808,8 @@
       if (!tracking) {
         tracking = true;
         moved = false;
+        originX = event.clientX;
+        originY = event.clientY;
         clearChromeTimer();
       }
       if (pts.length >= 2) {
@@ -708,6 +871,9 @@
         }
         if (hooks.onTap) hooks.onTap();
         return;
+      }
+      if (view.scale <= 1 && point && Math.abs(point.x - originX) > 30 && Math.abs(point.x - originX) > Math.abs(point.y - originY) && hooks.onSwipe) {
+        hooks.onSwipe(point.x < originX ? 1 : -1);
       }
       if (hooks.onGestureEnd) hooks.onGestureEnd();
     }
@@ -784,37 +950,69 @@
     setTimeout(done, 340);
   }
 
+  function activeViewCard() {
+    var view = state.card;
+    if (!view) return null;
+    if (view.cycle && view.cycle.length) {
+      var id = view.cycle[view.cycleAt] || view.cycle[0];
+      return cardById(state.cards, id) || cardById(state.cards, view.id);
+    }
+    return cardById(state.cards, view.id);
+  }
+
+  function faceImage(card, face) {
+    var img = el("img", "deck-card-img");
+    img.alt = card.name || "";
+    img.draggable = false;
+    var src = face === "back" ? cardSrc(card, "back") : cardSrc(card, "full");
+    if (src) img.src = src;
+    return img;
+  }
+
   function paintCard() {
     var host = root.document.getElementById("deck-card");
-    var card = state.card && cardById(state.cards, state.card.id);
+    var card = activeViewCard();
     if (!host || !card) return;
     host.hidden = false;
     host.textContent = "";
     if (root.document.body) root.document.body.classList.add("is-card-open");
     var stage = el("div", "deck-card-stage");
-    var img = el("img", "deck-card-img");
-    img.alt = card.name || "";
-    img.draggable = false;
-    var thumb = cardSrc(card, "thumb");
-    var full = cardSrc(card, "full");
-    if (thumb) img.src = thumb;
-    if (full && full !== thumb) {
-      var preload = new Image();
-      preload.onload = function () { img.src = full; };
-      preload.src = full;
-    } else if (full) {
-      img.src = full;
-    }
-    stage.appendChild(img);
-    host.appendChild(stage);
-    var chrome = topBar(card);
-    host.appendChild(chrome);
-    bindImageZoom(stage, img, {
-      onTap: function () { revealChrome(host); },
-      onGestureEnd: function () {
-        if (!host.classList.contains("is-chrome-hidden")) armChrome(host);
+    var twoSided = card.deck !== "SMOOTHIE" && !(state.card.cycle && state.card.cycle.length);
+    var img;
+    if (twoSided) {
+      var flip = el("div", "deck-flip" + (state.card.face === "back" ? " is-flipped" : ""));
+      var inner = el("div", "deck-flip-inner");
+      var front = el("div", "deck-flip-face is-front");
+      var back = el("div", "deck-flip-face is-back");
+      var frontImg = faceImage(card, "front");
+      front.appendChild(frontImg);
+      if (card.back_url) back.appendChild(faceImage(card, "back"));
+      else {
+        var empty = el("button", "deck-back-empty", "Upload back");
+        empty.type = "button";
+        empty.setAttribute("data-deck-back", card.id);
+        back.appendChild(empty);
       }
-    });
+      inner.appendChild(front);
+      inner.appendChild(back);
+      flip.appendChild(inner);
+      stage.appendChild(flip);
+      img = state.card.face === "back" && card.back_url ? back.querySelector("img") : frontImg;
+    } else {
+      img = faceImage(card, "front");
+      stage.appendChild(img);
+    }
+    host.appendChild(stage);
+    host.appendChild(topBar(card));
+    if (img) {
+      bindImageZoom(stage, img, {
+        onTap: function () { revealChrome(host); },
+        onGestureEnd: function () {
+          if (!host.classList.contains("is-chrome-hidden")) armChrome(host);
+        },
+        onSwipe: function (dir) { stepCycle(dir); }
+      });
+    }
     host.classList.remove("is-chrome-hidden");
     if (state.card.editing && state.card.from === "deck") {
       var form = editSheet(card);
@@ -829,6 +1027,14 @@
     armChrome(host);
   }
 
+  function stepCycle(dir) {
+    var view = state.card;
+    if (!view || !view.cycle || view.cycle.length < 2) return;
+    view.cycleAt = (view.cycleAt + dir + view.cycle.length) % view.cycle.length;
+    view.id = view.cycle[view.cycleAt];
+    paintCard();
+  }
+
   function topBar(card) {
     var bar = el("div", "deck-topbar");
     bar.setAttribute("data-deck-chrome", "1");
@@ -838,9 +1044,35 @@
     close.setAttribute("data-deck-close", "card");
     bar.appendChild(close);
     var copy = el("div", "deck-topbar-copy");
-    copy.appendChild(el("p", "deck-card-name", card.name || "Untitled card"));
+    var label = card.name || "Untitled card";
+    if (state.card.cycle && state.card.cycle.length) {
+      var names = ["Morning", "Lunch", "Evening"];
+      label = (names[state.card.cycleAt] || "") + " · " + label;
+    }
+    copy.appendChild(el("p", "deck-card-name", label));
     copy.appendChild(el("p", "deck-card-meta", portionsLine(card)));
+    if (state.card.cycle && state.card.cycle.length) {
+      var dots = el("p", "deck-dots");
+      state.card.cycle.forEach(function (id, index) {
+        var dot = el("i", index === state.card.cycleAt ? "is-on" : "");
+        dots.appendChild(dot);
+      });
+      copy.appendChild(dots);
+    }
     bar.appendChild(copy);
+    if (card.deck !== "SMOOTHIE" && !(state.card.cycle && state.card.cycle.length) && !state.card.editing) {
+      var flip = el("button", "deck-bar-btn" + (card.back_url ? "" : " is-muted"), card.back_url ? "Flip" : "No recipe back yet");
+      flip.type = "button";
+      flip.setAttribute("data-deck-flip", card.id);
+      bar.appendChild(flip);
+    }
+    if (state.card.cycle && state.card.cycle.length > 1 && !state.card.editing) {
+      var next = el("button", "deck-bar-btn", "→");
+      next.type = "button";
+      next.setAttribute("aria-label", "Next card");
+      next.setAttribute("data-deck-next", "1");
+      bar.appendChild(next);
+    }
     if (state.card.from === "deck" && !state.card.editing) {
       var edit = el("button", "deck-bar-btn", "Edit");
       edit.type = "button";
@@ -926,7 +1158,8 @@
       mode: "fill",
       targetSlot: parts[1],
       food_id: stored.f || null,
-      smoothie_id: stored.s || null
+      porridge_id: stored.p || null,
+      stack: dayStack(parts[0])
     };
     paintCopy();
   }
@@ -1013,14 +1246,15 @@
     host.appendChild(go);
   }
 
-  function cacheSlot(date, slot, foodId, smoothieId) {
-    state.slots[date + "|" + slot] = { f: foodId || null, s: smoothieId || null };
+  function cacheSlot(date, meal, foodId, porridgeId, stackId) {
+    state.slots[date + "|" + meal] = { f: foodId || null, p: porridgeId || null, st: stackId || null };
     writeSlots();
   }
 
   function rememberRows(rows) {
     rows.forEach(function (row) {
-      cacheSlot(row.date_key, row.slot, row.food_id, row.smoothie_id);
+      var meal = row.meal || row.slot;
+      cacheSlot(row.date_key, meal, row.food_id, row.porridge_id, row.stack_id);
     });
   }
 
@@ -1029,60 +1263,76 @@
   }
 
   function loadCards() {
-    var base = baseUrl();
-    if (!base || !online()) return Promise.resolve(state.cards);
-    return root.fetch(base + "/rest/v1/nexus_cards?select=*&order=created_at.desc", { headers: authHeaders() })
-      .then(function (res) {
-        if (!res.ok) return state.cards;
-        return res.json().then(function (rows) {
-          if (Array.isArray(rows)) {
-            state.cards = rows;
-            writeCards();
-          }
-          return state.cards;
+    if (!api().base || !online() || typeof root.nexusFetch !== "function") return Promise.resolve(state.cards);
+    return root.nexusFetch("/cards").then(function (rows) {
+      if (Array.isArray(rows)) {
+        state.cards = rows;
+        writeCards();
+      }
+      return state.cards;
+    }).catch(function () { return state.cards; });
+  }
+
+  function loadStacks() {
+    if (!api().base || !online() || typeof root.nexusFetch !== "function") return Promise.resolve(state.stacks);
+    return root.nexusFetch("/stacks").then(function (rows) {
+      var next = {};
+      if (Array.isArray(rows)) {
+        rows.forEach(function (row) {
+          if (row && row.id) next[row.id] = row;
         });
-      })
-      .catch(function () { return state.cards; });
+      }
+      state.stacks = next;
+      writeStacks();
+      return state.stacks;
+    }).catch(function () { return state.stacks; });
   }
 
   function loadSlots() {
-    var base = baseUrl();
-    if (!base || !online()) return Promise.resolve(state.slots);
-    return root.fetch(base + "/rest/v1/nexus_slots?select=date_key,slot,food_id,smoothie_id,updated_at", { headers: authHeaders() })
-      .then(function (res) {
-        if (!res.ok) return state.slots;
-        return res.json().then(function (rows) {
-          if (!Array.isArray(rows)) return state.slots;
-          var next = {};
-          rows.forEach(function (row) {
-            next[row.date_key + "|" + row.slot] = { f: row.food_id || null, s: row.smoothie_id || null };
-          });
-          state.slots = next;
-          writeSlots();
-          return state.slots;
-        });
-      })
-      .catch(function () { return state.slots; });
+    if (!api().base || !online() || typeof root.nexusFetch !== "function") return Promise.resolve(state.slots);
+    var from = "2027-01-01";
+    var to = "2027-12-31";
+    var dirtySnapshot = {};
+    state.dirty.forEach(function (key) { dirtySnapshot[key] = state.slots[key]; });
+    return root.nexusFetch("/slots?from=" + from + "&to=" + to).then(function (rows) {
+      if (!Array.isArray(rows)) return state.slots;
+      var next = {};
+      rows.forEach(function (row) {
+        var meal = row.meal || row.slot;
+        next[row.date_key + "|" + meal] = { f: row.food_id || null, p: row.porridge_id || null, st: row.stack_id || null };
+      });
+      Object.keys(dirtySnapshot).forEach(function (key) {
+        if (dirtySnapshot[key]) next[key] = dirtySnapshot[key];
+      });
+      state.slots = next;
+      writeSlots();
+      return state.slots;
+    }).catch(function () { return state.slots; });
   }
 
   function upsertSlots(rows) {
-    var base = baseUrl();
-    if (!base || !online()) return Promise.reject(new Error("offline"));
-    return root.fetch(base + "/rest/v1/nexus_slots?on_conflict=date_key,slot", {
-      method: "POST",
-      headers: authHeaders({
-        "Content-Type": "application/json",
-        Prefer: "resolution=merge-duplicates,return=minimal"
-      }),
-      body: JSON.stringify(rows)
-    }).then(function (res) {
-      if (!res.ok) return res.text().then(function (text) {
-        var error = new Error("save");
-        error.status = res.status;
-        error.body = text;
-        throw error;
+    if (!api().base || !online() || typeof root.nexusFetch !== "function") return Promise.reject(new Error("offline"));
+    var chain = Promise.resolve();
+    rows.forEach(function (row) {
+      var meal = row.meal || row.slot;
+      chain = chain.then(function () {
+        return root.nexusFetch("/slots/" + row.date_key + "/" + meal, {
+          method: "PUT",
+          body: { food_id: row.food_id || null, porridge_id: row.porridge_id || null, stack_id: row.stack_id || null }
+        });
       });
-      return true;
+    });
+    return chain.then(function () { return true; });
+  }
+
+  function saveStackRow(stack) {
+    if (!stack || !stack.id) return Promise.resolve();
+    state.stacks[stack.id] = stack;
+    writeStacks();
+    if (!api().base || typeof root.nexusFetch !== "function") return Promise.resolve();
+    return root.nexusFetch("/stacks/" + encodeURIComponent(stack.id), {
+      method: "PUT",
+      body: { slot1: stack.slot1 || null, slot2: stack.slot2 || null, slot3: stack.slot3 || null }
     });
   }
 
@@ -1104,8 +1354,8 @@
     });
   }
 
-  function saveSlot(date, slot, foodId, smoothieId) {
-    return saveSlots([slotRow(date, slot, foodId, smoothieId)]);
+  function saveSlot(date, slot, foodId, porridgeId, stackId) {
+    return saveSlots([slotRow(date, slot, foodId, porridgeId, stackId)]);
   }
 
   function retryDirty() {
@@ -1113,7 +1363,7 @@
     var rows = state.dirty.map(function (key) {
       var parts = key.split("|");
       var stored = state.slots[key] || {};
-      return slotRow(parts[0], parts[1], stored.f || null, stored.s || null);
+      return slotRow(parts[0], parts[1], stored.f || null, stored.p || null, stored.st || null);
     });
     return upsertSlots(rows).then(function () {
       state.dirty = [];
@@ -1165,31 +1415,65 @@
     });
   }
 
-  function uploadBlob(path, blob) {
-    return root.fetch(baseUrl() + "/storage/v1/object/nexus-cards/" + path, {
-      method: "POST",
-      headers: authHeaders({ "Content-Type": blob.type || "application/octet-stream" }),
-      body: blob
-    }).then(function (res) {
-      if (!res.ok) return res.text().then(function (text) {
-        var error = new Error(setupFailure(res.status, text) ? "setup" : "upload");
-        throw error;
+  function prepareImage(file) {
+    if (!file || file.size <= 10 * 1024 * 1024) return Promise.resolve(file);
+    return root.createImageBitmap(file).then(function (bitmap) {
+      var longSide = Math.max(bitmap.width, bitmap.height);
+      return drawScaled(bitmap, longSide, "image/webp", 0.9).then(function (blob) {
+        bitmap.close && bitmap.close();
+        if (!blob) throw new Error("too-heavy");
+        return blob;
       });
     });
+  }
+
+  function uploadBlob(blob, name) {
+    if (typeof root.nexusFetch !== "function") return Promise.reject(new Error("offline"));
+    var type = (blob && blob.type) || "image/jpeg";
+    var path = "/upload" + (name ? "?name=" + encodeURIComponent(name) : "");
+    return root.nexusFetch(path, { method: "POST", raw: blob, contentType: type });
   }
 
   function failNote(text) {
     showToast(text);
   }
 
-  function uploadOne(file, deck) {
-    var name = tidyName(file && file.name);
-    if (!file || String(file.type || "").indexOf("image/") !== 0) {
-      var label = (file && file.name) || "file";
-      failNote("*" + label + "* isn't an image. Pick a PNG, JPG or WebP card.");
+  function extOf(file) {
+    var match = /\.([a-z0-9]+)$/i.exec((file && file.name) || "");
+    var ext = match ? match[1].toLowerCase() : "";
+    if (ext === "jpeg") return "jpg";
+    if (ext === "jpg" || ext === "png" || ext === "webp" || ext === "gif") return ext;
+    if (file && file.type === "image/webp") return "webp";
+    if (file && file.type === "image/png") return "png";
+    return "jpg";
+  }
+
+  function rememberCard(saved) {
+    if (!saved) return;
+    var at = -1;
+    state.cards.forEach(function (card, index) { if (card.id === saved.id) at = index; });
+    if (at >= 0) state.cards[at] = saved;
+    else state.cards.unshift(saved);
+    writeCards();
+    renderDeck(deckSlug(saved.deck));
+    paintAll();
+  }
+
+  function createCard(fields) {
+    return root.nexusFetch("/cards", { method: "POST", body: fields }).then(function (saved) {
+      rememberCard(saved);
+      return saved;
+    });
+  }
+
+  function uploadPair(front, back, deck, fields) {
+    var code = deckCode(deck);
+    var name = (fields && fields.name) || tidyName(front && front.name);
+    if (!front || String(front.type || "").indexOf("image/") !== 0) {
+      failNote("*" + ((front && front.name) || "file") + "* isn't an image. Pick a PNG, JPG or WebP card.");
       return Promise.resolve();
     }
-    if (!baseUrl()) {
+    if (!api().base || typeof root.nexusFetch !== "function") {
       failNote("Card storage isn't set up yet");
       return Promise.resolve();
     }
@@ -1197,47 +1481,30 @@
       failNote("Couldn't add " + name + ": no connection. Try again.");
       return Promise.resolve();
     }
-    return resizeToWebp(file).then(function (images) {
-      var id = (root.crypto && root.crypto.randomUUID) ? root.crypto.randomUUID() : fallbackId();
-      var path = deck + "/" + id + "." + images.ext;
-      var thumb = deck + "/" + id + "_t." + images.ext;
-      return uploadBlob(path, images.full).then(function () {
-        return uploadBlob(thumb, images.thumb);
-      }).then(function () {
-        var row = {
-          id: id,
-          deck: deck,
-          name: name,
-          veg: 0,
-          fruit: 0,
-          path: path,
-          thumb: thumb,
-          hidden: false,
-          created_at: new Date().toISOString()
-        };
-        return root.fetch(baseUrl() + "/rest/v1/nexus_cards", {
-          method: "POST",
-          headers: authHeaders({ "Content-Type": "application/json", Prefer: "return=representation" }),
-          body: JSON.stringify(row)
-        }).then(function (res) {
-          if (!res.ok) return res.text().then(function (text) {
-            throw new Error(setupFailure(res.status, text) ? "setup" : "upload");
-          });
-          return res.json().then(function (body) {
-            var saved = Array.isArray(body) ? body[0] : row;
-            state.cards.unshift(saved || row);
-            writeCards();
-            renderDeck(deck);
-            return saved;
+    return prepareImage(front).then(function (frontBlob) {
+      return uploadBlob(frontBlob, "front." + extOf(frontBlob.name ? frontBlob : front)).then(function (frontUp) {
+        var backJob = back ? prepareImage(back).then(function (backBlob) {
+          return uploadBlob(backBlob, "back." + extOf(back));
+        }) : Promise.resolve(null);
+        return backJob.then(function (backUp) {
+          return createCard({
+            deck: (fields && fields.deck) || code,
+            name: name,
+            front_key: frontUp.key,
+            back_key: backUp ? backUp.key : null,
+            veg: fields && fields.veg != null ? fields.veg : 0,
+            fruit: fields && fields.fruit != null ? fields.fruit : 0,
+            favourite: 0
           });
         });
       });
-    }).catch(function (err) {
-      if (err && err.message === "too-big") failNote("Image is over 6000 px. Pick a smaller card.");
-      else if (err && err.message === "too-heavy") failNote("Image is still too large after compression.");
-      else if (err && err.message === "setup") failNote("Card storage isn't set up yet");
-      else failNote("Couldn't add " + name + ": no connection. Try again.");
+    }).catch(function () {
+      failNote("Couldn't add " + name + ": no connection. Try again.");
     });
+  }
+
+  function uploadOne(file, deck) {
+    return uploadPair(file, null, deck);
   }
 
   function fallbackId() {
@@ -1257,27 +1524,28 @@
   }
 
   function patchCard(card, fields) {
-    var next = {
-      name: fields.name,
-      veg: fields.veg,
-      fruit: fields.fruit,
-      hidden: !!fields.hidden
-    };
-    if (!baseUrl() || !online()) return Promise.reject(new Error("offline"));
-    return root.fetch(baseUrl() + "/rest/v1/nexus_cards?id=eq." + encodeURIComponent(card.id), {
-      method: "PATCH",
-      headers: authHeaders({ "Content-Type": "application/json", Prefer: "return=representation" }),
-      body: JSON.stringify(next)
-    }).then(function (res) {
-      if (!res.ok) return res.text().then(function (text) {
-        throw new Error(setupFailure(res.status, text) ? "setup" : "save");
-      });
-      card.name = next.name;
-      card.veg = next.veg;
-      card.fruit = next.fruit;
-      card.hidden = next.hidden;
+    if (!api().base || !online() || typeof root.nexusFetch !== "function") return Promise.reject(new Error("offline"));
+    var body = {};
+    if (fields.name != null) body.name = fields.name;
+    if (fields.veg != null) body.veg = fields.veg;
+    if (fields.fruit != null) body.fruit = fields.fruit;
+    if (fields.back_key != null) body.back_key = fields.back_key;
+    return root.nexusFetch("/cards/" + encodeURIComponent(card.id), {
+      method: "PUT",
+      body: body
+    }).then(function (saved) {
+      var next = saved || card;
+      if (fields.name != null) card.name = next.name || fields.name;
+      if (fields.veg != null) card.veg = next.veg != null ? next.veg : fields.veg;
+      if (fields.fruit != null) card.fruit = next.fruit != null ? next.fruit : fields.fruit;
+      if (saved) {
+        card.front_url = saved.front_url || card.front_url;
+        card.back_url = saved.back_url || card.back_url;
+        card.back_key = saved.back_key || card.back_key;
+      }
       writeCards();
       paintAll();
+      return card;
     });
   }
 
@@ -1309,7 +1577,13 @@
   function hideCard(card) {
     var ok = root.confirm ? root.confirm("Remove " + (card.name || "card") + "? Meals using it will show empty.") : true;
     if (!ok) return;
-    patchCard(card, { name: card.name, veg: card.veg, fruit: card.fruit, hidden: true }).then(function () {
+    if (!api().base || typeof root.nexusFetch !== "function") {
+      showToast("Couldn't add " + (card.name || "card") + ": no connection. Try again.");
+      return;
+    }
+    root.nexusFetch("/cards/" + encodeURIComponent(card.id), { method: "DELETE" }).then(function () {
+      state.cards = state.cards.filter(function (item) { return item.id !== card.id; });
+      writeCards();
       closeOverlays();
       paintAll();
     }).catch(function () {
@@ -1335,13 +1609,18 @@
       var result = planCopy(state.slots, {
         date: copy.date,
         food_id: copy.food_id,
-        smoothie_id: copy.smoothie_id
+        porridge_id: copy.porridge_id,
+        stack: copy.stack
       }, days, copy.targetSlot, copy.mode, map);
       if (copy.mode === "overwrite" && result.replaced > 0) {
         var confirmed = root.confirm ? root.confirm("Replace " + result.replaced + " meals? This can't be undone.") : true;
         if (!confirmed) return;
       }
-      return saveSlots(result.rows).then(function (saved) {
+      var stacks = Promise.resolve();
+      (result.stacks || []).forEach(function (stack) {
+        stacks = stacks.then(function () { return saveStackRow(stack); });
+      });
+      return stacks.then(function () { return saveSlots(result.rows); }).then(function (saved) {
         if (saved.ok) showToast(copyToast(result, copy.mode));
         closeOverlays();
         state.copy = null;
@@ -1357,7 +1636,7 @@
   }
 
   function onClick(event) {
-    var target = event.target.closest("[data-deck-close], [data-deck-pick], [data-deck-view], [data-deck-open], [data-deck-copy], [data-deck-toggle], [data-deck-save], [data-deck-clear], [data-deck-edit], [data-deck-hide], [data-deck-copy-month], [data-deck-day], [data-deck-chip], [data-deck-mode], [data-deck-copy-go], [data-deck-step], [data-deck-cancel], #hub-month-prev, #hub-month-next");
+    var target = event.target.closest("[data-deck-close], [data-deck-pick], [data-deck-view], [data-deck-open], [data-deck-copy], [data-deck-toggle], [data-deck-save], [data-deck-clear], [data-deck-edit], [data-deck-hide], [data-deck-copy-month], [data-deck-day], [data-deck-chip], [data-deck-mode], [data-deck-copy-go], [data-deck-step], [data-deck-cancel], [data-deck-flip], [data-deck-next], [data-deck-peek], [data-deck-back], [data-deck-choose-back], [data-deck-upload-save], #hub-month-prev, #hub-month-next");
     if (!target) return;
     if (target.id === "hub-month-prev") { shiftMonth(-1); return; }
     if (target.id === "hub-month-next") { shiftMonth(1); return; }
@@ -1390,8 +1669,38 @@
       return;
     }
     if (target.hasAttribute("data-deck-pick")) { openPicker(target.getAttribute("data-deck-pick")); return; }
+    if (target.hasAttribute("data-deck-flip") && state.card) {
+      state.card.face = state.card.face === "back" ? "front" : "back";
+      paintCard();
+      return;
+    }
+    if (target.hasAttribute("data-deck-next")) { stepCycle(1); return; }
+    if (target.hasAttribute("data-deck-peek")) {
+      openCard(target.getAttribute("data-deck-peek"), "deck");
+      if (state.card) {
+        state.card.face = "back";
+        paintCard();
+      }
+      return;
+    }
+    if (target.hasAttribute("data-deck-back") || target.hasAttribute("data-deck-choose-back")) {
+      state.fileRole = "back";
+      var fileInput = root.document.getElementById("deck-file");
+      if (fileInput) fileInput.click();
+      return;
+    }
+    if (target.hasAttribute("data-deck-upload-save")) { commitUpload(); return; }
     if (target.hasAttribute("data-deck-view")) {
       openCard(target.getAttribute("data-deck-view"), target.getAttribute("data-deck-from") || "hub");
+      var cycleDate = target.getAttribute("data-deck-cycle");
+      if (cycleDate && state.card) {
+        var cycleStack = dayStack(cycleDate);
+        if (cycleStack) {
+          state.card.cycle = [cycleStack.slot1, cycleStack.slot2, cycleStack.slot3].filter(Boolean);
+          state.card.cycleAt = Math.max(0, state.card.cycle.indexOf(state.card.id));
+          paintCard();
+        }
+      }
       return;
     }
     if (target.hasAttribute("data-deck-open")) { openCard(target.getAttribute("data-deck-open"), "deck"); return; }
@@ -1401,21 +1710,20 @@
       picked.date = state.picker.date;
       picked.slot = state.picker.slot;
       picked.had = state.picker.had;
+      picked.shift = state.picker.shift;
       state.picker = picked;
       paintPicker();
       return;
     }
     if (target.hasAttribute("data-deck-save") && state.picker) {
-      var pick = state.picker;
-      saveSlot(pick.date, pick.slot, pick.food, pick.smoothie).then(function () {
+      commitPicker(state.picker).then(function () {
         closeOverlays();
         paintAll();
       });
       return;
     }
     if (target.hasAttribute("data-deck-clear") && state.picker) {
-      var clearing = state.picker;
-      saveSlot(clearing.date, clearing.slot, null, null).then(function () {
+      clearPicker(state.picker).then(function () {
         closeOverlays();
         paintAll();
       });
@@ -1467,7 +1775,7 @@
 
   function onKey(event) {
     if (event.key !== "Escape" || !root.document) return;
-    var open = ["deck-card", "deck-picker", "deck-copy"].some(function (id) {
+    var open = ["deck-card", "deck-picker", "deck-copy", "deck-upload"].some(function (id) {
       var node = root.document.getElementById(id);
       return node && !node.hidden;
     });
@@ -1478,12 +1786,209 @@
     closeOverlays();
   }
 
+  function pairFiles(list) {
+    var fronts = {};
+    var backs = {};
+    var loose = [];
+    var paired = false;
+    list.forEach(function (file) {
+      var front = /^(.*)_FRONT\./i.exec(file.name || "");
+      var back = /^(.*)_BACK\./i.exec(file.name || "");
+      if (front) { fronts[front[1].toLowerCase()] = file; paired = true; }
+      else if (back) { backs[back[1].toLowerCase()] = file; paired = true; }
+      else loose.push(file);
+    });
+    var pairs = [];
+    Object.keys(fronts).forEach(function (key) {
+      pairs.push({ front: fronts[key], back: backs[key] || null });
+      delete backs[key];
+    });
+    Object.keys(backs).forEach(function (key) { loose.push(backs[key]); });
+    return { pairs: pairs, loose: loose, paired: paired };
+  }
+
+  function paintUpload() {
+    var host = root.document.getElementById("deck-upload");
+    var up = state.upload;
+    if (!host || !up) return;
+    host.hidden = false;
+    host.textContent = "";
+    var head = el("div", "deck-overlay-head");
+    var close = el("button", "deck-x", "×");
+    close.type = "button";
+    close.setAttribute("data-deck-close", "upload");
+    close.setAttribute("aria-label", "Close");
+    head.appendChild(close);
+    head.appendChild(el("h2", "deck-overlay-title", up.deck === "SMOOTHIE" ? "Smoothie card" : "Card"));
+    host.appendChild(head);
+    var flip = el("div", "deck-flip deck-upload-card" + (up.flipped ? " is-flipped" : ""));
+    var inner = el("div", "deck-flip-inner");
+    var front = el("div", "deck-flip-face is-front");
+    var img = el("img");
+    img.alt = "";
+    if (up.front && root.URL && root.URL.createObjectURL) img.src = root.URL.createObjectURL(up.front);
+    front.appendChild(img);
+    var back = el("div", "deck-flip-face is-back");
+    if (up.back && root.URL && root.URL.createObjectURL) {
+      var backImg = el("img");
+      backImg.alt = "";
+      backImg.src = root.URL.createObjectURL(up.back);
+      back.appendChild(backImg);
+    } else back.appendChild(el("p", "deck-back-empty", up.deck === "SMOOTHIE" ? "Front only" : "Back"));
+    inner.appendChild(front);
+    inner.appendChild(back);
+    flip.appendChild(inner);
+    host.appendChild(flip);
+    var line = el("input", "deck-front-line");
+    line.type = "text";
+    line.value = up.line || "";
+    line.placeholder = "NAME | FOOD | veg | fruit";
+    line.setAttribute("data-deck-line", "1");
+    line.setAttribute("aria-label", "Paste line");
+    host.appendChild(line);
+    if (up.deck !== "SMOOTHIE") {
+      var choose = el("button", "deck-bar-btn", up.back ? "Change back" : "Choose back");
+      choose.type = "button";
+      choose.setAttribute("data-deck-choose-back", "1");
+      host.appendChild(choose);
+    }
+    var save = el("button", "deck-save", "Save");
+    save.type = "button";
+    save.setAttribute("data-deck-upload-save", "1");
+    host.appendChild(save);
+    if (!up.flipped) {
+      root.requestAnimationFrame(function () {
+        up.flipped = true;
+        flip.classList.add("is-flipped");
+      });
+    }
+  }
+
+  function beginUpload(file, deck, back) {
+    if (!file || String(file.type || "").indexOf("image/") !== 0) {
+      failNote("*" + ((file && file.name) || "file") + "* isn't an image. Pick a PNG, JPG or WebP card.");
+      return;
+    }
+    state.upload = { deck: deckCode(deck), front: file, back: back || null, line: "", flipped: false };
+    paintUpload();
+  }
+
+  function commitUpload() {
+    var up = state.upload;
+    if (!up || !up.front) return Promise.resolve();
+    var parsed = parseLine(up.line);
+    var fields = { name: tidyName(up.front.name), deck: up.deck, veg: 0, fruit: 0 };
+    if (parsed) {
+      if (parsed.deck !== up.deck) {
+        var ok = root.confirm ? root.confirm("Save this card in " + parsed.deck + "?") : true;
+        if (ok) fields.deck = parsed.deck;
+      }
+      fields.name = parsed.name;
+      fields.veg = parsed.veg;
+      fields.fruit = parsed.fruit;
+    }
+    var back = fields.deck === "SMOOTHIE" ? null : up.back;
+    return uploadPair(up.front, back, deckSlug(fields.deck), fields).then(function () {
+      closeOverlays();
+    });
+  }
+
+  function attachBack(id, file) {
+    var card = cardById(state.cards, id);
+    if (!card || !file) return Promise.resolve();
+    return prepareImage(file).then(function (blob) {
+      return uploadBlob(blob, "back." + extOf(file));
+    }).then(function (uploaded) {
+      return patchCard(card, { back_key: uploaded.key });
+    }).then(function () {
+      if (state.card) paintCard();
+    }).catch(function () {
+      failNote("Couldn't add the back: no connection. Try again.");
+    });
+  }
+
+  function commitPicker(pick) {
+    var slots = pick.stack || [null, null, null];
+    var id = "day-" + pick.date;
+    var has = slots.some(Boolean);
+    var existed = !!state.stacks[id];
+    var job = Promise.resolve();
+    if (has || existed) {
+      job = saveStackRow({ id: id, slot1: slots[0] || null, slot2: slots[1] || null, slot3: slots[2] || null }).then(function () {
+        if (!has && typeof root.nexusFetch === "function") {
+          return root.nexusFetch("/stacks/" + encodeURIComponent(id), { method: "DELETE" }).catch(function () {}).then(function () {
+            delete state.stacks[id];
+            writeStacks();
+          });
+        }
+      });
+    }
+    return job.then(function () {
+      var rows = SLOT_ORDER.map(function (meal) {
+        var cur = state.slots[pick.date + "|" + meal] || {};
+        return slotRow(
+          pick.date,
+          meal,
+          meal === pick.slot ? pick.food : cur.f,
+          meal === pick.slot ? pick.porridge : cur.p,
+          has ? id : (cur.st || null)
+        );
+      });
+      return saveSlots(rows);
+    });
+  }
+
+  function clearPicker(pick) {
+    var stack = dayStack(pick.date);
+    var job = Promise.resolve();
+    if (stack) {
+      var key = pick.slot === "lunch" ? "slot2" : pick.slot === "dinner" ? "slot3" : "slot1";
+      stack[key] = null;
+      job = saveStackRow(stack);
+    }
+    return job.then(function () {
+      var still = stack && (stack.slot1 || stack.slot2 || stack.slot3);
+      return saveSlot(pick.date, pick.slot, null, null, still ? stack.id : null);
+    });
+  }
+
   function onFiles(event) {
     var input = event.target;
     if (!input || input.id !== "deck-file") return;
-    var deck = state.addDeck === "smoothie" ? "smoothie" : "food";
-    var files = input.files;
-    uploadFiles(files, deck).then(function () { input.value = ""; });
+    var files = Array.prototype.slice.call(input.files || []);
+    input.value = "";
+    if (state.fileRole === "back") {
+      state.fileRole = "front";
+      var backFile = files[0];
+      if (state.upload) {
+        state.upload.back = backFile || null;
+        state.upload.flipped = true;
+        paintUpload();
+        return;
+      }
+      if (state.card) attachBack(state.card.id, backFile);
+      return;
+    }
+    var grouped = pairFiles(files);
+    if (grouped.paired && grouped.pairs.length) {
+      var chain = Promise.resolve();
+      grouped.pairs.forEach(function (pair) {
+        chain = chain.then(function () { return uploadPair(pair.front, pair.back, state.addDeck); });
+      });
+      grouped.loose.forEach(function (file) {
+        chain = chain.then(function () { return uploadOne(file, state.addDeck); });
+      });
+      return;
+    }
+    if (files.length === 2 && deckCode(state.addDeck) !== "SMOOTHIE") {
+      beginUpload(files[0], state.addDeck, files[1]);
+      return;
+    }
+    if (files.length === 1) {
+      beginUpload(files[0], state.addDeck);
+      return;
+    }
+    uploadFiles(files, state.addDeck);
   }
 
   function wire() {
@@ -1504,8 +2009,41 @@
     root.document.addEventListener("pointerdown", function (event) {
       var add = event.target.closest("[data-deck-add]");
       if (!add) return;
-      state.addDeck = add.getAttribute("data-deck-add") === "smoothie" ? "smoothie" : "food";
+      var raw = add.getAttribute("data-deck-add");
+      state.addDeck = raw === "smoothie" ? "smoothie" : raw === "porridge" ? "porridge" : "food";
+      state.fileRole = "front";
     }, true);
+    root.document.addEventListener("input", function (event) {
+      if (!state.upload || !event.target || !event.target.hasAttribute("data-deck-line")) return;
+      state.upload.line = event.target.value;
+    });
+    root.document.addEventListener("pointerup", function (event) {
+      if (!wire.stackDrag) return;
+      var from = wire.stackDrag;
+      wire.stackDrag = null;
+      var slot = event.target.closest("[data-deck-stack-from]");
+      if (!slot) return;
+      var to = +slot.getAttribute("data-deck-stack-from");
+      if (to === from.index) return;
+      var stack = dayStack(from.date) || { id: "day-" + from.date, slot1: null, slot2: null, slot3: null };
+      var keys = ["slot1", "slot2", "slot3"];
+      var held = stack[keys[from.index]];
+      stack[keys[from.index]] = stack[keys[to]];
+      stack[keys[to]] = held;
+      stack.id = "day-" + from.date;
+      saveStackRow(stack).then(function () {
+        var rows = SLOT_ORDER.map(function (meal) {
+          var cur = state.slots[from.date + "|" + meal] || {};
+          return slotRow(from.date, meal, cur.f, cur.p, stack.id);
+        });
+        return saveSlots(rows);
+      }).then(paintAll);
+    });
+    root.document.addEventListener("pointerdown", function (event) {
+      var slot = event.target.closest("[data-deck-stack-from]");
+      if (!slot) return;
+      wire.stackDrag = { index: +slot.getAttribute("data-deck-stack-from"), date: slot.getAttribute("data-stack-date") };
+    });
     var input = root.document.getElementById("deck-file");
     if (input) input.addEventListener("change", onFiles);
   }
@@ -1520,7 +2058,7 @@
     if (result && result.toast) showToast(result.toast);
     readCaches();
     wire();
-    loadCards().then(loadSlots).then(retryDirty).then(paintAll);
+    loadCards().then(loadStacks).then(loadSlots).then(retryDirty).then(paintAll);
   }
 
   root.NexusDeck = {
@@ -1529,6 +2067,7 @@
     stepPortion: stepPortion,
     portionsLine: portionsLine,
     fiveADay: fiveADay,
+    parseLine: parseLine,
     formatPortions: formatPortions,
     reducePick: reducePick,
     slotHalf: slotHalf,
