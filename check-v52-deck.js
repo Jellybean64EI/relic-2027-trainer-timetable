@@ -9,7 +9,7 @@ function assert(cond, msg) { if (!cond) fail(msg); }
 
 const html = fs.readFileSync("index.html", "utf8");
 const deckSrc = fs.readFileSync("deck.js", "utf8");
-["data/schedule.js", "data/nutrition/schedule.js", "food.js", "data/supabaseConfig.js", "app.js"].forEach(function (file) {
+["data/schedule.js", "data/nutrition/schedule.js", "food.js", "data/nexusConfig.js", "app.js"].forEach(function (file) {
   if (html.indexOf('<script src="' + file + "?v=") === -1) fail("missing script " + file);
 });
 ["data/nutrition/meals.js", "data/nutrition/extractions.js", "data/food/pack001.js"].forEach(function (file) {
@@ -19,7 +19,8 @@ const accept = html.split('accept="image/*,android/allowDrive"').length - 1;
 assert(accept === 1, "accept count " + accept);
 assert(deckSrc.indexOf("relic-videos") === -1, "deck touches relic-videos");
 assert(deckSrc.indexOf("nexus_food_lock") === -1, "deck touches lock keys");
-assert(!/removeItem|relic_completions/.test(deckSrc), "deck deletes storage or ticks");
+assert(deckSrc.indexOf("relic_completions") === -1, "deck touches ticks");
+assert(deckSrc.indexOf("nexus_cards_cache_v1") !== -1, "old card cache is dropped");
 assert(deckSrc.indexOf("stripBrands") !== -1, "names skip stripBrands");
 assert(!/<footer|n-mark|--c-surface|fbf3e4/.test(html + "\n" + deckSrc + "\n" + fs.readFileSync("styles.css", "utf8")), "cream or footer");
 
@@ -50,7 +51,7 @@ assert(api.stepPortion(9.5, 1) === 10, "stepper up");
 assert(api.stepPortion(10, 1) === 10, "stepper ceiling");
 assert(api.stepPortion(1, -1) === 0.5, "stepper down");
 assert(api.clampPortion(10.5) === 10 && api.clampPortion(-1) === 0 && api.clampPortion(2.25) === 2.5, "clamp portions");
-assert(deckSrc.indexOf("parseLine") === -1, "paste parser removed");
+assert(typeof api.parseLine === "function", "paste line parser");
 assert(deckSrc.indexOf("Use 4 parts") === -1, "paste error removed");
 assert(deckSrc.indexOf("downloadBackup") === -1, "backup download removed");
 assert(deckSrc.indexOf("deck-paste") === -1, "paste host removed");
@@ -99,7 +100,7 @@ const slots = {};
   slots[date + "|lunch"] = { f: "food1", s: null };
 });
 slots["2027-01-07|lunch"] = { f: "gone", s: null };
-const source = { date: "2027-01-03", food_id: "food1", smoothie_id: "sm1" };
+const source = { date: "2027-01-03", food_id: "food1", porridge_id: "pr1" };
 const fill = api.planCopy(slots, source, days.concat(["2027-01-03"]), "lunch", "fill", cards, "2027-01-01T00:00:00.000Z");
 assert(fill.rows.length === 9 && fill.skipped === 3, "fill-only " + fill.rows.length + " " + fill.skipped);
 assert(fill.rows.every(function (row) { return row.date_key !== "2027-01-03"; }), "source day is not a target");
@@ -108,10 +109,10 @@ const over = api.planCopy(slots, source, days, "lunch", "overwrite", cards, "202
 assert(over.rows.length === 12 && over.replaced === 3, "overwrite " + over.rows.length + " " + over.replaced);
 over.rows.forEach(function (row) {
   assert(Object.prototype.hasOwnProperty.call(row, "food_id"), "row food_id");
-  assert(Object.prototype.hasOwnProperty.call(row, "smoothie_id"), "row smoothie_id");
+  assert(Object.prototype.hasOwnProperty.call(row, "porridge_id"), "row porridge_id");
   assert(row.updated_at === "2027-01-01T00:00:00.000Z", "row updated_at");
-  assert(row.food_id === "food1" && row.smoothie_id === "sm1", "source pair");
-  assert(typeof row.food_id !== "object" && typeof row.smoothie_id !== "object", "one id each");
+  assert(row.food_id === "food1" && row.porridge_id === "pr1", "source pair");
+  assert(typeof row.food_id !== "object" && typeof row.porridge_id !== "object", "one id each");
 });
 
 function memory(seed, opts) {
@@ -197,4 +198,7 @@ if (fails.length) {
   console.error(fails.length + " failed");
   process.exit(1);
 }
-console.log("OK v55 deck");
+const pasted = api.parseLine("Chilli Bowl | FOOD | 3 | 0");
+assert(pasted && pasted.name === "Chilli Bowl" && pasted.deck === "FOOD" && pasted.veg === 3 && pasted.fruit === 0, "paste line");
+assert(deckSrc.indexOf("w44eim") === -1, "key stays in config");
+console.log("OK v56 deck");

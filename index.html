@@ -6,10 +6,10 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v55" />
+  <meta name="relic-build" content="v56" />
   <title>Nexus</title>
-  <link rel="manifest" href="manifest.webmanifest?v=v55" />
-  <link rel="stylesheet" href="styles.css?v=v55" />
+  <link rel="manifest" href="manifest.webmanifest?v=v56" />
+  <link rel="stylesheet" href="styles.css?v=v56" />
 </head>
 <body>
   <div class="wrap">
@@ -86,8 +86,16 @@
       </section>
       <section id="deck-root-smoothie" data-os-panel="smoothies" hidden>
         <div class="deck-head">
-          <h2 data-deck-count>Smoothies · 0 cards</h2>
+          <h2 data-deck-count>All Smoothies · 0 cards</h2>
           <label class="deck-add" for="deck-file" data-deck-add="smoothie">+ Add cards</label>
+        </div>
+        <div id="deck-stack-host"></div>
+        <div data-deck-grid class="deck-grid"></div>
+      </section>
+      <section id="deck-root-porridge" data-os-panel="porridge" hidden>
+        <div class="deck-head">
+          <h2 data-deck-count>Porridge · 0 cards</h2>
+          <label class="deck-add" for="deck-file" data-deck-add="porridge">+ Add cards</label>
         </div>
         <div data-deck-grid class="deck-grid"></div>
       </section>
@@ -287,10 +295,13 @@
           </div>
         </div>
         <button type="button" class="nav-row drawer-door" data-os-door="food">
-          <span class="nav-row-label">Food deck</span>
+          <span class="nav-row-label">Food Deck</span>
         </button>
         <button type="button" class="nav-row drawer-door" data-os-door="smoothies">
-          <span class="nav-row-label">Smoothies deck</span>
+          <span class="nav-row-label">Smoothies Deck</span>
+        </button>
+        <button type="button" class="nav-row drawer-door" data-os-door="porridge">
+          <span class="nav-row-label">Porridge Deck</span>
         </button>
       </div>
       <div id="account-banner" class="account-banner" hidden>
@@ -307,6 +318,7 @@
   <div id="deck-picker" class="deck-overlay" role="dialog" aria-modal="true" aria-label="Meal picker" hidden></div>
   <div id="deck-card" class="deck-overlay" role="dialog" aria-modal="true" aria-label="Card" hidden></div>
   <div id="deck-copy" class="deck-overlay" role="dialog" aria-modal="true" aria-label="Copy meal" hidden></div>
+  <div id="deck-upload" class="deck-overlay" role="dialog" aria-modal="true" aria-label="Add card" hidden></div>
   <p id="deck-toast" class="deck-toast" role="status" hidden></p>
 
   <div id="relic-deck-park" aria-hidden="true">
@@ -372,19 +384,19 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v55"></script>
-  <script src="data/precondition.js?v=v55"></script>
-  <script src="data/upperBody.js?v=v55"></script>
-  <script src="data/citations.js?v=v55"></script>
-  <script src="data/forensic.js?v=v55"></script>
-  <script src="data/cues/cues.js?v=v55"></script>
-  <script src="data/forensicClips.js?v=v55"></script>
-  <script src="data/videoArchive.js?v=v55"></script>
-  <script src="data/nutrition/shop.js?v=v55"></script>
-  <script src="data/nutrition/schedule.js?v=v55"></script>
-  <script src="food.js?v=v55"></script>
-  <script src="data/supabaseConfig.js?v=v55"></script>
-  <script src="deck.js?v=v55"></script>
-  <script src="app.js?v=v55"></script>
+  <script src="data/schedule.js?v=v56"></script>
+  <script src="data/precondition.js?v=v56"></script>
+  <script src="data/upperBody.js?v=v56"></script>
+  <script src="data/citations.js?v=v56"></script>
+  <script src="data/forensic.js?v=v56"></script>
+  <script src="data/cues/cues.js?v=v56"></script>
+  <script src="data/forensicClips.js?v=v56"></script>
+  <script src="data/videoArchive.js?v=v56"></script>
+  <script src="data/nutrition/shop.js?v=v56"></script>
+  <script src="data/nutrition/schedule.js?v=v56"></script>
+  <script src="food.js?v=v56"></script>
+  <script src="data/nexusConfig.js?v=v56"></script>
+  <script src="deck.js?v=v56"></script>
+  <script src="app.js?v=v56"></script>
 </body>
 </html>

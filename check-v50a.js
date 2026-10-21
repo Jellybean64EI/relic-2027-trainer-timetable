@@ -15,7 +15,7 @@ assert((hub.match(/<button/g) || []).length === 4, "H2 button count");
 assert((hub.match(/role="tab"/g) || []).length === 2, "H2 tabs");
 assert((hub.match(/class="hub-week"/g) || []).length === 0, "H2 weeks");
 assert(hub.indexOf('id="hub-month-label"') !== -1, "H2 month stepper");
-assert(html.indexOf(">Food deck<") !== -1 && html.indexOf(">Smoothies deck<") !== -1, "cabin deck labels");
+assert(html.indexOf(">Food Deck<") !== -1 && html.indexOf(">Smoothies Deck<") !== -1 && html.indexOf(">Porridge Deck<") !== -1, "cabin deck labels");
 assert((hub.match(/tabindex=/g) || []).length === 2, "H2 tabindex");
 assert(hub.indexOf("<a ") === -1, "H2 links");
 assert(hub.indexOf("<svg") === -1, "H4 svg");

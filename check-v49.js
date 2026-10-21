@@ -23,13 +23,13 @@ if (/M5 23V5/.test(html)) fail("N path remains");
   if (html.indexOf(word) !== -1) fail("visible html still has " + word);
 });
 const doors = [];
-const doorRe = /data-os-door="(training|food|smoothies|hub|account)"/g;
+const doorRe = /data-os-door="(training|food|smoothies|porridge|hub|account)"/g;
 let doorMatch;
 const drawer = html.slice(html.indexOf('id="nav-drawer"'), html.indexOf('id="relic-deck-park"'));
 while ((doorMatch = doorRe.exec(drawer))) doors.push(doorMatch[1]);
-if (doors.join(",") !== "hub,training,food,smoothies,account") fail("door keys " + doors.join(","));
+if (doors.join(",") !== "hub,training,food,smoothies,porridge,account") fail("door keys " + doors.join(","));
 if (drawer.split(">Nexus<").length - 1) fail("drawer repeats Nexus");
-const labels = ["Main Menu Hub", "Training Schedules", "Food deck", "Smoothies deck", "Account Profile"];
+const labels = ["Main Menu Hub", "Training Schedules", "Food Deck", "Smoothies Deck", "Porridge Deck", "Account Profile"];
 labels.forEach(function (label) {
   if (drawer.indexOf(">" + label + "<") === -1) fail("missing label " + label);
 });
