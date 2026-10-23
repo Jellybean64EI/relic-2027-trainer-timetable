@@ -44,6 +44,7 @@
   var surfacePress = null;
   var EMPTY_MSG = "No video file IDs mapped for this cabin.";
   var FUTURE_LOCK_KEY = "relic_future_lock";
+  var LOCK_OVERRIDE_KEY = "relic_future_lock_override";
 
   var MODE_LABEL = {
     full: "Full Body Trainer Schedules",
@@ -94,7 +95,6 @@
     hubTab: "food",
     hubWeek: 0,
     hubArtLoaded: false,
-    menuCabin: null,
     futureLock: false,
     foodRefuse: "",
     foodUndo: null,
@@ -249,15 +249,30 @@
     return parts.dateKey >= S.LIVE_START;
   }
 
+  function lockDateReached() {
+    var parts = londonParts(getNow());
+    return !!(parts && parts.dateKey >= "2027-01-01");
+  }
+
+  /* Before 1 Jan 2027 the saved switch is the lock. From that London date the
+     lock is on unless Joe has turned it off since then. */
   function readFutureLock() {
-    try { return localStorage.getItem(FUTURE_LOCK_KEY) === "1"; }
+    var stored = false;
+    try { stored = localStorage.getItem(FUTURE_LOCK_KEY) === "1"; }
     catch (err) { return false; }
+    if (!lockDateReached()) return stored;
+    try { if (localStorage.getItem(LOCK_OVERRIDE_KEY) === "off") return false; }
+    catch (err) { return true; }
+    return true;
   }
 
   function writeFutureLock(on) {
     try {
       if (on) localStorage.setItem(FUTURE_LOCK_KEY, "1");
       else localStorage.removeItem(FUTURE_LOCK_KEY);
+      if (!lockDateReached()) return;
+      if (on) localStorage.removeItem(LOCK_OVERRIDE_KEY);
+      else localStorage.setItem(LOCK_OVERRIDE_KEY, "off");
     } catch (err) { /* private mode */ }
   }
 
@@ -285,12 +300,11 @@
   }
 
   function paintFutureLock() {
-    var section = $("nav-lock");
-    var training = state.osDoor === "training";
-    if (section) section.hidden = !training;
     var btn = $("btn-future-lock");
     if (!btn) return;
     var on = !!state.futureLock;
+    var training = state.osDoor === "training";
+    btn.hidden = !training;
     btn.setAttribute("aria-pressed", on ? "true" : "false");
     btn.setAttribute("aria-label", on ? "Lock on" : "Lock off");
   }
@@ -1087,9 +1101,7 @@
   }
 
   function paintOsDoors() {
-    var prevPainted = state.paintedDoor;
     var door = normDoor(state.osDoor);
-    if (prevPainted && prevPainted !== door && state.menuCabin && state.menuCabin !== door) state.menuCabin = null;
     state.paintedDoor = door;
     state.osDoor = door;
     var titles = {
@@ -1100,9 +1112,8 @@
       hub: "Main Menu Hub",
       account: "Account Profile"
     };
-    var shown = state.menuCabin && titles[state.menuCabin] ? state.menuCabin : door;
     var title = $("nav-drawer-title");
-    if (title) title.textContent = titles[shown];
+    if (title) title.textContent = titles[door];
     var pageTitle = $("page-title");
     if (pageTitle) pageTitle.textContent = titles[door];
     document.querySelectorAll("[data-os-door]").forEach(function (btn) {
@@ -1111,23 +1122,6 @@
     });
     document.querySelectorAll("[data-os-panel]").forEach(function (panel) {
       panel.hidden = panel.getAttribute("data-os-panel") !== door;
-    });
-    var open = state.menuCabin || "";
-    document.querySelectorAll(".cabin").forEach(function (cabin) {
-      var name = cabin.getAttribute("data-cabin");
-      var on = !!open && name === open;
-      cabin.classList.toggle("is-open", on);
-      var toggle = cabin.querySelector(".cabin-toggle");
-      if (toggle) {
-        toggle.setAttribute("aria-expanded", on ? "true" : "false");
-        toggle.setAttribute("aria-pressed", on ? "true" : "false");
-      }
-      var panel = cabin.querySelector(".cabin-panel");
-      if (panel) {
-        panel.setAttribute("aria-hidden", on ? "false" : "true");
-        if (on) panel.removeAttribute("inert");
-        else panel.setAttribute("inert", "");
-      }
     });
     paintFutureLock();
     paintModeChrome();
@@ -1433,7 +1427,6 @@
     var wasOpen = document.body.classList.contains("nav-open");
     if (next && !wasOpen) {
       navToggleAt = Date.now();
-      state.menuCabin = null;
       paintOsDoors();
     }
     if (!next) {
@@ -2776,19 +2769,6 @@
     if (!player.awaitingReveal) $("relic-player-close").focus();
   }
 
-  function setYearSchedulesOpen(open) {
-    var cabin = $("year-schedules");
-    var btn = $("btn-year-schedules");
-    var panel = $("year-schedule-panel");
-    if (!cabin || !btn || !panel) return;
-    var next = !!open;
-    cabin.classList.toggle("is-open", next);
-    btn.setAttribute("aria-expanded", next ? "true" : "false");
-    panel.setAttribute("aria-hidden", next ? "false" : "true");
-    if (next) panel.removeAttribute("inert");
-    else panel.setAttribute("inert", "");
-  }
-
   function wire() {
     document.querySelectorAll(".mbtn").forEach(function (btn) {
       btn.addEventListener("click", function () { pickMonth(+btn.getAttribute("data-month")); });
@@ -2835,22 +2815,12 @@
         setNavOpen(false);
       });
     });
-    var yearSchedulesBtn = $("btn-year-schedules");
-    if (yearSchedulesBtn) {
-      yearSchedulesBtn.addEventListener("click", function (event) {
-        event.preventDefault();
-        event.stopPropagation();
-        var cabin = $("year-schedules");
-        setYearSchedulesOpen(!(cabin && cabin.classList.contains("is-open")));
-      });
-    }
     var futureLockBtn = $("btn-future-lock");
     if (futureLockBtn) {
       futureLockBtn.addEventListener("click", function (event) {
         event.preventDefault();
         event.stopPropagation();
         setFutureLock(!state.futureLock);
-        setNavOpen(false);
       });
     }
     document.querySelectorAll("[data-hub-tab]").forEach(function (tab) {
@@ -2886,26 +2856,18 @@
         }
         if (name === "hub") {
           state.osDoor = "hub";
-          state.menuCabin = "";
           setNavOpen(false);
           render();
           return;
         }
         if (name === "food" || name === "smoothies" || name === "porridge") {
           state.osDoor = name;
-          state.menuCabin = "";
           setNavOpen(false);
           render();
           return;
         }
         if (name !== "training") return;
-        var current = state.menuCabin || "";
-        if (current === name) {
-          state.menuCabin = "";
-          paintOsDoors();
-          return;
-        }
-        state.menuCabin = name;
+        setNavOpen(false);
         openTrainingDoor();
       });
     });
@@ -3028,7 +2990,7 @@
       stage.addEventListener("click", onStageHudClickCapture, true);
     }
     document.addEventListener("pointerdown", function (event) {
-      var calm = event.target.closest(".mbtn, .wtab, #btn-schedule-mode, [data-set-mode], [data-set-branch], #btn-year-schedules");
+      var calm = event.target.closest(".mbtn, .wtab, .mode-choice, [data-set-mode], [data-set-branch]");
       if (!calm || event.button > 0) return;
       surfacePress = { x: event.clientX, y: event.clientY, id: event.pointerId, moved: false };
     }, true);
@@ -3040,7 +3002,7 @@
     }, true);
     document.addEventListener("click", function (event) {
       if (!surfacePress || !surfacePress.moved) return;
-      if (!event.target.closest(".mbtn, .wtab, #btn-schedule-mode, [data-set-mode], [data-set-branch], #btn-year-schedules")) return;
+      if (!event.target.closest(".mbtn, .wtab, .mode-choice, [data-set-mode], [data-set-branch]")) return;
       event.preventDefault();
       event.stopPropagation();
     }, true);
@@ -3162,7 +3124,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v57",
+    build: "v58",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };
@@ -3195,8 +3157,8 @@
     applyOsDoor: function (door) {
       state.osDoor = normDoor(door);
       paintOsDoors();
-      var section = $("nav-lock");
-      return !section || section.hidden !== true;
+      var btn = $("btn-future-lock");
+      return !!(btn && state.osDoor === "training" && btn.hidden !== true);
     },
     get setSeconds() { return SET_DURATION_SEC; },
     get SET_DURATION_SEC() { return SET_DURATION_SEC; },

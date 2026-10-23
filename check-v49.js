@@ -163,8 +163,9 @@ function expectTick(arch, dateKey, want, label) {
 }
 [["2026-10-16T11:00:00Z", "?date=2026-10-16", "2026-10-16"], ["2027-03-05T11:00:00Z", "?date=2027-03-05", "2027-03-05"], ["2028-01-02T11:00:00Z", "?date=2028-01-02", "2028-01-02"]].forEach(function (row) {
   const open = loadApp(row[1], row[0]);
+  const autoLock = row[2] >= "2027-01-01";
   expectTick(open, row[2], true, "T4 open");
-  expectTick(open, "2027-06-01", true, "T4 open later");
+  expectTick(open, "2027-06-01", !autoLock || row[2] >= "2027-06-01", "T4 open later");
   open.setFutureLock(true);
   expectTick(open, row[2], true, "T4 locked today");
   const next = row[2] === "2026-10-16" ? "2026-10-17" : (row[2] === "2027-03-05" ? "2027-03-06" : "2028-01-03");
