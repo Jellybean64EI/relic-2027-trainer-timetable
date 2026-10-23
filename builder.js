@@ -457,7 +457,8 @@
       section: active,
       title: video.title,
       src: video.src,
-      cabin: video.cabin
+      cabin: video.cabin,
+      group: video.group
     });
     var insertAt = draft.items.length;
     var rank = SECTION_RANK[active];
@@ -732,12 +733,31 @@
     load();
   }
 
+  function remember(video) {
+    if (!video || !video.key) return;
+    byKey[video.key] = {
+      r2Key: video.key,
+      title: video.title || video.key,
+      src: video.src || "",
+      cabin: video.cabin || "",
+      group: video.group || "",
+      phases: video.phases || []
+    };
+  }
+
+  function forget(key) {
+    if (key) delete byKey[key];
+  }
+
   window.NexusBuilder = {
     organise: organise,
     notes: dayNotes,
     placement: placement,
     picked: picked,
     takeCard: takeCard,
+    building: function () { return mode === "build"; },
+    remember: remember,
+    forget: forget,
     reload: load
   };
 

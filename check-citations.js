@@ -11,8 +11,8 @@ const css = fs.readFileSync("styles.css", "utf8");
 const html = fs.readFileSync("index.html", "utf8");
 if (app.indexOf("relic-pair") !== -1) fail("app.js still renders relic-pair");
 if (css.indexOf(".relic-pair") !== -1) fail("styles.css still defines .relic-pair");
-if (app.indexOf('build: "v59b"') === -1 || html.indexOf('content="v59b"') === -1) {
-  fail("build stamp is not v59b");
+if (app.indexOf('build: "v60"') === -1 || html.indexOf('content="v60"') === -1) {
+  fail("build stamp is not v60");
 }
 
 const ctx = { window: {} };
