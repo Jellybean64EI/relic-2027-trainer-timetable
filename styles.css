@@ -4730,6 +4730,7 @@ body.is-card-open { touch-action: none; }
   box-shadow: 0 0 0 1px #ff8a00;
 }
 
+body.is-cards .schedule-mode,
 body.is-cards .live-stack,
 body.is-cards .mode-pair,
 body.is-cards .phase-bar,
