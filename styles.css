@@ -4730,6 +4730,124 @@ body.is-card-open { touch-action: none; }
   box-shadow: 0 0 0 1px #ff8a00;
 }
 
+body.is-cards .live-stack,
+body.is-cards .mode-pair,
+body.is-cards .phase-bar,
+body.is-cards .month-bar,
+body.is-cards .week-tabs,
+body.is-cards .week-meta,
+body.is-cards .schedule-switch,
+body.is-cards #btn-future-lock,
+body.is-cards #training-board,
+body.is-cards #planner-board,
+body.is-cards #banner-live,
+body.is-cards #banner-coach {
+  display: none;
+}
+
+.vc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 8px 18px;
+}
+
+.vc-cabin,
+.vc-mod,
+.vc-card {
+  width: 100%;
+  border: 1px solid rgba(216, 180, 254, 0.32);
+  border-radius: 12px;
+  background: #150724;
+  color: #f6eefe;
+  font: inherit;
+  text-align: left;
+}
+
+.vc-cabin,
+.vc-mod {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 52px;
+  padding: 10px 12px;
+  font-weight: 800;
+}
+
+.vc-mod { min-height: 48px; background: #12051d; }
+
+.vc-cabin[aria-expanded="true"],
+.vc-mod[aria-expanded="true"] {
+  border: 2px solid #ff8a00;
+  color: #ff8a00;
+}
+
+.vc-count {
+  color: #cbb6e4;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.vc-cabin[aria-expanded="true"] .vc-count,
+.vc-mod[aria-expanded="true"] .vc-count { color: #ff8a00; }
+
+.vc-mods-inner,
+.vc-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vc-mods-inner { padding-top: 6px; }
+.vc-cards { padding: 6px 0 2px 8px; }
+
+.vc-block.is-open .vc-mods-inner,
+.vc-mod-block.is-open .vc-cards {
+  animation: vc-open 180ms ease;
+}
+
+@keyframes vc-open {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.vc-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: 44px;
+  padding: 10px 12px;
+  background: #1b0a2a;
+}
+
+.vc-card-title {
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.vc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.vc-chip {
+  padding: 2px 7px;
+  border: 1px solid rgba(216, 180, 254, 0.35);
+  border-radius: 999px;
+  color: #cbb6e4;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.vc-chip.is-mark {
+  border-color: #ff8a00;
+  color: #ff8a00;
+}
+
 .deck-flip {
   position: relative;
   width: 100%;
