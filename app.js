@@ -3240,7 +3240,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v60",
+    build: "v61",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };

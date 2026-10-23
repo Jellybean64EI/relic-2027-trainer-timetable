@@ -13,10 +13,21 @@
   var uploadTarget = null;
   var uploading = false;
   var confirmKey = "";
+  var renamingKey = "";
+  var renameDraft = "";
+  var focusRename = false;
+  var blurTimer = 0;
 
   var EYE = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">' +
     '<path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>' +
     '<circle cx="12" cy="12" r="2.5" fill="currentColor"/>' +
+    "</svg>";
+  var PENCIL = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">' +
+    '<path d="M4 20h4L18 10l-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>' +
+    '<path d="M13 7l4 4" fill="none" stroke="currentColor" stroke-width="2"/>' +
+    "</svg>";
+  var TICK = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">' +
+    '<path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
     "</svg>";
 
   function catalog() {
@@ -52,7 +63,7 @@
       return {
         key: video.r2Key,
         src: video.url,
-        title: video.title || "My video",
+        title: video.title || "Video",
         cabin: "",
         group: group.id,
         phases: [],
@@ -68,7 +79,6 @@
     });
     if (video.guess) html += '<span class="vc-chip is-mark">guess</span>';
     if (video.check) html += '<span class="vc-chip is-mark">check</span>';
-    if (video.mine) html += '<span class="vc-chip is-mark">My video</span>';
     return html ? '<span class="vc-chips">' + html + "</span>" : "";
   }
 
@@ -83,18 +93,25 @@
       chips(video) +
       "</button>";
     if (!showEye && !video.mine) return button;
+    var editing = !!(video.mine && renamingKey === video.key);
     var side = "";
     if (showEye) {
       side += '<button type="button" class="vc-eye" aria-label="Preview ' + esc(video.title) + '" data-vc-src="' + esc(video.src) + '" data-vc-title="' + esc(video.title) + '">' + EYE + "</button>";
     }
-    if (video.mine) {
-      if (confirmKey === video.key) {
-        side += '<p class="vc-confirm">Delete this video?<button type="button" class="vc-del-yes" data-vc-key="' + esc(video.key) + '">Delete</button><button type="button" class="vc-del-no">Keep</button></p>';
-      } else {
-        side += '<button type="button" class="vc-del" data-vc-key="' + esc(video.key) + '" aria-label="Delete ' + esc(video.title) + '">Delete</button>';
-      }
+    if (editing) {
+      side += '<input class="vc-name-input" type="text" maxlength="80" autocomplete="off" enterkeyhint="done" aria-label="Video name" value="' + esc(renameDraft) + '">';
     }
-    return '<div class="vc-card-wrap' + (showEye ? " has-eye" : "") + '">' + button + side + "</div>";
+    if (video.mine) {
+      side += '<span class="vc-rename">';
+      if (editing) side += '<button type="button" class="vc-tick" data-vc-key="' + esc(video.key) + '" aria-label="Save name">' + TICK + "</button>";
+      side += '<button type="button" class="vc-pencil" data-vc-key="' + esc(video.key) + '" aria-label="Rename ' + esc(video.title) + '">' + PENCIL + "</button>";
+      side += "</span>";
+    }
+    var cls = "vc-card-wrap";
+    if (showEye) cls += " has-eye";
+    if (video.mine) cls += " has-mine";
+    if (editing) cls += " is-renaming";
+    return '<div class="' + cls + '">' + button + side + "</div>";
   }
 
   function render() {
@@ -133,6 +150,12 @@
       html += "</section>";
     });
     root.innerHTML = html;
+    var input = root.querySelector(".vc-name-input");
+    if (input && focusRename) {
+      focusRename = false;
+      input.focus();
+      input.select();
+    }
   }
 
   function setUploadMsg(text, warn) {
@@ -278,6 +301,82 @@
     });
   }
 
+  function startRename(key, title) {
+    clearTimeout(blurTimer);
+    renamingKey = key || "";
+    renameDraft = title || "";
+    focusRename = true;
+    render();
+  }
+
+  function cancelRename() {
+    clearTimeout(blurTimer);
+    renamingKey = "";
+    renameDraft = "";
+    focusRename = false;
+    render();
+  }
+
+  function saveRename() {
+    clearTimeout(blurTimer);
+    var key = renamingKey;
+    var title = String(renameDraft || "").trim().slice(0, 80);
+    if (!key) return;
+    if (!title) {
+      setUploadMsg("Give it a name.", true);
+      var empty = document.querySelector(".vc-name-input");
+      if (empty) {
+        empty.focus();
+        empty.select();
+      }
+      return;
+    }
+    var current = null;
+    custom.forEach(function (video) {
+      if (video.r2Key === key) current = video;
+    });
+    var previous = current ? current.title : "";
+    if (previous === title) {
+      cancelRename();
+      return;
+    }
+    renamingKey = "";
+    renameDraft = "";
+    if (current) current.title = title;
+    render();
+    if (!window.nexusFetch) return;
+    window.nexusFetch("/custom-video?key=" + encodeURIComponent(key), {
+      method: "PATCH",
+      body: { title: title }
+    }).then(function (payload) {
+      var saved = (payload && payload.title) || title;
+      if (current) current.title = saved;
+      if (window.NexusBuilder && window.NexusBuilder.retitle) window.NexusBuilder.retitle(key, saved);
+      else if (window.NexusBuilder && window.NexusBuilder.remember && current) {
+        window.NexusBuilder.remember({
+          key: key,
+          title: saved,
+          src: current.url,
+          cabin: "",
+          group: current.area,
+          phases: []
+        });
+      }
+      var preview = document.getElementById("vc-preview");
+      var previewVideo = document.getElementById("vc-preview-video");
+      if (preview && !preview.hidden && previewVideo && current && previewVideo.currentSrc === current.url) {
+        var label = preview.querySelector(".vc-preview-title");
+        if (label) label.textContent = saved;
+      }
+      render();
+    }).catch(function (err) {
+      if (current) current.title = previous;
+      if (window.NexusBuilder && window.NexusBuilder.retitle) window.NexusBuilder.retitle(key, previous);
+      setUploadMsg((err && err.message) || "Could not rename.", true);
+      render();
+    });
+  }
+
   function deleteVideo(key) {
     confirmKey = "";
     if (!key || !window.nexusFetch) return;
@@ -352,6 +451,29 @@
       event.preventDefault();
       event.stopPropagation();
       openPreview(eye.getAttribute("data-vc-title"), eye.getAttribute("data-vc-src"));
+      return;
+    }
+    if (event.target.closest(".vc-tick")) {
+      event.preventDefault();
+      event.stopPropagation();
+      saveRename();
+      return;
+    }
+    var pencil = event.target.closest(".vc-pencil");
+    if (pencil) {
+      event.preventDefault();
+      event.stopPropagation();
+      var pencilKey = pencil.getAttribute("data-vc-key");
+      var row = null;
+      custom.forEach(function (video) {
+        if (video.r2Key === pencilKey) row = video;
+      });
+      startRename(pencilKey, row ? row.title : "");
+      return;
+    }
+    if (event.target.closest(".vc-name-input") || event.target.closest(".vc-rename")) {
+      event.preventDefault();
+      event.stopPropagation();
       return;
     }
     var yes = event.target.closest(".vc-del-yes");
@@ -474,9 +596,40 @@
   function boot() {
     ensureChrome();
     var root = document.getElementById("vcards-root");
-    if (root) root.addEventListener("click", onClick);
+    if (root) {
+      root.addEventListener("click", onClick);
+      root.addEventListener("mousedown", function (event) {
+        if (event.target.closest(".vc-tick")) event.preventDefault();
+      });
+      root.addEventListener("input", function (event) {
+        if (event.target.classList && event.target.classList.contains("vc-name-input")) renameDraft = event.target.value;
+      });
+      root.addEventListener("keydown", function (event) {
+        if (!event.target.classList || !event.target.classList.contains("vc-name-input")) return;
+        if (event.key === "Enter") {
+          event.preventDefault();
+          event.stopPropagation();
+          saveRename();
+        } else if (event.key === "Escape") {
+          event.preventDefault();
+          event.stopPropagation();
+          cancelRename();
+        }
+      });
+      root.addEventListener("focusout", function (event) {
+        if (!event.target.classList || !event.target.classList.contains("vc-name-input")) return;
+        var key = renamingKey;
+        if (!key) return;
+        clearTimeout(blurTimer);
+        blurTimer = setTimeout(function () {
+          var active = document.activeElement;
+          if (active && active.classList && active.classList.contains("vc-name-input")) return;
+          if (key && renamingKey === key) cancelRename();
+        }, 250);
+      });
+    }
     document.addEventListener("keydown", function (event) {
-      if (event.key === "Escape") closePreview();
+      if (event.key === "Escape" && !(event.target.classList && event.target.classList.contains("vc-name-input"))) closePreview();
     });
     if (document.body && document.body.classList.contains("is-cards")) render();
     loadCustom();

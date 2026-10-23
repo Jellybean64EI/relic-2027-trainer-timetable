@@ -749,6 +749,15 @@
     if (key) delete byKey[key];
   }
 
+  function retitle(key, title) {
+    if (!key) return;
+    if (byKey[key]) byKey[key].title = title;
+    draft.items.forEach(function (item) {
+      if (item.r2Key === key) item.title = title;
+    });
+    if (mode === "build") paintSections();
+  }
+
   window.NexusBuilder = {
     organise: organise,
     notes: dayNotes,
@@ -758,6 +767,7 @@
     building: function () { return mode === "build"; },
     remember: remember,
     forget: forget,
+    retitle: retitle,
     reload: load
   };
 
