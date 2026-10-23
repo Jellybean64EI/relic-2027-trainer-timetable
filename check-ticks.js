@@ -10,10 +10,10 @@ const html = fs.readFileSync("index.html", "utf8");
 const app = fs.readFileSync("app.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v58"') === -1 || html.indexOf("app.js?v=v58") === -1) {
-  fail("index.html is not stamped v58");
+if (html.indexOf('content="v59a"') === -1 || html.indexOf("app.js?v=v59a") === -1) {
+  fail("index.html is not stamped v59a");
 }
-if (app.indexOf('build: "v58"') === -1) fail("RelicArchitect.build is not v58");
+if (app.indexOf('build: "v59a"') === -1) fail("RelicArchitect.build is not v59a");
 if (html.indexOf("JOSEPH · LONDON") !== -1 || html.indexOf("corner-who") !== -1 || html.indexOf("meta-mode") !== -1) {
   fail("public corner still has the name or lock status");
 }
@@ -49,6 +49,12 @@ let doorMatch;
 while ((doorMatch = doorRe.exec(drawer))) doorOrder.push(doorMatch[1]);
 if (doorOrder.join(",") !== "hub,training,food,smoothies,porridge,account") {
   fail("drawer order " + doorOrder.join(","));
+}
+const trainAt = drawer.indexOf('data-os-door="training"');
+const cardsAt = drawer.indexOf('data-os-door="cards"');
+const foodAt = drawer.indexOf('data-os-door="food"');
+if (!(trainAt >= 0 && cardsAt > trainAt && foodAt > cardsAt) || drawer.indexOf(">Training Video Cards<") === -1) {
+  fail("video cards door is not directly under Training Schedules");
 }
 if (/🔒|🏋️|🛍️|🍎|🍌|os-door-icon/.test(drawer)) fail("menu still has emoji or door pills");
 if (html.indexOf("Lock future days") !== -1) fail("old lock label is still in the menu");
@@ -161,7 +167,7 @@ function expect(arch, dateKey, want, label) {
 
 const open = load("?date=2026-10-06");
 const arch = open.RelicArchitect;
-if (!arch || arch.build !== "v58" || arch.futureLock !== false) fail("default lock is not off");
+if (!arch || arch.build !== "v59a" || arch.futureLock !== false) fail("default lock is not off");
 else {
   expect(arch, "2026-10-06", true, "open today");
   ["2026-10-07", "2026-12-31", "2027-01-01", "2027-10-07"].forEach(function (dateKey) {

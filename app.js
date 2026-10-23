@@ -286,7 +286,7 @@
   }
 
   function normDoor(v) {
-    if (v === "training" || v === "food" || v === "smoothies" || v === "porridge" || v === "hub" || v === "account") return v;
+    if (v === "training" || v === "cards" || v === "food" || v === "smoothies" || v === "porridge" || v === "hub" || v === "account") return v;
     return "hub";
   }
 
@@ -1106,6 +1106,7 @@
     state.osDoor = door;
     var titles = {
       training: "Training Schedules",
+      cards: "Training Video Cards",
       food: "Food Deck",
       smoothies: "Smoothies Deck",
       porridge: "Porridge Deck",
@@ -1129,7 +1130,9 @@
     if (document.body) {
       document.body.classList.toggle("is-hub", door === "hub");
       document.body.classList.toggle("is-deck", door === "food" || door === "smoothies" || door === "porridge");
+      document.body.classList.toggle("is-cards", door === "cards");
     }
+    if (door === "cards" && window.NexusCards && window.NexusCards.render) window.NexusCards.render();
     if (door === "hub") paintHub();
     if ((door === "food" || door === "smoothies" || door === "porridge") && window.NexusDeck && window.NexusDeck.renderDeck) {
       var deckName = door === "smoothies" ? "smoothie" : door === "porridge" ? "porridge" : "food";
@@ -2769,6 +2772,51 @@
     if (!player.awaitingReveal) $("relic-player-close").focus();
   }
 
+  function openCatalogClip(clip) {
+    if (!clip || !clip.src || isBlockedMediaUrl(clip.src)) return;
+    setNavOpen(false);
+    player.credit = null;
+    player.cabin = clip.cabin || "";
+    player.phase = "Base";
+    player.index = 0;
+    player.clips = [{ title: clip.title || "Clip", src: String(clip.src) }];
+    player.generation = (player.generation | 0) + 1;
+    player.phaseState = "loading";
+    player.unavailable = false;
+    player.stallReloaded = false;
+    if (player.clipAbort) {
+      try { player.clipAbort.abort(); } catch (err) { /* new clip */ }
+      player.clipAbort = null;
+    }
+    var root = $("relic-player");
+    var wasHidden = !root || root.hidden;
+    if (!player.historyPushed) {
+      try {
+        history.pushState({ relicPlayer: 1 }, "");
+        player.historyPushed = true;
+      } catch (err2) { /* file:// may refuse */ }
+    }
+    player.awaitingReveal = !!wasHidden;
+    if (root) {
+      if (wasHidden) {
+        root.classList.add("is-awaiting-frame");
+        root.setAttribute("aria-hidden", "true");
+      }
+      root.hidden = false;
+    }
+    document.body.classList.add("player-open");
+    if (!player.awaitingReveal) showPlayerHud();
+    player.empty = false;
+    player.paused = false;
+    setEmptyOverlay(false);
+    setGate(false);
+    loadCurrentClip(true);
+    startCountdown();
+    paintPlayButton();
+    paintMediaSession();
+    if (!player.awaitingReveal) $("relic-player-close").focus();
+  }
+
   function wire() {
     document.querySelectorAll(".mbtn").forEach(function (btn) {
       btn.addEventListener("click", function () { pickMonth(+btn.getAttribute("data-month")); });
@@ -2860,7 +2908,7 @@
           render();
           return;
         }
-        if (name === "food" || name === "smoothies" || name === "porridge") {
+        if (name === "food" || name === "smoothies" || name === "porridge" || name === "cards") {
           state.osDoor = name;
           setNavOpen(false);
           render();
@@ -3124,7 +3172,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v58",
+    build: "v59a",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };
@@ -3165,6 +3213,7 @@
     get remaining() { return player.remaining; },
     resolveClipSrc: resolveClipSrc,
     openCabin: openCabin,
+    openCatalogClip: openCatalogClip,
     playNextVideo: playNextVideo,
     applyDurationOverride: applyDurationOverride,
     applyAddMoreTime: applyAddMoreTime,
