@@ -201,4 +201,4 @@ if (fails.length) {
 const pasted = api.parseLine("Chilli Bowl | FOOD | 3 | 0");
 assert(pasted && pasted.name === "Chilli Bowl" && pasted.deck === "FOOD" && pasted.veg === 3 && pasted.fruit === 0, "paste line");
 assert(deckSrc.indexOf("w44eim") === -1, "key stays in config");
-console.log("OK v56 deck");
+console.log("OK v57 deck");

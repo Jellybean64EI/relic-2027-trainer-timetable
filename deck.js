@@ -1,4 +1,4 @@
-/* Nexus v56 card decks. Training files stay untouched. */
+/* Nexus v57 card decks. Training files stay untouched. */
 (function (root) {
   var CARDS_KEY = "nexus_cards_cache_v2";
   var SLOTS_KEY = "nexus_slots_cache_v2";
@@ -29,7 +29,13 @@
     copy: null,
     stacks: {},
     upload: null,
+    draft: null,
     fileRole: "front",
+    backTarget: "",
+    armDate: "",
+    armed: null,
+    assignGen: 0,
+    justAdded: "",
     booted: false
   };
 
@@ -84,15 +90,28 @@
 
   function parseLine(text) {
     var parts = String(text || "").split("|").map(function (part) { return part.trim(); });
-    if (parts.length < 4 || !parts[0]) return null;
-    var deck = String(parts[1] || "").toUpperCase();
-    if (deck !== "FOOD" && deck !== "SMOOTHIE" && deck !== "PORRIDGE") return null;
-    return {
-      name: parts[0].slice(0, 80),
-      deck: deck,
-      veg: clampPortion(parts[2]),
-      fruit: clampPortion(parts[3])
-    };
+    if (!parts[0]) return null;
+    if (parts.length >= 4) {
+      var deck = String(parts[1] || "").toUpperCase();
+      if (deck !== "FOOD" && deck !== "SMOOTHIE" && deck !== "PORRIDGE") return null;
+      return {
+        name: parts[0].slice(0, 80),
+        deck: deck,
+        veg: clampPortion(parts[2]),
+        fruit: clampPortion(parts[3])
+      };
+    }
+    if (parts.length === 3) {
+      return { name: parts[0].slice(0, 80), deck: null, veg: clampPortion(parts[1]), fruit: clampPortion(parts[2]) };
+    }
+    if (parts.length === 2) {
+      var token = String(parts[1] || "").toUpperCase();
+      if (token === "FOOD" || token === "SMOOTHIE" || token === "PORRIDGE") {
+        return { name: parts[0].slice(0, 80), deck: null, veg: 0, fruit: 0 };
+      }
+      return { name: parts[0].slice(0, 80), deck: null, veg: 0, fruit: 0, toppings: parts[1] };
+    }
+    return { name: parts[0].slice(0, 80), deck: null, veg: 0, fruit: 0 };
   }
 
   function deckCode(which) {
@@ -278,11 +297,22 @@
     return { ok: true, reason: "cleared", toast: "Old recipes and test meals cleared · backup saved" };
   }
 
-  function showToast(message) {
+  function showToast(message, onUndo) {
     if (!message || !root.document) return;
     var node = root.document.getElementById("deck-toast");
     if (!node) return;
     node.textContent = message;
+    if (onUndo) {
+      node.appendChild(root.document.createTextNode(" · "));
+      var undo = el("button", "deck-undo", "Undo");
+      undo.type = "button";
+      undo.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        onUndo();
+      });
+      node.appendChild(undo);
+    }
     node.hidden = false;
     node.classList.remove("is-fading");
     clearTimeout(showToast.timer);
@@ -422,14 +452,15 @@
     var cards = sortedCards(which);
     var title = which === "smoothie" ? "All Smoothies" : which === "porridge" ? "Porridge" : "Food";
     if (count) count.textContent = title + " · " + cards.length + (cards.length === 1 ? " card" : " cards");
-    if (which === "smoothie") renderStackHost();
+    renderPlan(which);
+    paintBubble(host, which);
     if (!grid) return;
     grid.textContent = "";
     if (!cards.length && which === "smoothie") {
       grid.appendChild(el("p", "deck-empty", "No smoothie cards yet"));
     }
     cards.forEach(function (card) {
-      var tile = el("button", "deck-tile");
+      var tile = el("button", "deck-tile" + (card.id === state.justAdded ? " is-just-added" : ""));
       tile.type = "button";
       tile.setAttribute("data-deck-open", card.id);
       var img = el("img", "deck-thumb");
@@ -447,26 +478,120 @@
     });
   }
 
-  function renderStackHost() {
-    var host = root.document.getElementById("deck-stack-host");
-    if (!host) return;
-    var date = state.focusKey || dateKey(state.month, 1);
-    var stack = dayStack(date) || { slot1: null, slot2: null, slot3: null };
-    host.textContent = "";
-    var wrap = el("div", "deck-stack-build");
-    ["Morning", "Lunch", "Evening"].forEach(function (label, index) {
-      var key = "slot" + (index + 1);
-      var card = visibleCard(state.cards, stack[key]);
-      var btn = el("button", "deck-stack-slot" + (card ? " is-on" : ""));
+  function londonToday() {
+    var key = "2027-01-01";
+    try {
+      var parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/London",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).formatToParts(new Date());
+      var y = "";
+      var m = "";
+      var d = "";
+      parts.forEach(function (part) {
+        if (part.type === "year") y = part.value;
+        if (part.type === "month") m = part.value;
+        if (part.type === "day") d = part.value;
+      });
+      key = y + "-" + m + "-" + d;
+    } catch (err) { key = "2027-01-01"; }
+    if (key < "2027-01-01" || key > "2027-12-31") return "2027-01-01";
+    return key;
+  }
+
+  function planDate() {
+    if (state.armDate >= "2027-01-01" && state.armDate <= "2027-12-31") return state.armDate;
+    state.armDate = londonToday();
+    return state.armDate;
+  }
+
+  function shiftDate(key, delta) {
+    var parts = String(key || "2027-01-01").split("-");
+    var next = new Date(Date.UTC(+parts[0], +parts[1] - 1, +parts[2] + delta));
+    var out = next.getUTCFullYear() + "-" + String(next.getUTCMonth() + 1).padStart(2, "0") + "-" + String(next.getUTCDate()).padStart(2, "0");
+    if (out < "2027-01-01") return "2027-01-01";
+    if (out > "2027-12-31") return "2027-12-31";
+    return out;
+  }
+
+  function stackField(meal) {
+    if (meal === "lunch") return "slot2";
+    if (meal === "dinner") return "slot3";
+    return "slot1";
+  }
+
+  function planLabels(which) {
+    return which === "smoothie" ? ["Morning", "Lunch", "Evening"] : ["Morning", "Lunch", "Dinner"];
+  }
+
+  function cardInSlot(which, date, meal) {
+    if (which === "smoothie") {
+      var stack = dayStack(date);
+      return visibleCard(state.cards, stack && stack[stackField(meal)]);
+    }
+    var stored = state.slots[date + "|" + meal] || {};
+    return visibleCard(state.cards, which === "porridge" ? stored.p : stored.f);
+  }
+
+  function renderPlan(which) {
+    if (!root.document) return;
+    var rootId = which === "smoothie" ? "deck-root-smoothie" : which === "porridge" ? "deck-root-porridge" : "deck-root-food";
+    var host = root.document.getElementById(rootId);
+    var mount = host && host.querySelector("[data-deck-plan]");
+    if (!mount) return;
+    var date = planDate();
+    mount.textContent = "";
+    var bar = el("div", "deck-daybar");
+    var prev = el("button", "", "‹");
+    prev.type = "button";
+    prev.setAttribute("aria-label", "Previous day");
+    prev.setAttribute("data-deck-day-shift", "-1");
+    prev.disabled = date <= "2027-01-01";
+    var next = el("button", "", "›");
+    next.type = "button";
+    next.setAttribute("aria-label", "Next day");
+    next.setAttribute("data-deck-day-shift", "1");
+    next.disabled = date >= "2027-12-31";
+    bar.appendChild(prev);
+    bar.appendChild(el("span", "deck-day-label", prettyDate(date)));
+    bar.appendChild(next);
+    mount.appendChild(bar);
+    var wrap = el("div", which === "smoothie" ? "deck-stack-build" : "deck-plan-slots");
+    planLabels(which).forEach(function (label, index) {
+      var meal = SLOT_ORDER[index];
+      var card = cardInSlot(which, date, meal);
+      var armed = state.armed && state.armed.deck === which && state.armed.date === date && state.armed.slot === meal;
+      var btn = el("button", "deck-slot-mod" + (which === "smoothie" ? " deck-stack-slot" : "") + (card ? " is-on" : "") + (armed ? " is-armed" : ""));
       btn.type = "button";
-      btn.setAttribute("data-deck-stack-from", String(index));
-      btn.setAttribute("data-stack-date", date);
-      var kicker = el("span", "deck-stack-kicker", label);
-      btn.appendChild(kicker);
-      btn.appendChild(el("span", "", card ? card.name : "Empty"));
+      btn.setAttribute("data-deck-arm", which + "|" + date + "|" + meal);
+      if (which === "smoothie") {
+        btn.setAttribute("data-deck-stack-from", String(index));
+        btn.setAttribute("data-stack-date", date);
+      }
+      btn.appendChild(el("span", "deck-stack-kicker", label));
+      if (card) {
+        var img = el("img", "deck-slot-thumb");
+        img.alt = "";
+        img.draggable = false;
+        var src = cardSrc(card, "full");
+        if (src) img.src = src;
+        btn.appendChild(img);
+        btn.appendChild(el("span", "deck-slot-name", card.name || "Untitled card"));
+        var clear = el("span", "deck-slot-clear", "×");
+        clear.setAttribute("role", "button");
+        clear.setAttribute("aria-label", "Clear " + label);
+        clear.setAttribute("data-deck-slot-clear", which + "|" + date + "|" + meal);
+        btn.appendChild(clear);
+      } else btn.appendChild(el("span", "deck-slot-name", "Empty"));
       wrap.appendChild(btn);
     });
-    host.appendChild(wrap);
+    mount.appendChild(wrap);
+  }
+
+  function renderStackHost() {
+    renderPlan("smoothie");
   }
 
   function renderHubMonth(info) {
@@ -618,6 +743,16 @@
     head.appendChild(close);
     head.appendChild(title);
     host.appendChild(head);
+    var pills = el("div", "deck-pills");
+    var foodPill = el("button", "deck-pill" + (pick.shift ? "" : " is-on"), "Food · Smoothies");
+    foodPill.type = "button";
+    foodPill.setAttribute("data-deck-pill", "0");
+    var porridgePill = el("button", "deck-pill" + (pick.shift ? " is-on" : ""), "Porridge");
+    porridgePill.type = "button";
+    porridgePill.setAttribute("data-deck-pill", "1");
+    pills.appendChild(foodPill);
+    pills.appendChild(porridgePill);
+    host.appendChild(pills);
     var cols = el("div", "deck-picker-cols");
     var track = el("div", "deck-picker-track" + (pick.shift ? " is-shift" : ""));
     track.appendChild(pickerColumn("food", "Food", pick.food));
@@ -665,6 +800,7 @@
       if (on) btn.classList.add("is-on");
       var img = el("img", "deck-pick-img");
       img.alt = "";
+      img.draggable = false;
       img.loading = "lazy";
       img.decoding = "async";
       var src = cardSrc(card, "full");
@@ -691,39 +827,73 @@
     var startY = 0;
     var dx = 0;
     var dy = 0;
-    var axis = "";
     var active = false;
+    var pointerId = 0;
+    var axis = "";
+    var scrollEl = null;
+    var scrollOrigin = 0;
+    function basePx() {
+      return state.picker && state.picker.shift ? -track.offsetWidth / 3 : 0;
+    }
+    function applyX(px, animate) {
+      track.style.transition = animate ? "transform 220ms ease-out" : "none";
+      track.style.transform = "translateX(" + px + "px)";
+    }
+    function setShift(shift) {
+      var on = !!shift;
+      if (state.picker) state.picker.shift = on;
+      track.classList.toggle("is-shift", on);
+      applyX(on ? -track.offsetWidth / 3 : 0, true);
+      var pills = viewport.parentNode && viewport.parentNode.querySelectorAll("[data-deck-pill]");
+      if (pills) {
+        pills.forEach(function (pill) {
+          pill.classList.toggle("is-on", pill.getAttribute("data-deck-pill") === (on ? "1" : "0"));
+        });
+      }
+    }
     viewport.addEventListener("pointerdown", function (event) {
       if (event.button != null && event.button !== 0) return;
       active = true;
       axis = "";
+      pointerId = event.pointerId;
       startX = event.clientX;
       startY = event.clientY;
       dx = 0;
       dy = 0;
+      scrollEl = event.target && event.target.closest ? event.target.closest(".deck-picker-list") : null;
+      scrollOrigin = scrollEl ? scrollEl.scrollTop : 0;
+      try { viewport.setPointerCapture(event.pointerId); } catch (err) { /* capture is optional */ }
     });
     viewport.addEventListener("pointermove", function (event) {
-      if (!active) return;
+      if (!active || event.pointerId !== pointerId) return;
       dx = event.clientX - startX;
       dy = event.clientY - startY;
-      if (!axis && Math.hypot(dx, dy) > 6) axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
-      if (axis === "x") event.preventDefault();
+      if (!axis && Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (!axis) axis = Math.abs(dy) > Math.abs(dx) ? "y" : "x";
+      if (axis === "y") {
+        event.preventDefault();
+        if (scrollEl) scrollEl.scrollTop = scrollOrigin - dy;
+        return;
+      }
+      event.preventDefault();
+      applyX(basePx() + dx, false);
     }, { passive: false });
-    function finish() {
+    function finish(event) {
       if (!active) return;
+      if (event && event.pointerId != null && event.pointerId !== pointerId) return;
       active = false;
-      if (axis !== "x" || Math.abs(dx) < 30) return;
-      var shift = dx < 0;
-      track.classList.toggle("is-shift", shift);
-      if (state.picker) state.picker.shift = shift;
+      try { viewport.releasePointerCapture(pointerId); } catch (err) { /* already released */ }
+      if (axis !== "y" && Math.abs(dx) >= 30 && Math.abs(dx) > Math.abs(dy)) setShift(dx < 0);
+      else applyX(basePx(), true);
+      dx = 0;
+      dy = 0;
+      axis = "";
     }
     viewport.addEventListener("pointerup", finish);
-    viewport.addEventListener("pointercancel", function () { active = false; });
+    viewport.addEventListener("pointercancel", finish);
     viewport.addEventListener("wheel", function (event) {
       if (Math.abs(event.deltaX) < 30 || Math.abs(event.deltaX) < Math.abs(event.deltaY)) return;
-      var shift = event.deltaX > 0;
-      track.classList.toggle("is-shift", shift);
-      if (state.picker) state.picker.shift = shift;
+      setShift(event.deltaX > 0);
     }, { passive: true });
   }
 
@@ -1061,9 +1231,10 @@
     }
     bar.appendChild(copy);
     if (card.deck !== "SMOOTHIE" && !(state.card.cycle && state.card.cycle.length) && !state.card.editing) {
-      var flip = el("button", "deck-bar-btn" + (card.back_url ? "" : " is-muted"), card.back_url ? "Flip" : "No recipe back yet");
+      var flip = el("button", "deck-bar-btn", card.back_url ? "Flip" : "Upload back");
       flip.type = "button";
-      flip.setAttribute("data-deck-flip", card.id);
+      if (card.back_url) flip.setAttribute("data-deck-flip", card.id);
+      else flip.setAttribute("data-deck-back", card.id);
       bar.appendChild(flip);
     }
     if (state.card.cycle && state.card.cycle.length > 1 && !state.card.editing) {
@@ -1498,9 +1669,22 @@
           });
         });
       });
-    }).catch(function () {
-      failNote("Couldn't add " + name + ": no connection. Try again.");
+    }).catch(function (err) {
+      failNote(uploadErrorText(err, name));
+      return null;
     });
+  }
+
+  function uploadErrorText(err, name) {
+    var message = err && err.message ? String(err.message) : "";
+    var status = err && err.status;
+    var typeError = !err || err instanceof TypeError || err.name === "TypeError" || /Failed to fetch|NetworkError|Load failed/i.test(message);
+    if (typeError && !status) return "Couldn't add " + name + ": no connection. Try again.";
+    if (status === 413) return /too big|12 MB/i.test(message) ? message : "Too big (12 MB)";
+    if (status === 415) return /not an image/i.test(message) ? message : "Not an image";
+    if (status && message) return message + " (" + status + ")";
+    if (message) return message;
+    return "Couldn't add " + name;
   }
 
   function uploadOne(file, deck) {
@@ -1635,11 +1819,210 @@
     renderHubMonth();
   }
 
+  function readSlotIds(date) {
+    var stack = dayStack(date) || { id: "day-" + date, slot1: null, slot2: null, slot3: null };
+    return {
+      slot1: stack.slot1 || null,
+      slot2: stack.slot2 || null,
+      slot3: stack.slot3 || null,
+      meals: SLOT_ORDER.map(function (meal) {
+        var stored = state.slots[date + "|" + meal] || {};
+        return { meal: meal, f: stored.f || null, p: stored.p || null, st: stored.st || null };
+      })
+    };
+  }
+
+  function writeLocalSlot(which, date, meal, cardId) {
+    if (which === "smoothie") {
+      var id = "day-" + date;
+      var cur = dayStack(date) || { id: id, slot1: null, slot2: null, slot3: null };
+      var stack = { id: id, slot1: cur.slot1 || null, slot2: cur.slot2 || null, slot3: cur.slot3 || null };
+      stack[stackField(meal)] = cardId || null;
+      var any = stack.slot1 || stack.slot2 || stack.slot3;
+      if (any) state.stacks[id] = stack;
+      else delete state.stacks[id];
+      writeStacks();
+      SLOT_ORDER.forEach(function (name) {
+        var row = state.slots[date + "|" + name] || { f: null, p: null, st: null };
+        state.slots[date + "|" + name] = { f: row.f || null, p: row.p || null, st: any ? id : null };
+      });
+      writeSlots();
+      return;
+    }
+    var stored = state.slots[date + "|" + meal] || { f: null, p: null, st: null };
+    var next = { f: stored.f || null, p: stored.p || null, st: stored.st || null };
+    if (which === "porridge") next.p = cardId || null;
+    else next.f = cardId || null;
+    state.slots[date + "|" + meal] = next;
+    writeSlots();
+  }
+
+  function persistAssign(which, date) {
+    if (typeof root.nexusFetch !== "function") return Promise.reject(new Error("offline"));
+    if (which === "smoothie") {
+      var id = "day-" + date;
+      var stack = state.stacks[id];
+      var body = {
+        slot1: stack && stack.slot1 || null,
+        slot2: stack && stack.slot2 || null,
+        slot3: stack && stack.slot3 || null
+      };
+      var empty = !body.slot1 && !body.slot2 && !body.slot3;
+      var job = empty
+        ? root.nexusFetch("/stacks/" + encodeURIComponent(id), { method: "DELETE" }).catch(function () { return null; })
+        : root.nexusFetch("/stacks/" + encodeURIComponent(id), { method: "PUT", body: body });
+      return job.then(function () {
+        return upsertSlots(SLOT_ORDER.map(function (meal) {
+          var cur = state.slots[date + "|" + meal] || {};
+          return slotRow(date, meal, cur.f || null, cur.p || null, empty ? null : id);
+        }));
+      });
+    }
+    var meal = arguments[2];
+    var stored = state.slots[date + "|" + meal] || {};
+    return root.nexusFetch("/slots/" + date + "/" + meal, {
+      method: "PUT",
+      body: { food_id: stored.f || null, porridge_id: stored.p || null, stack_id: stored.st || null }
+    });
+  }
+
+  function restoreAssign(snapshot) {
+    state.assignGen += 1;
+    if (snapshot.deck === "smoothie") {
+      var id = "day-" + snapshot.date;
+      var any = snapshot.prev.slot1 || snapshot.prev.slot2 || snapshot.prev.slot3;
+      if (any) state.stacks[id] = { id: id, slot1: snapshot.prev.slot1, slot2: snapshot.prev.slot2, slot3: snapshot.prev.slot3 };
+      else delete state.stacks[id];
+      writeStacks();
+      snapshot.prev.meals.forEach(function (row) {
+        state.slots[snapshot.date + "|" + row.meal] = { f: row.f, p: row.p, st: any ? id : null };
+      });
+      writeSlots();
+    } else {
+      var mealRow = null;
+      snapshot.prev.meals.forEach(function (row) { if (row.meal === snapshot.slot) mealRow = row; });
+      if (mealRow) {
+        state.slots[snapshot.date + "|" + snapshot.slot] = { f: mealRow.f, p: mealRow.p, st: mealRow.st };
+        writeSlots();
+      }
+    }
+    state.armed = { deck: snapshot.deck, date: snapshot.date, slot: snapshot.slot };
+    paintAll();
+    var gen = state.assignGen;
+    persistAssign(snapshot.deck, snapshot.date, snapshot.slot).then(function () {
+      if (state.assignGen !== gen) return persistAssign(snapshot.deck, snapshot.date, snapshot.slot);
+    }).catch(function () { /* local undo still stands */ });
+  }
+
+  function advanceArm(which, date, meal) {
+    var start = SLOT_ORDER.indexOf(meal);
+    var i;
+    for (i = 1; i <= 3; i++) {
+      var next = SLOT_ORDER[(start + i) % 3];
+      if (!cardInSlot(which, date, next)) {
+        state.armed = { deck: which, date: date, slot: next };
+        return;
+      }
+    }
+    state.armed = null;
+  }
+
+  function assignArmed(card) {
+    var arm = state.armed;
+    if (!arm || !card) return;
+    if (deckSlug(card.deck) !== arm.deck) return;
+    var prev = readSlotIds(arm.date);
+    var snapshot = { deck: arm.deck, date: arm.date, slot: arm.slot, prev: prev };
+    writeLocalSlot(arm.deck, arm.date, arm.slot, card.id);
+    var label = planLabels(arm.deck)[SLOT_ORDER.indexOf(arm.slot)] || "slot";
+    var gen = ++state.assignGen;
+    advanceArm(arm.deck, arm.date, arm.slot);
+    paintAll();
+    showToast("Added to " + label, function () { restoreAssign(snapshot); });
+    persistAssign(snapshot.deck, snapshot.date, snapshot.slot).then(function () {
+      if (state.assignGen !== gen) return persistAssign(snapshot.deck, snapshot.date, snapshot.slot);
+    }).catch(function () {
+      if (state.assignGen !== gen) return;
+      restoreAssign(snapshot);
+      showToast("Saved on this phone");
+    });
+  }
+
+  function clearArmedSlot(spec) {
+    var parts = String(spec || "").split("|");
+    var which = parts[0];
+    var date = parts[1];
+    var meal = parts[2];
+    writeLocalSlot(which, date, meal, null);
+    paintAll();
+    persistAssign(which, date, meal).catch(function () {
+      showToast("Saved on this phone · will sync");
+    });
+  }
+
   function onClick(event) {
-    var target = event.target.closest("[data-deck-close], [data-deck-pick], [data-deck-view], [data-deck-open], [data-deck-copy], [data-deck-toggle], [data-deck-save], [data-deck-clear], [data-deck-edit], [data-deck-hide], [data-deck-copy-month], [data-deck-day], [data-deck-chip], [data-deck-mode], [data-deck-copy-go], [data-deck-step], [data-deck-cancel], [data-deck-flip], [data-deck-next], [data-deck-peek], [data-deck-back], [data-deck-choose-back], [data-deck-upload-save], #hub-month-prev, #hub-month-next");
-    if (!target) return;
+    var target = event.target.closest("[data-deck-close], [data-deck-pick], [data-deck-view], [data-deck-open], [data-deck-copy], [data-deck-toggle], [data-deck-save], [data-deck-clear], [data-deck-edit], [data-deck-hide], [data-deck-copy-month], [data-deck-day], [data-deck-chip], [data-deck-mode], [data-deck-copy-go], [data-deck-step], [data-deck-cancel], [data-deck-flip], [data-deck-next], [data-deck-peek], [data-deck-back], [data-deck-choose-back], [data-deck-upload-save], [data-deck-upload-clear], [data-deck-face], [data-deck-swap], [data-deck-arm], [data-deck-slot-clear], [data-deck-day-shift], [data-deck-pill], #hub-month-prev, #hub-month-next");
+    if (!target) {
+      if (state.armed && event.target.closest("[data-os-panel]")) {
+        state.armed = null;
+        paintAll();
+      }
+      return;
+    }
     if (target.id === "hub-month-prev") { shiftMonth(-1); return; }
     if (target.id === "hub-month-next") { shiftMonth(1); return; }
+    if (target.hasAttribute("data-deck-slot-clear")) {
+      event.preventDefault();
+      event.stopPropagation();
+      clearArmedSlot(target.getAttribute("data-deck-slot-clear"));
+      return;
+    }
+    if (target.hasAttribute("data-deck-day-shift")) {
+      state.armDate = shiftDate(planDate(), Number(target.getAttribute("data-deck-day-shift")) || 0);
+      if (state.armed) state.armed.date = state.armDate;
+      paintAll();
+      return;
+    }
+    if (target.hasAttribute("data-deck-pill") && state.picker) {
+      state.picker.shift = target.getAttribute("data-deck-pill") === "1";
+      paintPicker();
+      return;
+    }
+    if (target.hasAttribute("data-deck-face")) {
+      var faceBits = target.getAttribute("data-deck-face").split("|");
+      state.addDeck = faceBits[0] === "smoothies" ? "smoothie" : faceBits[0];
+      state.fileRole = faceBits[1] === "back" ? "back" : "front";
+      state.backTarget = "bubble";
+      var faceInput = root.document.getElementById("deck-file");
+      if (faceInput) {
+        faceInput.multiple = state.fileRole !== "back";
+        faceInput.click();
+      }
+      return;
+    }
+    if (target.hasAttribute("data-deck-swap") && state.draft && state.draft.front && state.draft.back) {
+      var heldFile = state.draft.front;
+      var heldUrl = state.draft.frontUrl;
+      state.draft.front = state.draft.back;
+      state.draft.frontUrl = state.draft.backUrl;
+      state.draft.back = heldFile;
+      state.draft.backUrl = heldUrl;
+      paintAll();
+      return;
+    }
+    if (target.hasAttribute("data-deck-upload-clear")) {
+      clearDraft();
+      paintAll();
+      return;
+    }
+    if (target.hasAttribute("data-deck-arm")) {
+      if (wire.suppressArm) { wire.suppressArm = false; return; }
+      var armBits = target.getAttribute("data-deck-arm").split("|");
+      var same = state.armed && state.armed.deck === armBits[0] && state.armed.date === armBits[1] && state.armed.slot === armBits[2];
+      state.armed = same ? null : { deck: armBits[0], date: armBits[1], slot: armBits[2] };
+      paintAll();
+      return;
+    }
     if (target.hasAttribute("data-deck-step")) {
       var form = target.closest("form");
       var field = target.getAttribute("data-deck-step");
@@ -1685,8 +2068,12 @@
     }
     if (target.hasAttribute("data-deck-back") || target.hasAttribute("data-deck-choose-back")) {
       state.fileRole = "back";
+      state.backTarget = "card";
       var fileInput = root.document.getElementById("deck-file");
-      if (fileInput) fileInput.click();
+      if (fileInput) {
+        fileInput.multiple = false;
+        fileInput.click();
+      }
       return;
     }
     if (target.hasAttribute("data-deck-upload-save")) { commitUpload(); return; }
@@ -1703,7 +2090,15 @@
       }
       return;
     }
-    if (target.hasAttribute("data-deck-open")) { openCard(target.getAttribute("data-deck-open"), "deck"); return; }
+    if (target.hasAttribute("data-deck-open")) {
+      var opened = cardById(state.cards, target.getAttribute("data-deck-open"));
+      if (state.armed && opened && deckSlug(opened.deck) === state.armed.deck) {
+        assignArmed(opened);
+        return;
+      }
+      openCard(target.getAttribute("data-deck-open"), "deck");
+      return;
+    }
     if (target.hasAttribute("data-deck-copy")) { openCopy(target.getAttribute("data-deck-copy")); return; }
     if (target.hasAttribute("data-deck-toggle") && state.picker) {
       var picked = reducePick(state.picker, target.getAttribute("data-deck-kind"), target.getAttribute("data-deck-toggle"));
@@ -1779,7 +2174,14 @@
       var node = root.document.getElementById(id);
       return node && !node.hidden;
     });
-    if (!open) return;
+    if (!open) {
+      if (state.armed) {
+        event.preventDefault();
+        state.armed = null;
+        paintAll();
+      }
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     state.copy = null;
@@ -1807,61 +2209,113 @@
     return { pairs: pairs, loose: loose, paired: paired };
   }
 
-  function paintUpload() {
-    var host = root.document.getElementById("deck-upload");
-    var up = state.upload;
-    if (!host || !up) return;
-    host.hidden = false;
-    host.textContent = "";
-    var head = el("div", "deck-overlay-head");
-    var close = el("button", "deck-x", "×");
-    close.type = "button";
-    close.setAttribute("data-deck-close", "upload");
-    close.setAttribute("aria-label", "Close");
-    head.appendChild(close);
-    head.appendChild(el("h2", "deck-overlay-title", up.deck === "SMOOTHIE" ? "Smoothie card" : "Card"));
-    host.appendChild(head);
-    var flip = el("div", "deck-flip deck-upload-card" + (up.flipped ? " is-flipped" : ""));
-    var inner = el("div", "deck-flip-inner");
-    var front = el("div", "deck-flip-face is-front");
-    var img = el("img");
-    img.alt = "";
-    if (up.front && root.URL && root.URL.createObjectURL) img.src = root.URL.createObjectURL(up.front);
-    front.appendChild(img);
-    var back = el("div", "deck-flip-face is-back");
-    if (up.back && root.URL && root.URL.createObjectURL) {
-      var backImg = el("img");
-      backImg.alt = "";
-      backImg.src = root.URL.createObjectURL(up.back);
-      back.appendChild(backImg);
-    } else back.appendChild(el("p", "deck-back-empty", up.deck === "SMOOTHIE" ? "Front only" : "Back"));
-    inner.appendChild(front);
-    inner.appendChild(back);
-    flip.appendChild(inner);
-    host.appendChild(flip);
+  function placeholderFor(code) {
+    if (code === "SMOOTHIE") return "Name";
+    if (code === "PORRIDGE") return "Name | toppings";
+    return "Name | veg | fruit";
+  }
+
+  function revokeFace(draft, role) {
+    var key = role + "Url";
+    if (draft && draft[key] && root.URL && root.URL.revokeObjectURL) {
+      try { root.URL.revokeObjectURL(draft[key]); } catch (err) { /* already revoked */ }
+      draft[key] = "";
+    }
+  }
+
+  function setFace(draft, role, file) {
+    revokeFace(draft, role);
+    draft[role] = file || null;
+    draft[role + "Url"] = file && root.URL && root.URL.createObjectURL ? root.URL.createObjectURL(file) : "";
+  }
+
+  function clearDraft() {
+    if (state.draft) {
+      revokeFace(state.draft, "front");
+      revokeFace(state.draft, "back");
+    }
+    state.draft = null;
+  }
+
+  function ensureDraft(deck) {
+    var code = deckCode(deck);
+    if (!state.draft || state.draft.deck !== code) {
+      clearDraft();
+      state.draft = { deck: code, front: null, back: null, line: "", frontUrl: "", backUrl: "", busy: false };
+    }
+    return state.draft;
+  }
+
+  function paintBubble(host, which) {
+    var mount = host.querySelector("[data-deck-bubble]");
+    if (!mount) return;
+    var code = deckCode(which);
+    var up = state.draft && state.draft.deck === code ? state.draft : null;
+    mount.textContent = "";
+    var bubble = el("div", "deck-bubble");
+    var tiles = el("div", "deck-bubble-tiles" + (code === "SMOOTHIE" ? " is-single" : ""));
+    tiles.appendChild(faceTile(which, "front", up));
+    if (code !== "SMOOTHIE") tiles.appendChild(faceTile(which, "back", up));
+    bubble.appendChild(tiles);
+    if (up && up.front && up.back && code !== "SMOOTHIE") {
+      var swap = el("button", "deck-swap", "⇄");
+      swap.type = "button";
+      swap.setAttribute("aria-label", "Swap front and back");
+      swap.setAttribute("data-deck-swap", which);
+      bubble.appendChild(swap);
+    }
     var line = el("input", "deck-front-line");
     line.type = "text";
-    line.value = up.line || "";
-    line.placeholder = "NAME | FOOD | veg | fruit";
-    line.setAttribute("data-deck-line", "1");
-    line.setAttribute("aria-label", "Paste line");
-    host.appendChild(line);
-    if (up.deck !== "SMOOTHIE") {
-      var choose = el("button", "deck-bar-btn", up.back ? "Change back" : "Choose back");
-      choose.type = "button";
-      choose.setAttribute("data-deck-choose-back", "1");
-      host.appendChild(choose);
-    }
-    var save = el("button", "deck-save", "Save");
+    line.value = up ? (up.line || "") : "";
+    line.placeholder = placeholderFor(code);
+    line.setAttribute("data-deck-line", which);
+    line.setAttribute("aria-label", "Card name");
+    bubble.appendChild(line);
+    var row = el("div", "deck-bubble-actions");
+    var clear = el("button", "deck-x", "×");
+    clear.type = "button";
+    clear.setAttribute("aria-label", "Clear");
+    clear.setAttribute("data-deck-upload-clear", which);
+    var save = el("button", "deck-save", up && up.busy ? "Saving…" : "Save");
     save.type = "button";
-    save.setAttribute("data-deck-upload-save", "1");
-    host.appendChild(save);
-    if (!up.flipped) {
-      root.requestAnimationFrame(function () {
-        up.flipped = true;
-        flip.classList.add("is-flipped");
-      });
-    }
+    save.disabled = !(up && up.front) || !!(up && up.busy);
+    save.setAttribute("data-deck-upload-save", which);
+    row.appendChild(clear);
+    row.appendChild(save);
+    bubble.appendChild(row);
+    mount.appendChild(bubble);
+  }
+
+  function faceTile(which, role, up) {
+    var btn = el("button", "deck-face");
+    btn.type = "button";
+    btn.setAttribute("data-deck-face", which + "|" + role);
+    var file = up && up[role];
+    var url = up && up[role + "Url"];
+    if (file && url) {
+      var img = el("img");
+      img.alt = role === "front" ? "Front" : "Back";
+      img.draggable = false;
+      img.src = url;
+      btn.appendChild(img);
+    } else btn.appendChild(el("span", "deck-face-label", role === "front" ? "Front" : "Back"));
+    return btn;
+  }
+
+  function fieldsFromLine(up) {
+    var parsed = up.line ? parseLine(up.line) : null;
+    var fields = { name: tidyName(up.front && up.front.name), deck: up.deck, veg: 0, fruit: 0 };
+    if (!parsed) return fields;
+    fields.name = parsed.name || fields.name;
+    if (parsed.veg != null) fields.veg = parsed.veg;
+    if (parsed.fruit != null) fields.fruit = parsed.fruit;
+    if (up.deck === "PORRIDGE" && parsed.toppings) fields.name = (parsed.name + " · " + parsed.toppings).slice(0, 80);
+    fields.deck = up.deck;
+    return fields;
+  }
+
+  function paintUpload() {
+    paintAll();
   }
 
   function beginUpload(file, deck, back) {
@@ -1869,27 +2323,38 @@
       failNote("*" + ((file && file.name) || "file") + "* isn't an image. Pick a PNG, JPG or WebP card.");
       return;
     }
-    state.upload = { deck: deckCode(deck), front: file, back: back || null, line: "", flipped: false };
-    paintUpload();
+    var up = ensureDraft(deck);
+    setFace(up, "front", file);
+    if (back && deckCode(deck) !== "SMOOTHIE") setFace(up, "back", back);
+    if (!up.line) up.line = tidyName(file.name);
+    paintAll();
   }
 
   function commitUpload() {
-    var up = state.upload;
-    if (!up || !up.front) return Promise.resolve();
-    var parsed = parseLine(up.line);
-    var fields = { name: tidyName(up.front.name), deck: up.deck, veg: 0, fruit: 0 };
-    if (parsed) {
-      if (parsed.deck !== up.deck) {
-        var ok = root.confirm ? root.confirm("Save this card in " + parsed.deck + "?") : true;
-        if (ok) fields.deck = parsed.deck;
+    var up = state.draft;
+    if (!up || !up.front || up.busy) return Promise.resolve();
+    up.busy = true;
+    paintAll();
+    var fields = fieldsFromLine(up);
+    var back = up.deck === "SMOOTHIE" ? null : up.back;
+    return uploadPair(up.front, back, deckSlug(up.deck), fields).then(function (saved) {
+      if (state.draft) state.draft.busy = false;
+      if (!saved || !saved.id) {
+        paintAll();
+        return saved;
       }
-      fields.name = parsed.name;
-      fields.veg = parsed.veg;
-      fields.fruit = parsed.fruit;
-    }
-    var back = fields.deck === "SMOOTHIE" ? null : up.back;
-    return uploadPair(up.front, back, deckSlug(fields.deck), fields).then(function () {
-      closeOverlays();
+      state.justAdded = saved.id;
+      clearDraft();
+      showToast("Added");
+      paintAll();
+      var added = saved.id;
+      setTimeout(function () {
+        if (state.justAdded === added) state.justAdded = "";
+        if (!root.document) return;
+        var node = root.document.querySelector(".deck-tile.is-just-added");
+        if (node) node.classList.remove("is-just-added");
+      }, 600);
+      return saved;
     });
   }
 
@@ -1902,8 +2367,8 @@
       return patchCard(card, { back_key: uploaded.key });
     }).then(function () {
       if (state.card) paintCard();
-    }).catch(function () {
-      failNote("Couldn't add the back: no connection. Try again.");
+    }).catch(function (err) {
+      failNote(uploadErrorText(err, "the back"));
     });
   }
 
@@ -1952,43 +2417,45 @@
     });
   }
 
+  function takePair(files) {
+    var list = files.slice(0, 2);
+    var front = null;
+    var back = null;
+    list.forEach(function (file) {
+      if (/_FRONT\./i.test(file.name || "")) front = file;
+      else if (/_BACK\./i.test(file.name || "")) back = file;
+    });
+    if (front && back) return [front, back];
+    return list;
+  }
+
   function onFiles(event) {
     var input = event.target;
     if (!input || input.id !== "deck-file") return;
     var files = Array.prototype.slice.call(input.files || []);
     input.value = "";
+    input.multiple = true;
     if (state.fileRole === "back") {
       state.fileRole = "front";
       var backFile = files[0];
-      if (state.upload) {
-        state.upload.back = backFile || null;
-        state.upload.flipped = true;
-        paintUpload();
+      if (state.backTarget === "card" && state.card) {
+        state.backTarget = "";
+        attachBack(state.card.id, backFile);
         return;
       }
-      if (state.card) attachBack(state.card.id, backFile);
+      state.backTarget = "";
+      var draft = ensureDraft(state.addDeck);
+      setFace(draft, "back", backFile || null);
+      paintAll();
       return;
     }
-    var grouped = pairFiles(files);
-    if (grouped.paired && grouped.pairs.length) {
-      var chain = Promise.resolve();
-      grouped.pairs.forEach(function (pair) {
-        chain = chain.then(function () { return uploadPair(pair.front, pair.back, state.addDeck); });
-      });
-      grouped.loose.forEach(function (file) {
-        chain = chain.then(function () { return uploadOne(file, state.addDeck); });
-      });
+    if (!files.length) return;
+    if (files.length >= 2 && deckCode(state.addDeck) !== "SMOOTHIE") {
+      var pair = takePair(files);
+      beginUpload(pair[0], state.addDeck, pair[1]);
       return;
     }
-    if (files.length === 2 && deckCode(state.addDeck) !== "SMOOTHIE") {
-      beginUpload(files[0], state.addDeck, files[1]);
-      return;
-    }
-    if (files.length === 1) {
-      beginUpload(files[0], state.addDeck);
-      return;
-    }
-    uploadFiles(files, state.addDeck);
+    beginUpload(files[0], state.addDeck);
   }
 
   function wire() {
@@ -2012,16 +2479,28 @@
       var raw = add.getAttribute("data-deck-add");
       state.addDeck = raw === "smoothie" ? "smoothie" : raw === "porridge" ? "porridge" : "food";
       state.fileRole = "front";
+      state.backTarget = "bubble";
+      var picker = root.document.getElementById("deck-file");
+      if (picker) picker.multiple = true;
     }, true);
     root.document.addEventListener("input", function (event) {
-      if (!state.upload || !event.target || !event.target.hasAttribute("data-deck-line")) return;
-      state.upload.line = event.target.value;
+      if (!event.target || !event.target.hasAttribute("data-deck-line")) return;
+      var draft = ensureDraft(event.target.getAttribute("data-deck-line"));
+      draft.line = event.target.value;
     });
-    root.document.addEventListener("pointerup", function (event) {
+    function endStackDrag(event) {
       if (!wire.stackDrag) return;
+      if (event.pointerId != null && event.pointerId !== wire.stackDrag.pointerId) return;
       var from = wire.stackDrag;
       wire.stackDrag = null;
-      var slot = event.target.closest("[data-deck-stack-from]");
+      if (from.el && from.pointerId != null) {
+        try { from.el.releasePointerCapture(from.pointerId); } catch (err) { /* already released */ }
+      }
+      if (!from.moved) return;
+      wire.suppressArm = true;
+      setTimeout(function () { wire.suppressArm = false; }, 0);
+      var point = root.document.elementFromPoint(event.clientX, event.clientY);
+      var slot = point && point.closest ? point.closest("[data-deck-stack-from]") : null;
       if (!slot) return;
       var to = +slot.getAttribute("data-deck-stack-from");
       if (to === from.index) return;
@@ -2038,11 +2517,29 @@
         });
         return saveSlots(rows);
       }).then(paintAll);
+    }
+    root.document.addEventListener("pointermove", function (event) {
+      if (!wire.stackDrag || wire.stackDrag.moved) return;
+      if (event.pointerId !== wire.stackDrag.pointerId) return;
+      if (Math.hypot(event.clientX - wire.stackDrag.x, event.clientY - wire.stackDrag.y) > 8) wire.stackDrag.moved = true;
     });
+    root.document.addEventListener("pointerup", endStackDrag);
+    root.document.addEventListener("pointercancel", endStackDrag);
     root.document.addEventListener("pointerdown", function (event) {
+      if (event.button != null && event.button !== 0) return;
+      if (event.target.closest("[data-deck-slot-clear]")) return;
       var slot = event.target.closest("[data-deck-stack-from]");
       if (!slot) return;
-      wire.stackDrag = { index: +slot.getAttribute("data-deck-stack-from"), date: slot.getAttribute("data-stack-date") };
+      wire.stackDrag = {
+        index: +slot.getAttribute("data-deck-stack-from"),
+        date: slot.getAttribute("data-stack-date"),
+        x: event.clientX,
+        y: event.clientY,
+        moved: false,
+        pointerId: event.pointerId,
+        el: slot
+      };
+      try { slot.setPointerCapture(event.pointerId); } catch (err) { /* capture is optional */ }
     });
     var input = root.document.getElementById("deck-file");
     if (input) input.addEventListener("change", onFiles);

@@ -329,6 +329,8 @@
 
   var TICK_DIRTY_KEY = "nexus_ticks_dirty_v2";
   var tickLoadFailed = false;
+  var ticksUseMask = false;
+  var pendingTickBit = 0;
   var trainToastTimer = 0;
 
   function maskFromLevel(level) {
@@ -381,7 +383,8 @@
     var busy = state.syncPending > 0;
     dot.classList.toggle("is-busy", busy);
     dot.classList.toggle("is-error", !!state.syncError && !busy);
-    var label = busy ? "Syncing completions" : (state.syncError ? state.syncNote : "Synced");
+    var dirty = Object.keys(readTickDirty()).length > 0;
+    var label = busy ? "Syncing completions" : (state.syncError ? state.syncNote : (dirty ? "Saved on this phone" : "Synced"));
     dot.setAttribute("aria-label", label);
     var text = $("sync-dot-text");
     if (text) text.textContent = label;
@@ -490,7 +493,14 @@
       if (Array.isArray(rows)) {
         rows.forEach(function (row) {
           if (!row) return;
-          absorbCompletionRow(next, row.date_key, Number(row.level) > 0, maskFromLevel(row.level));
+          var mask;
+          if (row.mask != null) {
+            ticksUseMask = true;
+            mask = normalizeTier(row.mask);
+          } else {
+            mask = maskFromLevel(row.level);
+          }
+          absorbCompletionRow(next, row.date_key, Number(row.level) > 0, mask);
         });
       }
       var dirty = readTickDirty();
@@ -527,13 +537,17 @@
   function upsertCompletion(storageKey, mask) {
     var api = window.NEXUS_API || {};
     if (!api.base || typeof window.nexusFetch !== "function") return Promise.resolve(null);
-    var level = popcount(normalizeTier(mask));
+    var bits = normalizeTier(mask);
+    var level = popcount(bits);
+    var body = ticksUseMask ? { mask: bits } : { level: level };
     return window.nexusFetch("/ticks/" + encodeURIComponent(storageKey), {
       method: "PUT",
-      body: { level: level }
+      body: body
     }).then(function (row) {
       if (row && row.date_key) return row;
-      return { date_key: storageKey, level: level };
+      return ticksUseMask
+        ? { date_key: storageKey, mask: bits, level: level }
+        : { date_key: storageKey, level: level };
     }).catch(function () {
       return null;
     });
@@ -541,7 +555,8 @@
 
   function applyReturnedCompletion(storageKey, row) {
     var key = storageKeyFromRow(row && row.date_key) || storageKey;
-    var mask = row && row.level != null ? maskFromLevel(row.level) : 0;
+    if (ticksUseMask && (!row || row.mask == null)) return;
+    var mask = ticksUseMask ? normalizeTier(row.mask) : (row && row.level != null ? maskFromLevel(row.level) : 0);
     if (mask) state.videos[key] = mask;
     else delete state.videos[key];
   }
@@ -552,6 +567,7 @@
     else delete state.videos[storageKey];
     rememberTickDirty(storageKey, bits);
     state.restoreTickDate = restoreFocus ? dateKey : "";
+    if (restoreFocus) state.restoreTickBit = pendingTickBit;
     render();
 
     var gen = (state.saveGen[storageKey] || 0) + 1;
@@ -566,6 +582,7 @@
       forgetTickDirty(storageKey);
       applyReturnedCompletion(storageKey, row);
       state.restoreTickDate = restoreFocus ? dateKey : "";
+      if (restoreFocus) state.restoreTickBit = pendingTickBit;
       render();
       setSync("", false);
     }).then(function () {
@@ -590,12 +607,15 @@
       blocks.push('<span class="doc-text">' + escapeHtml(day.doc1 || "Rest / Light Mobility") + "</span>");
       if (day.doc2) blocks.push('<span class="doc-text">' + escapeHtml(day.doc2) + "</span>");
     } else {
+      var lineMask = normalizeTier(maskFor(day.dateKey));
       (day.cabins || []).forEach(function (cabinKey, index) {
         if (!cabinKey) return;
         var label = S.citationLabel(cabinKey, phase);
         var href = citationHref(cabinKey, phase);
+        var bit = index === 1 ? 2 : 1;
+        var marked = (lineMask & bit) === bit;
         blocks.push(
-          '<a class="cite-link' + (index === 0 ? " is-lead" : "") + '" data-cabin="' + escapeHtml(cabinKey) +
+          '<a class="cite-link' + (index === 0 ? " is-lead" : "") + (marked ? " is-line-on" : "") + '" data-cabin="' + escapeHtml(cabinKey) +
           '" data-phase="' + escapeHtml(phase) +
           '" data-date="' + escapeHtml(day.dateKey) +
           '" data-slot="' + (index === 1 ? "1" : "0") +
@@ -832,23 +852,39 @@
     return "No trainer video done " + dateKey;
   }
 
+  function tickDateLabel(day) {
+    var raw = String(day.dayName || "");
+    var name = raw ? raw.charAt(0) + raw.slice(1).toLowerCase() : "";
+    var parts = String(day.dateKey || "").split("-");
+    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    var dom = parts[2] ? String(Number(parts[2])) : "";
+    var mon = months[(Number(parts[1]) || 1) - 1] || "";
+    return (name + " " + dom + " " + mon).trim();
+  }
+
+  function tickCheckSvg() {
+    return '<svg class="mark-tick" viewBox="0 0 28 28" aria-hidden="true" focusable="false"><path d="M6 14.5 11.5 20 22 8" fill="none" stroke="#ff8a00" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  }
+
   function doneHtml(day, parts) {
     if (!canTick(day.dateKey, parts)) {
       return '<td class="done-cell"><span class="lock-badge">LOCKED</span></td>';
     }
     var mask = normalizeTier(maskFor(day.dateKey));
-    var tier = popcount(mask);
-    var dayState = tier >= 2 ? "dual" : (tier === 1 ? "partial" : "empty");
-    var checked = tier >= 2 ? "true" : (tier === 1 ? "mixed" : "false");
-    var emblem = tier >= 2 ? tickMarks(2) : (tier === 1 ? tickMarks(1) : "");
-    return (
-      '<td class="done-cell"><button type="button" class="tick-hit is-' + dayState + '" data-date="' + day.dateKey +
-      '" data-tier="' + tier + '" data-videos="' + mask +
-      '" role="checkbox" aria-checked="' + checked +
-      '" aria-label="' + tierLabel(day.dateKey, mask) + '">' +
-      '<span class="tick-box" aria-hidden="true">' + emblem + "</span>" +
-      "</button></td>"
-    );
+    var cabins = (day.cabins || []).filter(Boolean);
+    var lines = (!day.isRecovery && cabins.length > 1) ? 2 : 1;
+    var label = escapeHtml(tickDateLabel(day));
+    var html = '<td class="done-cell"><div class="tick-pair">';
+    var i;
+    for (i = 0; i < lines; i++) {
+      var bit = i === 0 ? 1 : 2;
+      var on = (mask & bit) === bit;
+      html += '<button type="button" class="tick-hit' + (on ? " is-on" : "") + '" data-date="' + day.dateKey +
+        '" data-bit="' + bit + '" role="checkbox" aria-checked="' + (on ? "true" : "false") +
+        '" aria-label="Tick ' + (i === 0 ? "top" : "bottom") + " schedule, " + label + '">' +
+        '<span class="tick-box" aria-hidden="true">' + (on ? tickCheckSvg() : "") + "</span></button>";
+    }
+    return html + "</div></td>";
   }
 
   function foodShop() { return window.RELIC_FOOD_SHOP || null; }
@@ -1196,9 +1232,7 @@
       var isToday = day.dateKey === parts.dateKey;
       var classes = [];
       if (isToday) classes.push("today");
-      var tier = displayTier(day.dateKey);
-      if (tier === 1) classes.push("is-tier-1");
-      if (tier >= 2) classes.push("is-tier-2", "is-done");
+      if (normalizeTier(maskFor(day.dateKey))) classes.push("is-ticked");
       html += '<tr class="' + classes.join(" ") + '">' +
         '<td class="day-cell">' +
           '<span class="day-name">' + day.dayName + "</span>" +
@@ -1215,8 +1249,10 @@
     paintOsDoors();
     if (state.osDoor === "training") warmVisibleLeads();
     if (state.restoreTickDate) {
-      var again = tbody.querySelector('button.tick-hit[data-date="' + state.restoreTickDate + '"]');
+      var bitSel = state.restoreTickBit ? '[data-bit="' + state.restoreTickBit + '"]' : "";
+      var again = tbody.querySelector('button.tick-hit[data-date="' + state.restoreTickDate + '"]' + bitSel);
       state.restoreTickDate = "";
+      state.restoreTickBit = 0;
       if (again) {
         try { again.focus({ preventScroll: true }); } catch (err) {
           try { again.focus(); } catch (err2) { /* focus is optional */ }
@@ -1225,15 +1261,24 @@
     }
   }
 
-  /* Empty → first video (bit 0). Single shield → both videos. Double shield → clear.
-     A single shield that is only the second video still advances to dual, then a later tap clears. */
   function onTick(btn) {
     var dateKey = btn.getAttribute("data-date");
     var parts = londonParts(state.now || getNow());
     if (!dateKey || !canTick(dateKey, parts)) return;
-    var tier = displayTier(dateKey);
-    var nextMask = tier <= 0 ? 1 : (tier === 1 ? 3 : 0);
-    saveMask(completionStorageKey(dateKey), nextMask, dateKey, true);
+    var bit = Number(btn.getAttribute("data-bit")) || 1;
+    if (bit !== 2) bit = 1;
+    var current = normalizeTier(maskFor(dateKey));
+    var next;
+    if (ticksUseMask) next = (current ^ bit) & 3;
+    else if (bit === 2 && (current & 3) === 0) next = 3;
+    else if (bit === 1 && (current & 3) === 3) next = 0;
+    else {
+      next = (current ^ bit) & 3;
+      if (next === 2) next = 0;
+    }
+    pendingTickBit = bit;
+    state.restoreTickBit = bit;
+    saveMask(completionStorageKey(dateKey), next, dateKey, true);
   }
 
   function noteSetComplete() {
@@ -2846,7 +2891,7 @@
           render();
           return;
         }
-        if (name === "food" || name === "smoothies") {
+        if (name === "food" || name === "smoothies" || name === "porridge") {
           state.osDoor = name;
           state.menuCabin = "";
           setNavOpen(false);
@@ -3117,7 +3162,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v56",
+    build: "v57",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };
