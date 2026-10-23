@@ -310,6 +310,12 @@
       video.pause();
       video.removeAttribute("src");
       video.load();
+      var fresh = document.createElement("video");
+      fresh.id = "vc-preview-video";
+      fresh.controls = true;
+      fresh.setAttribute("playsinline", "");
+      fresh.preload = "metadata";
+      video.replaceWith(fresh);
     }
     if (root) root.hidden = true;
   }
@@ -404,6 +410,7 @@
       openModule = opening ? nextMod : "";
       if (pendingFile && opening) uploadTarget = { groupId: openGroup, moduleId: nextMod };
       else uploadTarget = null;
+      if (pendingFile) setUploadMsg(uploadTarget ? "" : "Choose a cabin, then a module.");
       render();
       return;
     }
@@ -412,6 +419,7 @@
     event.preventDefault();
     var next = cabin.getAttribute("data-vc-group") || "";
     uploadTarget = null;
+    if (pendingFile) setUploadMsg("Choose a cabin, then a module.");
     if (openGroup === next) {
       openGroup = "";
       openModule = "";
