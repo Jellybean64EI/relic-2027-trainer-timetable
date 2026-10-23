@@ -628,16 +628,29 @@
         var href = citationHref(cabinKey, phase);
         var bit = index === 1 ? 2 : 1;
         var marked = (lineMask & bit) === bit;
-        blocks.push(
-          '<a class="cite-link' + (index === 0 ? " is-lead" : "") + (marked ? " is-line-on" : "") + '" data-cabin="' + escapeHtml(cabinKey) +
-          '" data-phase="' + escapeHtml(phase) +
-          '" data-date="' + escapeHtml(day.dateKey) +
-          '" data-slot="' + (index === 1 ? "1" : "0") +
-          '" href="' + escapeHtml(href || "#") +
-          '" target="_blank" rel="noopener noreferrer">' +
-          escapeHtml(label || (index === 0 ? day.doc1 : day.doc2) || "") +
-          "</a>"
-        );
+        var lineNo = index === 1 ? 2 : 1;
+        var planKey = completionStorageKey(day.dateKey);
+        var placed = window.NexusBuilder && window.NexusBuilder.placement
+          ? window.NexusBuilder.placement(planKey, lineNo)
+          : null;
+        var pickable = canTick(day.dateKey, londonParts(state.now || getNow()));
+        var pick = pickable
+          ? '<button type="button" class="plan-pick" data-plan-key="' + escapeHtml(planKey) + '" data-line="' + lineNo + '" aria-label="' + (placed ? "Change schedule" : "Choose schedule") + '">' + (placed ? "✎" : "+") + "</button>"
+          : "";
+        var body;
+        if (placed) {
+          body = '<button type="button" class="combo-play' + (marked ? " is-line-on" : "") + '" data-combo="' + escapeHtml(placed.id) + '">' + escapeHtml(placed.name) + "</button>";
+        } else {
+          body = '<a class="cite-link' + (index === 0 ? " is-lead" : "") + (marked ? " is-line-on" : "") + '" data-cabin="' + escapeHtml(cabinKey) +
+            '" data-phase="' + escapeHtml(phase) +
+            '" data-date="' + escapeHtml(day.dateKey) +
+            '" data-slot="' + (index === 1 ? "1" : "0") +
+            '" href="' + escapeHtml(href || "#") +
+            '" target="_blank" rel="noopener noreferrer">' +
+            escapeHtml(label || (index === 0 ? day.doc1 : day.doc2) || "") +
+            "</a>";
+        }
+        blocks.push('<div class="relic-line">' + body + pick + "</div>");
       });
     }
     if (!blocks.length) blocks.push('<span class="doc-text">—</span>');
@@ -1972,7 +1985,8 @@
       return;
     }
     var clip = player.clips[player.index];
-    el.textContent = (player.cabin || "") + " · " +
+    var cabinName = (clip && clip.cabin) || player.cabin || "";
+    el.textContent = cabinName + " · " +
       (player.index + 1) + "/" + player.clips.length + " · " +
       (clip && clip.title ? clip.title : "Clip");
     paintForensic();
@@ -2817,6 +2831,60 @@
     if (!player.awaitingReveal) $("relic-player-close").focus();
   }
 
+  function openCatalogPlaylist(clips) {
+    var list = [];
+    (clips || []).forEach(function (clip) {
+      if (!clip || !clip.src || isBlockedMediaUrl(clip.src)) return;
+      list.push({
+        title: clip.title || "Clip",
+        src: String(clip.src),
+        cabin: clip.cabin || ""
+      });
+    });
+    if (!list.length) return;
+    setNavOpen(false);
+    player.credit = null;
+    player.cabin = list[0].cabin || "";
+    player.phase = "Base";
+    player.index = 0;
+    player.clips = list;
+    player.generation = (player.generation | 0) + 1;
+    player.phaseState = "loading";
+    player.unavailable = false;
+    player.stallReloaded = false;
+    if (player.clipAbort) {
+      try { player.clipAbort.abort(); } catch (err) { /* new list */ }
+      player.clipAbort = null;
+    }
+    var root = $("relic-player");
+    var wasHidden = !root || root.hidden;
+    if (!player.historyPushed) {
+      try {
+        history.pushState({ relicPlayer: 1 }, "");
+        player.historyPushed = true;
+      } catch (err2) { /* file:// may refuse */ }
+    }
+    player.awaitingReveal = !!wasHidden;
+    if (root) {
+      if (wasHidden) {
+        root.classList.add("is-awaiting-frame");
+        root.setAttribute("aria-hidden", "true");
+      }
+      root.hidden = false;
+    }
+    document.body.classList.add("player-open");
+    if (!player.awaitingReveal) showPlayerHud();
+    player.empty = false;
+    player.paused = false;
+    setEmptyOverlay(false);
+    setGate(false);
+    loadCurrentClip(true);
+    startCountdown();
+    paintPlayButton();
+    paintMediaSession();
+    if (!player.awaitingReveal) $("relic-player-close").focus();
+  }
+
   function wire() {
     document.querySelectorAll(".mbtn").forEach(function (btn) {
       btn.addEventListener("click", function () { pickMonth(+btn.getAttribute("data-month")); });
@@ -3172,7 +3240,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v59a",
+    build: "v59b",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };
@@ -3214,6 +3282,8 @@
     resolveClipSrc: resolveClipSrc,
     openCabin: openCabin,
     openCatalogClip: openCatalogClip,
+    openCatalogPlaylist: openCatalogPlaylist,
+    refresh: render,
     playNextVideo: playNextVideo,
     applyDurationOverride: applyDurationOverride,
     applyAddMoreTime: applyAddMoreTime,

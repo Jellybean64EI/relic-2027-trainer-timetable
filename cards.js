@@ -29,8 +29,11 @@
   }
 
   function cardHtml(video) {
+    var picked = window.NexusBuilder && window.NexusBuilder.picked && window.NexusBuilder.picked(video.key);
     return '<button type="button" class="vc-card" data-vc-key="' + esc(video.key) + '" data-vc-src="' + esc(video.src) + '" data-vc-cabin="' + esc(video.cabin) + '" data-vc-title="' + esc(video.title) + '">' +
-      '<span class="vc-card-title">' + esc(video.title) + "</span>" +
+      '<span class="vc-card-top"><span class="vc-card-title">' + esc(video.title) + "</span>" +
+      (picked ? '<span class="vc-in" aria-label="In this section">✓</span>' : "") +
+      "</span>" +
       chips(video) +
       "</button>";
   }
@@ -70,6 +73,12 @@
     var card = event.target.closest(".vc-card");
     if (card) {
       event.preventDefault();
+      if (window.NexusBuilder && window.NexusBuilder.takeCard && window.NexusBuilder.takeCard({
+        key: card.getAttribute("data-vc-key"),
+        src: card.getAttribute("data-vc-src"),
+        cabin: card.getAttribute("data-vc-cabin"),
+        title: card.getAttribute("data-vc-title")
+      })) return;
       if (window.RelicArchitect && window.RelicArchitect.openCatalogClip) {
         window.RelicArchitect.openCatalogClip({
           title: card.getAttribute("data-vc-title"),
