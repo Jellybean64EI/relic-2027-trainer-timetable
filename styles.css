@@ -5430,6 +5430,63 @@ body.is-cards #banner-coach {
 
 .vc-eye svg { display: block; }
 
+.vc-card-wrap.has-mine .vc-card { padding-right: 48px; }
+.vc-card-wrap.has-mine.has-eye .vc-card { padding-right: 92px; }
+.vc-card-wrap.has-mine.is-renaming .vc-card { padding-right: 88px; }
+.vc-card-wrap.has-mine.has-eye.is-renaming .vc-card { padding-right: 132px; }
+
+.vc-rename {
+  position: absolute;
+  top: 6px;
+  right: 4px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.vc-card-wrap.has-eye .vc-rename { right: 48px; }
+
+.vc-pencil,
+.vc-tick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+}
+
+.vc-pencil { color: #d8b4fe; }
+.vc-tick { color: #3ddc84; }
+.vc-pencil svg,
+.vc-tick svg { display: block; }
+
+.vc-name-input {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  right: 86px;
+  z-index: 3;
+  height: 32px;
+  margin: 0;
+  padding: 2px 8px;
+  border: 1px solid #d8b4fe;
+  border-radius: 8px;
+  background: #12051d;
+  color: #f6eefe;
+  font: inherit;
+  font-weight: 700;
+}
+
+.vc-card-wrap.has-eye .vc-name-input { right: 130px; }
+.vc-card-wrap.is-renaming .vc-card-title { visibility: hidden; }
+
 .vc-mod.is-upload {
   border: 2px solid #ff8a00;
   color: #ff8a00;
