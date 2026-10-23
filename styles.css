@@ -4639,10 +4639,14 @@ body.is-card-open { touch-action: none; }
 }
 
 .deck-picker-list {
+  min-height: 0;
   max-height: calc(100dvh - 196px);
   overflow: auto;
+  overscroll-behavior: contain;
   touch-action: pan-y;
 }
+
+.deck-picker-list > * { flex-shrink: 0; }
 
 .deck-pills {
   display: flex;

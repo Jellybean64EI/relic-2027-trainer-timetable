@@ -871,6 +871,7 @@
       if (!axis && Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
       if (!axis) axis = Math.abs(dy) > Math.abs(dx) ? "y" : "x";
       if (axis === "y") {
+        event.preventDefault();
         if (scrollEl) scrollEl.scrollTop = scrollOrigin - dy;
         return;
       }
