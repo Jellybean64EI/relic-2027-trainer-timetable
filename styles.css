@@ -735,6 +735,12 @@ tr.today td {
 
 .cite-link.is-lead { color: var(--gold); }
 
+.cite-link.is-line-on {
+  color: #ff8a00;
+  text-decoration-line: underline line-through;
+  text-decoration-color: #ff8a00;
+}
+
 .cite-link {
   display: flex;
   align-items: center;
@@ -774,22 +780,26 @@ tr.today td {
 
 .done-cell {
   position: relative;
-  padding: 0;
+  padding: 4px 0;
   text-align: center;
-  vertical-align: middle;
-  overflow: visible;
+  vertical-align: top;
+  overflow: hidden;
 }
 
-/* Visual mark stays centered in the 10% DONE column. The 44px hit target is
-   anchored to the card edge so it stays inside an S24 Ultra row. */
+.tick-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
 .tick-hit {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 44px;
-  height: auto;
-  min-width: 44px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 44px;
   min-height: 44px;
   margin: 0;
   padding: 0;
@@ -803,79 +813,34 @@ tr.today td {
 }
 
 .tick-box {
-  position: absolute;
-  top: 50%;
-  right: 8px;
-  width: 22px;
-  height: 22px;
+  position: relative;
+  width: 24px;
+  height: 24px;
   margin: 0;
-  transform: translateY(-50%);
-  border: 1.5px solid rgba(255, 140, 0, 0.92);
-  border-radius: 5px;
+  border: 2px solid #ff8a00;
+  border-radius: 6px;
   background: transparent;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
+  flex: 0 0 24px;
 }
 
-.tick-hit[data-tier="1"] .tick-box,
-.tick-hit[data-tier="2"] .tick-box {
-  width: 22px;
-  height: 26px;
-  border-color: transparent;
-  background: transparent;
-}
-
-.tick-hit[data-tier="1"] .tick-box {
-  filter: drop-shadow(0 0 6px #ff8c00);
-}
-
-.tick-hit[data-tier="2"] .tick-box {
-  filter: drop-shadow(0 0 3px #3dff7a) drop-shadow(0 0 10px #3dff7a) drop-shadow(0 0 18px #19c45a);
-  box-shadow: 0 0 12px 3px rgba(61, 255, 122, 0.95);
-}
-
-.tick-hit[data-tier="2"] .shield-tick.is-dual path:first-of-type,
-.tick-hit[data-tier="2"] .tick-box svg path:first-of-type {
-  fill: #3dff7a;
+.tick-hit.is-on .tick-box {
+  background: rgba(255, 138, 0, 0.12);
 }
 
 .tick-hit .mark-tick {
-  width: 22px;
-  height: 22px;
+  width: 16px;
+  height: 16px;
   display: block;
 }
 
-.tick-hit .mark-tick.is-pair { width: 34px; }
-
-.tick-hit[data-tier="1"] .tick-box,
-.tick-hit[data-tier="2"] .tick-box {
-  width: auto;
-  min-width: 22px;
-  height: 26px;
-  padding: 0 1px;
-  border-color: transparent;
-  background: transparent;
-  filter: drop-shadow(0 0 5px #ff8c00);
-  box-shadow: none;
-}
-
-.tick-hit[data-tier="2"] .tick-box .mark-tick path {
+.tick-hit .mark-tick path {
   fill: none;
-  stroke: #ff8c00;
-}
-
-tr.is-tier-1 td {
-  box-shadow: inset 0 0 0 1px rgba(255, 140, 0, 0.72);
-}
-
-.tick-box .shield-tick {
-  width: 22px;
-  height: 26px;
-  padding: 0;
-  background: transparent;
-  border-radius: 0;
+  stroke: #ff8a00;
 }
 
 .lock-badge {
@@ -889,9 +854,8 @@ tr.is-tier-1 td {
   letter-spacing: 0.04em;
 }
 
-tr.is-done td {
-  background: #102818;
-  box-shadow: inset 3px 0 0 #1c9a48;
+tr.is-ticked td {
+  background: #1a0c2e;
 }
 
 .schedule-switch {
@@ -1773,11 +1737,7 @@ table.timetable th,
 table.timetable td {
   background-color: #150724;
 }
-table.timetable tr.is-tier-1 td { background-color: #1a0c2e; }
-table.timetable tr.is-tier-2 td {
-  background-color: #102818;
-  box-shadow: inset 3px 0 0 #3dff7a, inset 0 0 0 1px rgba(61, 255, 122, 0.4);
-}
+table.timetable tr.is-ticked td { background-color: #1a0c2e; }
 
 /* v17 fuel board. Training column law above stays on the three-column timetable. */
 table.fuel-table col.col-day { width: 22%; }
@@ -4637,8 +4597,10 @@ body.is-card-open { touch-action: none; }
 #deck-picker.deck-overlay { overflow: hidden; }
 
 #deck-picker .deck-picker-cols {
+  position: relative;
   display: block;
   overflow: hidden;
+  width: 100%;
   touch-action: pan-y;
   min-height: 0;
   flex: 1;
@@ -4646,19 +4608,63 @@ body.is-card-open { touch-action: none; }
 
 .deck-picker-track {
   display: flex;
-  width: 150vw;
+  width: 150%;
   height: 100%;
-  transition: transform 280ms ease-out;
+  touch-action: pan-y;
+  transition: transform 220ms ease-out;
   will-change: transform;
 }
 
-.deck-picker-track.is-shift { transform: translateX(-33.333%); }
+.deck-picker-track.is-shift { transform: translateX(-33.3333%); }
+
+.deck-picker-track .deck-picker-col,
+.deck-picker-list,
+.deck-pick,
+.deck-pick img {
+  touch-action: pan-y;
+}
+
+.deck-pick img,
+.deck-pick-img {
+  -webkit-user-drag: none;
+}
 
 .deck-picker-track .deck-picker-col {
-  flex: 0 0 50vw;
-  width: 50vw;
-  max-height: calc(100dvh - 148px);
+  flex: 0 0 calc(100% / 3);
+  width: calc(100% / 3);
+  max-width: calc(100% / 3);
+  box-sizing: border-box;
+  padding: 0 8px;
+  overflow: hidden;
+}
+
+.deck-picker-list {
+  max-height: calc(100dvh - 196px);
   overflow: auto;
+  touch-action: pan-y;
+}
+
+.deck-pills {
+  display: flex;
+  gap: 8px;
+  padding: 0 12px 8px;
+}
+
+.deck-pill {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid rgba(255, 138, 0, 0.45);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.deck-pill.is-on {
+  color: #ff8a00;
+  box-shadow: 0 0 0 1px #ff8a00;
 }
 
 .deck-flip {
@@ -4765,3 +4771,163 @@ body.is-card-open { touch-action: none; }
 }
 
 .deck-dots i.is-on { background: var(--gold); }
+
+.deck-bubble {
+  margin: 8px 12px 0;
+  padding: 10px;
+  border: 1px solid rgba(216, 180, 254, 0.28);
+  border-radius: 16px;
+  background: #1b0a2a;
+}
+
+.deck-bubble-tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.deck-bubble-tiles.is-single { grid-template-columns: 1fr; }
+
+.deck-face {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  border: 1px dashed rgba(255, 138, 0, 0.55);
+  border-radius: 12px;
+  background: #12051d;
+  color: #cbb6e4;
+  font: inherit;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.deck-face img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  -webkit-user-drag: none;
+}
+
+.deck-bubble .deck-front-line {
+  width: 100%;
+  margin-top: 8px;
+  box-sizing: border-box;
+}
+
+.deck-bubble-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.deck-bubble-actions .deck-save { flex: 1; }
+
+.deck-swap {
+  margin-top: 8px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #ff8a00;
+  border-radius: 999px;
+  background: transparent;
+  color: #ff8a00;
+  font: inherit;
+  font-weight: 700;
+}
+
+.deck-daybar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 12px 0;
+  min-height: 44px;
+}
+
+.deck-daybar button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: #1b0a2a;
+  color: #ff8a00;
+  font: inherit;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.deck-day-label {
+  color: #f6eefe;
+  font-weight: 700;
+}
+
+.deck-plan-slots,
+.deck-stack-build {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.deck-slot-mod {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-height: 64px;
+  padding: 8px;
+  border: 0;
+  border-radius: 12px;
+  background: #150724;
+  color: #f6eefe;
+  text-align: left;
+  font: inherit;
+}
+
+.deck-slot-mod.is-armed {
+  box-shadow: 0 0 0 2px #ff8a00, 0 0 14px rgba(255, 138, 0, 0.55);
+}
+
+.deck-slot-name {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.deck-slot-thumb {
+  width: 28px;
+  height: 28px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: #12051d;
+}
+
+.deck-slot-clear {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #cbb6e4;
+  font: inherit;
+  line-height: 1;
+}
+
+.deck-tile.is-just-added {
+  outline: 2px solid #ff8a00;
+  outline-offset: 0;
+}
+
+.deck-undo {
+  border: 0;
+  background: transparent;
+  color: #ff8a00;
+  font: inherit;
+  font-weight: 700;
+  padding: 0;
+}
