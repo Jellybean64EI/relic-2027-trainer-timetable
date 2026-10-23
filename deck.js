@@ -829,6 +829,9 @@
     var dy = 0;
     var active = false;
     var pointerId = 0;
+    var axis = "";
+    var scrollEl = null;
+    var scrollOrigin = 0;
     function basePx() {
       return state.picker && state.picker.shift ? -track.offsetWidth / 3 : 0;
     }
@@ -851,37 +854,39 @@
     viewport.addEventListener("pointerdown", function (event) {
       if (event.button != null && event.button !== 0) return;
       active = true;
+      axis = "";
       pointerId = event.pointerId;
       startX = event.clientX;
       startY = event.clientY;
       dx = 0;
       dy = 0;
+      scrollEl = event.target && event.target.closest ? event.target.closest(".deck-picker-list") : null;
+      scrollOrigin = scrollEl ? scrollEl.scrollTop : 0;
       try { viewport.setPointerCapture(event.pointerId); } catch (err) { /* capture is optional */ }
     });
     viewport.addEventListener("pointermove", function (event) {
       if (!active || event.pointerId !== pointerId) return;
       dx = event.clientX - startX;
       dy = event.clientY - startY;
-      if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 8) {
-        try { viewport.releasePointerCapture(event.pointerId); } catch (err) { /* already released */ }
-        active = false;
-        applyX(basePx(), true);
+      if (!axis && Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (!axis) axis = Math.abs(dy) > Math.abs(dx) ? "y" : "x";
+      if (axis === "y") {
+        if (scrollEl) scrollEl.scrollTop = scrollOrigin - dy;
         return;
       }
-      if (Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) {
-        event.preventDefault();
-        applyX(basePx() + dx, false);
-      }
+      event.preventDefault();
+      applyX(basePx() + dx, false);
     }, { passive: false });
     function finish(event) {
       if (!active) return;
       if (event && event.pointerId != null && event.pointerId !== pointerId) return;
       active = false;
       try { viewport.releasePointerCapture(pointerId); } catch (err) { /* already released */ }
-      if (Math.abs(dx) >= 30 && Math.abs(dx) > Math.abs(dy)) setShift(dx < 0);
+      if (axis !== "y" && Math.abs(dx) >= 30 && Math.abs(dx) > Math.abs(dy)) setShift(dx < 0);
       else applyX(basePx(), true);
       dx = 0;
       dy = 0;
+      axis = "";
     }
     viewport.addEventListener("pointerup", finish);
     viewport.addEventListener("pointercancel", finish);
@@ -2482,18 +2487,19 @@
       var draft = ensureDraft(event.target.getAttribute("data-deck-line"));
       draft.line = event.target.value;
     });
-    root.document.addEventListener("pointermove", function (event) {
-      if (!wire.stackDrag || wire.stackDrag.moved) return;
-      if (Math.hypot(event.clientX - wire.stackDrag.x, event.clientY - wire.stackDrag.y) > 8) wire.stackDrag.moved = true;
-    });
-    root.document.addEventListener("pointerup", function (event) {
+    function endStackDrag(event) {
       if (!wire.stackDrag) return;
+      if (event.pointerId != null && event.pointerId !== wire.stackDrag.pointerId) return;
       var from = wire.stackDrag;
       wire.stackDrag = null;
+      if (from.el && from.pointerId != null) {
+        try { from.el.releasePointerCapture(from.pointerId); } catch (err) { /* already released */ }
+      }
       if (!from.moved) return;
       wire.suppressArm = true;
       setTimeout(function () { wire.suppressArm = false; }, 0);
-      var slot = event.target.closest("[data-deck-stack-from]");
+      var point = root.document.elementFromPoint(event.clientX, event.clientY);
+      var slot = point && point.closest ? point.closest("[data-deck-stack-from]") : null;
       if (!slot) return;
       var to = +slot.getAttribute("data-deck-stack-from");
       if (to === from.index) return;
@@ -2510,8 +2516,16 @@
         });
         return saveSlots(rows);
       }).then(paintAll);
+    }
+    root.document.addEventListener("pointermove", function (event) {
+      if (!wire.stackDrag || wire.stackDrag.moved) return;
+      if (event.pointerId !== wire.stackDrag.pointerId) return;
+      if (Math.hypot(event.clientX - wire.stackDrag.x, event.clientY - wire.stackDrag.y) > 8) wire.stackDrag.moved = true;
     });
+    root.document.addEventListener("pointerup", endStackDrag);
+    root.document.addEventListener("pointercancel", endStackDrag);
     root.document.addEventListener("pointerdown", function (event) {
+      if (event.button != null && event.button !== 0) return;
       if (event.target.closest("[data-deck-slot-clear]")) return;
       var slot = event.target.closest("[data-deck-stack-from]");
       if (!slot) return;
@@ -2520,8 +2534,11 @@
         date: slot.getAttribute("data-stack-date"),
         x: event.clientX,
         y: event.clientY,
-        moved: false
+        moved: false,
+        pointerId: event.pointerId,
+        el: slot
       };
+      try { slot.setPointerCapture(event.pointerId); } catch (err) { /* capture is optional */ }
     });
     var input = root.document.getElementById("deck-file");
     if (input) input.addEventListener("change", onFiles);
