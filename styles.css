@@ -5133,11 +5133,11 @@ body.is-cards #banner-coach {
 .relic-line {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   min-height: 44px;
 }
 
-.relic-line .cite-link { flex: 1; min-width: 0; }
+.relic-line .cite-link { flex: 1; min-width: 0; padding-right: 2px; padding-left: 2px; }
 
 .combo-play {
   display: flex;
@@ -5166,15 +5166,15 @@ body.is-cards #banner-coach {
 }
 
 .plan-pick {
-  flex: 0 0 28px;
-  width: 28px;
-  height: 28px;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 22px;
   border: 1px solid rgba(216, 180, 254, 0.45);
-  border-radius: 8px;
+  border-radius: 6px;
   background: #150724;
   color: #ff8a00;
   font: inherit;
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 800;
   line-height: 1;
   padding: 0;
