@@ -2833,17 +2833,21 @@ table.fuel-table col.col-relics { width: 78%; }
 }
 
 body.is-food .live-stack,
+body.is-food .mode-pair,
 body.is-food .phase-bar,
 body.is-food .month-bar,
 body.is-food .week-tabs,
 body.is-food .week-meta,
 body.is-food .schedule-switch,
+body.is-food #btn-future-lock,
 body.is-hub .live-stack,
+body.is-hub .mode-pair,
 body.is-hub .phase-bar,
 body.is-hub .month-bar,
 body.is-hub .week-tabs,
 body.is-hub .week-meta,
 body.is-hub .schedule-switch,
+body.is-hub #btn-future-lock,
 body.is-hub #training-board,
 body.is-hub #planner-board,
 body.is-hub #banner-live,
@@ -3986,6 +3990,8 @@ body.is-food .storage-note {
 /* v52 card decks. Appended only. Purple theme stays. */
 
 body.is-deck .live-stack,
+body.is-deck .mode-pair,
+body.is-deck #btn-future-lock,
 body.is-deck .phase-bar,
 body.is-deck .month-bar,
 body.is-deck .week-tabs,
@@ -4664,6 +4670,59 @@ body.is-card-open { touch-action: none; }
   font: inherit;
   font-size: 13px;
   font-weight: 700;
+}
+
+.train-lock {
+  align-self: flex-end;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 6px 8px;
+  border: 1px solid rgba(216, 180, 254, 0.35);
+  border-radius: 10px;
+  background: #150724;
+  color: #cbb6e4;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.train-lock[aria-pressed="true"],
+#btn-future-lock.train-lock[aria-pressed="true"] {
+  border: 2px solid #ff8a00;
+  color: #ff8a00;
+}
+
+#btn-future-lock.train-lock {
+  color: #cbb6e4;
+}
+
+.mode-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 8px 8px 0;
+}
+
+.mode-choice {
+  min-height: 64px;
+  padding: 10px 8px;
+  border: 1px solid rgba(216, 180, 254, 0.32);
+  border-radius: 12px;
+  background: #150724;
+  color: #f6eefe;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.mode-choice[aria-pressed="true"] {
+  border: 2px solid #ff8a00;
+  color: #ff8a00;
 }
 
 .deck-pill.is-on {

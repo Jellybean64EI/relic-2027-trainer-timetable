@@ -12,7 +12,7 @@ const sha = (s) => crypto.createHash("sha256").update(s).digest("hex").slice(0, 
 
 const BASELINE = {
   files: "dd6d901d07c0b360",
-  functions: "c38cfb8b916215c9",
+  functions: "135f08a2fc3df25a",
   css: "80cb9bde447a3dd5",
   markup: "2f738a54946e0e39",
   tickable: "c5e07605b91020bb",
@@ -135,5 +135,5 @@ console.log(JSON.stringify({ got, detail: { tickRows: { full: tickRows.full.leng
 if (process.argv.includes("--expect")) {
   const bad = Object.keys(BASELINE).filter((k) => BASELINE[k] !== got[k]);
   if (bad.length) { console.error("FAIL v50 guard changed: " + bad.join(", ")); process.exit(1); }
-  console.log("OK v50 guard: Training data and lock match the v57 baseline");
+  console.log("OK v50 guard: Training data and lock match the v58 baseline");
 }

@@ -6,10 +6,10 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v57" />
+  <meta name="relic-build" content="v58" />
   <title>Nexus</title>
-  <link rel="manifest" href="manifest.webmanifest?v=v57" />
-  <link rel="stylesheet" href="styles.css?v=v57" />
+  <link rel="manifest" href="manifest.webmanifest?v=v58" />
+  <link rel="stylesheet" href="styles.css?v=v58" />
 </head>
 <body>
   <div class="wrap">
@@ -39,6 +39,9 @@
             </span>
             <p class="corner-today" id="meta-today">TODAY</p>
             <p class="corner-clock" id="meta-clock">--:--:--</p>
+            <button type="button" class="train-lock" id="btn-future-lock" aria-pressed="false" aria-label="Lock off">
+              <span class="train-lock-label">Training lock</span>
+            </button>
           </div>
         </div>
       </header>
@@ -105,29 +108,15 @@
         <div data-deck-grid class="deck-grid"></div>
       </section>
 
+      <div class="mode-pair" role="group" aria-label="Upper Body or Full Body">
+        <button type="button" class="mode-choice" data-set-mode="upper" aria-pressed="false">Upper Body</button>
+        <button type="button" class="mode-choice" data-set-mode="full" aria-pressed="true">Full Body</button>
+      </div>
+
       <div class="live-stack">
         <p class="identity" id="identity-line">JANUARY · WEEK 1 OF 4 · BASE</p>
         <p class="blurb" id="month-blurb"></p>
         <p class="year-badge" id="year-badge" hidden></p>
-      </div>
-
-      <div class="phase-bar" role="list" aria-label="Phase quarters">
-        <div class="phase" data-phase="Base" role="listitem">
-          <span class="ph-label">JAN–MAR BASE</span>
-          <span class="ph-range">Q1</span>
-        </div>
-        <div class="phase" data-phase="Hard" role="listitem">
-          <span class="ph-label">APR–JUN HARD</span>
-          <span class="ph-range">Q2</span>
-        </div>
-        <div class="phase" data-phase="Expert" role="listitem">
-          <span class="ph-label">JUL–SEP EXPERT</span>
-          <span class="ph-range">Q3</span>
-        </div>
-        <div class="phase" data-phase="Till_Failure" role="listitem">
-          <span class="ph-label">OCT–DEC TILL FAILURE</span>
-          <span class="ph-range">Q4</span>
-        </div>
       </div>
 
       <nav class="month-bar" aria-label="Months of 2027">
@@ -248,9 +237,6 @@
         <div id="planner-root"></div>
       </section>
 
-      <div class="schedule-switch">
-        <button type="button" class="mode-btn" id="btn-schedule-mode" data-mode="full" aria-label="Show Upper Body Trainer Schedules">Upper Body Trainer Schedules</button>
-      </div>
     </article>
   </div>
 
@@ -264,41 +250,9 @@
       </button>
       <h3 id="nav-cabins-label" class="nav-kicker">The Cabins</h3>
       <div class="cabin-list" role="group" aria-labelledby="nav-cabins-label">
-        <div class="cabin" data-cabin="training">
-          <button type="button" class="nav-row cabin-toggle drawer-door" data-os-door="training" aria-expanded="false" aria-controls="cabin-panel-training">
-            <span class="nav-row-label">Training Schedules</span>
-            <span class="cabin-chevron" aria-hidden="true"></span>
-          </button>
-          <div class="cabin-panel" id="cabin-panel-training" data-os-panel="training" hidden inert aria-hidden="true">
-            <div class="cabin-panel-inner">
-              <div class="sub-cabin" id="year-schedules">
-                <button type="button" class="nav-row sub-toggle" id="btn-year-schedules" style="--stagger:1" aria-expanded="false" aria-controls="year-schedule-panel">
-                  <span class="nav-row-label">2027 Training Schedules</span>
-                  <span class="cabin-chevron" aria-hidden="true"></span>
-                </button>
-                <div class="sub-panel" id="year-schedule-panel" aria-hidden="true" inert>
-                  <div class="sub-panel-inner">
-                    <div class="nav-rows" role="group" aria-label="Upper Body and Full Body">
-                      <button type="button" class="nav-row" data-set-mode="upper" style="--stagger:2" aria-pressed="false">
-                        <span class="nav-row-label">Upper Body</span>
-                      </button>
-                      <button type="button" class="nav-row" data-set-mode="full" style="--stagger:3" aria-pressed="true">
-                        <span class="nav-row-label">Full Body</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <section class="nav-section" id="nav-lock">
-                <div class="nav-rows">
-                  <button type="button" class="nav-row" id="btn-future-lock" style="--stagger:4" aria-pressed="false" aria-label="Lock off">
-                    <span class="nav-row-label">Training lock</span>
-                  </button>
-                </div>
-              </section>
-            </div>
-          </div>
-        </div>
+        <button type="button" class="nav-row drawer-door" data-os-door="training">
+          <span class="nav-row-label">Training Schedules</span>
+        </button>
         <button type="button" class="nav-row drawer-door" data-os-door="food">
           <span class="nav-row-label">Food Deck</span>
         </button>
@@ -389,19 +343,19 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v57"></script>
-  <script src="data/precondition.js?v=v57"></script>
-  <script src="data/upperBody.js?v=v57"></script>
-  <script src="data/citations.js?v=v57"></script>
-  <script src="data/forensic.js?v=v57"></script>
-  <script src="data/cues/cues.js?v=v57"></script>
-  <script src="data/forensicClips.js?v=v57"></script>
-  <script src="data/videoArchive.js?v=v57"></script>
-  <script src="data/nutrition/shop.js?v=v57"></script>
-  <script src="data/nutrition/schedule.js?v=v57"></script>
-  <script src="food.js?v=v57"></script>
-  <script src="data/nexusConfig.js?v=v57"></script>
-  <script src="deck.js?v=v57"></script>
-  <script src="app.js?v=v57"></script>
+  <script src="data/schedule.js?v=v58"></script>
+  <script src="data/precondition.js?v=v58"></script>
+  <script src="data/upperBody.js?v=v58"></script>
+  <script src="data/citations.js?v=v58"></script>
+  <script src="data/forensic.js?v=v58"></script>
+  <script src="data/cues/cues.js?v=v58"></script>
+  <script src="data/forensicClips.js?v=v58"></script>
+  <script src="data/videoArchive.js?v=v58"></script>
+  <script src="data/nutrition/shop.js?v=v58"></script>
+  <script src="data/nutrition/schedule.js?v=v58"></script>
+  <script src="food.js?v=v58"></script>
+  <script src="data/nexusConfig.js?v=v58"></script>
+  <script src="deck.js?v=v58"></script>
+  <script src="app.js?v=v58"></script>
 </body>
 </html>
