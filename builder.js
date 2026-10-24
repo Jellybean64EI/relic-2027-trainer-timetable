@@ -93,12 +93,6 @@
     return item.cabin === "Hanging" || item.cabin === "Target_Weights" || /\bhang\b|dead hang|weighted/.test(title);
   }
 
-  function isTillFailure(item) {
-    var phases = item.phases || [];
-    if (/till failure/.test(String(item.title || "").toLowerCase())) return true;
-    return phases.indexOf("Till Failure") !== -1 && phases.indexOf("Base") === -1;
-  }
-
   function organisePres(items) {
     var gentle = [];
     var rest = [];
@@ -173,7 +167,6 @@
     if (pres.length && !warm) notes.push("No back or core warm-up.");
     if (!pres.length && exercises.length) notes.push("No back or core warm-up.");
     if (exercises.length > 10) notes.push("About 8 to 10 exercises is plenty.");
-    if (list.some(isTillFailure)) notes.push("Till Failure is in this day.");
     if (list.some(isHangingOrWeighted)) notes.push("Hanging or weighted is in this day.");
     return notes;
   }
@@ -383,9 +376,9 @@
   }
 
   function refreshCards() {
-    if (window.NexusCards && window.NexusCards.render && document.body && document.body.classList.contains("is-cards")) {
-      window.NexusCards.render();
-    }
+    if (!document.body || !document.body.classList.contains("is-cards") || !window.NexusCards) return;
+    if (mode === "build" && window.NexusCards.syncPicked && window.NexusCards.syncPicked()) return;
+    if (window.NexusCards.render) window.NexusCards.render();
   }
 
   function refreshPage() {
@@ -417,7 +410,7 @@
 
   function openBuild(combo) {
     mode = "build";
-    active = "";
+    active = "pre";
     confirmId = "";
     if (combo) {
       draft = {
@@ -440,6 +433,15 @@
     draft = { id: "", name: "", items: [] };
     paint();
     refreshCards();
+  }
+
+  function holdList(mutate) {
+    var anchorEl = document.getElementById("vc-list");
+    var beforeTop = anchorEl ? anchorEl.getBoundingClientRect().top : null;
+    mutate();
+    if (!anchorEl || beforeTop === null) return;
+    var afterTop = anchorEl.getBoundingClientRect().top;
+    if (Math.abs(afterTop - beforeTop) > 1) window.scrollBy(0, afterTop - beforeTop);
   }
 
   function takeCard(video) {
@@ -468,9 +470,11 @@
         break;
       }
     }
-    draft.items.splice(insertAt, 0, item);
-    setMsg("");
-    paintSections();
+    holdList(function () {
+      draft.items.splice(insertAt, 0, item);
+      setMsg("");
+      paintSections();
+    });
     refreshCards();
     return true;
   }
@@ -609,16 +613,20 @@
     var remove = target.closest("[data-sched-remove]");
     if (remove) {
       event.preventDefault();
-      draft.items.splice(Number(remove.getAttribute("data-sched-remove")), 1);
-      paintSections();
+      holdList(function () {
+        draft.items.splice(Number(remove.getAttribute("data-sched-remove")), 1);
+        paintSections();
+      });
       refreshCards();
       return;
     }
     if (target.closest("#sched-auto")) {
       event.preventDefault();
-      var organised = organise(draft.items);
-      draft.items = organised.items;
-      paintSections();
+      holdList(function () {
+        var organised = organise(draft.items);
+        draft.items = organised.items;
+        paintSections();
+      });
       refreshCards();
       return;
     }

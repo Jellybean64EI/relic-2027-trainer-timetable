@@ -2319,6 +2319,7 @@
 
   function promote(video, shouldPlay) {
     if (!video) return;
+    var wasWaiting = !!player.awaitingReveal;
     stageFront(video);
     video.classList.add("is-frame-ready");
     var root = $("relic-player");
@@ -2328,6 +2329,7 @@
     }
     player.awaitingReveal = false;
     stopFlushWatch();
+    if (wasWaiting) showPlayerHud();
     if (!player.unavailable) setMediaNote(false);
     video.loop = true;
     video.setAttribute("loop", "");
@@ -2525,10 +2527,12 @@
     player.unavailable = false;
     setGate(false);
     loadCurrentClip(true);
-    var durationMs = Math.max(1000, (SET_DURATION_SEC | 0) * 1000);
-    var nextMs = reason === "reconcile" && leftoverMs > 0 ? leftoverMs : durationMs;
+    if (!manual) {
+      var durationMs = Math.max(1000, (SET_DURATION_SEC | 0) * 1000);
+      var nextMs = reason === "reconcile" && leftoverMs > 0 ? leftoverMs : durationMs;
+      armClock(nextMs);
+    }
     player.phaseState = player.unavailable ? "playing" : "loading";
-    armClock(nextMs);
     var front = frontVideo();
     if (front && !front.paused && !player.unavailable) player.phaseState = "playing";
     paintPlayButton();
@@ -3240,7 +3244,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v61",
+    build: "v62",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };

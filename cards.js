@@ -1,6 +1,4 @@
-/* Training Video Cards. Reads the generated catalogue and plays one clip
-   in the existing player. Cards render only for the open module.
-   Builder mode adds an orange preview eye. Custom uploads merge in here. */
+/* Training Video Cards. Catalogue cabins, builder eyes, and named uploads. */
 (function () {
   "use strict";
 
@@ -10,24 +8,14 @@
   var custom = [];
   var pendingFile = null;
   var pendingType = "";
+  var pendingTitle = "";
   var uploadTarget = null;
   var uploading = false;
   var confirmKey = "";
-  var renamingKey = "";
-  var renameDraft = "";
-  var focusRename = false;
-  var blurTimer = 0;
 
   var EYE = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">' +
     '<path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>' +
     '<circle cx="12" cy="12" r="2.5" fill="currentColor"/>' +
-    "</svg>";
-  var PENCIL = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">' +
-    '<path d="M4 20h4L18 10l-4-4L4 16v4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>' +
-    '<path d="M13 7l4 4" fill="none" stroke="currentColor" stroke-width="2"/>' +
-    "</svg>";
-  var TICK = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">' +
-    '<path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
     "</svg>";
 
   function catalog() {
@@ -72,46 +60,70 @@
     });
   }
 
-  function chips(video) {
-    var html = "";
-    (video.phases || []).forEach(function (phase) {
-      html += '<span class="vc-chip">' + esc(phase) + "</span>";
-    });
-    if (video.guess) html += '<span class="vc-chip is-mark">guess</span>';
-    if (video.check) html += '<span class="vc-chip is-mark">check</span>';
-    return html ? '<span class="vc-chips">' + html + "</span>" : "";
+  function labelFor(title, number) {
+    var text = String(title || "");
+    if (/^\d+\.\s/.test(text)) return text;
+    return number + ". " + text;
   }
 
-  function cardHtml(video, group) {
+  function cardHtml(video, group, number) {
     var picked = window.NexusBuilder && window.NexusBuilder.picked && window.NexusBuilder.picked(video.key);
     var groupId = video.group || (group && group.id) || "";
-    var showEye = building();
+    var label = labelFor(video.title, number);
     var button = '<button type="button" class="vc-card" data-vc-key="' + esc(video.key) + '" data-vc-src="' + esc(video.src) + '" data-vc-cabin="' + esc(video.cabin) + '" data-vc-title="' + esc(video.title) + '" data-vc-group="' + esc(groupId) + '">' +
-      '<span class="vc-card-top"><span class="vc-card-title">' + esc(video.title) + "</span>" +
+      '<span class="vc-card-top"><span class="vc-card-title">' + esc(label) + "</span>" +
       (picked ? '<span class="vc-in" aria-label="In this section">✓</span>' : "") +
-      "</span>" +
-      chips(video) +
-      "</button>";
-    if (!showEye && !video.mine) return button;
-    var editing = !!(video.mine && renamingKey === video.key);
-    var side = "";
-    if (showEye) {
-      side += '<button type="button" class="vc-eye" aria-label="Preview ' + esc(video.title) + '" data-vc-src="' + esc(video.src) + '" data-vc-title="' + esc(video.title) + '">' + EYE + "</button>";
+      "</span></button>";
+    if (!building()) return button;
+    return '<div class="vc-card-wrap has-eye">' + button +
+      '<button type="button" class="vc-eye" aria-label="Preview ' + esc(video.title) + '" data-vc-src="' + esc(video.src) + '" data-vc-title="' + esc(video.title) + '">' + EYE + "</button></div>";
+  }
+
+  function cardsHtml(group, mod) {
+    var html = "";
+    var base = mod.videos || [];
+    base.forEach(function (video, index) {
+      html += cardHtml(video, group, index + 1);
+    });
+    mineVideos(group, mod).forEach(function (video, index) {
+      html += cardHtml(video, group, base.length + index + 1);
+    });
+    return html;
+  }
+
+  function syncPicked() {
+    if (!building()) return false;
+    var root = document.getElementById("vc-list");
+    if (!root) return false;
+    var cards = root.querySelectorAll(".vc-card");
+    var i;
+    for (i = 0; i < cards.length; i++) {
+      if (!cards[i].closest(".vc-card-wrap")) return false;
     }
-    if (editing) {
-      side += '<input class="vc-name-input" type="text" maxlength="80" autocomplete="off" enterkeyhint="done" aria-label="Video name" value="' + esc(renameDraft) + '">';
-    }
-    if (video.mine) {
-      side += '<span class="vc-rename">';
-      if (editing) side += '<button type="button" class="vc-tick" data-vc-key="' + esc(video.key) + '" aria-label="Save name">' + TICK + "</button>";
-      side += '<button type="button" class="vc-pencil" data-vc-key="' + esc(video.key) + '" aria-label="Rename ' + esc(video.title) + '">' + PENCIL + "</button>";
-      side += "</span>";
-    }
-    var cls = "vc-card-wrap";
-    if (showEye) cls += " has-eye";
-    if (video.mine) cls += " has-mine";
-    if (editing) cls += " is-renaming";
-    return '<div class="' + cls + '">' + button + side + "</div>";
+    cards.forEach(function (card) {
+      var key = card.getAttribute("data-vc-key");
+      var on = !!(window.NexusBuilder && window.NexusBuilder.picked && window.NexusBuilder.picked(key));
+      card.classList.toggle("is-in", on);
+      var badge = card.querySelector(".vc-in");
+      if (on && !badge) {
+        var top = card.querySelector(".vc-card-top");
+        if (!top) return;
+        var span = document.createElement("span");
+        span.className = "vc-in";
+        span.setAttribute("aria-label", "In this section");
+        span.textContent = "✓";
+        top.appendChild(span);
+      } else if (!on && badge) {
+        badge.remove();
+      }
+    });
+    return true;
+  }
+
+  function anchorHeader(selector) {
+    var el = document.querySelector(selector);
+    if (!el) return;
+    if (el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: "nearest" });
   }
 
   function render() {
@@ -137,12 +149,7 @@
           if (marked && modOpen) {
             html += '<button type="button" class="vc-save" id="vc-save"' + (uploading ? " disabled" : "") + ">Save video to " + esc(group.name) + " · " + esc(mod.name) + "</button>";
           }
-          if (modOpen) {
-            html += '<div class="vc-cards">';
-            mod.videos.forEach(function (video) { html += cardHtml(video, group); });
-            mineVideos(group, mod).forEach(function (video) { html += cardHtml(video, group); });
-            html += "</div>";
-          }
+          if (modOpen) html += '<div class="vc-cards">' + cardsHtml(group, mod) + "</div>";
           html += "</div>";
         });
         html += "</div></div>";
@@ -150,16 +157,11 @@
       html += "</section>";
     });
     root.innerHTML = html;
-    var input = root.querySelector(".vc-name-input");
-    if (input && focusRename) {
-      focusRename = false;
-      input.focus();
-      input.select();
-    }
+    paintUploadBox();
   }
 
   function setUploadMsg(text, warn) {
-    var el = document.getElementById("vc-upload-msg");
+    var el = document.getElementById("vc-status");
     if (!el) return;
     el.textContent = text || "";
     el.classList.toggle("is-warn", !!warn);
@@ -216,6 +218,34 @@
     return "";
   }
 
+  function stemOf(name) {
+    var base = String(name || "").replace(/^.*[\\/]/, "");
+    var dot = base.lastIndexOf(".");
+    return dot > 0 ? base.slice(0, dot) : base;
+  }
+
+  function cleanStem(stem) {
+    return String(stem || "").replace(/_+/g, " ").replace(/\s+/g, " ").trim();
+  }
+
+  function rawCapture(stem) {
+    var s = String(stem || "").trim();
+    if (!s) return true;
+    if (/^\d+$/.test(s)) return true;
+    if (/^(IMG_|VID_|MOV_|PXL_|trim\.)/i.test(s)) return true;
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)) return true;
+    return false;
+  }
+
+  function extOf(file) {
+    var name = String((file && file.name) || "");
+    var match = name.match(/(\.[A-Za-z0-9]{1,8})$/);
+    if (match) return match[1];
+    if (pendingType === "video/quicktime") return ".mov";
+    if (pendingType === "video/webm") return ".webm";
+    return ".mp4";
+  }
+
   function showProgress(on, pct) {
     var bar = document.getElementById("vc-progress");
     if (!bar) return;
@@ -224,14 +254,74 @@
     if (fill) fill.style.width = (pct || 0) + "%";
   }
 
-  function putVideo(file, area, type, name, contentType) {
+  function targetLabels() {
+    if (!uploadTarget) return null;
+    var groups = catalog() || [];
+    var group = null;
+    var mod = null;
+    groups.forEach(function (item) {
+      if (item.id === uploadTarget.groupId) group = item;
+    });
+    if (group) {
+      (group.modules || []).forEach(function (item) {
+        if (item.id === uploadTarget.moduleId) mod = item;
+      });
+    }
+    if (!group || !mod) return null;
+    return { group: group.name, mod: mod.name };
+  }
+
+  function paintUploadBox(focus) {
+    var tools = document.getElementById("vc-tools");
+    var box = document.getElementById("vc-upload-box");
+    if (!pendingFile) {
+      if (box) box.remove();
+      return;
+    }
+    if (!tools) return;
+    var created = !box;
+    if (created) {
+      box = document.createElement("div");
+      box.id = "vc-upload-box";
+      box.innerHTML =
+        '<div class="vc-upload-head">' +
+          '<input id="vc-upload-title" type="text" class="vc-upload-title" placeholder="Video card name (e.g. Anterior pelvic tilts)" maxlength="80" autocomplete="off" />' +
+          '<button type="button" id="vc-upload-cancel" class="vc-upload-cancel" aria-label="Cancel">×</button>' +
+        "</div>" +
+        '<p id="vc-upload-dest" class="vc-upload-dest"></p>' +
+        '<button type="button" id="vc-upload-save" class="vc-upload-save" hidden>Save video card</button>';
+      var msg = document.getElementById("vc-status");
+      if (msg && msg.parentNode === tools) msg.parentNode.insertBefore(box, msg);
+      else tools.appendChild(box);
+    }
+    var titleInput = document.getElementById("vc-upload-title");
+    if (titleInput && (created || focus)) {
+      titleInput.value = pendingTitle || "";
+      if (focus) titleInput.focus();
+    }
+    var labels = targetLabels();
+    var dest = document.getElementById("vc-upload-dest");
+    var save = document.getElementById("vc-upload-save");
+    if (dest) {
+      dest.textContent = labels
+        ? ("Destination: " + labels.group + " · " + labels.mod)
+        : "Step 2: Open a muscle cabin below and tap Pre-stretches, Exercises, or Post-stretches (it glows orange).";
+    }
+    if (save) {
+      save.hidden = !labels;
+      save.disabled = !!uploading;
+    }
+  }
+
+  function putVideo(file, area, type, name, contentType, title) {
     return new Promise(function (resolve, reject) {
       var api = window.NEXUS_API || {};
       var xhr = new XMLHttpRequest();
       var url = String(api.base || "").replace(/\/$/, "") +
         "/custom-video?area=" + encodeURIComponent(area) +
         "&type=" + encodeURIComponent(type) +
-        "&name=" + encodeURIComponent(name);
+        "&name=" + encodeURIComponent(name) +
+        "&title=" + encodeURIComponent(title || "");
       xhr.open("PUT", url);
       xhr.setRequestHeader("X-Nexus-Key", api.key || "");
       xhr.setRequestHeader("Content-Type", contentType);
@@ -265,8 +355,24 @@
     return (err && err.message) || "Upload failed.";
   }
 
+  function typedTitle() {
+    var input = document.getElementById("vc-upload-title");
+    var typed = input ? input.value : pendingTitle;
+    typed = String(typed || "").trim().slice(0, 80);
+    pendingTitle = typed;
+    if (input) input.value = typed;
+    return typed;
+  }
+
   function saveUpload() {
     if (uploading || !pendingFile || !uploadTarget) return;
+    var title = typedTitle();
+    var input = document.getElementById("vc-upload-title");
+    if (!title) {
+      setUploadMsg("Type a video card name first.", true);
+      if (input) input.focus();
+      return;
+    }
     var groups = catalog() || [];
     var group = null;
     var mod = null;
@@ -285,13 +391,15 @@
     setUploadMsg("Uploading…");
     var file = pendingFile;
     var type = pendingType;
-    putVideo(file, group.id, mod.id, file.name, type).then(function () {
+    putVideo(file, group.id, mod.id, title + extOf(file), type, title).then(function () {
       pendingFile = null;
       pendingType = "";
+      pendingTitle = "";
       uploadTarget = null;
       uploading = false;
       showProgress(false, 0);
       setUploadMsg("Saved.");
+      paintUploadBox();
       return Promise.all([loadCustom(), loadStorage()]);
     }).catch(function (err) {
       uploading = false;
@@ -301,80 +409,15 @@
     });
   }
 
-  function startRename(key, title) {
-    clearTimeout(blurTimer);
-    renamingKey = key || "";
-    renameDraft = title || "";
-    focusRename = true;
+  function cancelUpload() {
+    if (uploading) return;
+    pendingFile = null;
+    pendingType = "";
+    pendingTitle = "";
+    uploadTarget = null;
+    setUploadMsg("");
+    paintUploadBox();
     render();
-  }
-
-  function cancelRename() {
-    clearTimeout(blurTimer);
-    renamingKey = "";
-    renameDraft = "";
-    focusRename = false;
-    render();
-  }
-
-  function saveRename() {
-    clearTimeout(blurTimer);
-    var key = renamingKey;
-    var title = String(renameDraft || "").trim().slice(0, 80);
-    if (!key) return;
-    if (!title) {
-      setUploadMsg("Give it a name.", true);
-      var empty = document.querySelector(".vc-name-input");
-      if (empty) {
-        empty.focus();
-        empty.select();
-      }
-      return;
-    }
-    var current = null;
-    custom.forEach(function (video) {
-      if (video.r2Key === key) current = video;
-    });
-    var previous = current ? current.title : "";
-    if (previous === title) {
-      cancelRename();
-      return;
-    }
-    renamingKey = "";
-    renameDraft = "";
-    if (current) current.title = title;
-    render();
-    if (!window.nexusFetch) return;
-    window.nexusFetch("/custom-video?key=" + encodeURIComponent(key), {
-      method: "PATCH",
-      body: { title: title }
-    }).then(function (payload) {
-      var saved = (payload && payload.title) || title;
-      if (current) current.title = saved;
-      if (window.NexusBuilder && window.NexusBuilder.retitle) window.NexusBuilder.retitle(key, saved);
-      else if (window.NexusBuilder && window.NexusBuilder.remember && current) {
-        window.NexusBuilder.remember({
-          key: key,
-          title: saved,
-          src: current.url,
-          cabin: "",
-          group: current.area,
-          phases: []
-        });
-      }
-      var preview = document.getElementById("vc-preview");
-      var previewVideo = document.getElementById("vc-preview-video");
-      if (preview && !preview.hidden && previewVideo && current && previewVideo.currentSrc === current.url) {
-        var label = preview.querySelector(".vc-preview-title");
-        if (label) label.textContent = saved;
-      }
-      render();
-    }).catch(function (err) {
-      if (current) current.title = previous;
-      if (window.NexusBuilder && window.NexusBuilder.retitle) window.NexusBuilder.retitle(key, previous);
-      setUploadMsg((err && err.message) || "Could not rename.", true);
-      render();
-    });
   }
 
   function deleteVideo(key) {
@@ -396,10 +439,15 @@
     if (!root || !video || !src) return;
     var label = root.querySelector(".vc-preview-title");
     if (label) label.textContent = title || "Preview";
-    video.pause();
-    video.preload = "metadata";
+    video.muted = true;
+    video.loop = true;
+    video.playsInline = true;
+    video.autoplay = true;
+    video.preload = "auto";
     video.src = src;
     root.hidden = false;
+    var play = video.play();
+    if (play && typeof play.catch === "function") play.catch(function () {});
   }
 
   function closePreview() {
@@ -412,8 +460,15 @@
       var fresh = document.createElement("video");
       fresh.id = "vc-preview-video";
       fresh.controls = true;
+      fresh.autoplay = true;
+      fresh.muted = true;
+      fresh.loop = true;
+      fresh.playsInline = true;
+      fresh.preload = "auto";
+      fresh.setAttribute("autoplay", "");
+      fresh.setAttribute("muted", "");
+      fresh.setAttribute("loop", "");
       fresh.setAttribute("playsinline", "");
-      fresh.preload = "metadata";
       video.replaceWith(fresh);
     }
     if (root) root.hidden = true;
@@ -423,12 +478,14 @@
     var input = event.target;
     var file = input.files && input.files[0];
     input.value = "";
-    if (!file) return;
+    if (!file || uploading) return;
     if (file.size > MAX_BYTES) {
       pendingFile = null;
       pendingType = "";
+      pendingTitle = "";
       uploadTarget = null;
       setUploadMsg("That video is over 25 MB. Choose a smaller one.", true);
+      paintUploadBox();
       render();
       return;
     }
@@ -436,12 +493,17 @@
     if (!type) {
       pendingFile = null;
       pendingType = "";
+      pendingTitle = "";
       setUploadMsg("Use an mp4, mov, or webm.", true);
+      paintUploadBox();
       return;
     }
+    var stem = stemOf(file.name);
     pendingFile = file;
     pendingType = type;
-    setUploadMsg("Choose a cabin, then a module.");
+    pendingTitle = rawCapture(stem) ? "" : cleanStem(stem).slice(0, 80);
+    setUploadMsg("");
+    paintUploadBox(true);
     render();
   }
 
@@ -453,27 +515,10 @@
       openPreview(eye.getAttribute("data-vc-title"), eye.getAttribute("data-vc-src"));
       return;
     }
-    if (event.target.closest(".vc-tick")) {
+    if (event.target.closest("#vc-upload-cancel")) {
       event.preventDefault();
       event.stopPropagation();
-      saveRename();
-      return;
-    }
-    var pencil = event.target.closest(".vc-pencil");
-    if (pencil) {
-      event.preventDefault();
-      event.stopPropagation();
-      var pencilKey = pencil.getAttribute("data-vc-key");
-      var row = null;
-      custom.forEach(function (video) {
-        if (video.r2Key === pencilKey) row = video;
-      });
-      startRename(pencilKey, row ? row.title : "");
-      return;
-    }
-    if (event.target.closest(".vc-name-input") || event.target.closest(".vc-rename")) {
-      event.preventDefault();
-      event.stopPropagation();
+      cancelUpload();
       return;
     }
     var yes = event.target.closest(".vc-del-yes");
@@ -498,7 +543,7 @@
       render();
       return;
     }
-    if (event.target.closest("#vc-save")) {
+    if (event.target.closest("#vc-save") || event.target.closest("#vc-upload-save")) {
       event.preventDefault();
       event.stopPropagation();
       saveUpload();
@@ -514,14 +559,6 @@
         title: card.getAttribute("data-vc-title"),
         group: card.getAttribute("data-vc-group")
       })) return;
-      if (window.RelicArchitect && window.RelicArchitect.openCatalogClip) {
-        window.RelicArchitect.openCatalogClip({
-          title: card.getAttribute("data-vc-title"),
-          src: card.getAttribute("data-vc-src"),
-          cabin: card.getAttribute("data-vc-cabin"),
-          key: card.getAttribute("data-vc-key")
-        });
-      }
       return;
     }
     var mod = event.target.closest(".vc-mod");
@@ -532,8 +569,9 @@
       openModule = opening ? nextMod : "";
       if (pendingFile && opening) uploadTarget = { groupId: openGroup, moduleId: nextMod };
       else uploadTarget = null;
-      if (pendingFile) setUploadMsg(uploadTarget ? "" : "Choose a cabin, then a module.");
       render();
+      paintUploadBox();
+      anchorHeader('.vc-mod[data-vc-module="' + nextMod + '"]');
       return;
     }
     var cabin = event.target.closest(".vc-cabin");
@@ -541,7 +579,6 @@
     event.preventDefault();
     var next = cabin.getAttribute("data-vc-group") || "";
     uploadTarget = null;
-    if (pendingFile) setUploadMsg("Choose a cabin, then a module.");
     if (openGroup === next) {
       openGroup = "";
       openModule = "";
@@ -550,6 +587,8 @@
       openModule = "";
     }
     render();
+    paintUploadBox();
+    anchorHeader('.vc-cabin[data-vc-group="' + next + '"]');
   }
 
   function ensureChrome() {
@@ -565,7 +604,7 @@
         "</div>" +
         '<button type="button" id="vc-upload-btn">Upload video</button>' +
         '<input id="vc-file" type="file" accept="video/*" hidden>' +
-        '<p id="vc-upload-msg" class="vc-upload-msg"></p>' +
+        '<p id="vc-status" class="vc-upload-msg"></p>' +
         '<div id="vc-progress" class="vc-progress" hidden><div></div></div>';
       host.insertBefore(tools, list);
       var uploadBtn = document.getElementById("vc-upload-btn");
@@ -581,7 +620,7 @@
         '<div class="vc-preview-card" role="dialog" aria-modal="true" aria-label="Preview">' +
           '<button type="button" class="vc-preview-x" aria-label="Close">×</button>' +
           '<p class="vc-preview-title"></p>' +
-          '<video id="vc-preview-video" controls playsinline preload="metadata"></video>' +
+          '<video id="vc-preview-video" controls autoplay muted loop playsinline preload="auto"></video>' +
         "</div>";
       document.body.appendChild(preview);
       preview.addEventListener("click", function (event) {
@@ -598,45 +637,19 @@
     var root = document.getElementById("vcards-root");
     if (root) {
       root.addEventListener("click", onClick);
-      root.addEventListener("mousedown", function (event) {
-        if (event.target.closest(".vc-tick")) event.preventDefault();
-      });
       root.addEventListener("input", function (event) {
-        if (event.target.classList && event.target.classList.contains("vc-name-input")) renameDraft = event.target.value;
-      });
-      root.addEventListener("keydown", function (event) {
-        if (!event.target.classList || !event.target.classList.contains("vc-name-input")) return;
-        if (event.key === "Enter") {
-          event.preventDefault();
-          event.stopPropagation();
-          saveRename();
-        } else if (event.key === "Escape") {
-          event.preventDefault();
-          event.stopPropagation();
-          cancelRename();
-        }
-      });
-      root.addEventListener("focusout", function (event) {
-        if (!event.target.classList || !event.target.classList.contains("vc-name-input")) return;
-        var key = renamingKey;
-        if (!key) return;
-        clearTimeout(blurTimer);
-        blurTimer = setTimeout(function () {
-          var active = document.activeElement;
-          if (active && active.classList && active.classList.contains("vc-name-input")) return;
-          if (key && renamingKey === key) cancelRename();
-        }, 250);
+        if (event.target && event.target.id === "vc-upload-title") pendingTitle = event.target.value;
       });
     }
     document.addEventListener("keydown", function (event) {
-      if (event.key === "Escape" && !(event.target.classList && event.target.classList.contains("vc-name-input"))) closePreview();
+      if (event.key === "Escape" && !(event.target && event.target.id === "vc-upload-title")) closePreview();
     });
     if (document.body && document.body.classList.contains("is-cards")) render();
     loadCustom();
     loadStorage();
   }
 
-  window.NexusCards = { render: render };
+  window.NexusCards = { render: render, syncPicked: syncPicked };
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
