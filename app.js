@@ -1985,8 +1985,8 @@
       return;
     }
     var clip = player.clips[player.index];
-    var cabinName = (clip && clip.cabin) || player.cabin || "";
-    el.textContent = cabinName + " · " +
+    var lead = (clip && clip.stage) || (clip && clip.cabin) || player.cabin || "";
+    el.textContent = lead + " · " +
       (player.index + 1) + "/" + player.clips.length + " · " +
       (clip && clip.title ? clip.title : "Clip");
     paintForensic();
@@ -2842,7 +2842,8 @@
       list.push({
         title: clip.title || "Clip",
         src: String(clip.src),
-        cabin: clip.cabin || ""
+        cabin: clip.cabin || "",
+        stage: String(clip.stage || "").trim()
       });
     });
     if (!list.length) return;
@@ -3244,7 +3245,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v62",
+    build: "v63",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };
