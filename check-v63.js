@@ -77,6 +77,7 @@ must(builder, "Placed ", "placement toast is missing");
 must(builder, "across this week", "picker placement toast is missing");
 must(builder, "Could not place that group.", "placement error toast is missing");
 must(builder, "Could not save the star.", "star error toast is missing");
+must(builder, "function hideToast()", "a sheet can open under a leftover toast");
 must(builder, "paintBoard: paintBoard", "paintBoard is not exported");
 must(builder, "filledSlots", "slot badge is missing");
 must(builder, '"/12 slots"', "slot badge is not out of 12");

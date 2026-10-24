@@ -356,6 +356,12 @@
     if (text) toastTimer = setTimeout(function () { el.hidden = true; }, 2800);
   }
 
+  function hideToast() {
+    var el = document.getElementById("sched-toast");
+    if (el) el.hidden = true;
+    clearTimeout(toastTimer);
+  }
+
   function trainingDaysInWeek(year, month, week) {
     var sched = window.RELIC_SCHEDULE;
     if (!sched || !sched.daysInWeekOfMonth) return [];
@@ -1082,6 +1088,7 @@
   }
 
   function openPicker(planKey, line) {
+    hideToast();
     picker = { planKey: planKey, line: String(line) };
     paintSheet();
   }
@@ -1140,6 +1147,7 @@
     var groupPlace = target.closest("[data-group-place]");
     if (groupPlace) {
       event.preventDefault();
+      hideToast();
       placeTarget = groupPlace.getAttribute("data-group-place") || "";
       paintPlaceSheet();
       return;
