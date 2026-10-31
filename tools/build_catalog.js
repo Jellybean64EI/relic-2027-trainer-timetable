@@ -10,6 +10,7 @@ const placeApi = require("./v64_placement.js");
 const root = path.join(__dirname, "..");
 const draftPath = path.join(__dirname, "videoCatalog.draft.json");
 const mapPath = path.join(__dirname, "v64_mapping.json");
+const overridePath = path.join(__dirname, "v65_overrides.json");
 const backupPath = path.join(root, "data", "backup", "videoCatalog.v63.js");
 const outPath = path.join(root, "data", "videoCatalog.js");
 
@@ -34,14 +35,14 @@ const EXPECT = {
   face: { videos: 33, pre: 10, exercise: 12, post: 11 },
   eyes: { videos: 6, pre: 0, exercise: 6, post: 0 },
   tongue: { videos: 11, pre: 0, exercise: 3, post: 8 },
-  jaw: { videos: 27, pre: 3, exercise: 13, post: 11 },
-  neck: { videos: 26, pre: 6, exercise: 13, post: 7 },
+  jaw: { videos: 29, pre: 3, exercise: 15, post: 11 },
+  neck: { videos: 28, pre: 6, exercise: 15, post: 7 },
   shoulders: { videos: 18, pre: 8, exercise: 7, post: 5 },
-  "upper-arms": { videos: 22, pre: 3, exercise: 15, post: 4 },
-  forearms: { videos: 10, pre: 2, exercise: 8, post: 1 },
+  "upper-arms": { videos: 20, pre: 3, exercise: 15, post: 2 },
+  forearms: { videos: 10, pre: 2, exercise: 8, post: 0 },
   chest: { videos: 36, pre: 8, exercise: 20, post: 8 },
-  "upper-back": { videos: 22, pre: 2, exercise: 19, post: 1 },
-  "lower-back": { videos: 13, pre: 4, exercise: 1, post: 8 },
+  "upper-back": { videos: 24, pre: 2, exercise: 19, post: 3 },
+  "lower-back": { videos: 14, pre: 4, exercise: 1, post: 9 },
   abs: { videos: 17, pre: 0, exercise: 17, post: 0 },
   obliques: { videos: 6, pre: 2, exercise: 3, post: 1 },
   pelvic: { videos: 12, pre: 8, exercise: 0, post: 4 },
@@ -56,8 +57,7 @@ const EXPECT = {
   "sp-calisthenics": { videos: 7, pre: 2, exercise: 3, post: 2 },
   "sp-resistance-bands": { videos: 25, pre: 4, exercise: 20, post: 5 },
   "sp-hanging": { videos: 10, pre: 1, exercise: 9, post: 0 },
-  "sp-target-weights": { videos: 11, pre: 0, exercise: 11, post: 0 },
-  "check-me": { videos: 5, pre: 0, exercise: 4, post: 1 }
+  "sp-target-weights": { videos: 11, pre: 0, exercise: 11, post: 0 }
 };
 
 function cleanTitle(title) {
@@ -67,7 +67,7 @@ function cleanTitle(title) {
 function modulesForType(type) {
   if (type === "pre-stretch") return ["pre"];
   if (type === "post-stretch") return ["post"];
-  if (type === "exercise" || type === "exercise (guess)" || type === "needs review") return ["exercise"];
+  if (type === "exercise" || type === "exercise (guess)" || String(type || "").indexOf("need") === 0) return ["exercise"];
   if (type === "stretch (pre or post)") return ["pre", "post"];
   if (type === "stretch/mobility (guess)") return ["post"];
   throw new Error("Unknown catalogue type: " + type);
@@ -90,10 +90,10 @@ function leaves() {
   const specials = placeApi.SPECIALS.map(function (row, index) {
     return { id: row[0], name: row[1], order: index + 1, parent: "specials", special: true, specialType: row[2] };
   });
-  return muscle.concat(specials, [{ id: "check-me", name: "Check me", order: 1, parent: null, special: false, specialType: null }]);
+  return muscle.concat(specials);
 }
 
-function build(rows, mapped) {
+function build(rows, mapped, overrides) {
   const byKey = new Map();
   rows.forEach(function (row) {
     if (!byKey.has(row.r2Key)) byKey.set(row.r2Key, []);
@@ -107,52 +107,60 @@ function build(rows, mapped) {
     const rep = list.slice().sort(function (a, b) { return (a.order || 0) - (b.order || 0); })[0];
     const folder = key.split("/")[0];
     const title = cleanTitle(rep.title);
-    const mods = [];
+    let mods = [];
     list.forEach(function (row) {
       modulesForType(row.type).forEach(function (id) {
         if (mods.indexOf(id) === -1) mods.push(id);
       });
     });
-    const needsReview = list.some(function (row) { return row.type === "needs review" || /NEEDS_REVIEW/.test(row.title || ""); });
     const placed = placeApi.place(folder, title);
     const legacy = LEGACY_SOURCE[rep.group];
     if (!legacy) throw new Error("Unknown v63 group " + rep.group + " for " + key);
-    let cabin = placed ? placed.cabin : "check-me";
-    let special = placed ? placed.special : false;
-    let specialType = placed ? placed.special_type : null;
+    const fallback = placeApi.fallbackCabin(folder);
+    const fallbackMeta = placeApi.cabinMeta(fallback);
+    let cabin = placed ? placed.cabin : fallback;
+    let special = placed ? placed.special : !!(fallbackMeta && fallbackMeta.special);
+    let specialType = placed ? placed.special_type : (fallbackMeta && fallbackMeta.specialType) || null;
     let confidence = placed ? placed.confidence : "low";
-    let rule = placed ? placed.rule : "no keyword match in multi-target folder " + folder;
-    let suggested = null;
-    if (!placed || needsReview) {
-      suggested = placed ? placed.cabin : null;
-      cabin = "check-me";
-      special = placed ? placed.special : false;
-      specialType = placed ? placed.special_type : null;
-      confidence = "low";
-      rule = !placed ? "no keyword match in multi-target folder " + folder : "module flagged 'needs review' in source catalogue";
-    }
+    let rule = placed ? placed.rule : "folder-fallback:" + folder;
+    let display = title;
     const expected = mapped.get(key);
+    const override = overrides.get(key);
     if (!expected) throw new Error("mapping missing " + key);
-    if (expected.cabin !== cabin) throw new Error(key + " cabin " + cabin + " != " + expected.cabin);
-    if (expected.modules.join(",") !== mods.join(",")) throw new Error(key + " modules " + mods.join(",") + " != " + expected.modules.join(","));
+    if (!override) {
+      if (expected.cabin !== cabin) throw new Error(key + " cabin " + cabin + " != " + expected.cabin);
+      if (expected.modules.join(",") !== mods.join(",")) throw new Error(key + " modules " + mods.join(",") + " != " + expected.modules.join(","));
+    }
+    if (override) {
+      cabin = override.cabin;
+      mods = override.modules.slice();
+      display = override.title;
+      const meta = placeApi.cabinMeta(cabin);
+      special = !!(meta && meta.special);
+      specialType = (meta && meta.specialType) || null;
+      confidence = "high";
+      rule = "v65-override";
+    }
     const card = {
       key: key,
-      title: title,
+      title: display,
       src: rep.url,
       phases: phaseList(list),
       guess: list.some(function (row) { return String(row.typeSource || "").indexOf("title guess") === 0; }),
-      check: needsReview,
+      check: false,
       cabin: rep.cabin,
       origin: folder,
       legacyGroup: legacy,
       special: !!special,
       specialType: specialType,
-      alsoTargets: placeApi.alsoTargets(title, cabin === "check-me" ? suggested : cabin),
+      alsoTargets: placeApi.alsoTargets(display, cabin),
       confidence: confidence,
       rule: rule
     };
-    if (cabin === "check-me") card.suggestedCabin = suggested;
-    mods.forEach(function (id) { bags[cabin][id].push(Object.assign({}, card)); });
+    mods.forEach(function (id) {
+      if (!bags[cabin] || !bags[cabin][id]) throw new Error("no module " + cabin + " " + id + " for " + key);
+      bags[cabin][id].push(Object.assign({}, card));
+    });
   });
   return leaves().map(function (leaf) {
     MODULES.forEach(function (mod) {
@@ -210,8 +218,6 @@ function assertCatalog(groups, v63keys) {
     });
   });
   if (guesses.length !== 47) throw new Error("guess cards " + guesses.length);
-  const check = groups.find(function (group) { return group.id === "check-me"; });
-  if (check.count !== 5) throw new Error("check-me " + check.count);
 }
 
 function v63Keys() {
@@ -232,10 +238,14 @@ function main() {
     if (!entry.custom) mapped.set(entry.r2Key, entry);
   });
   if (mapped.size !== 377) throw new Error("mapping library keys " + mapped.size);
-  const groups = build(rows, mapped);
+  const overrideFile = JSON.parse(fs.readFileSync(overridePath, "utf8"));
+  const overrides = new Map();
+  (overrideFile.placements || []).forEach(function (row) { overrides.set(row.r2Key, row); });
+  if (overrides.size !== 8) throw new Error("overrides " + overrides.size);
+  const groups = build(rows, mapped, overrides);
   assertCatalog(groups, v63Keys());
   const body = {
-    version: "v64",
+    version: "v65",
     moduleLabels: { pre: "Pre", exercise: "Main", post: "Post" },
     layout: {
       cabins: placeApi.CABINS.map(function (row) { return row[0]; }),
@@ -243,15 +253,14 @@ function main() {
         id: "specials",
         name: "Specials",
         subCabins: placeApi.SPECIALS.map(function (row) { return row[0]; })
-      },
-      checkMe: "check-me"
+      }
     },
     groups: groups
   };
   const text = "/* Read-only video card catalogue. Generated by tools/build_catalog.js. Do not edit by hand. */\n" +
     "window.NEXUS_VIDEO_CATALOG = " + JSON.stringify(body) + ";\n";
   fs.writeFileSync(outPath, text);
-  console.log("OK v64 catalog", groups.map(function (group) { return group.id + " " + group.count; }).join(" · "));
+  console.log("OK v65 catalog", groups.map(function (group) { return group.id + " " + group.count; }).join(" · "));
 }
 
 main();

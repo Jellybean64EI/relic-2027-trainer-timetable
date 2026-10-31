@@ -8,7 +8,6 @@
   var specialsOpen = false;
   var custom = [];
   var placements = null;
-  var moveKey = "";
   var previewKey = "";
   var previewCabin = "";
   var previewModule = "exercise";
@@ -183,8 +182,26 @@
       return { cabin: area, modules: [type], special: meta.special, specialType: meta.specialType };
     }
     var hit = api && api.placeCustom ? api.placeCustom(area, title) : null;
-    if (hit) return { cabin: hit.cabin, modules: [type], special: hit.special, specialType: hit.special_type };
-    return { cabin: "check-me", modules: [type], special: false, specialType: null };
+    if (hit && hit.cabin && api.cabinMeta && api.cabinMeta(hit.cabin)) {
+      return { cabin: hit.cabin, modules: [type], special: hit.special, specialType: hit.special_type };
+    }
+    var cabin = api && api.cabinForArea ? api.cabinForArea(area) : "sp-posture-mobility";
+    var meta = api && api.cabinMeta ? api.cabinMeta(cabin) : null;
+    if (!meta) {
+      cabin = "sp-posture-mobility";
+      meta = api && api.cabinMeta ? api.cabinMeta(cabin) : null;
+    }
+    return { cabin: cabin, modules: [type], special: !!(meta && meta.special), specialType: (meta && meta.specialType) || null };
+  }
+
+  function moveButtonText(cabinId, moduleId) {
+    var choices = cabinChoices();
+    var choice = null;
+    var i;
+    for (i = 0; i < choices.length; i++) if (choices[i].id === cabinId) choice = choices[i];
+    if (!choice && choices.length) choice = choices[0];
+    var mod = moduleId === "pre" || moduleId === "post" || moduleId === "exercise" ? moduleId : "exercise";
+    return "Move to " + (choice ? choice.label : "Face") + " · " + moduleLabel(mod);
   }
 
   function emptyMods() {
@@ -286,36 +303,9 @@
       html += '<option value="' + id + '"' + (id === selectedModule ? " selected" : "") + ">" + esc(moduleLabel(id)) + "</option>";
     });
     html += "</select></label>";
-    var chosen = cabinChoices().filter(function (choice) { return choice.id === selectedCabin; })[0];
-    html += '<button type="button" class="vc-move-go">Move to ' + esc(chosen ? chosen.label : selectedCabin) + " · " + esc(moduleLabel(selectedModule)) + "</button>";
+    var picked = moveButtonText(selectedCabin, selectedModule);
+    html += '<button type="button" class="vc-move-go">' + esc(picked) + "</button>";
     html += "</div>";
-    return html;
-  }
-
-  function checkTray(buckets) {
-    var mods = buckets["check-me"];
-    if (!mods) return "";
-    var videos = [];
-    ["exercise", "post", "pre"].forEach(function (id) {
-      (mods[id] || []).forEach(function (video) {
-        if (!videos.some(function (row) { return row.video.key === video.key; })) videos.push({ video: video, moduleId: id });
-      });
-    });
-    if (!videos.length) return "";
-    var html = '<section class="vc-check"><h3 class="vc-check-title">Check me · ' + videos.length + "</h3>";
-    if (placements === false) html += '<p class="vc-move-hint">Moving videos unlocks after the v64 server update.</p>';
-    videos.forEach(function (row) {
-      var video = row.video;
-      var suggested = video.suggestedCabin ? groupById(video.suggestedCabin) : null;
-      html += '<article class="vc-check-item' + (moveKey === video.key ? " is-open" : "") + '">';
-      html += '<button type="button" class="vc-check-open" data-vc-check="' + esc(video.key) + '"><span>' + esc(video.title) + "</span>";
-      if (suggested) html += '<span class="vc-suggest">Suggested: ' + esc(suggested.name) + "</span>";
-      html += "</button>";
-      html += '<button type="button" class="vc-eye" aria-label="Preview ' + esc(video.title) + '" data-vc-key="' + esc(video.key) + '" data-vc-src="' + esc(video.src) + '" data-vc-title="' + esc(video.title) + '" data-vc-cabin-id="' + esc(video.suggestedCabin || "check-me") + '" data-vc-module="' + esc(row.moduleId) + '">' + EYE + "</button>";
-      if (moveKey === video.key) html += moveFields(video.suggestedCabin || "neck", row.moduleId);
-      html += "</article>";
-    });
-    html += "</section>";
     return html;
   }
 
@@ -354,7 +344,7 @@
     if (!root || !groups || !catalogRootNow || !catalogRootNow.layout) return;
     var buckets = viewBuckets();
     var layout = catalogRootNow.layout;
-    var html = checkTray(buckets);
+    var html = "";
     if (specialsOpen) {
       html += '<button type="button" class="vc-specials-back" data-vc-specials-back>‹ Specials</button>';
       (layout.specials.subCabins || []).forEach(function (id) {
@@ -711,8 +701,8 @@
 
   function moveVideo(key, cabin, moduleId) {
     if (placements === false || !key || !cabin || !window.nexusFetch) return;
-    var row = document.querySelector('[data-vc-check="' + key + '"], .vc-card[data-vc-key="' + key + '"]');
-    var article = row && row.closest(".vc-check-item, .vc-card-wrap, .vc-block");
+    var row = document.querySelector('.vc-card[data-vc-key="' + key + '"]');
+    var article = row && row.closest(".vc-card-wrap, .vc-block");
     if (article) article.classList.add("is-leaving");
     window.nexusFetch("/video-placements", {
       method: "PUT",
@@ -726,7 +716,6 @@
         special: !!got.special,
         specialType: got.specialType || got.special_type || null
       };
-      moveKey = "";
       render();
     }).catch(function (err) {
       if (article) article.classList.remove("is-leaving");
@@ -794,18 +783,7 @@
       event.stopPropagation();
       var panel = event.target.closest(".vc-move");
       var pickedMove = readMove(panel);
-      var checkItem = event.target.closest(".vc-check-item");
-      var checkBtn = checkItem && checkItem.querySelector("[data-vc-check]");
-      var moving = checkBtn ? checkBtn.getAttribute("data-vc-check") : moveKey;
-      if (pickedMove && moving) moveVideo(moving, pickedMove.cabin, pickedMove.moduleId);
-      return;
-    }
-    var checkOpen = event.target.closest("[data-vc-check]");
-    if (checkOpen) {
-      event.preventDefault();
-      var nextCheck = checkOpen.getAttribute("data-vc-check") || "";
-      moveKey = moveKey === nextCheck ? "" : nextCheck;
-      render();
+      if (pickedMove && previewKey) moveVideo(previewKey, pickedMove.cabin, pickedMove.moduleId);
       return;
     }
     if (event.target.closest("[data-vc-specials-back]")) {
@@ -963,16 +941,17 @@
       if (event.key === "Escape" && !(event.target && event.target.id === "vc-upload-title")) closePreview();
     });
     if (document.body && document.body.classList.contains("is-cards")) render();
-    document.addEventListener("change", function (event) {
+    function paintMoveLabel(event) {
       var panel = event.target && event.target.closest && event.target.closest(".vc-move");
       if (!panel) return;
       var cabin = panel.querySelector(".vc-move-cabin");
       var mod = panel.querySelector(".vc-move-module");
       var go = panel.querySelector(".vc-move-go");
       if (!cabin || !mod || !go || go.disabled) return;
-      var choice = cabin.options[cabin.selectedIndex];
-      go.textContent = "Move to " + (choice ? choice.text : "") + " · " + moduleLabel(mod.value);
-    });
+      go.textContent = moveButtonText(cabin.value, mod.value);
+    }
+    document.addEventListener("change", paintMoveLabel);
+    document.addEventListener("input", paintMoveLabel);
     loadCustom();
     loadStorage();
     loadPlacements();
@@ -1002,8 +981,9 @@
     });
   }
 
-  window.NexusCards = { render: render, syncPicked: syncPicked };
+  window.NexusCards = { render: render, syncPicked: syncPicked, moveButtonText: moveButtonText, decideCustom: decideCustom };
 
+  if (typeof document === "undefined") return;
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
 })();

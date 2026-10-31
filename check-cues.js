@@ -46,7 +46,7 @@ const css = fs.readFileSync("styles.css", "utf8");
 const app = fs.readFileSync("app.js", "utf8");
 if (html.indexOf(">CUE<") !== -1) fail("CUE text pill is still in index.html");
 if (html.indexOf("forensic-date-key") !== -1) fail("debug meta is still in the cue sheet");
-if (html.indexOf("data/cues/cues.js?v=v64") === -1) fail("cue dump script is not stamped v64");
+if (html.indexOf("data/cues/cues.js?v=v65") === -1) fail("cue dump script is not stamped v65");
 if (css.indexOf(".player-stage.is-hud-idle:not(.is-forensic-open) .forensic-tab") === -1) {
   fail("cue handle does not fade with HUD idle");
 }

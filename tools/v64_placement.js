@@ -144,12 +144,41 @@
     return id || "";
   }
 
+  var FALLBACK = {
+    Back: "upper-back",
+    Upper_Arms: "upper-arms",
+    Chest: "chest",
+    Legs_Glutes: "quads",
+    Abs_Pelvic: "abs",
+    Calisthenics: "sp-calisthenics",
+    Resistance_Bands: "sp-resistance-bands",
+    Hanging: "sp-hanging",
+    Target_Weights: "sp-target-weights",
+    Hand_Wrist_Forearm: "forearms",
+    Posture_Mobility: "sp-posture-mobility",
+    Neck: "neck",
+    Face: "face",
+    Eyes: "eyes",
+    Tongue: "tongue",
+    Jaw: "jaw"
+  };
+
   function cabinMeta(id) {
     var i;
     for (i = 0; i < CABINS.length; i++) if (CABINS[i][0] === id) return { id: id, name: CABINS[i][1], special: false, specialType: null };
     for (i = 0; i < SPECIALS.length; i++) if (SPECIALS[i][0] === id) return { id: id, name: SPECIALS[i][1], special: true, specialType: SPECIALS[i][2] };
-    if (id === "check-me") return { id: id, name: "Check me", special: false, specialType: null };
     return null;
+  }
+
+  function fallbackCabin(folder) {
+    return FALLBACK[folder] || "sp-posture-mobility";
+  }
+
+  function cabinForArea(area) {
+    if (cabinMeta(area)) return area;
+    var folder = LEGACY_AREA[area];
+    if (folder && FALLBACK[folder]) return FALLBACK[folder];
+    return "sp-posture-mobility";
   }
 
   return {
@@ -162,6 +191,9 @@
     placeCustom: placeCustom,
     alsoTargets: alsoTargets,
     legacyGroupFor: legacyGroupFor,
-    cabinMeta: cabinMeta
+    cabinMeta: cabinMeta,
+    fallbackCabin: fallbackCabin,
+    cabinForArea: cabinForArea,
+    LEGACY_AREA: LEGACY_AREA
   };
 });

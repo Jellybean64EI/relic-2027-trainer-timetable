@@ -1,0 +1,53 @@
+{
+  "version": "v65",
+  "placements": [
+    {
+      "r2Key": "Legs_Glutes/1. Childs Pose.mp4",
+      "cabin": "lower-back",
+      "modules": ["post"],
+      "title": "Childs Pose"
+    },
+    {
+      "r2Key": "Neck/1. NEEDS_REVIEW_Unnamed_B.mp4",
+      "cabin": "neck",
+      "modules": ["exercise"],
+      "title": "Suprahyoid Neck Curl Off Bench"
+    },
+    {
+      "r2Key": "Neck/2. NEEDS_REVIEW_Unnamed_C.mp4",
+      "cabin": "neck",
+      "modules": ["exercise"],
+      "title": "Wall and Floor Chin Tucks"
+    },
+    {
+      "r2Key": "Neck/3. NEEDS_REVIEW_Neck And Facial Exercise.mp4",
+      "cabin": "jaw",
+      "modules": ["exercise"],
+      "title": "Neck Tilt Jawline Exercise"
+    },
+    {
+      "r2Key": "Neck/4. NEEDS_REVIEW_Neck And Jawline Exercises.mp4",
+      "cabin": "jaw",
+      "modules": ["exercise"],
+      "title": "Neck and Jawline Tilts"
+    },
+    {
+      "r2Key": "Upper_Arms/6. childs pose side veritable.mp4",
+      "cabin": "upper-back",
+      "modules": ["post"],
+      "title": "Childs Pose Side Variation"
+    },
+    {
+      "r2Key": "Upper_Arms/7. Thread the needle.mp4",
+      "cabin": "upper-back",
+      "modules": ["post"],
+      "title": "Thread the Needle"
+    },
+    {
+      "r2Key": "Hand_Wrist_Forearm/1. Wrist Mobility Warm Up.mp4",
+      "cabin": "forearms",
+      "modules": ["pre"],
+      "title": "Wrist Mobility Warm Up"
+    }
+  ]
+}
