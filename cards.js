@@ -764,6 +764,126 @@
     render();
   }
 
+  var quickList = [];
+  var quickIndex = 0;
+  var quickScroll = 0;
+  var quickMove = false;
+  var quickSwipe = null;
+
+  function flatClips() {
+    var root = catalogRoot();
+    var layout = root && root.layout;
+    var buckets = viewBuckets();
+    var order = [];
+    if (layout) {
+      (layout.cabins || []).forEach(function (id) { order.push(id); });
+      ((layout.specials && layout.specials.subCabins) || []).forEach(function (id) { order.push(id); });
+    }
+    var list = [];
+    order.forEach(function (id) {
+      var group = groupById(id);
+      var mods = buckets[id] || emptyMods();
+      if (!group) return;
+      (group.modules || []).forEach(function (mod) {
+        var videos = mods[mod.id] || [];
+        videos.forEach(function (video, index) {
+          list.push({
+            key: video.key,
+            src: video.src,
+            title: video.title || "Video",
+            cabinId: group.id,
+            cabinName: group.name,
+            moduleId: mod.id,
+            moduleName: mod.name,
+            indexInModule: index,
+            moduleCount: videos.length
+          });
+        });
+      });
+    });
+    return list;
+  }
+
+  function quickLabel(item) {
+    return item.cabinName + " · " + item.moduleName + " · " + (item.indexInModule + 1) + " of " + item.moduleCount;
+  }
+
+  function showQuick(keepPlaying) {
+    var item = quickList[quickIndex];
+    var root = document.getElementById("vc-quick");
+    var video = document.getElementById("vc-quick-video");
+    var ahead = document.getElementById("vc-quick-next");
+    if (!item || !root || !video) return;
+    previewKey = item.key;
+    previewCabin = item.cabinId;
+    previewModule = item.moduleId;
+    root.querySelector(".vc-quick-title").textContent = item.title;
+    root.querySelector(".vc-quick-label").textContent = quickLabel(item);
+    if (!keepPlaying || video.getAttribute("src") !== item.src) {
+      video.preload = "metadata";
+      video.playsInline = true;
+      video.setAttribute("playsinline", "");
+      video.src = item.src;
+      var play = video.play();
+      if (play && typeof play.catch === "function") play.catch(function () {});
+    }
+    var following = quickList[quickIndex + 1];
+    if (ahead) {
+      ahead.preload = "metadata";
+      if (following && following.src) ahead.src = following.src;
+      else ahead.removeAttribute("src");
+    }
+    var sheet = document.getElementById("vc-quick-move");
+    if (sheet) {
+      sheet.hidden = !quickMove;
+      sheet.innerHTML = quickMove ? moveFields(item.cabinId, item.moduleId) : "";
+    }
+  }
+
+  function openQuick(key) {
+    quickList = flatClips();
+    quickIndex = 0;
+    var i;
+    for (i = 0; i < quickList.length; i++) {
+      if (quickList[i].key === key) { quickIndex = i; break; }
+    }
+    if (!quickList.length) return;
+    quickScroll = window.pageYOffset || document.documentElement.scrollTop || 0;
+    quickMove = false;
+    var root = document.getElementById("vc-quick");
+    if (!root) return;
+    root.hidden = false;
+    document.body.classList.add("vc-quick-open");
+    showQuick(false);
+  }
+
+  function closeQuick() {
+    var root = document.getElementById("vc-quick");
+    var video = document.getElementById("vc-quick-video");
+    var ahead = document.getElementById("vc-quick-next");
+    if (video) {
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+    }
+    if (ahead) {
+      ahead.removeAttribute("src");
+      ahead.load();
+    }
+    if (root) root.hidden = true;
+    document.body.classList.remove("vc-quick-open");
+    quickMove = false;
+    window.scrollTo(0, quickScroll);
+  }
+
+  function stepQuick(dir) {
+    var next = quickIndex + dir;
+    if (next < 0 || next >= quickList.length) return;
+    quickIndex = next;
+    quickMove = false;
+    showQuick(false);
+  }
+
   function onClick(event) {
     var eye = event.target.closest(".vc-eye");
     if (eye) {
@@ -841,13 +961,14 @@
     var card = event.target.closest(".vc-card");
     if (card) {
       event.preventDefault();
-      if (window.NexusBuilder && window.NexusBuilder.takeCard && window.NexusBuilder.takeCard({
+      if (building() && window.NexusBuilder && window.NexusBuilder.takeCard && window.NexusBuilder.takeCard({
         key: card.getAttribute("data-vc-key"),
         src: card.getAttribute("data-vc-src"),
         cabin: card.getAttribute("data-vc-cabin"),
         title: card.getAttribute("data-vc-title"),
         group: card.getAttribute("data-vc-group")
       })) return;
+      if (!building()) openQuick(card.getAttribute("data-vc-key"));
       return;
     }
     var mod = event.target.closest(".vc-mod");
@@ -900,6 +1021,66 @@
       var file = document.getElementById("vc-file");
       if (uploadBtn && file) uploadBtn.addEventListener("click", function () { file.click(); });
       if (file) file.addEventListener("change", onFile);
+    }
+    if (!document.getElementById("vc-quick")) {
+      var quick = document.createElement("div");
+      quick.id = "vc-quick";
+      quick.hidden = true;
+      quick.innerHTML =
+        '<div class="vc-quick-card" role="dialog" aria-modal="true" aria-label="Video">' +
+          '<button type="button" class="vc-quick-x" aria-label="Close">×</button>' +
+          '<p class="vc-quick-title"></p>' +
+          '<p class="vc-quick-label"></p>' +
+          '<video id="vc-quick-video" playsinline preload="metadata"></video>' +
+          '<video id="vc-quick-next" class="vc-quick-preload" preload="metadata" muted playsinline></video>' +
+          '<div class="vc-quick-nav">' +
+            '<button type="button" class="vc-quick-back">Back</button>' +
+            '<button type="button" class="vc-quick-next">Next</button>' +
+          "</div>" +
+          '<button type="button" class="vc-quick-move">Move</button>' +
+          '<div id="vc-quick-move" hidden></div>' +
+        "</div>";
+      document.body.appendChild(quick);
+      quick.addEventListener("click", function (event) {
+        if (event.target.closest(".vc-quick-x") || event.target === quick) {
+          event.preventDefault();
+          closeQuick();
+          return;
+        }
+        if (event.target.closest(".vc-quick-next")) {
+          event.preventDefault();
+          stepQuick(1);
+          return;
+        }
+        if (event.target.closest(".vc-quick-back")) {
+          event.preventDefault();
+          stepQuick(-1);
+          return;
+        }
+        if (event.target.closest(".vc-quick-move")) {
+          event.preventDefault();
+          quickMove = !quickMove;
+          showQuick(true);
+          return;
+        }
+        if (event.target.closest(".vc-move-go")) {
+          event.preventDefault();
+          var pickedMove = readMove(document.getElementById("vc-quick-move"));
+          if (pickedMove && previewKey) moveVideo(previewKey, pickedMove.cabin, pickedMove.moduleId);
+        }
+      });
+      quick.addEventListener("pointerdown", function (event) {
+        if (event.target.closest("button, select, a")) return;
+        quickSwipe = { x: event.clientX, y: event.clientY };
+      });
+      quick.addEventListener("pointerup", function (event) {
+        if (!quickSwipe) return;
+        var dx = event.clientX - quickSwipe.x;
+        var dy = event.clientY - quickSwipe.y;
+        quickSwipe = null;
+        if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy)) return;
+        stepQuick(dx < 0 ? 1 : -1);
+      });
     }
     if (!document.getElementById("vc-preview")) {
       var preview = document.createElement("div");
@@ -981,7 +1162,14 @@
     });
   }
 
-  window.NexusCards = { render: render, syncPicked: syncPicked, moveButtonText: moveButtonText, decideCustom: decideCustom };
+  window.NexusCards = {
+    render: render,
+    syncPicked: syncPicked,
+    moveButtonText: moveButtonText,
+    decideCustom: decideCustom,
+    flatClips: flatClips,
+    quickLabel: quickLabel
+  };
 
   if (typeof document === "undefined") return;
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
