@@ -5685,16 +5685,34 @@ body.is-cards #banner-coach {
   padding: calc(12px + env(safe-area-inset-top)) 12px calc(16px + env(safe-area-inset-bottom));
 }
 
+.vc-quick-top {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.vc-quick-edit {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid #ff8a00;
+  border-radius: 999px;
+  background: transparent;
+  color: #ff8a00;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
 .vc-quick-x {
-  align-self: flex-end;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border: 0;
   border-radius: 12px;
   background: #1b0a2a;
   color: #f6eefe;
   font: inherit;
-  font-size: 1.4rem;
+  font-size: 1.3rem;
   font-weight: 800;
 }
 
@@ -5729,18 +5747,20 @@ body.is-cards #banner-coach {
 
 .vc-quick-nav {
   display: flex;
+  align-items: center;
   gap: 8px;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .vc-quick-back,
 .vc-quick-next,
 .vc-quick-move {
-  min-height: 56px;
+  height: 40px;
+  min-height: 40px;
   border: 0;
-  border-radius: 14px;
+  border-radius: 999px;
   font: inherit;
-  font-size: 1.05rem;
+  font-size: 0.85rem;
   font-weight: 800;
 }
 
@@ -5749,13 +5769,88 @@ body.is-cards #banner-coach {
 
 .vc-quick-back { background: #1b0a2a; color: #f6eefe; }
 
-.vc-quick-next,
-.vc-quick-move { background: #ff8a00; color: #12051d; }
+.vc-quick-next { background: #ff8a00; color: #12051d; }
 
 .vc-quick-move {
-  width: 100%;
-  min-height: 44px;
+  flex: 0 0 40px;
+  width: 40px;
+  padding: 0;
+  background: #1b0a2a;
+  color: #ff8a00;
+  font-size: 0.72rem;
+}
+
+.vc-trim { margin-top: 8px; }
+
+.vc-trim-track {
+  position: relative;
+  height: 36px;
+  touch-action: none;
+}
+
+.vc-trim-rail,
+.vc-trim-span {
+  position: absolute;
+  top: 14px;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.vc-trim-rail { left: 0; right: 0; background: #3a2a4a; }
+
+.vc-trim-span { background: #ff8a00; }
+
+.vc-trim-handle {
+  position: absolute;
+  top: 4px;
+  width: 28px;
+  height: 28px;
+  margin-left: -14px;
+  border: 2px solid #12051d;
+  border-radius: 50%;
+  background: #ff8a00;
+  touch-action: none;
+}
+
+.vc-trim-times {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #f6eefe;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.vc-trim-times button,
+.vc-trim-actions button {
+  min-height: 28px;
+  margin: 0 4px;
+  padding: 0 8px;
+  border: 1px solid rgba(216, 180, 254, 0.32);
+  border-radius: 999px;
+  background: #150724;
+  color: #f6eefe;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.vc-trim-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-top: 8px;
+}
+
+.vc-trim-save,
+.vc-trim-preview { background: #ff8a00; color: #12051d; border: 0; }
+
+.vc-trim-toast {
+  margin: 8px 0 0;
+  color: #ff8a00;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-align: center;
 }
 
 body.vc-quick-open { overflow: hidden; }

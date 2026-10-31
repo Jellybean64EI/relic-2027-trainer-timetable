@@ -669,6 +669,7 @@
     video.autoplay = true;
     video.preload = "auto";
     video.src = src;
+    if (window.NexusTrim) window.NexusTrim.watch(video);
     root.hidden = false;
     var play = video.play();
     if (play && typeof play.catch === "function") play.catch(function () {});
@@ -824,6 +825,7 @@
       video.playsInline = true;
       video.setAttribute("playsinline", "");
       video.src = item.src;
+      if (window.NexusTrim) window.NexusTrim.watch(video);
       var play = video.play();
       if (play && typeof play.catch === "function") play.catch(function () {});
     }
@@ -838,6 +840,9 @@
       sheet.hidden = !quickMove;
       sheet.innerHTML = quickMove ? moveFields(item.cabinId, item.moduleId) : "";
     }
+    var trimPanel = document.getElementById("vc-trim");
+    if (trimPanel) trimPanel.hidden = !trimOpen;
+    if (!trimOpen && window.NexusTrim) window.NexusTrim.suspend(video, false);
   }
 
   function openQuick(key) {
@@ -881,7 +886,146 @@
     if (next < 0 || next >= quickList.length) return;
     quickIndex = next;
     quickMove = false;
+    trimOpen = false;
     showQuick(false);
+  }
+
+  var trimOpen = false;
+  var trimDraft = { start: 0, end: 0 };
+  var trimDrag = "";
+  var trimToastTimer = 0;
+
+  function fmtTime(value) {
+    var t = Math.max(0, Number(value) || 0);
+    var mins = Math.floor(t / 60);
+    var secs = t - mins * 60;
+    var whole = Math.floor(secs);
+    var tenth = Math.min(9, Math.floor((secs - whole) * 10 + 1e-4));
+    return mins + ":" + (whole < 10 ? "0" : "") + whole + "." + tenth;
+  }
+
+  function quickDuration() {
+    var video = document.getElementById("vc-quick-video");
+    return video && isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
+  }
+
+  function paintTrim() {
+    var panel = document.getElementById("vc-trim");
+    if (!panel) return;
+    panel.hidden = !trimOpen;
+    if (!trimOpen) return;
+    var duration = quickDuration();
+    var end = trimDraft.end > 0 ? trimDraft.end : duration;
+    if (duration && end > duration) end = duration;
+    trimDraft.end = end;
+    var startPct = duration ? (trimDraft.start / duration) * 100 : 0;
+    var endPct = duration ? (end / duration) * 100 : 100;
+    panel.querySelector(".vc-trim-span").style.left = startPct + "%";
+    panel.querySelector(".vc-trim-span").style.width = Math.max(0, endPct - startPct) + "%";
+    panel.querySelector(".vc-trim-start").style.left = startPct + "%";
+    panel.querySelector(".vc-trim-end").style.left = endPct + "%";
+    panel.querySelector(".vc-trim-start-time").textContent = fmtTime(trimDraft.start);
+    panel.querySelector(".vc-trim-end-time").textContent = fmtTime(end);
+  }
+
+  function trimToast(text) {
+    var el = document.getElementById("vc-trim-toast");
+    if (!el) return;
+    el.hidden = !text;
+    el.textContent = text || "";
+    clearTimeout(trimToastTimer);
+    if (text) trimToastTimer = setTimeout(function () { el.hidden = true; }, 2200);
+  }
+
+  function openTrim() {
+    var video = document.getElementById("vc-quick-video");
+    var duration = quickDuration();
+    var saved = window.NexusTrim && previewKey ? window.NexusTrim.get(previewKey) : null;
+    trimDraft = {
+      start: saved ? saved.start : 0,
+      end: saved && saved.end != null ? saved.end : duration
+    };
+    trimOpen = true;
+    if (window.NexusTrim) window.NexusTrim.suspend(video, true);
+    paintTrim();
+  }
+
+  function closeTrim() {
+    var video = document.getElementById("vc-quick-video");
+    trimOpen = false;
+    if (window.NexusTrim) window.NexusTrim.suspend(video, false);
+    paintTrim();
+  }
+
+  function seekTrim(which) {
+    var video = document.getElementById("vc-quick-video");
+    if (!video) return;
+    try { video.currentTime = which === "end" ? trimDraft.end : trimDraft.start; } catch (err) { /* still loading */ }
+  }
+
+  function moveTrimHandle(clientX, which) {
+    var track = document.querySelector("#vc-trim .vc-trim-track");
+    var duration = quickDuration();
+    if (!track || !duration) return;
+    var rect = track.getBoundingClientRect();
+    var ratio = rect.width ? (clientX - rect.left) / rect.width : 0;
+    var time = Math.min(duration, Math.max(0, ratio * duration));
+    if (which === "start") trimDraft.start = Math.min(time, trimDraft.end - 0.5);
+    else trimDraft.end = Math.max(time, trimDraft.start + 0.5);
+    if (trimDraft.start < 0) trimDraft.start = 0;
+    if (trimDraft.end > duration) trimDraft.end = duration;
+    seekTrim(which);
+    paintTrim();
+  }
+
+  function nudgeTrim(which, delta) {
+    var duration = quickDuration();
+    if (!duration) return;
+    if (which === "start") trimDraft.start = Math.min(Math.max(0, trimDraft.start + delta), trimDraft.end - 0.5);
+    else trimDraft.end = Math.max(Math.min(duration, trimDraft.end + delta), trimDraft.start + 0.5);
+    seekTrim(which);
+    paintTrim();
+  }
+
+  function previewTrim() {
+    var video = document.getElementById("vc-quick-video");
+    if (!video) return;
+    try { video.currentTime = trimDraft.start; } catch (err) { /* wait */ }
+    var play = video.play();
+    if (play && typeof play.catch === "function") play.catch(function () {});
+  }
+
+  function saveTrim() {
+    var item = quickList[quickIndex];
+    var duration = quickDuration();
+    if (!item || !window.NexusTrim) {
+      trimToast("Could not save the trim.");
+      return;
+    }
+    var end = trimDraft.end;
+    if (duration && end >= duration - 0.05) end = null;
+    window.NexusTrim.save(item.key, trimDraft.start, end).then(function () {
+      closeTrim();
+      seekTrim("start");
+    }).catch(function () {
+      trimToast("Could not save the trim.");
+      paintTrim();
+    });
+  }
+
+  function resetTrim() {
+    var item = quickList[quickIndex];
+    if (!item || !window.NexusTrim) {
+      trimToast("Could not save the trim.");
+      return;
+    }
+    window.NexusTrim.clear(item.key).then(function () {
+      trimDraft = { start: 0, end: quickDuration() };
+      seekTrim("start");
+      paintTrim();
+    }).catch(function () {
+      trimToast("Could not save the trim.");
+    });
   }
 
   function onClick(event) {
@@ -1028,17 +1172,39 @@
       quick.hidden = true;
       quick.innerHTML =
         '<div class="vc-quick-card" role="dialog" aria-modal="true" aria-label="Video">' +
-          '<button type="button" class="vc-quick-x" aria-label="Close">×</button>' +
+          '<div class="vc-quick-top">' +
+            '<button type="button" class="vc-quick-edit">Edit</button>' +
+            '<button type="button" class="vc-quick-x" aria-label="Close">×</button>' +
+          "</div>" +
           '<p class="vc-quick-title"></p>' +
           '<p class="vc-quick-label"></p>' +
           '<video id="vc-quick-video" playsinline preload="metadata"></video>' +
+          '<div id="vc-trim" class="vc-trim" hidden>' +
+            '<div class="vc-trim-track">' +
+              '<div class="vc-trim-rail"></div>' +
+              '<div class="vc-trim-span"></div>' +
+              '<button type="button" class="vc-trim-handle vc-trim-start" data-trim-handle="start" aria-label="Trim start"></button>' +
+              '<button type="button" class="vc-trim-handle vc-trim-end" data-trim-handle="end" aria-label="Trim end"></button>' +
+            "</div>" +
+            '<div class="vc-trim-times">' +
+              '<span><button type="button" data-trim-nudge="start" data-trim-delta="-0.1">-0.1</button><span class="vc-trim-start-time">0:00.0</span><button type="button" data-trim-nudge="start" data-trim-delta="0.1">+0.1</button></span>' +
+              '<span><button type="button" data-trim-nudge="end" data-trim-delta="-0.1">-0.1</button><span class="vc-trim-end-time">0:00.0</span><button type="button" data-trim-nudge="end" data-trim-delta="0.1">+0.1</button></span>' +
+            "</div>" +
+            '<div class="vc-trim-actions">' +
+              '<button type="button" class="vc-trim-preview">Preview</button>' +
+              '<button type="button" class="vc-trim-save">Save</button>' +
+              '<button type="button" class="vc-trim-reset">Reset</button>' +
+              '<button type="button" class="vc-trim-cancel">Cancel</button>' +
+            "</div>" +
+          "</div>" +
           '<video id="vc-quick-next" class="vc-quick-preload" preload="metadata" muted playsinline></video>' +
           '<div class="vc-quick-nav">' +
             '<button type="button" class="vc-quick-back">Back</button>' +
+            '<button type="button" class="vc-quick-move" aria-label="Move">Move</button>' +
             '<button type="button" class="vc-quick-next">Next</button>' +
           "</div>" +
-          '<button type="button" class="vc-quick-move">Move</button>' +
           '<div id="vc-quick-move" hidden></div>' +
+          '<p id="vc-trim-toast" class="vc-trim-toast" hidden></p>' +
         "</div>";
       document.body.appendChild(quick);
       quick.addEventListener("click", function (event) {
@@ -1057,6 +1223,22 @@
           stepQuick(-1);
           return;
         }
+        if (event.target.closest(".vc-quick-edit")) {
+          event.preventDefault();
+          if (trimOpen) closeTrim();
+          else openTrim();
+          return;
+        }
+        if (event.target.closest(".vc-trim-preview")) { event.preventDefault(); previewTrim(); return; }
+        if (event.target.closest(".vc-trim-save")) { event.preventDefault(); saveTrim(); return; }
+        if (event.target.closest(".vc-trim-reset")) { event.preventDefault(); resetTrim(); return; }
+        if (event.target.closest(".vc-trim-cancel")) { event.preventDefault(); closeTrim(); return; }
+        var nudge = event.target.closest("[data-trim-nudge]");
+        if (nudge) {
+          event.preventDefault();
+          nudgeTrim(nudge.getAttribute("data-trim-nudge"), Number(nudge.getAttribute("data-trim-delta")));
+          return;
+        }
         if (event.target.closest(".vc-quick-move")) {
           event.preventDefault();
           quickMove = !quickMove;
@@ -1069,8 +1251,34 @@
           if (pickedMove && previewKey) moveVideo(previewKey, pickedMove.cabin, pickedMove.moduleId);
         }
       });
+      var trimPanel = document.getElementById("vc-trim");
+      trimPanel.addEventListener("pointerdown", function (event) {
+        var handle = event.target.closest(".vc-trim-handle");
+        if (!handle) return;
+        event.preventDefault();
+        event.stopPropagation();
+        trimDrag = handle.getAttribute("data-trim-handle");
+        handle.setPointerCapture(event.pointerId);
+        moveTrimHandle(event.clientX, trimDrag);
+      });
+      trimPanel.addEventListener("pointermove", function (event) {
+        if (!trimDrag) return;
+        moveTrimHandle(event.clientX, trimDrag);
+      });
+      trimPanel.addEventListener("pointerup", function () { trimDrag = ""; });
+      trimPanel.addEventListener("pointercancel", function () { trimDrag = ""; });
+      document.getElementById("vc-quick-video").addEventListener("loadedmetadata", paintTrim);
+      document.getElementById("vc-quick-video").addEventListener("timeupdate", function () {
+        var video = document.getElementById("vc-quick-video");
+        if (!trimOpen || !video) return;
+        var end = trimDraft.end || video.duration;
+        if (video.currentTime >= end - 0.04) {
+          video.pause();
+          try { video.currentTime = end; } catch (err) { /* hold the out point */ }
+        }
+      });
       quick.addEventListener("pointerdown", function (event) {
-        if (event.target.closest("button, select, a")) return;
+        if (event.target.closest("button, select, a, .vc-trim")) return;
         quickSwipe = { x: event.clientX, y: event.clientY };
       });
       quick.addEventListener("pointerup", function (event) {
@@ -1136,6 +1344,7 @@
     loadCustom();
     loadStorage();
     loadPlacements();
+    if (window.NexusTrim) window.NexusTrim.load();
   }
 
   function loadPlacements() {

@@ -1,4 +1,4 @@
-/* Nexus v66: schedule bubbles, stars, stage labels, and weekly groups. */
+/* Nexus v67: schedule bubbles, stars, stage labels, and weekly groups. */
 var fs = require("fs");
 var cp = require("child_process");
 var failed = 0;
@@ -83,15 +83,15 @@ must(builder, "filledSlots", "slot badge is missing");
 must(builder, '"/12 slots"', "slot badge is not out of 12");
 ok("weekly groups and one-tap placement are wired");
 
-if (app.indexOf('build: "v66"') === -1) fail("RelicArchitect.build is not v66");
-else ok("build stamp is v66");
+if (app.indexOf('build: "v67"') === -1) fail("RelicArchitect.build is not v67");
+else ok("build stamp is v67");
 
-["styles.css?v=v66", "app.js?v=v66", "deck.js?v=v66", "cards.js?v=v66", "builder.js?v=v66"].forEach(function (stamp) {
+["styles.css?v=v67", "app.js?v=v67", "deck.js?v=v67", "cards.js?v=v67", "builder.js?v=v67"].forEach(function (stamp) {
   if (html.indexOf(stamp) === -1) fail("index.html is missing " + stamp);
 });
-if (html.indexOf('content="v66"') === -1) fail("relic-build is not v66");
+if (html.indexOf('content="v67"') === -1) fail("relic-build is not v67");
 if (html.indexOf("v62") !== -1) fail("index.html still says v62");
-else ok("cache stamp is v66");
+else ok("cache stamp is v67");
 
 var protectedPaths = [
   "data/schedule.js",
@@ -106,7 +106,7 @@ var diff = cp.spawnSync("git", ["diff", "--exit-code", "origin/master", "--"].co
 if (diff.status !== 0) fail("protected training files differ from master");
 else ok("protected training files match master");
 
-if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v66") !== -1; })) {
+if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v67") !== -1; })) {
   fail("a new player-open rule would move the guard hash");
 }
 
@@ -115,7 +115,7 @@ if (read("cards.js").indexOf("vc-upload-box") === -1) fail("upload box was remov
 else ok("upload box is still in the card catalogue");
 
 if (failed) {
-  console.error(failed + " v66 check(s) failed");
+  console.error(failed + " v67 check(s) failed");
   process.exit(1);
 }
-console.log("OK v66");
+console.log("OK v67");
