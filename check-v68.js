@@ -1,4 +1,4 @@
-/* Nexus v68: precise trim editor, and Back/Next/swipe stay inside the current cabin. */
+/* Nexus v69: precise trim editor, and Back/Next/swipe stay inside the current cabin. */
 var fs = require("fs");
 var vm = require("vm");
 var crypto = require("crypto");
@@ -22,7 +22,7 @@ var css = fs.readFileSync("styles.css", "utf8");
 if (cards.indexOf("quickList = cabinClips(") === -1) fail("the viewer still walks every cabin");
 if (cards.indexOf("quickList = flatClips(") !== -1) fail("the viewer still assigns the full cabin-to-cabin list");
 if (cards.indexOf("if (quickMove || !quickList.length) return") === -1) fail("Move does not block Back and Next");
-if (cards.indexOf("back.disabled = !!quickMove") === -1) fail("Back stays tappable while Move is open");
+if (cards.indexOf("back.disabled = !!(quickMove || quickDelete)") === -1) fail("Back stays tappable while Move is open");
 if (cards.indexOf("rebindQuick(") === -1) fail("a move does not stay on the same video");
 if (cards.indexOf("function wrapIndex") === -1) fail("Back and Next do not wrap inside the cabin");
 if (cards.indexOf('id="vc-quick-progress"') === -1) fail("the viewer has no progress bar");
@@ -40,11 +40,11 @@ if (cards.indexOf('Save trim "') === -1 || cards.indexOf("Reset this trim and pl
 if (cards.indexOf("Abs_Pelvic/1. Dead Bug Progression.mp4") !== -1) fail("the saved Dead Bug trim was hardcoded");
 if (trim.indexOf("if (!trim) return") === -1) fail("a player can cut a clip that has no saved trim");
 if (trim.indexOf("fastSeek") !== -1) fail("shared helper seeks with fastSeek");
-if (app.indexOf('build: "v68"') === -1 || html.indexOf('content="v68"') === -1 || html.indexOf("trim.js?v=v68") === -1 || html.indexOf("?v=v67") !== -1) {
-  fail("cache stamp is not v68");
+if (app.indexOf('build: "v69"') === -1 || html.indexOf('content="v69"') === -1 || html.indexOf("trim.js?v=v69") === -1 || html.indexOf("?v=v67") !== -1) {
+  fail("cache stamp is not v69");
 }
 if (css.indexOf(".vc-quick-progress") === -1 || css.indexOf("height: 44px") === -1) fail("progress bar or trim track styling is missing");
-if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v68") !== -1; })) {
+if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v69") !== -1; })) {
   fail("a player-open rule was restamped");
 }
 else ok("viewer, editor, and stamp source checks");
@@ -118,7 +118,7 @@ else ok("cabin sequence is Pre, then Main, then Post");
 if (!failed) ok("food and smoothie files are unchanged");
 
 if (failed) {
-  console.error(failed + " v68 check(s) failed");
+  console.error(failed + " v69 check(s) failed");
   process.exit(1);
 }
-console.log("OK v68");
+console.log("OK v69");
