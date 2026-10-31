@@ -56,12 +56,17 @@
       (group.modules || []).forEach(function (mod) {
         (mod.videos || []).forEach(function (video) {
           if (!video || !video.key || byKey[video.key]) return;
+          var legacy = video.legacyGroup || legacyGroupFor(group.id);
           byKey[video.key] = {
             r2Key: video.key,
             title: video.title || video.key,
             src: video.src || "",
-            cabin: video.cabin || "",
-            group: group.id,
+            cabin: video.cabin || video.origin || "",
+            cabinId: group.id,
+            group: legacy,
+            legacyGroup: legacy,
+            special: !!(video.special || group.special),
+            specialType: video.specialType || group.specialType || "",
             phases: video.phases || []
           };
         });
@@ -77,7 +82,11 @@
       title: meta.title || item.title || item.r2Key,
       src: meta.src || item.src || "",
       cabin: meta.cabin || item.cabin || "",
-      group: meta.group || item.group || "",
+      cabinId: meta.cabinId || item.cabinId || "",
+      group: meta.legacyGroup || meta.group || item.legacyGroup || item.group || "",
+      legacyGroup: meta.legacyGroup || item.legacyGroup || meta.group || item.group || "",
+      special: !!(meta.special || item.special),
+      specialType: meta.specialType || item.specialType || "",
       phases: meta.phases || item.phases || []
     };
   }
@@ -126,7 +135,8 @@
   function exerciseBucket(item) {
     var side = armSide(item);
     if (side) return side;
-    if (item.group && SIZE[item.group] != null) return item.group === "arms" ? "arms" : item.group;
+    var legacy = item.legacyGroup || item.group;
+    if (legacy && SIZE[legacy] != null) return legacy === "arms" ? "arms" : legacy;
     return "other";
   }
 
@@ -183,7 +193,10 @@
     var list = items || [];
     var pres = list.filter(function (item) { return item.section === "pre"; });
     var exercises = list.filter(function (item) { return item.section === "exercise"; });
-    var warm = pres.some(function (item) { return item.group === "back" || item.group === "core"; });
+    var warm = pres.some(function (item) {
+      var legacy = item.legacyGroup || item.group;
+      return legacy === "back" || legacy === "core";
+    });
     if (pres.length && !warm) notes.push("No back or core warm-up.");
     if (!pres.length && exercises.length) notes.push("No back or core warm-up.");
     if (exercises.length > 10) notes.push("About 8 to 10 exercises is plenty.");
@@ -1378,14 +1391,30 @@
     load();
   }
 
+  function legacyGroupFor(id) {
+    if (window.V64Place && window.V64Place.legacyGroupFor) return window.V64Place.legacyGroupFor(id);
+    return id || "";
+  }
+
+  function isSpecial(item) {
+    if (!item) return false;
+    if (item.special) return true;
+    return String(item.cabinId || "").indexOf("sp-") === 0 || String(item.specialType || "").length > 0;
+  }
+
   function remember(video) {
     if (!video || !video.key) return;
+    var legacy = video.legacyGroup || legacyGroupFor(video.cabinId || video.group || "");
     byKey[video.key] = {
       r2Key: video.key,
       title: video.title || video.key,
       src: video.src || "",
       cabin: video.cabin || "",
-      group: video.group || "",
+      cabinId: video.cabinId || "",
+      group: legacy,
+      legacyGroup: legacy,
+      special: !!video.special,
+      specialType: video.specialType || "",
       phases: video.phases || []
     };
   }
@@ -1414,7 +1443,8 @@
     forget: forget,
     retitle: retitle,
     reload: load,
-    paintBoard: paintBoard
+    paintBoard: paintBoard,
+    isSpecial: isSpecial
   };
 
   if (typeof document === "undefined") return;

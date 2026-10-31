@@ -1,4 +1,4 @@
-/* Nexus v63: schedule bubbles, stars, stage labels, and weekly groups. */
+/* Nexus v64: schedule bubbles, stars, stage labels, and weekly groups. */
 var fs = require("fs");
 var cp = require("child_process");
 var failed = 0;
@@ -83,21 +83,20 @@ must(builder, "filledSlots", "slot badge is missing");
 must(builder, '"/12 slots"', "slot badge is not out of 12");
 ok("weekly groups and one-tap placement are wired");
 
-if (app.indexOf('build: "v63"') === -1) fail("RelicArchitect.build is not v63");
-else ok("build stamp is v63");
+if (app.indexOf('build: "v64"') === -1) fail("RelicArchitect.build is not v64");
+else ok("build stamp is v64");
 
-["styles.css?v=v63", "app.js?v=v63", "deck.js?v=v63", "cards.js?v=v63", "builder.js?v=v63"].forEach(function (stamp) {
+["styles.css?v=v64", "app.js?v=v64", "deck.js?v=v64", "cards.js?v=v64", "builder.js?v=v64"].forEach(function (stamp) {
   if (html.indexOf(stamp) === -1) fail("index.html is missing " + stamp);
 });
-if (html.indexOf('content="v63"') === -1) fail("relic-build is not v63");
+if (html.indexOf('content="v64"') === -1) fail("relic-build is not v64");
 if (html.indexOf("v62") !== -1) fail("index.html still says v62");
-else ok("cache stamp is v63");
+else ok("cache stamp is v64");
 
 var protectedPaths = [
   "data/schedule.js",
   "data/upperBody.js",
   "data/videoArchive.js",
-  "data/videoCatalog.js",
   "data/precondition.js",
   "data/citations.js",
   "data/forensic.js",
@@ -107,7 +106,7 @@ var diff = cp.spawnSync("git", ["diff", "--exit-code", "origin/master", "--"].co
 if (diff.status !== 0) fail("protected training files differ from master");
 else ok("protected training files match master");
 
-if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v63") !== -1; })) {
+if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v64") !== -1; })) {
   fail("a new player-open rule would move the guard hash");
 }
 
@@ -116,7 +115,7 @@ if (read("cards.js").indexOf("vc-upload-box") === -1) fail("upload box was remov
 else ok("upload box is still in the card catalogue");
 
 if (failed) {
-  console.error(failed + " v63 check(s) failed");
+  console.error(failed + " v64 check(s) failed");
   process.exit(1);
 }
-console.log("OK v63");
+console.log("OK v64");

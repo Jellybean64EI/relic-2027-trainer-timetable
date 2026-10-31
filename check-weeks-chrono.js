@@ -2,7 +2,7 @@
 /* relics22: assert all 48 week buckets sort chronologically by dateKey */
 const fs = require("fs");
 const vm = require("vm");
-const path = process.argv[2] || "/workspace/relic-2027-trainer/platform/data/schedule.js";
+const path = process.argv[2] || "data/schedule.js";
 const ctx = { window: {} };
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path, "utf8"), ctx);

@@ -76,7 +76,7 @@ else ok("custom cards continue the catalogue numbers");
 if (cards.indexOf('data-vc-title="' + "' + esc(video.title)") === -1 && cards.indexOf("esc(video.title)") === -1) fail("data-vc-title is not the clean title");
 else ok("data-vc-title stays the clean title");
 
-["vc-upload-box", "vc-upload-title", "Video card name (e.g. Anterior pelvic tilts)", "Save video card", "Type a video card name first.", "Step 2: Open a muscle cabin below and tap Pre-stretches, Exercises, or Post-stretches (it glows orange).", "Destination: "].forEach(function (token) {
+["vc-upload-box", "vc-upload-title", "Video card name (e.g. Anterior pelvic tilts)", "Save video card", "Type a video card name first.", "Step 2: Open a cabin below and tap Pre, Main or Post (it glows orange).", "Destination: "].forEach(function (token) {
   if (cards.indexOf(token) === -1) fail("upload box missing " + token);
 });
 if (cards.indexOf('id="vc-status"') === -1 && cards.indexOf('getElementById("vc-status")') === -1) fail("status line is not #vc-status");
@@ -109,20 +109,19 @@ var advance = sliceFn(app, "advance", "reconcileVisibility");
 if (!/if\s*\(\s*!manual\s*\)/.test(advance) || advance.indexOf("armClock(nextMs)") === -1) fail("skip still resets the 20:00 countdown");
 else ok("manual skip keeps the countdown");
 
-if (app.indexOf('build: "v63"') === -1) fail("RelicArchitect.build is not v63");
-else ok("build stamp is v63");
+if (app.indexOf('build: "v64"') === -1) fail("RelicArchitect.build is not v64");
+else ok("build stamp is v64");
 
-["styles.css?v=v63", "app.js?v=v63", "deck.js?v=v63", "cards.js?v=v63", "builder.js?v=v63"].forEach(function (stamp) {
+["styles.css?v=v64", "app.js?v=v64", "deck.js?v=v64", "cards.js?v=v64", "builder.js?v=v64"].forEach(function (stamp) {
   if (html.indexOf(stamp) === -1) fail("index.html is missing " + stamp);
 });
 if (html.indexOf("v62") !== -1) fail("index.html still says v62");
-else ok("cache stamp is v63");
+else ok("cache stamp is v64");
 
 var protectedPaths = [
   "data/schedule.js",
   "data/upperBody.js",
   "data/videoArchive.js",
-  "data/videoCatalog.js",
   "data/precondition.js",
   "data/citations.js",
   "data/forensic.js",

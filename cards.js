@@ -5,7 +5,13 @@
   var MAX_BYTES = 26214400;
   var openGroup = "";
   var openModule = "";
+  var specialsOpen = false;
   var custom = [];
+  var placements = null;
+  var moveKey = "";
+  var previewKey = "";
+  var previewCabin = "";
+  var previewModule = "exercise";
   var pendingFile = null;
   var pendingType = "";
   var pendingTitle = "";
@@ -18,8 +24,27 @@
     '<circle cx="12" cy="12" r="2.5" fill="currentColor"/>' +
     "</svg>";
 
+  function catalogRoot() {
+    return window.NEXUS_VIDEO_CATALOG || null;
+  }
+
   function catalog() {
-    return window.NEXUS_VIDEO_CATALOG && window.NEXUS_VIDEO_CATALOG.groups;
+    return catalogRoot() && catalogRoot().groups;
+  }
+
+  function groupById(id) {
+    var groups = catalog() || [];
+    var i;
+    for (i = 0; i < groups.length; i++) if (groups[i].id === id) return groups[i];
+    return null;
+  }
+
+  function moduleLabel(id) {
+    var labels = catalogRoot() && catalogRoot().moduleLabels;
+    if (labels && labels[id]) return labels[id];
+    if (id === "pre") return "Pre";
+    if (id === "post") return "Post";
+    return "Main";
   }
 
   function building() {
@@ -66,27 +91,32 @@
     return number + ". " + text;
   }
 
-  function cardHtml(video, group, number) {
+  function cardHtml(video, number, cabinId, moduleId, forceEye) {
     var picked = window.NexusBuilder && window.NexusBuilder.picked && window.NexusBuilder.picked(video.key);
-    var groupId = video.group || (group && group.id) || "";
+    var groupId = video.legacyGroup || video.group || "";
     var label = labelFor(video.title, number);
-    var button = '<button type="button" class="vc-card" data-vc-key="' + esc(video.key) + '" data-vc-src="' + esc(video.src) + '" data-vc-cabin="' + esc(video.cabin) + '" data-vc-title="' + esc(video.title) + '" data-vc-group="' + esc(groupId) + '">' +
+    var button = '<button type="button" class="vc-card" data-vc-key="' + esc(video.key) + '" data-vc-src="' + esc(video.src) + '" data-vc-cabin="' + esc(video.cabin) + '" data-vc-title="' + esc(video.title) + '" data-vc-group="' + esc(groupId) + '" data-vc-cabin-id="' + esc(cabinId) + '" data-vc-module="' + esc(moduleId) + '">' +
       '<span class="vc-card-top"><span class="vc-card-title">' + esc(label) + "</span>" +
       (picked ? '<span class="vc-in" aria-label="In this section">✓</span>' : "") +
       "</span></button>";
-    if (!building()) return button;
+    if (!building() && !forceEye) return button;
     return '<div class="vc-card-wrap has-eye">' + button +
-      '<button type="button" class="vc-eye" aria-label="Preview ' + esc(video.title) + '" data-vc-src="' + esc(video.src) + '" data-vc-title="' + esc(video.title) + '">' + EYE + "</button></div>";
+      '<button type="button" class="vc-eye" aria-label="Preview ' + esc(video.title) + '" data-vc-key="' + esc(video.key) + '" data-vc-src="' + esc(video.src) + '" data-vc-title="' + esc(video.title) + '" data-vc-cabin-id="' + esc(cabinId) + '" data-vc-module="' + esc(moduleId) + '">' + EYE + "</button></div>";
   }
 
-  function cardsHtml(group, mod) {
-    var html = "";
-    var base = mod.videos || [];
-    base.forEach(function (video, index) {
-      html += cardHtml(video, group, index + 1);
+  function cardsHtml(videos, cabinId, moduleId) {
+    var base = [];
+    var mine = [];
+    (videos || []).forEach(function (video) {
+      if (video.mine) mine.push(video);
+      else base.push(video);
     });
-    mineVideos(group, mod).forEach(function (video, index) {
-      html += cardHtml(video, group, base.length + index + 1);
+    var html = "";
+    base.forEach(function (video, index) {
+      html += cardHtml(video, index + 1, cabinId, moduleId, false);
+    });
+    mine.forEach(function (video, index) {
+      html += cardHtml(video, base.length + index + 1, cabinId, moduleId, false);
     });
     return html;
   }
@@ -126,38 +156,226 @@
     if (el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: "nearest" });
   }
 
+  function cabinChoices() {
+    var root = catalogRoot();
+    var layout = root && root.layout;
+    var list = [];
+    if (!layout) return list;
+    (layout.cabins || []).forEach(function (id) {
+      var group = groupById(id);
+      if (group) list.push({ id: id, label: group.name });
+    });
+    var subs = layout.specials && layout.specials.subCabins || [];
+    subs.forEach(function (id) {
+      var group = groupById(id);
+      if (group) list.push({ id: id, label: "Specials › " + group.name });
+    });
+    return list;
+  }
+
+  function decideCustom(video) {
+    var area = video.area || "";
+    var title = video.title || "";
+    var type = video.type === "pre" || video.type === "post" || video.type === "exercise" ? video.type : "exercise";
+    var api = window.V64Place;
+    if (api && api.cabinMeta && api.cabinMeta(area)) {
+      var meta = api.cabinMeta(area);
+      return { cabin: area, modules: [type], special: meta.special, specialType: meta.specialType };
+    }
+    var hit = api && api.placeCustom ? api.placeCustom(area, title) : null;
+    if (hit) return { cabin: hit.cabin, modules: [type], special: hit.special, specialType: hit.special_type };
+    return { cabin: "check-me", modules: [type], special: false, specialType: null };
+  }
+
+  function emptyMods() {
+    return { pre: [], exercise: [], post: [] };
+  }
+
+  function viewBuckets() {
+    var groups = catalog() || [];
+    var buckets = {};
+    var home = {};
+    groups.forEach(function (group) {
+      buckets[group.id] = emptyMods();
+      (group.modules || []).forEach(function (mod) {
+        (mod.videos || []).forEach(function (video) {
+          buckets[group.id][mod.id].push(video);
+          if (!home[video.key]) home[video.key] = [];
+          home[video.key].push({ id: group.id, mod: mod.id });
+        });
+      });
+    });
+    function removeKey(key) {
+      (home[key] || []).forEach(function (at) {
+        if (!buckets[at.id]) return;
+        buckets[at.id][at.mod] = buckets[at.id][at.mod].filter(function (video) { return video.key !== key; });
+      });
+      delete home[key];
+    }
+    function addVideo(cabin, mods, video) {
+      if (!buckets[cabin]) return;
+      (mods || []).forEach(function (mod) {
+        if (buckets[cabin][mod]) buckets[cabin][mod].push(video);
+      });
+    }
+    if (placements && placements !== false) {
+      Object.keys(placements).forEach(function (key) {
+        var place = placements[key];
+        if (!place || !place.cabin || !home[key]) return;
+        var existing = null;
+        (home[key] || []).forEach(function (at) {
+          if (existing || !buckets[at.id]) return;
+          buckets[at.id][at.mod].some(function (video) {
+            if (video.key === key) { existing = video; return true; }
+            return false;
+          });
+        });
+        removeKey(key);
+        if (existing) addVideo(place.cabin, place.modules || ["exercise"], existing);
+      });
+    }
+    custom.forEach(function (video) {
+      var place = placements && placements !== false ? placements[video.r2Key] : null;
+      var decided = place
+        ? { cabin: place.cabin, modules: place.modules || [video.type || "exercise"], special: !!place.special, specialType: place.specialType || null }
+        : decideCustom(video);
+      addVideo(decided.cabin, decided.modules, {
+        key: video.r2Key,
+        src: video.url,
+        title: video.title || "Video",
+        cabin: "",
+        group: video.area || "",
+        legacyGroup: window.V64Place ? window.V64Place.legacyGroupFor(video.area || decided.cabin) : (video.area || ""),
+        phases: [],
+        mine: true,
+        special: !!decided.special,
+        specialType: decided.specialType || null
+      });
+    });
+    return buckets;
+  }
+
+  function uniqueCount(mods) {
+    var seen = {};
+    var n = 0;
+    ["pre", "exercise", "post"].forEach(function (id) {
+      (mods[id] || []).forEach(function (video) {
+        if (seen[video.key]) return;
+        seen[video.key] = true;
+        n += 1;
+      });
+    });
+    return n;
+  }
+
+  function moveFields(selectedCabin, selectedModule) {
+    var locked = placements === false;
+    var html = '<div class="vc-move">';
+    if (locked) {
+      html += '<p class="vc-move-hint">Moving videos unlocks after the v64 server update.</p>';
+      html += '<button type="button" class="vc-move-go" disabled>Move</button></div>';
+      return html;
+    }
+    html += '<label>Cabin<select class="vc-move-cabin">';
+    cabinChoices().forEach(function (choice) {
+      html += '<option value="' + esc(choice.id) + '"' + (choice.id === selectedCabin ? " selected" : "") + ">" + esc(choice.label) + "</option>";
+    });
+    html += "</select></label>";
+    html += '<label>Module<select class="vc-move-module">';
+    ["pre", "exercise", "post"].forEach(function (id) {
+      html += '<option value="' + id + '"' + (id === selectedModule ? " selected" : "") + ">" + esc(moduleLabel(id)) + "</option>";
+    });
+    html += "</select></label>";
+    var chosen = cabinChoices().filter(function (choice) { return choice.id === selectedCabin; })[0];
+    html += '<button type="button" class="vc-move-go">Move to ' + esc(chosen ? chosen.label : selectedCabin) + " · " + esc(moduleLabel(selectedModule)) + "</button>";
+    html += "</div>";
+    return html;
+  }
+
+  function checkTray(buckets) {
+    var mods = buckets["check-me"];
+    if (!mods) return "";
+    var videos = [];
+    ["exercise", "post", "pre"].forEach(function (id) {
+      (mods[id] || []).forEach(function (video) {
+        if (!videos.some(function (row) { return row.video.key === video.key; })) videos.push({ video: video, moduleId: id });
+      });
+    });
+    if (!videos.length) return "";
+    var html = '<section class="vc-check"><h3 class="vc-check-title">Check me · ' + videos.length + "</h3>";
+    if (placements === false) html += '<p class="vc-move-hint">Moving videos unlocks after the v64 server update.</p>';
+    videos.forEach(function (row) {
+      var video = row.video;
+      var suggested = video.suggestedCabin ? groupById(video.suggestedCabin) : null;
+      html += '<article class="vc-check-item' + (moveKey === video.key ? " is-open" : "") + '">';
+      html += '<button type="button" class="vc-check-open" data-vc-check="' + esc(video.key) + '"><span>' + esc(video.title) + "</span>";
+      if (suggested) html += '<span class="vc-suggest">Suggested: ' + esc(suggested.name) + "</span>";
+      html += "</button>";
+      html += '<button type="button" class="vc-eye" aria-label="Preview ' + esc(video.title) + '" data-vc-key="' + esc(video.key) + '" data-vc-src="' + esc(video.src) + '" data-vc-title="' + esc(video.title) + '" data-vc-cabin-id="' + esc(video.suggestedCabin || "check-me") + '" data-vc-module="' + esc(row.moduleId) + '">' + EYE + "</button>";
+      if (moveKey === video.key) html += moveFields(video.suggestedCabin || "neck", row.moduleId);
+      html += "</article>";
+    });
+    html += "</section>";
+    return html;
+  }
+
+  function cabinSection(group, buckets) {
+    if (!group) return "";
+    var mods = buckets[group.id] || emptyMods();
+    var open = openGroup === group.id;
+    var html = '<section class="vc-block' + (open ? " is-open" : "") + '">';
+    html += '<button type="button" class="vc-cabin" data-vc-group="' + esc(group.id) + '" aria-expanded="' + (open ? "true" : "false") + '">' +
+      '<span class="vc-name">' + esc(group.name) + '</span><span class="vc-count">' + uniqueCount(mods) + "</span></button>";
+    if (open) {
+      html += '<div class="vc-mods"><div class="vc-mods-inner">';
+      (group.modules || []).forEach(function (mod) {
+        var list = mods[mod.id] || [];
+        var modOpen = openModule === mod.id;
+        var marked = !!(pendingFile && uploadTarget && uploadTarget.groupId === group.id && uploadTarget.moduleId === mod.id);
+        html += '<div class="vc-mod-block' + (modOpen ? " is-open" : "") + '">';
+        html += '<button type="button" class="vc-mod' + (marked ? " is-upload" : "") + '" data-vc-module="' + esc(mod.id) + '" aria-expanded="' + (modOpen ? "true" : "false") + '">' +
+          '<span class="vc-name">' + esc(mod.name) + '</span><span class="vc-count">' + list.length + "</span></button>";
+        if (marked && modOpen) {
+          html += '<button type="button" class="vc-save" id="vc-save"' + (uploading ? " disabled" : "") + ">Save video to " + esc(group.name) + " · " + esc(mod.name) + "</button>";
+        }
+        if (modOpen) html += '<div class="vc-cards">' + cardsHtml(list, group.id, mod.id) + "</div>";
+        html += "</div>";
+      });
+      html += "</div></div>";
+    }
+    html += "</section>";
+    return html;
+  }
+
   function render() {
     var root = document.getElementById("vc-list");
+    var catalogRootNow = catalogRoot();
     var groups = catalog();
-    if (!root || !groups) return;
-    var html = "";
-    groups.forEach(function (group) {
-      var open = group.id === openGroup;
-      var cabinCount = group.count + extras(group).length;
-      html += '<section class="vc-block' + (open ? " is-open" : "") + '">';
-      html += '<button type="button" class="vc-cabin" data-vc-group="' + esc(group.id) + '" aria-expanded="' + (open ? "true" : "false") + '">' +
-        '<span class="vc-name">' + esc(group.name) + '</span><span class="vc-count">' + cabinCount + "</span></button>";
-      if (open) {
-        html += '<div class="vc-mods"><div class="vc-mods-inner">';
-        group.modules.forEach(function (mod) {
-          var modOpen = openModule === mod.id;
-          var marked = !!(pendingFile && uploadTarget && uploadTarget.groupId === group.id && uploadTarget.moduleId === mod.id);
-          var modCount = mod.count + extras(group, mod.id).length;
-          html += '<div class="vc-mod-block' + (modOpen ? " is-open" : "") + '">';
-          html += '<button type="button" class="vc-mod' + (marked ? " is-upload" : "") + '" data-vc-module="' + esc(mod.id) + '" aria-expanded="' + (modOpen ? "true" : "false") + '">' +
-            '<span class="vc-name">' + esc(mod.name) + '</span><span class="vc-count">' + modCount + "</span></button>";
-          if (marked && modOpen) {
-            html += '<button type="button" class="vc-save" id="vc-save"' + (uploading ? " disabled" : "") + ">Save video to " + esc(group.name) + " · " + esc(mod.name) + "</button>";
-          }
-          if (modOpen) html += '<div class="vc-cards">' + cardsHtml(group, mod) + "</div>";
-          html += "</div>";
-        });
-        html += "</div></div>";
-      }
+    if (!root || !groups || !catalogRootNow || !catalogRootNow.layout) return;
+    var buckets = viewBuckets();
+    var layout = catalogRootNow.layout;
+    var html = checkTray(buckets);
+    if (specialsOpen) {
+      html += '<button type="button" class="vc-specials-back" data-vc-specials-back>‹ Specials</button>';
+      (layout.specials.subCabins || []).forEach(function (id) {
+        html += cabinSection(groupById(id), buckets);
+      });
+    } else {
+      (layout.cabins || []).forEach(function (id) {
+        html += cabinSection(groupById(id), buckets);
+      });
+      var specialsCount = 0;
+      (layout.specials.subCabins || []).forEach(function (id) {
+        specialsCount += uniqueCount(buckets[id] || emptyMods());
+      });
+      html += '<section class="vc-block">';
+      html += '<button type="button" class="vc-cabin vc-specials" data-vc-specials="open" aria-expanded="false">' +
+        '<span class="vc-name">Specials</span><span class="vc-count">' + specialsCount + "</span></button>";
       html += "</section>";
-    });
+    }
     root.innerHTML = html;
     paintUploadBox();
+    paintPreviewMove();
   }
 
   function setUploadMsg(text, warn) {
@@ -181,12 +399,18 @@
   function rememberAll() {
     if (!window.NexusBuilder || !window.NexusBuilder.remember) return;
     custom.forEach(function (video) {
+      var decided = decideCustom(video);
+      var legacy = window.V64Place ? window.V64Place.legacyGroupFor(video.area || decided.cabin) : (video.area || "");
       window.NexusBuilder.remember({
         key: video.r2Key,
         title: video.title,
         src: video.url,
         cabin: "",
-        group: video.area,
+        cabinId: decided.cabin,
+        group: legacy,
+        legacyGroup: legacy,
+        special: !!decided.special,
+        specialType: decided.specialType || "",
         phases: []
       });
     });
@@ -305,7 +529,7 @@
     if (dest) {
       dest.textContent = labels
         ? ("Destination: " + labels.group + " · " + labels.mod)
-        : "Step 2: Open a muscle cabin below and tap Pre-stretches, Exercises, or Post-stretches (it glows orange).";
+        : "Step 2: Open a cabin below and tap Pre, Main or Post (it glows orange).";
     }
     if (save) {
       save.hidden = !labels;
@@ -433,12 +657,22 @@
     });
   }
 
-  function openPreview(title, src) {
+  function paintPreviewMove() {
+    var panel = document.getElementById("vc-preview-move");
+    if (!panel || !previewKey) return;
+    panel.innerHTML = moveFields(previewCabin, previewModule);
+  }
+
+  function openPreview(title, src, key, cabinId, moduleId) {
     var root = document.getElementById("vc-preview");
     var video = document.getElementById("vc-preview-video");
     if (!root || !video || !src) return;
+    previewKey = key || "";
+    previewCabin = cabinId || "neck";
+    previewModule = moduleId || "exercise";
     var label = root.querySelector(".vc-preview-title");
     if (label) label.textContent = title || "Preview";
+    paintPreviewMove();
     video.muted = true;
     video.loop = true;
     video.playsInline = true;
@@ -472,6 +706,40 @@
       video.replaceWith(fresh);
     }
     if (root) root.hidden = true;
+    previewKey = "";
+  }
+
+  function moveVideo(key, cabin, moduleId) {
+    if (placements === false || !key || !cabin || !window.nexusFetch) return;
+    var row = document.querySelector('[data-vc-check="' + key + '"], .vc-card[data-vc-key="' + key + '"]');
+    var article = row && row.closest(".vc-check-item, .vc-card-wrap, .vc-block");
+    if (article) article.classList.add("is-leaving");
+    window.nexusFetch("/video-placements", {
+      method: "PUT",
+      body: { r2Key: key, cabin: cabin, modules: [moduleId] }
+    }).then(function (saved) {
+      var got = (saved && (saved.placement || saved)) || {};
+      if (!placements || placements === false) placements = {};
+      placements[key] = {
+        cabin: got.cabin || cabin,
+        modules: got.modules || [moduleId],
+        special: !!got.special,
+        specialType: got.specialType || got.special_type || null
+      };
+      moveKey = "";
+      render();
+    }).catch(function (err) {
+      if (article) article.classList.remove("is-leaving");
+      setUploadMsg((err && err.message) || "Could not move that video.", true);
+    });
+  }
+
+  function readMove(panel) {
+    if (!panel) return null;
+    var cabin = panel.querySelector(".vc-move-cabin");
+    var mod = panel.querySelector(".vc-move-module");
+    if (!cabin || !mod) return null;
+    return { cabin: cabin.value, moduleId: mod.value };
   }
 
   function onFile(event) {
@@ -512,7 +780,50 @@
     if (eye) {
       event.preventDefault();
       event.stopPropagation();
-      openPreview(eye.getAttribute("data-vc-title"), eye.getAttribute("data-vc-src"));
+      openPreview(
+        eye.getAttribute("data-vc-title"),
+        eye.getAttribute("data-vc-src"),
+        eye.getAttribute("data-vc-key"),
+        eye.getAttribute("data-vc-cabin-id"),
+        eye.getAttribute("data-vc-module")
+      );
+      return;
+    }
+    if (event.target.closest(".vc-move-go")) {
+      event.preventDefault();
+      event.stopPropagation();
+      var panel = event.target.closest(".vc-move");
+      var pickedMove = readMove(panel);
+      var checkItem = event.target.closest(".vc-check-item");
+      var checkBtn = checkItem && checkItem.querySelector("[data-vc-check]");
+      var moving = checkBtn ? checkBtn.getAttribute("data-vc-check") : moveKey;
+      if (pickedMove && moving) moveVideo(moving, pickedMove.cabin, pickedMove.moduleId);
+      return;
+    }
+    var checkOpen = event.target.closest("[data-vc-check]");
+    if (checkOpen) {
+      event.preventDefault();
+      var nextCheck = checkOpen.getAttribute("data-vc-check") || "";
+      moveKey = moveKey === nextCheck ? "" : nextCheck;
+      render();
+      return;
+    }
+    if (event.target.closest("[data-vc-specials-back]")) {
+      event.preventDefault();
+      specialsOpen = false;
+      openGroup = "";
+      openModule = "";
+      uploadTarget = null;
+      render();
+      return;
+    }
+    if (event.target.closest("[data-vc-specials]")) {
+      event.preventDefault();
+      specialsOpen = true;
+      openGroup = "";
+      openModule = "";
+      uploadTarget = null;
+      render();
       return;
     }
     if (event.target.closest("#vc-upload-cancel")) {
@@ -621,9 +932,16 @@
           '<button type="button" class="vc-preview-x" aria-label="Close">×</button>' +
           '<p class="vc-preview-title"></p>' +
           '<video id="vc-preview-video" controls autoplay muted loop playsinline preload="auto"></video>' +
+          '<div id="vc-preview-move"></div>' +
         "</div>";
       document.body.appendChild(preview);
       preview.addEventListener("click", function (event) {
+        if (event.target.closest(".vc-move-go")) {
+          event.preventDefault();
+          var pickedMove = readMove(document.getElementById("vc-preview-move"));
+          if (pickedMove && previewKey) moveVideo(previewKey, pickedMove.cabin, pickedMove.moduleId);
+          return;
+        }
         if (event.target === preview || event.target.closest(".vc-preview-x")) {
           event.preventDefault();
           closePreview();
@@ -645,8 +963,43 @@
       if (event.key === "Escape" && !(event.target && event.target.id === "vc-upload-title")) closePreview();
     });
     if (document.body && document.body.classList.contains("is-cards")) render();
+    document.addEventListener("change", function (event) {
+      var panel = event.target && event.target.closest && event.target.closest(".vc-move");
+      if (!panel) return;
+      var cabin = panel.querySelector(".vc-move-cabin");
+      var mod = panel.querySelector(".vc-move-module");
+      var go = panel.querySelector(".vc-move-go");
+      if (!cabin || !mod || !go || go.disabled) return;
+      var choice = cabin.options[cabin.selectedIndex];
+      go.textContent = "Move to " + (choice ? choice.text : "") + " · " + moduleLabel(mod.value);
+    });
     loadCustom();
     loadStorage();
+    loadPlacements();
+  }
+
+  function loadPlacements() {
+    if (!window.nexusFetch) {
+      placements = false;
+      render();
+      return Promise.resolve();
+    }
+    return window.nexusFetch("/video-placements").then(function (payload) {
+      placements = {};
+      ((payload && payload.placements) || []).forEach(function (row) {
+        if (!row || !row.r2Key) return;
+        placements[row.r2Key] = {
+          cabin: row.cabin,
+          modules: row.modules || ["exercise"],
+          special: !!row.special,
+          specialType: row.specialType || null
+        };
+      });
+      render();
+    }).catch(function () {
+      placements = false;
+      render();
+    });
   }
 
   window.NexusCards = { render: render, syncPicked: syncPicked };
