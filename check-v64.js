@@ -130,9 +130,9 @@ var hasFoot = feet && feet.modules.some(function (mod) {
 if (feet && feet.count >= 3 && hasFoot) ok("feet include the foot mobility complex");
 else fail("feet placement");
 
-if (html.indexOf('content="v67"') === -1) fail("relic-build is not v67");
+if (html.indexOf('content="v68"') === -1) fail("relic-build is not v68");
 if (html.indexOf("?v=v64") !== -1) fail("index.html still says v64");
-else ok("cache stamp is v67");
+else ok("cache stamp is v68");
 
 ["food.js", "data/nutrition"].forEach(function (file) {
   var diff = cp.spawnSync("git", ["diff", "--exit-code", "origin/master", "--", file], { encoding: "utf8" });
