@@ -247,7 +247,7 @@
       else if (section === "post") stage = "Post-stretch";
       return {
         title: item.title,
-        src: item.src,
+        src: window.NexusTrim && window.NexusTrim.bust ? window.NexusTrim.bust(item.src) : item.src,
         cabin: item.cabin,
         stage: stage + " " + seen[section] + "/" + (totals[section] || seen[section])
       };

@@ -103,6 +103,39 @@
       '<button type="button" class="vc-eye" aria-label="Preview ' + esc(video.title) + '" data-vc-key="' + esc(video.key) + '" data-vc-src="' + esc(video.src) + '" data-vc-title="' + esc(video.title) + '" data-vc-cabin-id="' + esc(cabinId) + '" data-vc-module="' + esc(moduleId) + '">' + EYE + "</button></div>";
   }
 
+  function isDeleted(key) {
+    if (!key) return false;
+    var map = deletedMap();
+    return !!map[key];
+  }
+
+  function deletedMap() {
+    if (typeof localStorage === "undefined") return {};
+    try {
+      var raw = localStorage.getItem("relic_deleted_videos_v69");
+      var list = raw ? JSON.parse(raw) : [];
+      var map = {};
+      (list || []).forEach(function (key) { if (key) map[key] = true; });
+      return map;
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function rememberDeleted(key) {
+    if (!key || typeof localStorage === "undefined") return;
+    try {
+      var raw = localStorage.getItem("relic_deleted_videos_v69");
+      var list = raw ? JSON.parse(raw) : [];
+      if (list.indexOf(key) === -1) list.push(key);
+      localStorage.setItem("relic_deleted_videos_v69", JSON.stringify(list));
+    } catch (err) { /* private mode */ }
+  }
+
+  function binButton(video) {
+    return '<button type="button" class="vc-bin" aria-label="Delete ' + esc(video.title) + '" data-vc-key="' + esc(video.key) + '" data-vc-title="' + esc(video.title) + '">🗑</button>';
+  }
+
   function cardsHtml(videos, cabinId, moduleId) {
     var base = [];
     var mine = [];
@@ -112,10 +145,10 @@
     });
     var html = "";
     base.forEach(function (video, index) {
-      html += cardHtml(video, index + 1, cabinId, moduleId, false);
+      html += '<div class="vc-card-row">' + cardHtml(video, index + 1, cabinId, moduleId, false) + binButton(video) + "</div>";
     });
     mine.forEach(function (video, index) {
-      html += cardHtml(video, base.length + index + 1, cabinId, moduleId, false);
+      html += '<div class="vc-card-row">' + cardHtml(video, base.length + index + 1, cabinId, moduleId, false) + binButton(video) + "</div>";
     });
     return html;
   }
@@ -216,6 +249,7 @@
       buckets[group.id] = emptyMods();
       (group.modules || []).forEach(function (mod) {
         (mod.videos || []).forEach(function (video) {
+          if (isDeleted(video.key)) return;
           buckets[group.id][mod.id].push(video);
           if (!home[video.key]) home[video.key] = [];
           home[video.key].push({ id: group.id, mod: mod.id });
@@ -252,6 +286,7 @@
       });
     }
     custom.forEach(function (video) {
+      if (!video || isDeleted(video.r2Key)) return;
       var place = placements && placements !== false ? placements[video.r2Key] : null;
       var decided = place
         ? { cabin: place.cabin, modules: place.modules || [video.type || "exercise"], special: !!place.special, specialType: place.specialType || null }
@@ -668,7 +703,7 @@
     video.playsInline = true;
     video.autoplay = true;
     video.preload = "auto";
-    video.src = src;
+    video.src = playSrc(src);
     if (window.NexusTrim) window.NexusTrim.watch(video);
     root.hidden = false;
     var play = video.play();
@@ -770,6 +805,7 @@
   var quickIndex = 0;
   var quickScroll = 0;
   var quickMove = false;
+  var quickDelete = false;
   var quickSwipe = null;
   var durationKnown = false;
   var knownDuration = 0;
@@ -836,8 +872,32 @@
   function paintNav() {
     var back = document.querySelector("#vc-quick .vc-quick-back");
     var next = document.querySelector("#vc-quick .vc-quick-next");
-    if (back) back.disabled = !!quickMove;
-    if (next) next.disabled = !!quickMove;
+    if (back) back.disabled = !!(quickMove || quickDelete);
+    if (next) next.disabled = !!(quickMove || quickDelete);
+  }
+
+  function playSrc(src) {
+    if (window.NexusTrim && window.NexusTrim.bust) return window.NexusTrim.bust(src);
+    return src || "";
+  }
+
+  function paintTag() {
+    var tag = document.querySelector("#vc-quick .vc-trim-tag");
+    if (!tag) return;
+    var status = window.NexusTrim && window.NexusTrim.status ? window.NexusTrim.status(previewKey) : "";
+    tag.className = "vc-trim-tag";
+    if (status === "pending") {
+      tag.hidden = false;
+      tag.className = "vc-trim-tag is-pending";
+      tag.textContent = "Shrinking tonight";
+    } else if (status === "synced") {
+      tag.hidden = false;
+      tag.className = "vc-trim-tag is-synced";
+      tag.textContent = "Synced ✓";
+    } else {
+      tag.hidden = true;
+      tag.textContent = "";
+    }
   }
 
   function showQuick(keepPlaying) {
@@ -851,14 +911,15 @@
     previewModule = item.moduleId;
     root.querySelector(".vc-quick-title").textContent = item.title;
     root.querySelector(".vc-quick-label").textContent = quickLabel(item);
-    if (!keepPlaying || video.getAttribute("src") !== item.src) {
+    var nextSrc = playSrc(item.src);
+    if (!keepPlaying || video.getAttribute("src") !== nextSrc) {
       durationKnown = false;
       knownDuration = 0;
       awaitMeta = true;
       video.preload = "metadata";
       video.playsInline = true;
       video.setAttribute("playsinline", "");
-      video.src = item.src;
+      video.src = nextSrc;
       if (window.NexusTrim) window.NexusTrim.watch(video);
       if (!trimOpen) {
         var play = video.play();
@@ -868,7 +929,7 @@
     var following = quickList.length > 1 ? quickList[wrapIndex(quickIndex, quickList.length, 1)] : null;
     if (ahead) {
       ahead.preload = "metadata";
-      if (following && following.src) ahead.src = following.src;
+      if (following && following.src) ahead.src = playSrc(following.src);
       else ahead.removeAttribute("src");
     }
     var sheet = document.getElementById("vc-quick-move");
@@ -880,6 +941,7 @@
     if (trimPanel) trimPanel.hidden = !trimOpen;
     if (!trimOpen && window.NexusTrim) window.NexusTrim.suspend(video, false);
     paintNav();
+    paintTag();
     paintProgress();
   }
 
@@ -900,6 +962,7 @@
     if (!quickList.length) return;
     quickScroll = window.pageYOffset || document.documentElement.scrollTop || 0;
     quickMove = false;
+    quickDelete = false;
     trimOpen = false;
     var root = document.getElementById("vc-quick");
     if (!root) return;
@@ -939,6 +1002,7 @@
     if (root) root.hidden = true;
     document.body.classList.remove("vc-quick-open");
     quickMove = false;
+    quickDelete = false;
     trimOpen = false;
     durationKnown = false;
     knownDuration = 0;
@@ -947,6 +1011,7 @@
   }
 
   function stepQuick(dir) {
+    if (quickDelete) return;
     if (quickMove || !quickList.length) return;
     quickIndex = wrapIndex(quickIndex, quickList.length, dir);
     quickMove = false;
@@ -1118,6 +1183,7 @@
     trimDragOrigin = null;
     if (window.NexusTrim) window.NexusTrim.suspend(video, false);
     paintTrim();
+    paintTag();
     if (!video) return;
     var span = playSpan();
     try { video.currentTime = span.start || 0; } catch (err) { /* metadata not ready */ }
@@ -1240,6 +1306,100 @@
     });
   }
 
+  var deleting = false;
+
+  function freedLabel(bytes) {
+    var mb = Math.round((Number(bytes) || 0) / 104857.6) / 10;
+    return mb.toFixed(1) + " MB";
+  }
+
+  function pageToast(text, bad) {
+    var el = document.getElementById("vc-page-toast");
+    if (!el) return;
+    el.hidden = !text;
+    el.textContent = text || "";
+    el.classList.toggle("is-bad", !!bad);
+    clearTimeout(pageToast.timer);
+    if (text) pageToast.timer = setTimeout(function () { el.hidden = true; }, 2400);
+  }
+
+  function openDelete(key, title) {
+    if (!key) return;
+    var modal = document.getElementById("vc-delete");
+    if (!modal) return;
+    modal.dataset.key = key;
+    modal.dataset.title = title || "Video";
+    var name = modal.querySelector(".vc-delete-name");
+    if (name) name.textContent = title || "Video";
+    var yes = modal.querySelector(".vc-delete-yes");
+    if (yes) {
+      yes.disabled = false;
+      yes.textContent = "Delete";
+    }
+    quickDelete = true;
+    deleting = false;
+    modal.hidden = false;
+    paintNav();
+  }
+
+  function closeDelete() {
+    quickDelete = false;
+    deleting = false;
+    var modal = document.getElementById("vc-delete");
+    if (modal) modal.hidden = true;
+    paintNav();
+  }
+
+  function finishDelete(key, payload, cabinId, index, viewerOpen) {
+    rememberDeleted(key);
+    if (window.NexusTrim && window.NexusTrim.drop) window.NexusTrim.drop(key);
+    if (window.NexusBuilder && window.NexusBuilder.forget) window.NexusBuilder.forget(key);
+    closeDelete();
+    pageToast("Deleted · freed " + freedLabel(payload && payload.freedBytes));
+    var jobs = [];
+    if (window.NexusBuilder && window.NexusBuilder.reload) jobs.push(window.NexusBuilder.reload());
+    jobs.push(loadPlacements());
+    return Promise.all(jobs).then(function () {
+      if (!viewerOpen) return;
+      quickList = cabinClips(cabinId);
+      if (!quickList.length) {
+        closeQuick();
+        return;
+      }
+      quickIndex = index >= quickList.length ? 0 : index;
+      trimOpen = false;
+      quickMove = false;
+      showQuick(false);
+    });
+  }
+
+  function confirmDelete() {
+    var modal = document.getElementById("vc-delete");
+    var key = modal ? modal.dataset.key : "";
+    if (deleting || !key || !window.nexusFetch) return;
+    deleting = true;
+    var yes = modal.querySelector(".vc-delete-yes");
+    if (yes) {
+      yes.disabled = true;
+      yes.textContent = "Deleting…";
+    }
+    var cabinId = previewCabin;
+    var index = quickIndex;
+    var viewer = document.getElementById("vc-quick");
+    var viewerOpen = !!(viewer && !viewer.hidden);
+    window.nexusFetch("/videos?r2Key=" + encodeURIComponent(key), { method: "DELETE" }).then(function (payload) {
+      return finishDelete(key, payload, cabinId, index, viewerOpen);
+    }).catch(function (err) {
+      if (err && err.status === 404) return finishDelete(key, { freedBytes: 0, notFound: true }, cabinId, index, viewerOpen);
+      deleting = false;
+      if (yes) {
+        yes.disabled = false;
+        yes.textContent = "Delete";
+      }
+      pageToast((err && err.message) || "Could not delete that video.", true);
+    });
+  }
+
   function nudgeDelta(raw) {
     if (raw === "frame") return FRAME;
     if (raw === "-frame") return -FRAME;
@@ -1320,6 +1480,13 @@
       saveUpload();
       return;
     }
+    var bin = event.target.closest(".vc-bin");
+    if (bin) {
+      event.preventDefault();
+      event.stopPropagation();
+      openDelete(bin.getAttribute("data-vc-key"), bin.getAttribute("data-vc-title"));
+      return;
+    }
     var card = event.target.closest(".vc-card");
     if (card) {
       event.preventDefault();
@@ -1396,7 +1563,11 @@
           "</div>" +
           '<div class="vc-quick-meta">' +
             '<p class="vc-quick-label"></p>' +
-            '<button type="button" class="vc-quick-edit">Edit</button>' +
+            '<span class="vc-trim-tag" hidden></span>' +
+            '<span class="vc-quick-actions">' +
+              '<button type="button" class="vc-quick-bin" aria-label="Delete video">🗑</button>' +
+              '<button type="button" class="vc-quick-edit">Edit</button>' +
+            "</span>" +
           "</div>" +
           '<video id="vc-quick-video" playsinline preload="metadata"></video>' +
           '<div id="vc-quick-progress" class="vc-quick-progress">' +
@@ -1435,6 +1606,37 @@
           '<p id="vc-trim-toast" class="vc-trim-toast" hidden></p>' +
         "</div>";
       document.body.appendChild(quick);
+      var deleter = document.createElement("div");
+      deleter.id = "vc-delete";
+      deleter.className = "vc-delete";
+      deleter.hidden = true;
+      deleter.innerHTML =
+        '<div class="vc-delete-card" role="dialog" aria-modal="true" aria-label="Delete video">' +
+          '<p class="vc-delete-ask">Are you sure you want to delete this video?</p>' +
+          '<p class="vc-delete-name"></p>' +
+          '<p class="vc-delete-warn">This permanently deletes it from Nexus and Cloudflare storage.</p>' +
+          '<div class="vc-delete-actions">' +
+            '<button type="button" class="vc-delete-cancel">Cancel</button>' +
+            '<button type="button" class="vc-delete-yes">Delete</button>' +
+          "</div>" +
+        "</div>";
+      document.body.appendChild(deleter);
+      var toast = document.createElement("p");
+      toast.id = "vc-page-toast";
+      toast.className = "vc-page-toast";
+      toast.hidden = true;
+      document.body.appendChild(toast);
+      deleter.addEventListener("click", function (event) {
+        if (event.target.closest(".vc-delete-cancel") || event.target === deleter) {
+          event.preventDefault();
+          closeDelete();
+          return;
+        }
+        if (event.target.closest(".vc-delete-yes")) {
+          event.preventDefault();
+          confirmDelete();
+        }
+      });
       quick.addEventListener("click", function (event) {
         if (event.target.closest(".vc-quick-x") || event.target === quick) {
           event.preventDefault();
@@ -1443,16 +1645,26 @@
         }
         if (event.target.closest(".vc-quick-next")) {
           event.preventDefault();
+          if (quickDelete) return;
           stepQuick(1);
           return;
         }
         if (event.target.closest(".vc-quick-back")) {
           event.preventDefault();
+          if (quickDelete) return;
           stepQuick(-1);
+          return;
+        }
+        if (event.target.closest(".vc-quick-bin")) {
+          event.preventDefault();
+          if (quickDelete) return;
+          var titleEl = quick.querySelector(".vc-quick-title");
+          openDelete(previewKey, titleEl ? titleEl.textContent : "");
           return;
         }
         if (event.target.closest(".vc-quick-edit")) {
           event.preventDefault();
+          if (quickDelete) return;
           if (trimOpen) closeTrim();
           else openTrim();
           return;
@@ -1518,7 +1730,7 @@
         paintProgress();
       });
       qv.addEventListener("pointerdown", function (event) {
-        if (quickMove) return;
+        if (quickMove || quickDelete) return;
         quickSwipe = { x: event.clientX, y: event.clientY };
       });
       qv.addEventListener("pointerup", function (event) {
@@ -1526,7 +1738,7 @@
         var dx = event.clientX - quickSwipe.x;
         var dy = event.clientY - quickSwipe.y;
         quickSwipe = null;
-        if (quickMove) return;
+        if (quickMove || quickDelete) return;
         var video = document.getElementById("vc-quick-video");
         if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy)) {
           if (video && Math.abs(dx) < 16 && Math.abs(dy) < 16) {
@@ -1595,6 +1807,11 @@
       });
     }
     document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && quickDelete) {
+        event.preventDefault();
+        closeDelete();
+        return;
+      }
       if (event.key === "Escape" && !(event.target && event.target.id === "vc-upload-title")) closePreview();
     });
     if (document.body && document.body.classList.contains("is-cards")) render();
