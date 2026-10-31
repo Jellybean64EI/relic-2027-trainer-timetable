@@ -1,4 +1,4 @@
-/* Nexus v67: cabin rows open a full-screen quick viewer. The schedule builder keeps its eye. */
+/* Nexus v68: cabin rows open a full-screen quick viewer. The schedule builder keeps its eye. */
 var fs = require("fs");
 var vm = require("vm");
 var crypto = require("crypto");
@@ -75,8 +75,8 @@ want.forEach(function (id) { if (ids[cursor] === id) cursor += 1; });
 if (cursor !== ids.length || ids[0] !== "face" || ids[ids.length - 1].indexOf("sp-") !== 0) fail("cabin order " + ids.join(","));
 else ok("order is Face through Feet, then Specials");
 
-if (html.indexOf('content="v67"') === -1 || html.indexOf("?v=v66") !== -1) fail("cache stamp is not v67");
-else ok("cache stamp is v67");
+if (html.indexOf('content="v68"') === -1 || html.indexOf("?v=v66") !== -1) fail("cache stamp is not v68");
+else ok("cache stamp is v68");
 if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0; }) === false) {
   fail("player-open rules disappeared");
 }
@@ -92,7 +92,7 @@ if (css.split("\n").some(function (line) { return line.indexOf("body.player-open
 if (!failed) ok("food and smoothie files match v65");
 
 if (failed) {
-  console.error(failed + " v67 check(s) failed");
+  console.error(failed + " v68 check(s) failed");
   process.exit(1);
 }
-console.log("OK v67");
+console.log("OK v68");

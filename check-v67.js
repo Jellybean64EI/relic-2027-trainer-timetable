@@ -1,4 +1,4 @@
-/* Nexus v67: trim TikTok outros, and a slimmer viewer bar. */
+/* Nexus v68: trim TikTok outros, and a slimmer viewer bar. */
 var fs = require("fs");
 var vm = require("vm");
 var crypto = require("crypto");
@@ -31,9 +31,9 @@ if (trim.indexOf("loadedmetadata") === -1 || trim.indexOf("timeupdate") === -1 |
   fail("shared helper does not apply trims or talk to the worker");
 }
 if (trim.indexOf("video.loop") === -1) fail("looping players do not restart at the trim");
-if (html.indexOf("trim.js?v=v67") === -1) fail("trim.js is not loaded");
-if (app.indexOf('build: "v67"') === -1 || html.indexOf('content="v67"') === -1 || html.indexOf("?v=v66") !== -1) {
-  fail("cache stamp is not v67");
+if (html.indexOf("trim.js?v=v68") === -1) fail("trim.js is not loaded");
+if (app.indexOf('build: "v68"') === -1 || html.indexOf('content="v68"') === -1 || html.indexOf("?v=v66") !== -1) {
+  fail("cache stamp is not v68");
 }
 if (cards.indexOf("if (!building() && !forceEye) return button") === -1 || cards.indexOf("NexusBuilder.takeCard") === -1) {
   fail("builder eye or tap-to-add changed");
@@ -60,7 +60,7 @@ else ok("playback can find a trim from the video address");
 if (!failed) ok("food and smoothie files are unchanged");
 
 if (failed) {
-  console.error(failed + " v67 check(s) failed");
+  console.error(failed + " v68 check(s) failed");
   process.exit(1);
 }
-console.log("OK v67");
+console.log("OK v68");

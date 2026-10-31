@@ -718,6 +718,7 @@
         specialType: got.specialType || got.special_type || null
       };
       render();
+      rebindQuick(key);
     }).catch(function (err) {
       if (article) article.classList.remove("is-leaving");
       setUploadMsg((err && err.message) || "Could not move that video.", true);
@@ -770,43 +771,73 @@
   var quickScroll = 0;
   var quickMove = false;
   var quickSwipe = null;
+  var durationKnown = false;
+  var knownDuration = 0;
+  var awaitMeta = false;
+  var seekQueued = false;
+  var pendingSeek = 0;
+  var trimDragOrigin = null;
+  var FRAME = 1 / 30;
+
+  function clipRecord(video, group, mod, index, count) {
+    return {
+      key: video.key,
+      src: video.src,
+      title: video.title || "Video",
+      cabinId: group.id,
+      cabinName: group.name,
+      moduleId: mod.id,
+      moduleName: mod.name,
+      indexInModule: index,
+      moduleCount: count
+    };
+  }
+
+  function cabinClips(cabinId, buckets) {
+    var group = groupById(cabinId);
+    var mods = (buckets || viewBuckets())[cabinId] || emptyMods();
+    var list = [];
+    if (!group) return list;
+    (group.modules || []).forEach(function (mod) {
+      var videos = mods[mod.id] || [];
+      videos.forEach(function (video, index) {
+        list.push(clipRecord(video, group, mod, index, videos.length));
+      });
+    });
+    return list;
+  }
 
   function flatClips() {
     var root = catalogRoot();
     var layout = root && root.layout;
     var buckets = viewBuckets();
     var order = [];
+    var list = [];
     if (layout) {
       (layout.cabins || []).forEach(function (id) { order.push(id); });
       ((layout.specials && layout.specials.subCabins) || []).forEach(function (id) { order.push(id); });
     }
-    var list = [];
     order.forEach(function (id) {
-      var group = groupById(id);
-      var mods = buckets[id] || emptyMods();
-      if (!group) return;
-      (group.modules || []).forEach(function (mod) {
-        var videos = mods[mod.id] || [];
-        videos.forEach(function (video, index) {
-          list.push({
-            key: video.key,
-            src: video.src,
-            title: video.title || "Video",
-            cabinId: group.id,
-            cabinName: group.name,
-            moduleId: mod.id,
-            moduleName: mod.name,
-            indexInModule: index,
-            moduleCount: videos.length
-          });
-        });
-      });
+      cabinClips(id, buckets).forEach(function (clip) { list.push(clip); });
     });
     return list;
   }
 
+  function wrapIndex(index, length, dir) {
+    if (!length) return 0;
+    var step = dir < 0 ? -1 : 1;
+    return (index + step + length) % length;
+  }
+
   function quickLabel(item) {
     return item.cabinName + " · " + item.moduleName + " · " + (item.indexInModule + 1) + " of " + item.moduleCount;
+  }
+
+  function paintNav() {
+    var back = document.querySelector("#vc-quick .vc-quick-back");
+    var next = document.querySelector("#vc-quick .vc-quick-next");
+    if (back) back.disabled = !!quickMove;
+    if (next) next.disabled = !!quickMove;
   }
 
   function showQuick(keepPlaying) {
@@ -821,15 +852,20 @@
     root.querySelector(".vc-quick-title").textContent = item.title;
     root.querySelector(".vc-quick-label").textContent = quickLabel(item);
     if (!keepPlaying || video.getAttribute("src") !== item.src) {
+      durationKnown = false;
+      knownDuration = 0;
+      awaitMeta = true;
       video.preload = "metadata";
       video.playsInline = true;
       video.setAttribute("playsinline", "");
       video.src = item.src;
       if (window.NexusTrim) window.NexusTrim.watch(video);
-      var play = video.play();
-      if (play && typeof play.catch === "function") play.catch(function () {});
+      if (!trimOpen) {
+        var play = video.play();
+        if (play && typeof play.catch === "function") play.catch(function () {});
+      }
     }
-    var following = quickList[quickIndex + 1];
+    var following = quickList.length > 1 ? quickList[wrapIndex(quickIndex, quickList.length, 1)] : null;
     if (ahead) {
       ahead.preload = "metadata";
       if (following && following.src) ahead.src = following.src;
@@ -843,10 +879,19 @@
     var trimPanel = document.getElementById("vc-trim");
     if (trimPanel) trimPanel.hidden = !trimOpen;
     if (!trimOpen && window.NexusTrim) window.NexusTrim.suspend(video, false);
+    paintNav();
+    paintProgress();
   }
 
-  function openQuick(key) {
-    quickList = flatClips();
+  function openQuick(key, cabinId) {
+    if (!cabinId) {
+      var all = flatClips();
+      var j;
+      for (j = 0; j < all.length; j++) {
+        if (all[j].key === key) { cabinId = all[j].cabinId; break; }
+      }
+    }
+    quickList = cabinClips(cabinId);
     quickIndex = 0;
     var i;
     for (i = 0; i < quickList.length; i++) {
@@ -855,11 +900,27 @@
     if (!quickList.length) return;
     quickScroll = window.pageYOffset || document.documentElement.scrollTop || 0;
     quickMove = false;
+    trimOpen = false;
     var root = document.getElementById("vc-quick");
     if (!root) return;
     root.hidden = false;
     document.body.classList.add("vc-quick-open");
     showQuick(false);
+  }
+
+  function rebindQuick(key) {
+    var root = document.getElementById("vc-quick");
+    if (!root || root.hidden || !key) return;
+    var cabinId = placements && placements[key] ? placements[key].cabin : previewCabin;
+    quickList = cabinClips(cabinId);
+    quickIndex = 0;
+    var i;
+    for (i = 0; i < quickList.length; i++) {
+      if (quickList[i].key === key) { quickIndex = i; break; }
+    }
+    quickMove = false;
+    trimOpen = false;
+    showQuick(true);
   }
 
   function closeQuick() {
@@ -878,13 +939,16 @@
     if (root) root.hidden = true;
     document.body.classList.remove("vc-quick-open");
     quickMove = false;
+    trimOpen = false;
+    durationKnown = false;
+    knownDuration = 0;
+    awaitMeta = false;
     window.scrollTo(0, quickScroll);
   }
 
   function stepQuick(dir) {
-    var next = quickIndex + dir;
-    if (next < 0 || next >= quickList.length) return;
-    quickIndex = next;
+    if (quickMove || !quickList.length) return;
+    quickIndex = wrapIndex(quickIndex, quickList.length, dir);
     quickMove = false;
     trimOpen = false;
     showQuick(false);
@@ -899,14 +963,69 @@
     var t = Math.max(0, Number(value) || 0);
     var mins = Math.floor(t / 60);
     var secs = t - mins * 60;
-    var whole = Math.floor(secs);
-    var tenth = Math.min(9, Math.floor((secs - whole) * 10 + 1e-4));
-    return mins + ":" + (whole < 10 ? "0" : "") + whole + "." + tenth;
+    var whole = Math.floor(secs + 1e-6);
+    var ms = Math.round((secs - whole) * 1000);
+    if (ms >= 1000) { ms -= 1000; whole += 1; }
+    if (whole >= 60) { whole -= 60; mins += 1; }
+    var milli = ms < 10 ? "00" + ms : ms < 100 ? "0" + ms : String(ms);
+    return mins + ":" + (whole < 10 ? "0" : "") + whole + "." + milli;
   }
 
   function quickDuration() {
+    return durationKnown && isFinite(knownDuration) && knownDuration > 0 ? knownDuration : 0;
+  }
+
+  function resolveTrimEnd(draftEnd, duration, known) {
+    if (!known || !isFinite(duration) || duration <= 0) return null;
+    if (draftEnd == null || draftEnd === "") return duration;
+    var end = Number(draftEnd);
+    if (!isFinite(end)) return duration;
+    return Math.min(Math.max(end, 0), duration);
+  }
+
+  function displayedEnd() {
+    return resolveTrimEnd(trimDraft.end, knownDuration, durationKnown);
+  }
+
+  function playSpan() {
+    var saved = window.NexusTrim && previewKey ? window.NexusTrim.get(previewKey) : null;
+    var duration = quickDuration();
+    var start = saved ? saved.start : 0;
+    var end = saved && saved.end != null ? saved.end : duration;
+    if (duration && end > duration) end = duration;
+    if (end < start) end = start;
+    return { start: start, end: end, duration: duration };
+  }
+
+  function draftSpan() {
+    var end = displayedEnd();
+    return { start: trimDraft.start || 0, end: end == null ? 0 : end, duration: quickDuration() };
+  }
+
+  function paintProgress() {
+    var bar = document.getElementById("vc-quick-progress");
     var video = document.getElementById("vc-quick-video");
-    return video && isFinite(video.duration) && video.duration > 0 ? video.duration : 0;
+    if (!bar || !video) return;
+    var span = trimOpen ? draftSpan() : playSpan();
+    var width = span.end > span.start ? ((video.currentTime || 0) - span.start) / (span.end - span.start) : 0;
+    width = Math.max(0, Math.min(1, width));
+    var fill = bar.querySelector(".vc-quick-progress-fill");
+    var head = bar.querySelector(".vc-quick-progress-head");
+    if (fill) fill.style.width = (width * 100) + "%";
+    if (head) head.style.left = (width * 100) + "%";
+  }
+
+  function seekProgress(clientX) {
+    var bar = document.getElementById("vc-quick-progress");
+    var video = document.getElementById("vc-quick-video");
+    if (!bar || !video || !durationKnown) return;
+    var span = trimOpen ? draftSpan() : playSpan();
+    if (!(span.end > span.start)) return;
+    var rect = bar.getBoundingClientRect();
+    var ratio = rect.width ? (clientX - rect.left) / rect.width : 0;
+    ratio = Math.max(0, Math.min(1, ratio));
+    try { video.currentTime = span.start + ratio * (span.end - span.start); } catch (err) { /* metadata not ready */ }
+    paintProgress();
   }
 
   function paintTrim() {
@@ -915,9 +1034,15 @@
     panel.hidden = !trimOpen;
     if (!trimOpen) return;
     var duration = quickDuration();
-    var end = trimDraft.end > 0 ? trimDraft.end : duration;
-    if (duration && end > duration) end = duration;
-    trimDraft.end = end;
+    var end = displayedEnd();
+    panel.classList.toggle("is-waiting", end == null);
+    if (end == null) {
+      panel.querySelector(".vc-trim-start-time").textContent = "…";
+      panel.querySelector(".vc-trim-end-time").textContent = "…";
+      var waiting = panel.querySelector(".vc-trim-kept");
+      if (waiting) waiting.textContent = "Kept …";
+      return;
+    }
     var startPct = duration ? (trimDraft.start / duration) * 100 : 0;
     var endPct = duration ? (end / duration) * 100 : 100;
     panel.querySelector(".vc-trim-span").style.left = startPct + "%";
@@ -926,6 +1051,24 @@
     panel.querySelector(".vc-trim-end").style.left = endPct + "%";
     panel.querySelector(".vc-trim-start-time").textContent = fmtTime(trimDraft.start);
     panel.querySelector(".vc-trim-end-time").textContent = fmtTime(end);
+    var kept = panel.querySelector(".vc-trim-kept");
+    if (kept) kept.textContent = "Kept " + fmtTime(Math.max(0, end - trimDraft.start));
+    var video = document.getElementById("vc-quick-video");
+    var now = video ? (video.currentTime || 0) : trimDraft.start;
+    if (now < trimDraft.start) now = trimDraft.start;
+    if (now > end) now = end;
+    var play = panel.querySelector(".vc-trim-playhead");
+    if (play) play.style.left = (duration ? (now / duration) * 100 : 0) + "%";
+    var floatEl = panel.querySelector(".vc-trim-float");
+    if (floatEl) {
+      if (!trimDrag) floatEl.hidden = true;
+      else {
+        var shown = trimDrag === "end" ? end : trimDrag === "start" ? trimDraft.start : now;
+        floatEl.hidden = false;
+        floatEl.textContent = fmtTime(shown);
+        floatEl.style.left = (duration ? (shown / duration) * 100 : 0) + "%";
+      }
+    }
   }
 
   function trimToast(text) {
@@ -937,76 +1080,144 @@
     if (text) trimToastTimer = setTimeout(function () { el.hidden = true; }, 2200);
   }
 
+  function onQuickDuration(event) {
+    var video = event && event.currentTarget ? event.currentTarget : document.getElementById("vc-quick-video");
+    if (!video || video.id !== "vc-quick-video") return;
+    if (event && event.type === "loadedmetadata") awaitMeta = false;
+    else if (awaitMeta) return;
+    var d = video.duration;
+    if (!isFinite(d) || d <= 0) return;
+    durationKnown = true;
+    knownDuration = d;
+    if (trimOpen) paintTrim();
+    paintProgress();
+  }
+
   function openTrim() {
     var video = document.getElementById("vc-quick-video");
-    var duration = quickDuration();
     var saved = window.NexusTrim && previewKey ? window.NexusTrim.get(previewKey) : null;
     trimDraft = {
       start: saved ? saved.start : 0,
-      end: saved && saved.end != null ? saved.end : duration
+      end: saved && saved.end != null ? saved.end : null
     };
     trimOpen = true;
-    if (window.NexusTrim) window.NexusTrim.suspend(video, true);
+    trimDrag = "";
+    trimDragOrigin = null;
+    if (video) {
+      video.pause();
+      if (window.NexusTrim) window.NexusTrim.suspend(video, true);
+    }
     paintTrim();
+    if (video && durationKnown) seekExact(trimDraft.start);
   }
 
   function closeTrim() {
     var video = document.getElementById("vc-quick-video");
     trimOpen = false;
+    trimDrag = "";
+    trimDragOrigin = null;
     if (window.NexusTrim) window.NexusTrim.suspend(video, false);
     paintTrim();
+    if (!video) return;
+    var span = playSpan();
+    try { video.currentTime = span.start || 0; } catch (err) { /* metadata not ready */ }
+    var play = video.play();
+    if (play && typeof play.catch === "function") play.catch(function () {});
   }
 
-  function seekTrim(which) {
+  function seekExact(time) {
     var video = document.getElementById("vc-quick-video");
     if (!video) return;
-    try { video.currentTime = which === "end" ? trimDraft.end : trimDraft.start; } catch (err) { /* still loading */ }
+    video.pause();
+    pendingSeek = time;
+    if (seekQueued) return;
+    seekQueued = true;
+    var raf = window.requestAnimationFrame || function (fn) { fn(); };
+    raf(function () {
+      seekQueued = false;
+      var node = document.getElementById("vc-quick-video");
+      if (!node) return;
+      try { node.currentTime = pendingSeek; } catch (err) { /* metadata not ready */ }
+      paintTrim();
+      paintProgress();
+    });
   }
 
-  function moveTrimHandle(clientX, which) {
+  function moveTrimHandle(clientX, clientY, which) {
     var track = document.querySelector("#vc-trim .vc-trim-track");
     var duration = quickDuration();
-    if (!track || !duration) return;
+    if (!track || !duration || !durationKnown) return;
     var rect = track.getBoundingClientRect();
-    var ratio = rect.width ? (clientX - rect.left) / rect.width : 0;
-    var time = Math.min(duration, Math.max(0, ratio * duration));
-    if (which === "start") trimDraft.start = Math.min(time, trimDraft.end - 0.5);
-    else trimDraft.end = Math.max(time, trimDraft.start + 0.5);
+    var time;
+    if (trimDragOrigin && trimDragOrigin.which === which) {
+      var dx = clientX - trimDragOrigin.x;
+      var dy = Math.abs(clientY - trimDragOrigin.y);
+      var scale = dy > 48 ? Math.max(0.12, 48 / dy) : 1;
+      time = trimDragOrigin.time + (rect.width ? (dx / rect.width) * duration * scale : 0);
+    } else {
+      var ratio = rect.width ? (clientX - rect.left) / rect.width : 0;
+      time = ratio * duration;
+    }
+    time = Math.min(duration, Math.max(0, time));
+    var endNow = displayedEnd() == null ? duration : displayedEnd();
+    if (which === "play") {
+      time = Math.min(endNow, Math.max(trimDraft.start, time));
+      seekExact(time);
+      paintTrim();
+      return;
+    }
+    if (which === "start") trimDraft.start = Math.min(Math.max(0, time), endNow - FRAME);
+    else {
+      trimDraft.end = Math.max(time, trimDraft.start + FRAME);
+      if (trimDraft.end > duration) trimDraft.end = duration;
+    }
     if (trimDraft.start < 0) trimDraft.start = 0;
-    if (trimDraft.end > duration) trimDraft.end = duration;
-    seekTrim(which);
+    seekExact(which === "end" ? displayedEnd() : trimDraft.start);
     paintTrim();
   }
 
   function nudgeTrim(which, delta) {
     var duration = quickDuration();
-    if (!duration) return;
-    if (which === "start") trimDraft.start = Math.min(Math.max(0, trimDraft.start + delta), trimDraft.end - 0.5);
-    else trimDraft.end = Math.max(Math.min(duration, trimDraft.end + delta), trimDraft.start + 0.5);
-    seekTrim(which);
+    if (!durationKnown || !duration) return;
+    var endNow = displayedEnd() == null ? duration : displayedEnd();
+    if (which === "start") trimDraft.start = Math.min(Math.max(0, trimDraft.start + delta), endNow - FRAME);
+    else {
+      var base = trimDraft.end == null ? duration : trimDraft.end;
+      trimDraft.end = Math.max(Math.min(duration, base + delta), trimDraft.start + FRAME);
+    }
+    seekExact(which === "end" ? displayedEnd() : trimDraft.start);
     paintTrim();
   }
 
   function previewTrim() {
     var video = document.getElementById("vc-quick-video");
-    if (!video) return;
+    var end = displayedEnd();
+    if (!video || end == null) return;
+    video.pause();
     try { video.currentTime = trimDraft.start; } catch (err) { /* wait */ }
     var play = video.play();
     if (play && typeof play.catch === "function") play.catch(function () {});
   }
 
+  function roundCent(value) {
+    return Math.round((Number(value) || 0) * 100) / 100;
+  }
+
   function saveTrim() {
     var item = quickList[quickIndex];
     var duration = quickDuration();
-    if (!item || !window.NexusTrim) {
+    if (!item || !window.NexusTrim || !durationKnown) {
       trimToast("Could not save the trim.");
       return;
     }
-    var end = trimDraft.end;
-    if (duration && end >= duration - 0.05) end = null;
-    window.NexusTrim.save(item.key, trimDraft.start, end).then(function () {
+    var start = roundCent(trimDraft.start);
+    var chosen = trimDraft.end == null ? duration : roundCent(trimDraft.end);
+    if (chosen > duration) chosen = roundCent(duration);
+    var sendEnd = chosen >= duration - 0.05 ? null : chosen;
+    var shownEnd = sendEnd == null ? duration : sendEnd;
+    if (!window.confirm("Save trim " + fmtTime(start) + " → " + fmtTime(shownEnd) + "?")) return;
+    window.NexusTrim.save(item.key, start, sendEnd).then(function () {
       closeTrim();
-      seekTrim("start");
     }).catch(function () {
       trimToast("Could not save the trim.");
       paintTrim();
@@ -1019,13 +1230,20 @@
       trimToast("Could not save the trim.");
       return;
     }
+    if (!window.confirm("Reset this trim and play the full video?")) return;
     window.NexusTrim.clear(item.key).then(function () {
-      trimDraft = { start: 0, end: quickDuration() };
-      seekTrim("start");
+      trimDraft = { start: 0, end: null };
+      seekExact(0);
       paintTrim();
     }).catch(function () {
       trimToast("Could not save the trim.");
     });
+  }
+
+  function nudgeDelta(raw) {
+    if (raw === "frame") return FRAME;
+    if (raw === "-frame") return -FRAME;
+    return Number(raw);
   }
 
   function onClick(event) {
@@ -1112,7 +1330,7 @@
         title: card.getAttribute("data-vc-title"),
         group: card.getAttribute("data-vc-group")
       })) return;
-      if (!building()) openQuick(card.getAttribute("data-vc-key"));
+      if (!building()) openQuick(card.getAttribute("data-vc-key"), card.getAttribute("data-vc-cabin-id"));
       return;
     }
     var mod = event.target.closest(".vc-mod");
@@ -1172,24 +1390,34 @@
       quick.hidden = true;
       quick.innerHTML =
         '<div class="vc-quick-card" role="dialog" aria-modal="true" aria-label="Video">' +
-          '<div class="vc-quick-top">' +
-            '<button type="button" class="vc-quick-edit">Edit</button>' +
+          '<div class="vc-quick-head">' +
+            '<p class="vc-quick-title"></p>' +
             '<button type="button" class="vc-quick-x" aria-label="Close">×</button>' +
           "</div>" +
-          '<p class="vc-quick-title"></p>' +
-          '<p class="vc-quick-label"></p>' +
+          '<div class="vc-quick-meta">' +
+            '<p class="vc-quick-label"></p>' +
+            '<button type="button" class="vc-quick-edit">Edit</button>' +
+          "</div>" +
           '<video id="vc-quick-video" playsinline preload="metadata"></video>' +
+          '<div id="vc-quick-progress" class="vc-quick-progress">' +
+            '<div class="vc-quick-progress-rail"></div>' +
+            '<div class="vc-quick-progress-fill"></div>' +
+            '<div class="vc-quick-progress-head"></div>' +
+          "</div>" +
           '<div id="vc-trim" class="vc-trim" hidden>' +
             '<div class="vc-trim-track">' +
               '<div class="vc-trim-rail"></div>' +
               '<div class="vc-trim-span"></div>' +
+              '<button type="button" class="vc-trim-playhead" data-trim-handle="play" aria-label="Scrub"></button>' +
               '<button type="button" class="vc-trim-handle vc-trim-start" data-trim-handle="start" aria-label="Trim start"></button>' +
               '<button type="button" class="vc-trim-handle vc-trim-end" data-trim-handle="end" aria-label="Trim end"></button>' +
+              '<div class="vc-trim-float" hidden></div>' +
             "</div>" +
             '<div class="vc-trim-times">' +
-              '<span><button type="button" data-trim-nudge="start" data-trim-delta="-0.1">-0.1</button><span class="vc-trim-start-time">0:00.0</span><button type="button" data-trim-nudge="start" data-trim-delta="0.1">+0.1</button></span>' +
-              '<span><button type="button" data-trim-nudge="end" data-trim-delta="-0.1">-0.1</button><span class="vc-trim-end-time">0:00.0</span><button type="button" data-trim-nudge="end" data-trim-delta="0.1">+0.1</button></span>' +
+              '<span><button type="button" data-trim-nudge="start" data-trim-delta="-1">-1s</button><button type="button" data-trim-nudge="start" data-trim-delta="-0.1">-0.1s</button><button type="button" data-trim-nudge="start" data-trim-delta="-frame">-1f</button><span class="vc-trim-start-time">0:00.000</span><button type="button" data-trim-nudge="start" data-trim-delta="frame">+1f</button><button type="button" data-trim-nudge="start" data-trim-delta="0.1">+0.1s</button><button type="button" data-trim-nudge="start" data-trim-delta="1">+1s</button></span>' +
+              '<span><button type="button" data-trim-nudge="end" data-trim-delta="-1">-1s</button><button type="button" data-trim-nudge="end" data-trim-delta="-0.1">-0.1s</button><button type="button" data-trim-nudge="end" data-trim-delta="-frame">-1f</button><span class="vc-trim-end-time">0:00.000</span><button type="button" data-trim-nudge="end" data-trim-delta="frame">+1f</button><button type="button" data-trim-nudge="end" data-trim-delta="0.1">+0.1s</button><button type="button" data-trim-nudge="end" data-trim-delta="1">+1s</button></span>' +
             "</div>" +
+            '<p class="vc-trim-kept">Kept 0:00.000</p>' +
             '<div class="vc-trim-actions">' +
               '<button type="button" class="vc-trim-preview">Preview</button>' +
               '<button type="button" class="vc-trim-save">Save</button>' +
@@ -1236,7 +1464,7 @@
         var nudge = event.target.closest("[data-trim-nudge]");
         if (nudge) {
           event.preventDefault();
-          nudgeTrim(nudge.getAttribute("data-trim-nudge"), Number(nudge.getAttribute("data-trim-delta")));
+          nudgeTrim(nudge.getAttribute("data-trim-nudge"), nudgeDelta(nudge.getAttribute("data-trim-delta")));
           return;
         }
         if (event.target.closest(".vc-quick-move")) {
@@ -1253,42 +1481,82 @@
       });
       var trimPanel = document.getElementById("vc-trim");
       trimPanel.addEventListener("pointerdown", function (event) {
-        var handle = event.target.closest(".vc-trim-handle");
-        if (!handle) return;
+        var handle = event.target.closest("[data-trim-handle]");
+        if (!handle || !durationKnown) return;
         event.preventDefault();
         event.stopPropagation();
         trimDrag = handle.getAttribute("data-trim-handle");
+        var video = document.getElementById("vc-quick-video");
+        var originTime = trimDrag === "end" ? displayedEnd() : trimDrag === "play" ? (video && video.currentTime) || trimDraft.start : trimDraft.start;
+        trimDragOrigin = { x: event.clientX, y: event.clientY, time: originTime || 0, which: trimDrag };
         handle.setPointerCapture(event.pointerId);
-        moveTrimHandle(event.clientX, trimDrag);
+        moveTrimHandle(event.clientX, event.clientY, trimDrag);
       });
       trimPanel.addEventListener("pointermove", function (event) {
         if (!trimDrag) return;
-        moveTrimHandle(event.clientX, trimDrag);
+        moveTrimHandle(event.clientX, event.clientY, trimDrag);
       });
-      trimPanel.addEventListener("pointerup", function () { trimDrag = ""; });
-      trimPanel.addEventListener("pointercancel", function () { trimDrag = ""; });
-      document.getElementById("vc-quick-video").addEventListener("loadedmetadata", paintTrim);
-      document.getElementById("vc-quick-video").addEventListener("timeupdate", function () {
+      function endTrimDrag() {
+        trimDrag = "";
+        trimDragOrigin = null;
+        paintTrim();
+      }
+      trimPanel.addEventListener("pointerup", endTrimDrag);
+      trimPanel.addEventListener("pointercancel", endTrimDrag);
+      var qv = document.getElementById("vc-quick-video");
+      qv.addEventListener("loadedmetadata", onQuickDuration);
+      qv.addEventListener("durationchange", onQuickDuration);
+      qv.addEventListener("timeupdate", function () {
         var video = document.getElementById("vc-quick-video");
-        if (!trimOpen || !video) return;
-        var end = trimDraft.end || video.duration;
-        if (video.currentTime >= end - 0.04) {
-          video.pause();
-          try { video.currentTime = end; } catch (err) { /* hold the out point */ }
+        if (trimOpen && video) {
+          var end = displayedEnd();
+          if (end != null && video.currentTime >= end - 0.04) {
+            video.pause();
+            try { video.currentTime = end; } catch (err) { /* hold the out point */ }
+          }
         }
+        paintProgress();
       });
-      quick.addEventListener("pointerdown", function (event) {
-        if (event.target.closest("button, select, a, .vc-trim")) return;
+      qv.addEventListener("pointerdown", function (event) {
+        if (quickMove) return;
         quickSwipe = { x: event.clientX, y: event.clientY };
       });
-      quick.addEventListener("pointerup", function (event) {
+      qv.addEventListener("pointerup", function (event) {
         if (!quickSwipe) return;
         var dx = event.clientX - quickSwipe.x;
         var dy = event.clientY - quickSwipe.y;
         quickSwipe = null;
-        if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy)) return;
+        if (quickMove) return;
+        var video = document.getElementById("vc-quick-video");
+        if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy)) {
+          if (video && Math.abs(dx) < 16 && Math.abs(dy) < 16) {
+            if (video.paused) {
+              var play = video.play();
+              if (play && typeof play.catch === "function") play.catch(function () {});
+            } else video.pause();
+          }
+          return;
+        }
+        if (trimOpen) return;
         stepQuick(dx < 0 ? 1 : -1);
       });
+      var progress = document.getElementById("vc-quick-progress");
+      var progressDrag = false;
+      progress.addEventListener("pointerdown", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        progressDrag = true;
+        progress.setPointerCapture(event.pointerId);
+        seekProgress(event.clientX);
+      });
+      progress.addEventListener("pointermove", function (event) {
+        if (!progressDrag) return;
+        event.preventDefault();
+        seekProgress(event.clientX);
+      });
+      function endProgress() { progressDrag = false; }
+      progress.addEventListener("pointerup", endProgress);
+      progress.addEventListener("pointercancel", endProgress);
     }
     if (!document.getElementById("vc-preview")) {
       var preview = document.createElement("div");
@@ -1377,7 +1645,11 @@
     moveButtonText: moveButtonText,
     decideCustom: decideCustom,
     flatClips: flatClips,
-    quickLabel: quickLabel
+    cabinClips: cabinClips,
+    quickLabel: quickLabel,
+    wrapIndex: wrapIndex,
+    resolveTrimEnd: resolveTrimEnd,
+    fmtTime: fmtTime
   };
 
   if (typeof document === "undefined") return;
