@@ -26,14 +26,14 @@ var EXPECT = {
   face: { videos: 33, pre: 10, exercise: 12, post: 11 },
   eyes: { videos: 6, pre: 0, exercise: 6, post: 0 },
   tongue: { videos: 11, pre: 0, exercise: 3, post: 8 },
-  jaw: { videos: 27, pre: 3, exercise: 13, post: 11 },
-  neck: { videos: 26, pre: 6, exercise: 13, post: 7 },
+  jaw: { videos: 29, pre: 3, exercise: 15, post: 11 },
+  neck: { videos: 28, pre: 6, exercise: 15, post: 7 },
   shoulders: { videos: 18, pre: 8, exercise: 7, post: 5 },
-  "upper-arms": { videos: 22, pre: 3, exercise: 15, post: 4 },
-  forearms: { videos: 10, pre: 2, exercise: 8, post: 1 },
+  "upper-arms": { videos: 20, pre: 3, exercise: 15, post: 2 },
+  forearms: { videos: 10, pre: 2, exercise: 8, post: 0 },
   chest: { videos: 36, pre: 8, exercise: 20, post: 8 },
-  "upper-back": { videos: 22, pre: 2, exercise: 19, post: 1 },
-  "lower-back": { videos: 13, pre: 4, exercise: 1, post: 8 },
+  "upper-back": { videos: 24, pre: 2, exercise: 19, post: 3 },
+  "lower-back": { videos: 14, pre: 4, exercise: 1, post: 9 },
   abs: { videos: 17, pre: 0, exercise: 17, post: 0 },
   obliques: { videos: 6, pre: 2, exercise: 3, post: 1 },
   pelvic: { videos: 12, pre: 8, exercise: 0, post: 4 },
@@ -48,8 +48,7 @@ var EXPECT = {
   "sp-calisthenics": { videos: 7, pre: 2, exercise: 3, post: 2 },
   "sp-resistance-bands": { videos: 25, pre: 4, exercise: 20, post: 5 },
   "sp-hanging": { videos: 10, pre: 1, exercise: 9, post: 0 },
-  "sp-target-weights": { videos: 11, pre: 0, exercise: 11, post: 0 },
-  "check-me": { videos: 5, pre: 0, exercise: 4, post: 1 }
+  "sp-target-weights": { videos: 11, pre: 0, exercise: 11, post: 0 }
 };
 
 var catalog = loadCatalog("data/videoCatalog.js");
@@ -131,9 +130,9 @@ var hasFoot = feet && feet.modules.some(function (mod) {
 if (feet && feet.count >= 3 && hasFoot) ok("feet include the foot mobility complex");
 else fail("feet placement");
 
-if (html.indexOf('content="v64"') === -1) fail("relic-build is not v64");
-if (html.indexOf("v63") !== -1) fail("index.html still says v63");
-else ok("cache stamp is v64");
+if (html.indexOf('content="v65"') === -1) fail("relic-build is not v65");
+if (html.indexOf("?v=v64") !== -1) fail("index.html still says v64");
+else ok("cache stamp is v65");
 
 ["food.js", "data/nutrition"].forEach(function (file) {
   var diff = cp.spawnSync("git", ["diff", "--exit-code", "origin/master", "--", file], { encoding: "utf8" });
