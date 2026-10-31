@@ -1608,6 +1608,7 @@
       document.body.appendChild(quick);
       var deleter = document.createElement("div");
       deleter.id = "vc-delete";
+      deleter.className = "vc-delete";
       deleter.hidden = true;
       deleter.innerHTML =
         '<div class="vc-delete-card" role="dialog" aria-modal="true" aria-label="Delete video">' +
