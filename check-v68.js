@@ -1,4 +1,4 @@
-/* Nexus v69: precise trim editor, and Back/Next/swipe stay inside the current cabin. */
+/* Nexus v70: precise trim editor, and Back/Next/swipe stay inside the current cabin. */
 var fs = require("fs");
 var vm = require("vm");
 var crypto = require("crypto");
@@ -40,11 +40,11 @@ if (cards.indexOf('Save trim "') === -1 || cards.indexOf("Reset this trim and pl
 if (cards.indexOf("Abs_Pelvic/1. Dead Bug Progression.mp4") !== -1) fail("the saved Dead Bug trim was hardcoded");
 if (trim.indexOf("if (!trim) return") === -1) fail("a player can cut a clip that has no saved trim");
 if (trim.indexOf("fastSeek") !== -1) fail("shared helper seeks with fastSeek");
-if (app.indexOf('build: "v69"') === -1 || html.indexOf('content="v69"') === -1 || html.indexOf("trim.js?v=v69") === -1 || html.indexOf("?v=v67") !== -1) {
-  fail("cache stamp is not v69");
+if (app.indexOf('build: "v70"') === -1 || html.indexOf('content="v70"') === -1 || html.indexOf("trim.js?v=v70") === -1 || html.indexOf("?v=v67") !== -1) {
+  fail("cache stamp is not v70");
 }
 if (css.indexOf(".vc-quick-progress") === -1 || css.indexOf("height: 44px") === -1) fail("progress bar or trim track styling is missing");
-if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v69") !== -1; })) {
+if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v70") !== -1; })) {
   fail("a player-open rule was restamped");
 }
 else ok("viewer, editor, and stamp source checks");
@@ -118,7 +118,7 @@ else ok("cabin sequence is Pre, then Main, then Post");
 if (!failed) ok("food and smoothie files are unchanged");
 
 if (failed) {
-  console.error(failed + " v69 check(s) failed");
+  console.error(failed + " v70 check(s) failed");
   process.exit(1);
 }
-console.log("OK v69");
+console.log("OK v70");

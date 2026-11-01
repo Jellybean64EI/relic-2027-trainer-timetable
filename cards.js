@@ -103,10 +103,30 @@
       '<button type="button" class="vc-eye" aria-label="Preview ' + esc(video.title) + '" data-vc-key="' + esc(video.key) + '" data-vc-src="' + esc(video.src) + '" data-vc-title="' + esc(video.title) + '" data-vc-cabin-id="' + esc(cabinId) + '" data-vc-module="' + esc(moduleId) + '">' + EYE + "</button></div>";
   }
 
+  function editorOn() {
+    return !!(window.FEATURES && window.FEATURES.videoEditor === true);
+  }
+
+  var remoteDeleted = {};
+
   function isDeleted(key) {
     if (!key) return false;
-    var map = deletedMap();
-    return !!map[key];
+    if (remoteDeleted[key]) return true;
+    if (editorOn() && deletedMap()[key]) return true;
+    return false;
+  }
+
+  function loadDeletedLog() {
+    if (!window.nexusFetch) return Promise.resolve();
+    return window.nexusFetch("/video-sync-log").then(function (payload) {
+      remoteDeleted = {};
+      ((payload && payload.log) || []).forEach(function (row) {
+        if (row && row.action === "delete" && row.r2Key) remoteDeleted[row.r2Key] = true;
+      });
+      render();
+    }).catch(function () {
+      remoteDeleted = {};
+    });
   }
 
   function deletedMap() {
@@ -145,10 +165,10 @@
     });
     var html = "";
     base.forEach(function (video, index) {
-      html += '<div class="vc-card-row">' + cardHtml(video, index + 1, cabinId, moduleId, false) + binButton(video) + "</div>";
+      html += '<div class="vc-card-row">' + cardHtml(video, index + 1, cabinId, moduleId, false) + (editorOn() ? binButton(video) : "") + "</div>";
     });
     mine.forEach(function (video, index) {
-      html += '<div class="vc-card-row">' + cardHtml(video, base.length + index + 1, cabinId, moduleId, false) + binButton(video) + "</div>";
+      html += '<div class="vc-card-row">' + cardHtml(video, base.length + index + 1, cabinId, moduleId, false) + (editorOn() ? binButton(video) : "") + "</div>";
     });
     return html;
   }
@@ -1324,7 +1344,7 @@
   }
 
   function openDelete(key, title) {
-    if (!key) return;
+    if (!editorOn() || !key) return;
     var modal = document.getElementById("vc-delete");
     if (!modal) return;
     modal.dataset.key = key;
@@ -1480,7 +1500,7 @@
       saveUpload();
       return;
     }
-    var bin = event.target.closest(".vc-bin");
+    var bin = editorOn() ? event.target.closest(".vc-bin") : null;
     if (bin) {
       event.preventDefault();
       event.stopPropagation();
@@ -1563,11 +1583,7 @@
           "</div>" +
           '<div class="vc-quick-meta">' +
             '<p class="vc-quick-label"></p>' +
-            '<span class="vc-trim-tag" hidden></span>' +
-            '<span class="vc-quick-actions">' +
-              '<button type="button" class="vc-quick-bin" aria-label="Delete video">🗑</button>' +
-              '<button type="button" class="vc-quick-edit">Edit</button>' +
-            "</span>" +
+            (editorOn() ? '<span class="vc-trim-tag" hidden></span><span class="vc-quick-actions"><button type="button" class="vc-quick-bin" aria-label="Delete video">🗑</button><button type="button" class="vc-quick-edit">Edit</button></span>' : "") +
           "</div>" +
           '<video id="vc-quick-video" playsinline preload="metadata"></video>' +
           '<div id="vc-quick-progress" class="vc-quick-progress">' +
@@ -1575,27 +1591,28 @@
             '<div class="vc-quick-progress-fill"></div>' +
             '<div class="vc-quick-progress-head"></div>' +
           "</div>" +
-          '<div id="vc-trim" class="vc-trim" hidden>' +
-            '<div class="vc-trim-track">' +
-              '<div class="vc-trim-rail"></div>' +
-              '<div class="vc-trim-span"></div>' +
-              '<button type="button" class="vc-trim-playhead" data-trim-handle="play" aria-label="Scrub"></button>' +
-              '<button type="button" class="vc-trim-handle vc-trim-start" data-trim-handle="start" aria-label="Trim start"></button>' +
-              '<button type="button" class="vc-trim-handle vc-trim-end" data-trim-handle="end" aria-label="Trim end"></button>' +
-              '<div class="vc-trim-float" hidden></div>' +
-            "</div>" +
-            '<div class="vc-trim-times">' +
-              '<span><button type="button" data-trim-nudge="start" data-trim-delta="-1">-1s</button><button type="button" data-trim-nudge="start" data-trim-delta="-0.1">-0.1s</button><button type="button" data-trim-nudge="start" data-trim-delta="-frame">-1f</button><span class="vc-trim-start-time">0:00.000</span><button type="button" data-trim-nudge="start" data-trim-delta="frame">+1f</button><button type="button" data-trim-nudge="start" data-trim-delta="0.1">+0.1s</button><button type="button" data-trim-nudge="start" data-trim-delta="1">+1s</button></span>' +
-              '<span><button type="button" data-trim-nudge="end" data-trim-delta="-1">-1s</button><button type="button" data-trim-nudge="end" data-trim-delta="-0.1">-0.1s</button><button type="button" data-trim-nudge="end" data-trim-delta="-frame">-1f</button><span class="vc-trim-end-time">0:00.000</span><button type="button" data-trim-nudge="end" data-trim-delta="frame">+1f</button><button type="button" data-trim-nudge="end" data-trim-delta="0.1">+0.1s</button><button type="button" data-trim-nudge="end" data-trim-delta="1">+1s</button></span>' +
-            "</div>" +
-            '<p class="vc-trim-kept">Kept 0:00.000</p>' +
-            '<div class="vc-trim-actions">' +
-              '<button type="button" class="vc-trim-preview">Preview</button>' +
-              '<button type="button" class="vc-trim-save">Save</button>' +
-              '<button type="button" class="vc-trim-reset">Reset</button>' +
-              '<button type="button" class="vc-trim-cancel">Cancel</button>' +
-            "</div>" +
-          "</div>" +
+          (editorOn() ?
+            '<div id="vc-trim" class="vc-trim" hidden>' +
+              '<div class="vc-trim-track">' +
+                '<div class="vc-trim-rail"></div>' +
+                '<div class="vc-trim-span"></div>' +
+                '<button type="button" class="vc-trim-playhead" data-trim-handle="play" aria-label="Scrub"></button>' +
+                '<button type="button" class="vc-trim-handle vc-trim-start" data-trim-handle="start" aria-label="Trim start"></button>' +
+                '<button type="button" class="vc-trim-handle vc-trim-end" data-trim-handle="end" aria-label="Trim end"></button>' +
+                '<div class="vc-trim-float" hidden></div>' +
+              "</div>" +
+              '<div class="vc-trim-times">' +
+                '<span><button type="button" data-trim-nudge="start" data-trim-delta="-1">-1s</button><button type="button" data-trim-nudge="start" data-trim-delta="-0.1">-0.1s</button><button type="button" data-trim-nudge="start" data-trim-delta="-frame">-1f</button><span class="vc-trim-start-time">0:00.000</span><button type="button" data-trim-nudge="start" data-trim-delta="frame">+1f</button><button type="button" data-trim-nudge="start" data-trim-delta="0.1">+0.1s</button><button type="button" data-trim-nudge="start" data-trim-delta="1">+1s</button></span>' +
+                '<span><button type="button" data-trim-nudge="end" data-trim-delta="-1">-1s</button><button type="button" data-trim-nudge="end" data-trim-delta="-0.1">-0.1s</button><button type="button" data-trim-nudge="end" data-trim-delta="-frame">-1f</button><span class="vc-trim-end-time">0:00.000</span><button type="button" data-trim-nudge="end" data-trim-delta="frame">+1f</button><button type="button" data-trim-nudge="end" data-trim-delta="0.1">+0.1s</button><button type="button" data-trim-nudge="end" data-trim-delta="1">+1s</button></span>' +
+              "</div>" +
+              '<p class="vc-trim-kept">Kept 0:00.000</p>' +
+              '<div class="vc-trim-actions">' +
+                '<button type="button" class="vc-trim-preview">Preview</button>' +
+                '<button type="button" class="vc-trim-save">Save</button>' +
+                '<button type="button" class="vc-trim-reset">Reset</button>' +
+                '<button type="button" class="vc-trim-cancel">Cancel</button>' +
+              "</div>" +
+            "</div>" : "") +
           '<video id="vc-quick-next" class="vc-quick-preload" preload="metadata" muted playsinline></video>' +
           '<div class="vc-quick-nav">' +
             '<button type="button" class="vc-quick-back">Back</button>' +
@@ -1606,6 +1623,7 @@
           '<p id="vc-trim-toast" class="vc-trim-toast" hidden></p>' +
         "</div>";
       document.body.appendChild(quick);
+      if (editorOn()) {
       var deleter = document.createElement("div");
       deleter.id = "vc-delete";
       deleter.className = "vc-delete";
@@ -1637,6 +1655,7 @@
           confirmDelete();
         }
       });
+      }
       quick.addEventListener("click", function (event) {
         if (event.target.closest(".vc-quick-x") || event.target === quick) {
           event.preventDefault();
@@ -1655,25 +1674,25 @@
           stepQuick(-1);
           return;
         }
-        if (event.target.closest(".vc-quick-bin")) {
+        if (editorOn() && event.target.closest(".vc-quick-bin")) {
           event.preventDefault();
           if (quickDelete) return;
           var titleEl = quick.querySelector(".vc-quick-title");
           openDelete(previewKey, titleEl ? titleEl.textContent : "");
           return;
         }
-        if (event.target.closest(".vc-quick-edit")) {
+        if (editorOn() && event.target.closest(".vc-quick-edit")) {
           event.preventDefault();
           if (quickDelete) return;
           if (trimOpen) closeTrim();
           else openTrim();
           return;
         }
-        if (event.target.closest(".vc-trim-preview")) { event.preventDefault(); previewTrim(); return; }
-        if (event.target.closest(".vc-trim-save")) { event.preventDefault(); saveTrim(); return; }
-        if (event.target.closest(".vc-trim-reset")) { event.preventDefault(); resetTrim(); return; }
-        if (event.target.closest(".vc-trim-cancel")) { event.preventDefault(); closeTrim(); return; }
-        var nudge = event.target.closest("[data-trim-nudge]");
+        if (editorOn() && event.target.closest(".vc-trim-preview")) { event.preventDefault(); previewTrim(); return; }
+        if (editorOn() && event.target.closest(".vc-trim-save")) { event.preventDefault(); saveTrim(); return; }
+        if (editorOn() && event.target.closest(".vc-trim-reset")) { event.preventDefault(); resetTrim(); return; }
+        if (editorOn() && event.target.closest(".vc-trim-cancel")) { event.preventDefault(); closeTrim(); return; }
+        var nudge = editorOn() ? event.target.closest("[data-trim-nudge]") : null;
         if (nudge) {
           event.preventDefault();
           nudgeTrim(nudge.getAttribute("data-trim-nudge"), nudgeDelta(nudge.getAttribute("data-trim-delta")));
@@ -1692,7 +1711,7 @@
         }
       });
       var trimPanel = document.getElementById("vc-trim");
-      trimPanel.addEventListener("pointerdown", function (event) {
+      if (trimPanel) trimPanel.addEventListener("pointerdown", function (event) {
         var handle = event.target.closest("[data-trim-handle]");
         if (!handle || !durationKnown) return;
         event.preventDefault();
@@ -1704,7 +1723,7 @@
         handle.setPointerCapture(event.pointerId);
         moveTrimHandle(event.clientX, event.clientY, trimDrag);
       });
-      trimPanel.addEventListener("pointermove", function (event) {
+      if (trimPanel) trimPanel.addEventListener("pointermove", function (event) {
         if (!trimDrag) return;
         moveTrimHandle(event.clientX, event.clientY, trimDrag);
       });
@@ -1713,8 +1732,8 @@
         trimDragOrigin = null;
         paintTrim();
       }
-      trimPanel.addEventListener("pointerup", endTrimDrag);
-      trimPanel.addEventListener("pointercancel", endTrimDrag);
+      if (trimPanel) trimPanel.addEventListener("pointerup", endTrimDrag);
+      if (trimPanel) trimPanel.addEventListener("pointercancel", endTrimDrag);
       var qv = document.getElementById("vc-quick-video");
       qv.addEventListener("loadedmetadata", onQuickDuration);
       qv.addEventListener("durationchange", onQuickDuration);
@@ -1829,6 +1848,7 @@
     loadCustom();
     loadStorage();
     loadPlacements();
+    loadDeletedLog();
     if (window.NexusTrim) window.NexusTrim.load();
   }
 

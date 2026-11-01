@@ -1,3 +1,7 @@
+window.FEATURES = {
+  videoEditor: false
+};
+
 window.NEXUS_API = {
   base: "https://nexus-api.joesearle.workers.dev",
   key: "w44eimFdMAPiLHbodT5Y6aaVTWzDgyyN",
