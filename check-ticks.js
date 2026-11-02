@@ -10,10 +10,10 @@ const html = fs.readFileSync("index.html", "utf8");
 const app = fs.readFileSync("app.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v70"') === -1 || html.indexOf("app.js?v=v70") === -1) {
-  fail("index.html is not stamped v70");
+if (html.indexOf('content="v71"') === -1 || html.indexOf("app.js?v=v71") === -1) {
+  fail("index.html is not stamped v71");
 }
-if (app.indexOf('build: "v70"') === -1) fail("RelicArchitect.build is not v70");
+if (app.indexOf('build: "v71"') === -1) fail("RelicArchitect.build is not v71");
 if (html.indexOf("JOSEPH · LONDON") !== -1 || html.indexOf("corner-who") !== -1 || html.indexOf("meta-mode") !== -1) {
   fail("public corner still has the name or lock status");
 }
@@ -167,7 +167,7 @@ function expect(arch, dateKey, want, label) {
 
 const open = load("?date=2026-10-06");
 const arch = open.RelicArchitect;
-if (!arch || arch.build !== "v70" || arch.futureLock !== false) fail("default lock is not off");
+if (!arch || arch.build !== "v71" || arch.futureLock !== false) fail("default lock is not off");
 else {
   expect(arch, "2026-10-06", true, "open today");
   ["2026-10-07", "2026-12-31", "2027-01-01", "2027-10-07"].forEach(function (dateKey) {

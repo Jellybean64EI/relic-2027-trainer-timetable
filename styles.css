@@ -5686,13 +5686,21 @@ body.is-cards #banner-coach {
 }
 
 .vc-quick-head,
-.vc-quick-meta {
+.vc-quick-bar,
+.vc-quick-meta,
+.vc-preview-bar {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.vc-quick-head { align-items: flex-start; }
+.vc-quick-bar,
+.vc-quick-head,
+.vc-preview-bar {
+  justify-content: flex-end;
+  min-height: 44px;
+  padding-left: 52px;
+}
 
 .vc-quick-actions {
   display: flex;
@@ -5861,7 +5869,14 @@ body.is-cards #banner-coach {
   font-weight: 800;
 }
 
-.vc-quick-title { padding-top: 8px; }
+.vc-quick-title {
+  flex: none;
+  width: 100%;
+  margin: 8px 0 0;
+  padding-top: 0;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
 
 .vc-quick-meta { margin-top: 6px; }
 
@@ -5906,9 +5921,38 @@ body.is-cards #banner-coach {
   left: 0;
   width: 16px;
   height: 16px;
-  margin-left: -8px;
+  margin-left: 0;
   border-radius: 50%;
   background: #f6eefe;
+}
+
+body.vc-quick-open .nav-toggle,
+body.vc-preview-open .nav-toggle {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top));
+  left: calc(12px + env(safe-area-inset-left));
+  z-index: 1200;
+}
+
+body:not(.vc-editor-on) .vc-quick-edit,
+body:not(.vc-editor-on) .vc-quick-bin,
+body:not(.vc-editor-on) .vc-bin,
+body:not(.vc-editor-on) .vc-trim,
+body:not(.vc-editor-on) .vc-trim-tag,
+body:not(.vc-editor-on) .vc-delete,
+body:not(.vc-editor-on) #vc-trim,
+body:not(.vc-editor-on) #vc-delete {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+#vc-quick-video::-webkit-media-controls,
+#vc-quick-video::-webkit-media-controls-enclosure,
+#vc-quick-video::-webkit-media-controls-overlay-play-button,
+#vc-preview-video::-webkit-media-controls-overlay-play-button {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 .vc-quick-preload {
@@ -6340,11 +6384,9 @@ body.vc-quick-open { overflow: hidden; }
 }
 
 .vc-preview-x {
-  position: absolute;
-  top: 6px;
-  right: 6px;
   width: 40px;
   height: 40px;
+  margin-left: auto;
   border: 0;
   border-radius: 10px;
   background: transparent;
@@ -6355,9 +6397,11 @@ body.vc-quick-open { overflow: hidden; }
 }
 
 .vc-preview-title {
-  margin: 0 44px 10px 0;
+  margin: 8px 0 10px;
   color: #f6eefe;
   font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 #vc-preview-video {
