@@ -19,8 +19,9 @@ assert(html.indexOf(">Food Deck<") !== -1 && html.indexOf(">Smoothies Deck<") !=
 assert((hub.match(/tabindex=/g) || []).length === 2, "H2 tabindex");
 assert(hub.indexOf("<a ") === -1, "H2 links");
 assert(hub.indexOf("<svg") === -1, "H4 svg");
-assert(hub.indexOf(' src="assets/hub/') === -1, "H4 eager src");
-assert((hub.match(/loading="lazy" decoding="async" fetchpriority="low"/g) || []).length === 2, "H4 lazy");
+const stats = html.slice(html.indexOf('id="hub-stats"'), html.indexOf('id="deck-root-food"'));
+assert(hub.indexOf(' src="assets/hub/') === -1 && stats.indexOf(' src="assets/hub/') === -1, "H4 eager src");
+assert((stats.match(/loading="lazy" decoding="async" fetchpriority="low"/g) || []).length === 2, "H4 lazy");
 
 ["assets/hub/upper-face.webp", "assets/hub/full-body.webp"].forEach(function (file) {
   const buf = fs.readFileSync(file);

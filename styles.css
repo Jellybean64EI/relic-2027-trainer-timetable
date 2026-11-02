@@ -218,15 +218,46 @@ body.is-hub .schedule-mode {
   display: none;
 }
 
-/* Hub header: hamburger and clock stay on the top row; the title block is centred under them. */
+/* Hub header: hamburger, Training Stats, and the clock share the top row. */
 body.is-hub .brand-bar {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   grid-template-areas:
-    "toggle spacer clock"
+    "toggle stats clock"
     "title title title";
   align-items: center;
-  column-gap: 8px;
+  column-gap: 4px;
+}
+
+.hub-stats-pill {
+  display: none;
+}
+
+body.is-hub .hub-stats-pill {
+  grid-area: stats;
+  justify-self: center;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 6px 7px;
+  border: 1px solid rgba(216, 180, 254, 0.35);
+  border-radius: 10px;
+  background: #150724;
+  color: #cbb6e4;
+  font: inherit;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1.15;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body.is-hub .nav-toggle {
@@ -2882,19 +2913,37 @@ body.is-food .week-tabs,
 body.is-food .week-meta,
 body.is-food .schedule-switch,
 body.is-food #btn-future-lock,
-body.is-hub .live-stack,
-body.is-hub .mode-pair,
-body.is-hub .phase-bar,
-body.is-hub .month-bar,
-body.is-hub .week-tabs,
-body.is-hub .week-meta,
-body.is-hub .schedule-switch,
-body.is-hub #btn-future-lock,
-body.is-hub #training-board,
+body.is-hub:not(.hub-schedules) .live-stack,
+body.is-hub:not(.hub-schedules) .mode-pair,
+body.is-hub:not(.hub-schedules) .phase-bar,
+body.is-hub:not(.hub-schedules) .month-bar,
+body.is-hub:not(.hub-schedules) .week-tabs,
+body.is-hub:not(.hub-schedules) .week-meta,
+body.is-hub:not(.hub-schedules) .schedule-switch,
+body.is-hub:not(.hub-schedules) #btn-future-lock,
+body.is-hub:not(.hub-schedules) #training-board,
 body.is-hub #planner-board,
 body.is-hub #banner-live,
 body.is-hub #banner-coach {
   display: none;
+}
+
+#train-lock-slot:empty {
+  display: none;
+}
+
+#train-lock-slot:not(:empty) {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 8px 0;
+}
+
+body.hub-schedules #btn-future-lock {
+  margin-top: 0;
+}
+
+body.hub-schedules #hub-root {
+  padding-bottom: 0;
 }
 
 .cabin-list {
@@ -3650,8 +3699,10 @@ body.is-food .storage-note {
 .hub-tabs {
   display: flex;
   justify-content: center;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   margin: 0 0 12px;
+  padding: 0 8px;
 }
 
 .hub-tab {
@@ -3666,12 +3717,13 @@ body.is-food .storage-note {
   box-shadow: none;
   color: #cbb6e4;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   line-height: 1.2;
   text-transform: uppercase;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .hub-tab[aria-selected="true"] {
@@ -3850,6 +3902,67 @@ body.is-food .storage-note {
   background-size: 5px 8px;
   background-repeat: repeat-x;
   background-position: left center;
+}
+
+.hub-stats {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(11, 2, 22, 0.72);
+}
+
+.hub-stats[hidden] {
+  display: none;
+}
+
+.hub-stats-card {
+  width: min(420px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
+  padding: 12px 12px 4px;
+  border: 1px solid rgba(216, 180, 254, 0.35);
+  border-radius: 16px;
+  background: #12051d;
+  box-sizing: border-box;
+}
+
+.hub-stats-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+.hub-stats-title {
+  margin: 0;
+  color: #f6eefe;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.hub-stats-x {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #f6eefe;
+  font: inherit;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .hub-rows {

@@ -1,4 +1,4 @@
-/* Nexus v72: the editor and delete UI are off. Trim playback and deleted-file hiding stay. */
+/* Nexus v73: the editor and delete UI are off. Trim playback and deleted-file hiding stay. */
 var fs = require("fs");
 var vm = require("vm");
 var crypto = require("crypto");
@@ -34,8 +34,8 @@ if (cards.indexOf('class="vc-quick-edit"') === -1 || cards.indexOf('class="vc-qu
 if (cards.indexOf("editorOn() ?") === -1) fail("editor markup is not behind the flag");
 if (cards.indexOf('"/video-sync-log"') === -1) fail("deleted files are not hidden from the sync log");
 if (cards.indexOf("NexusTrim.watch") === -1 || cards.indexOf("playSrc(") === -1) fail("trim playback was removed");
-if (app.indexOf('build: "v72"') === -1 || html.indexOf('content="v72"') === -1 || html.indexOf("?v=v69") !== -1) {
-  fail("cache stamp is not v72");
+if (app.indexOf('build: "v73"') === -1 || html.indexOf('content="v73"') === -1 || html.indexOf("?v=v69") !== -1) {
+  fail("cache stamp is not v73");
 }
 [
   "Face/2. Under-Eye Knuckle Massage.mp4",
@@ -83,7 +83,7 @@ if (fold.length !== 1) fail("Seated Forward Fold is missing from playback");
 else ok("Seated Forward Fold stays in the catalogue");
 
 if (failed) {
-  console.error(failed + " v72 check(s) failed");
+  console.error(failed + " v73 check(s) failed");
   process.exit(1);
 }
-console.log("OK v72");
+console.log("OK v73");

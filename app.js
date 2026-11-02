@@ -92,7 +92,7 @@
     smoothieOffer: "",
     smoothieFlyError: "",
     osDoor: "hub",
-    hubTab: "food",
+    hubTab: "schedules",
     hubWeek: 0,
     hubArtLoaded: false,
     futureLock: false,
@@ -106,6 +106,7 @@
     scanPreview: null
   };
   state.futureLock = readFutureLock();
+  state.hubTab = readHubTab();
 
   var player = {
     cabin: null,
@@ -299,6 +300,36 @@
     return match ? normDoor(match[1]) : "";
   }
 
+  function readHubTab() {
+    try {
+      var saved = localStorage.getItem("relic_hub_tab");
+      if (saved === "food" || saved === "schedules") return saved;
+    } catch (err) { /* private mode */ }
+    return "schedules";
+  }
+
+  function writeHubTab(tab) {
+    try { localStorage.setItem("relic_hub_tab", tab); } catch (err) { /* private mode */ }
+  }
+
+  function schedulesOnHub() {
+    return state.osDoor === "hub" && state.hubTab === "schedules";
+  }
+
+  function syncHubClass() {
+    if (!document.body) return;
+    document.body.classList.toggle("hub-schedules", schedulesOnHub());
+  }
+
+  function placeTrainingLock() {
+    var btn = $("btn-future-lock");
+    var slot = $("train-lock-slot");
+    var home = document.querySelector(".header-corner");
+    if (!btn || !home) return;
+    var parent = schedulesOnHub() && slot ? slot : home;
+    if (btn.parentNode !== parent) parent.appendChild(btn);
+  }
+
   function paintFutureLock() {
     var btn = $("btn-future-lock");
     if (!btn) return;
@@ -307,6 +338,13 @@
     btn.hidden = !training;
     btn.setAttribute("aria-pressed", on ? "true" : "false");
     btn.setAttribute("aria-label", on ? "Lock on" : "Lock off");
+  }
+
+  function revealHubLock() {
+    var btn = $("btn-future-lock");
+    if (!btn) return;
+    if (schedulesOnHub()) btn.hidden = false;
+    placeTrainingLock();
   }
 
   function setFutureLock(on) {
@@ -1049,29 +1087,59 @@
     return html;
   }
 
+  function paintHubStats() {
+    document.querySelectorAll("[data-hub-stats]").forEach(function (node) {
+      node.innerHTML = hubStatsHtml(node.getAttribute("data-hub-stats"));
+    });
+  }
+
+  function loadHubArt() {
+    if (state.hubArtLoaded) return;
+    document.querySelectorAll("#hub-stats .hub-tile img").forEach(function (img) {
+      var src = img.getAttribute("data-src");
+      if (src && !img.getAttribute("src")) img.setAttribute("src", src);
+    });
+    state.hubArtLoaded = true;
+  }
+
+  function openHubStats() {
+    var modal = $("hub-stats");
+    if (!modal) return;
+    loadHubArt();
+    paintHubStats();
+    modal.hidden = false;
+    var opener = $("hub-stats-open");
+    if (opener) opener.setAttribute("aria-expanded", "true");
+    var closer = $("hub-stats-x");
+    if (closer && closer.focus) closer.focus();
+  }
+
+  function closeHubStats() {
+    var modal = $("hub-stats");
+    if (!modal || modal.hidden) return;
+    modal.hidden = true;
+    var opener = $("hub-stats-open");
+    if (opener) {
+      opener.setAttribute("aria-expanded", "false");
+      if (opener.focus) opener.focus();
+    }
+  }
+
   function paintHub() {
     var root = $("hub-root");
     if (!root) return;
-    if (state.hubTab !== "training") state.hubTab = "food";
+    if (state.hubTab !== "food" && state.hubTab !== "schedules") state.hubTab = "schedules";
+    syncHubClass();
     root.querySelectorAll("[data-hub-tab]").forEach(function (tab) {
       var on = tab.getAttribute("data-hub-tab") === state.hubTab;
       tab.setAttribute("aria-selected", on ? "true" : "false");
       tab.tabIndex = on ? 0 : -1;
     });
     var foodPanel = $("hub-panel-food");
-    var trainPanel = $("hub-panel-training");
     if (foodPanel) foodPanel.hidden = state.hubTab !== "food";
-    if (trainPanel) trainPanel.hidden = state.hubTab !== "training";
-    if (state.hubTab === "training" && !state.hubArtLoaded) {
-      root.querySelectorAll(".hub-tile img").forEach(function (img) {
-        var src = img.getAttribute("data-src");
-        if (src && !img.getAttribute("src")) img.setAttribute("src", src);
-      });
-      state.hubArtLoaded = true;
-    }
-    root.querySelectorAll("[data-hub-stats]").forEach(function (node) {
-      node.innerHTML = hubStatsHtml(node.getAttribute("data-hub-stats"));
-    });
+    paintFutureLock();
+    revealHubLock();
+    paintHubStats();
     var clock = londonParts(parseDateOverride() || new Date());
     if (window.NexusDeck && window.NexusDeck.renderHubMonth) {
       var focusKey = clock.year < 2027 ? "2027-01-01" : (clock.year > 2027 ? "2027-12-31" : clock.dateKey);
@@ -1144,9 +1212,11 @@
       document.body.classList.toggle("is-hub", door === "hub");
       document.body.classList.toggle("is-deck", door === "food" || door === "smoothies" || door === "porridge");
       document.body.classList.toggle("is-cards", door === "cards");
+      syncHubClass();
     }
     if (door === "cards" && window.NexusCards && window.NexusCards.render) window.NexusCards.render();
     if (door === "hub") paintHub();
+    revealHubLock();
     if ((door === "food" || door === "smoothies" || door === "porridge") && window.NexusDeck && window.NexusDeck.renderDeck) {
       var deckName = door === "smoothies" ? "smoothie" : door === "porridge" ? "porridge" : "food";
       window.NexusDeck.renderDeck(deckName);
@@ -2936,6 +3006,25 @@
         setNavOpen(false);
       });
     });
+    var statsOpen = $("hub-stats-open");
+    if (statsOpen) statsOpen.addEventListener("click", function (event) {
+      event.preventDefault();
+      openHubStats();
+    });
+    var statsModal = $("hub-stats");
+    if (statsModal) statsModal.addEventListener("click", function (event) {
+      if (event.target === statsModal || event.target.closest("#hub-stats-x")) {
+        event.preventDefault();
+        closeHubStats();
+      }
+    });
+    document.addEventListener("keydown", function (event) {
+      if (event.key !== "Escape") return;
+      var modal = $("hub-stats");
+      if (!modal || modal.hidden) return;
+      event.preventDefault();
+      closeHubStats();
+    });
     var futureLockBtn = $("btn-future-lock");
     if (futureLockBtn) {
       futureLockBtn.addEventListener("click", function (event) {
@@ -2946,11 +3035,13 @@
     }
     document.querySelectorAll("[data-hub-tab]").forEach(function (tab) {
       tab.addEventListener("click", function () {
-        state.hubTab = tab.getAttribute("data-hub-tab") || "food";
+        state.hubTab = tab.getAttribute("data-hub-tab") || "schedules";
+        if (state.hubTab !== "food") state.hubTab = "schedules";
+        writeHubTab(state.hubTab);
         paintHub();
       });
       tab.addEventListener("keydown", function (event) {
-        var order = ["food", "training"];
+        var order = ["schedules", "food"];
         var index = order.indexOf(state.hubTab);
         if (index < 0) index = 0;
         var next = index;
@@ -2961,6 +3052,7 @@
         else return;
         event.preventDefault();
         state.hubTab = order[next];
+        writeHubTab(state.hubTab);
         paintHub();
         var selected = document.querySelector('.hub-tab[data-hub-tab="' + state.hubTab + '"]');
         if (selected && selected.focus) selected.focus();
@@ -3245,7 +3337,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v72",
+    build: "v73",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };
