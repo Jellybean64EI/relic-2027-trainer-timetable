@@ -1,4 +1,4 @@
-/* Nexus v72: the quick viewer header clears the menu, and editor chrome stays gated. */
+/* Nexus v73: the quick viewer header clears the menu, and editor chrome stays gated. */
 var fs = require("fs");
 var crypto = require("crypto");
 var failed = 0;
@@ -26,11 +26,11 @@ if (css.indexOf("body.vc-quick-open .nav-toggle") === -1 || css.indexOf("overflo
 if (css.indexOf("body:not(.vc-editor-on) .vc-quick-edit") === -1 || css.indexOf("body:not(.vc-editor-on) .vc-bin") === -1) {
   fail("editor remnants are not hidden when the flag is off");
 }
-if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v72") !== -1; })) {
+if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v73") !== -1; })) {
   fail("a player-open rule was restamped");
 }
-if (app.indexOf('build: "v72"') === -1 || html.indexOf('content="v72"') === -1 || html.indexOf("?v=v70") !== -1) {
-  fail("cache stamp is not v72");
+if (app.indexOf('build: "v73"') === -1 || html.indexOf('content="v73"') === -1 || html.indexOf("?v=v70") !== -1) {
+  fail("cache stamp is not v73");
 }
 if (cards.indexOf("openTrim") === -1 || cards.indexOf('class="vc-quick-bin"') === -1) fail("editor code was deleted");
 else ok("header, flag gate, and stamp");
@@ -47,7 +47,7 @@ else ok("header, flag gate, and stamp");
 if (!failed) ok("food and smoothie files are unchanged");
 
 if (failed) {
-  console.error(failed + " v72 check(s) failed");
+  console.error(failed + " v73 check(s) failed");
   process.exit(1);
 }
-console.log("OK v72");
+console.log("OK v73");

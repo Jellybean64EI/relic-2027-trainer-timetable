@@ -6,10 +6,10 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v72" />
+  <meta name="relic-build" content="v73" />
   <title>Nexus</title>
-  <link rel="manifest" href="manifest.webmanifest?v=v72" />
-  <link rel="stylesheet" href="styles.css?v=v72" />
+  <link rel="manifest" href="manifest.webmanifest?v=v73" />
+  <link rel="stylesheet" href="styles.css?v=v73" />
 </head>
 <body>
   <div class="wrap">
@@ -28,6 +28,7 @@
           <button type="button" class="nav-toggle" id="btn-nav-toggle" aria-expanded="false" aria-controls="nav-drawer" aria-label="Open menu">
             <span class="nav-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>
           </button>
+          <button type="button" class="hub-stats-pill" id="hub-stats-open" aria-haspopup="dialog" aria-controls="hub-stats" aria-expanded="false">Training Stats</button>
           <div class="brand-main">
             <p class="nexus-mark">Nexus</p>
             <h1 id="page-title">Training Schedules</h1>
@@ -51,10 +52,10 @@
 
       <section id="hub-root" data-os-panel="hub" hidden>
         <div class="hub-tabs" role="tablist" aria-label="Hub">
-          <button type="button" class="hub-tab" role="tab" id="hub-tab-food" data-hub-tab="food" aria-controls="hub-panel-food" aria-selected="true" tabindex="0">Food &amp; Smoothies</button>
-          <button type="button" class="hub-tab" role="tab" id="hub-tab-training" data-hub-tab="training" aria-controls="hub-panel-training" aria-selected="false" tabindex="-1">Training Stats</button>
+          <button type="button" class="hub-tab" role="tab" id="hub-tab-schedules" data-hub-tab="schedules" aria-controls="training-board" aria-selected="true" tabindex="0">Training Schedules</button>
+          <button type="button" class="hub-tab" role="tab" id="hub-tab-food" data-hub-tab="food" aria-controls="hub-panel-food" aria-selected="false" tabindex="-1">Food Schedules</button>
         </div>
-        <div id="hub-panel-food" role="tabpanel" aria-labelledby="hub-tab-food">
+        <div id="hub-panel-food" role="tabpanel" aria-labelledby="hub-tab-food" hidden>
           <div class="deck-step" role="group" aria-label="Month">
             <button type="button" class="deck-step-btn" id="hub-month-prev" aria-label="Previous month">‹</button>
             <p class="deck-step-label" id="hub-month-label">January 2027</p>
@@ -62,7 +63,13 @@
           </div>
           <div id="hub-month-body"></div>
         </div>
-        <div id="hub-panel-training" role="tabpanel" aria-labelledby="hub-tab-training" hidden>
+      </section>
+      <div id="hub-stats" class="hub-stats" hidden>
+        <div class="hub-stats-card" role="dialog" aria-modal="true" aria-label="Training Stats">
+          <div class="hub-stats-head">
+            <h2 class="hub-stats-title">Training Stats</h2>
+            <button type="button" class="hub-stats-x" id="hub-stats-x" aria-label="Close">×</button>
+          </div>
           <article class="hub-row">
             <div class="hub-tile"><img data-src="assets/hub/upper-face.webp" alt="" width="96" height="96" loading="lazy" decoding="async" fetchpriority="low"></div>
             <div class="hub-row-copy">
@@ -78,7 +85,7 @@
             </div>
           </article>
         </div>
-      </section>
+      </div>
 
       <section id="deck-root-food" data-os-panel="food" hidden>
         <div class="deck-head">
@@ -218,6 +225,7 @@
         </button>
       </div>
       <p class="week-meta" id="week-meta"></p>
+      <div id="train-lock-slot"></div>
 
       <div class="table-wrap" id="training-board">
         <table class="timetable" id="timetable">
@@ -351,24 +359,24 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v72"></script>
-  <script src="data/precondition.js?v=v72"></script>
-  <script src="data/upperBody.js?v=v72"></script>
-  <script src="data/citations.js?v=v72"></script>
-  <script src="data/forensic.js?v=v72"></script>
-  <script src="data/cues/cues.js?v=v72"></script>
-  <script src="data/forensicClips.js?v=v72"></script>
-  <script src="data/videoArchive.js?v=v72"></script>
-  <script src="data/nutrition/shop.js?v=v72"></script>
-  <script src="data/nutrition/schedule.js?v=v72"></script>
-  <script src="food.js?v=v72"></script>
-  <script src="data/nexusConfig.js?v=v72"></script>
-  <script src="deck.js?v=v72"></script>
-  <script src="data/videoCatalog.js?v=v72"></script>
-  <script src="tools/v64_placement.js?v=v72"></script>
-  <script src="trim.js?v=v72"></script>
-  <script src="builder.js?v=v72"></script>
-  <script src="cards.js?v=v72"></script>
-  <script src="app.js?v=v72"></script>
+  <script src="data/schedule.js?v=v73"></script>
+  <script src="data/precondition.js?v=v73"></script>
+  <script src="data/upperBody.js?v=v73"></script>
+  <script src="data/citations.js?v=v73"></script>
+  <script src="data/forensic.js?v=v73"></script>
+  <script src="data/cues/cues.js?v=v73"></script>
+  <script src="data/forensicClips.js?v=v73"></script>
+  <script src="data/videoArchive.js?v=v73"></script>
+  <script src="data/nutrition/shop.js?v=v73"></script>
+  <script src="data/nutrition/schedule.js?v=v73"></script>
+  <script src="food.js?v=v73"></script>
+  <script src="data/nexusConfig.js?v=v73"></script>
+  <script src="deck.js?v=v73"></script>
+  <script src="data/videoCatalog.js?v=v73"></script>
+  <script src="tools/v64_placement.js?v=v73"></script>
+  <script src="trim.js?v=v73"></script>
+  <script src="builder.js?v=v73"></script>
+  <script src="cards.js?v=v73"></script>
+  <script src="app.js?v=v73"></script>
 </body>
 </html>
