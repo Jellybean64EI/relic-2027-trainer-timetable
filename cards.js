@@ -107,6 +107,11 @@
     return !!(window.FEATURES && window.FEATURES.videoEditor === true);
   }
 
+  function syncEditorClass() {
+    if (!document.body) return;
+    document.body.classList.toggle("vc-editor-on", editorOn());
+  }
+
   var remoteDeleted = {};
 
   function isDeleted(key) {
@@ -726,6 +731,7 @@
     video.src = playSrc(src);
     if (window.NexusTrim) window.NexusTrim.watch(video);
     root.hidden = false;
+    document.body.classList.add("vc-preview-open");
     var play = video.play();
     if (play && typeof play.catch === "function") play.catch(function () {});
   }
@@ -752,6 +758,7 @@
       video.replaceWith(fresh);
     }
     if (root) root.hidden = true;
+    document.body.classList.remove("vc-preview-open");
     previewKey = "";
   }
 
@@ -938,7 +945,10 @@
       awaitMeta = true;
       video.preload = "metadata";
       video.playsInline = true;
+      video.controls = false;
+      video.disablePictureInPicture = true;
       video.setAttribute("playsinline", "");
+      video.setAttribute("disablepictureinpicture", "");
       video.src = nextSrc;
       if (window.NexusTrim) window.NexusTrim.watch(video);
       if (!trimOpen) {
@@ -1551,6 +1561,7 @@
   }
 
   function ensureChrome() {
+    syncEditorClass();
     var host = document.getElementById("vcards-root");
     var list = document.getElementById("vc-list");
     if (host && list && !document.getElementById("vc-tools")) {
@@ -1577,10 +1588,10 @@
       quick.hidden = true;
       quick.innerHTML =
         '<div class="vc-quick-card" role="dialog" aria-modal="true" aria-label="Video">' +
-          '<div class="vc-quick-head">' +
-            '<p class="vc-quick-title"></p>' +
+          '<div class="vc-quick-bar vc-quick-head">' +
             '<button type="button" class="vc-quick-x" aria-label="Close">×</button>' +
           "</div>" +
+          '<p class="vc-quick-title"></p>' +
           '<div class="vc-quick-meta">' +
             '<p class="vc-quick-label"></p>' +
             (editorOn() ? '<span class="vc-trim-tag" hidden></span><span class="vc-quick-actions"><button type="button" class="vc-quick-bin" aria-label="Delete video">🗑</button><button type="button" class="vc-quick-edit">Edit</button></span>' : "") +
@@ -1795,7 +1806,9 @@
       preview.hidden = true;
       preview.innerHTML =
         '<div class="vc-preview-card" role="dialog" aria-modal="true" aria-label="Preview">' +
-          '<button type="button" class="vc-preview-x" aria-label="Close">×</button>' +
+          '<div class="vc-preview-bar">' +
+            '<button type="button" class="vc-preview-x" aria-label="Close">×</button>' +
+          "</div>" +
           '<p class="vc-preview-title"></p>' +
           '<video id="vc-preview-video" controls autoplay muted loop playsinline preload="auto"></video>' +
           '<div id="vc-preview-move"></div>' +
@@ -1817,6 +1830,7 @@
   }
 
   function boot() {
+    syncEditorClass();
     ensureChrome();
     var root = document.getElementById("vcards-root");
     if (root) {

@@ -96,8 +96,8 @@ if (!failed) ok("decideCustom stays on a real cabin");
 
 if (banned.test(cards) || banned.test(placement)) fail("tray wording is still in the card code");
 else ok("card code has no review tray");
-if (html.indexOf('content="v70"') === -1 || html.indexOf("?v=v65") !== -1) fail("cache stamp is not v70");
-else ok("cache stamp is v70");
+if (html.indexOf('content="v71"') === -1 || html.indexOf("?v=v65") !== -1) fail("cache stamp is not v71");
+else ok("cache stamp is v71");
 
 Object.keys(FOOD).forEach(function (file) {
   var digest = crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");

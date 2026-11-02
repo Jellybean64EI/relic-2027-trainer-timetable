@@ -12,7 +12,7 @@ window.FEATURES = {
 };
 ```
 
-Reload Nexus. That is the only switch. There is no URL parameter, gesture, or localStorage override. With the flag true, the Edit pill, trim panel, bin, delete confirm, and Shrinking tonight / Synced tags return as they were in v69.
+Reload Nexus. That is the only switch. There is no URL parameter, gesture, or localStorage override. The page adds `vc-editor-on` on the body from this flag alone. With the flag true, the Edit pill, trim panel, bin, delete confirm, Shrinking tonight / Synced tags, and any other editor chrome return as they were in v69. With the flag false, that chrome is not built and CSS hides it if a node is still in the page.
 
 Set it back to `false` to hide them again.
 

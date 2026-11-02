@@ -1,4 +1,4 @@
-/* Nexus v70: schedule bubbles, stars, stage labels, and weekly groups. */
+/* Nexus v71: schedule bubbles, stars, stage labels, and weekly groups. */
 var fs = require("fs");
 var cp = require("child_process");
 var failed = 0;
@@ -83,15 +83,15 @@ must(builder, "filledSlots", "slot badge is missing");
 must(builder, '"/12 slots"', "slot badge is not out of 12");
 ok("weekly groups and one-tap placement are wired");
 
-if (app.indexOf('build: "v70"') === -1) fail("RelicArchitect.build is not v70");
-else ok("build stamp is v70");
+if (app.indexOf('build: "v71"') === -1) fail("RelicArchitect.build is not v71");
+else ok("build stamp is v71");
 
-["styles.css?v=v70", "app.js?v=v70", "deck.js?v=v70", "cards.js?v=v70", "builder.js?v=v70"].forEach(function (stamp) {
+["styles.css?v=v71", "app.js?v=v71", "deck.js?v=v71", "cards.js?v=v71", "builder.js?v=v71"].forEach(function (stamp) {
   if (html.indexOf(stamp) === -1) fail("index.html is missing " + stamp);
 });
-if (html.indexOf('content="v70"') === -1) fail("relic-build is not v70");
+if (html.indexOf('content="v71"') === -1) fail("relic-build is not v71");
 if (html.indexOf("v62") !== -1) fail("index.html still says v62");
-else ok("cache stamp is v70");
+else ok("cache stamp is v71");
 
 var protectedPaths = [
   "data/schedule.js",
@@ -106,7 +106,7 @@ var diff = cp.spawnSync("git", ["diff", "--exit-code", "origin/master", "--"].co
 if (diff.status !== 0) fail("protected training files differ from master");
 else ok("protected training files match master");
 
-if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v70") !== -1; })) {
+if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v71") !== -1; })) {
   fail("a new player-open rule would move the guard hash");
 }
 
@@ -115,7 +115,7 @@ if (read("cards.js").indexOf("vc-upload-box") === -1) fail("upload box was remov
 else ok("upload box is still in the card catalogue");
 
 if (failed) {
-  console.error(failed + " v70 check(s) failed");
+  console.error(failed + " v71 check(s) failed");
   process.exit(1);
 }
-console.log("OK v70");
+console.log("OK v71");
