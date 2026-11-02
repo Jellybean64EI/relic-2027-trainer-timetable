@@ -25,6 +25,28 @@ html, body {
   font-family: var(--font);
   font-size: 16px;
   line-height: 1.35;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+a,
+button,
+label,
+input,
+textarea,
+select,
+summary,
+[role="button"],
+.vc-card,
+.vc-cabin,
+.vc-mod,
+.sched-tab,
+.sched-go,
+.nav-row,
+.combo-play,
+.mode-choice {
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -107,6 +129,21 @@ button, a, input, label {
   background: transparent;
   color: var(--gold);
   cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.nav-toggle:focus {
+  outline: none;
+}
+
+.nav-toggle:active {
+  transform: scale(0.94);
+  box-shadow: 0 0 0 6px rgba(255, 140, 0, 0.22);
 }
 
 .nav-toggle-bars {
@@ -118,6 +155,10 @@ button, a, input, label {
   transform: rotate(0deg);
   transform-origin: center center;
   transition: transform 0.32s ease;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  pointer-events: none;
 }
 
 .nav-toggle-bars span {
@@ -1711,6 +1752,7 @@ body.nav-open .nav-drawer {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .nav-toggle,
   .nav-toggle-bars,
   .nav-scrim,
   .nav-drawer,
