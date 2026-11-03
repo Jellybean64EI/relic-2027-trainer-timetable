@@ -5,7 +5,6 @@
   var MAX_BYTES = 26214400;
   var openGroup = "";
   var openModule = "";
-  var specialsOpen = false;
   var custom = [];
   var placements = null;
   var previewKey = "";
@@ -213,19 +212,22 @@
     if (el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: "nearest" });
   }
 
-  function cabinChoices() {
+  function cabinOrder() {
     var root = catalogRoot();
     var layout = root && root.layout;
+    var order = [];
+    if (!layout) return order;
+    (layout.cabins || []).concat((layout.specials && layout.specials.subCabins) || []).forEach(function (id) {
+      if (order.indexOf(id) === -1) order.push(id);
+    });
+    return order;
+  }
+
+  function cabinChoices() {
     var list = [];
-    if (!layout) return list;
-    (layout.cabins || []).forEach(function (id) {
+    cabinOrder().forEach(function (id) {
       var group = groupById(id);
       if (group) list.push({ id: id, label: group.name });
-    });
-    var subs = layout.specials && layout.specials.subCabins || [];
-    subs.forEach(function (id) {
-      var group = groupById(id);
-      if (group) list.push({ id: id, label: "Specials › " + group.name });
     });
     return list;
   }
@@ -403,26 +405,10 @@
     var groups = catalog();
     if (!root || !groups || !catalogRootNow || !catalogRootNow.layout) return;
     var buckets = viewBuckets();
-    var layout = catalogRootNow.layout;
     var html = "";
-    if (specialsOpen) {
-      html += '<button type="button" class="vc-specials-back" data-vc-specials-back>‹ Specials</button>';
-      (layout.specials.subCabins || []).forEach(function (id) {
-        html += cabinSection(groupById(id), buckets);
-      });
-    } else {
-      (layout.cabins || []).forEach(function (id) {
-        html += cabinSection(groupById(id), buckets);
-      });
-      var specialsCount = 0;
-      (layout.specials.subCabins || []).forEach(function (id) {
-        specialsCount += uniqueCount(buckets[id] || emptyMods());
-      });
-      html += '<section class="vc-block">';
-      html += '<button type="button" class="vc-cabin vc-specials" data-vc-specials="open" aria-expanded="false">' +
-        '<span class="vc-name">Specials</span><span class="vc-count">' + specialsCount + "</span></button>";
-      html += "</section>";
-    }
+    cabinOrder().forEach(function (id) {
+      html += cabinSection(groupById(id), buckets);
+    });
     root.innerHTML = html;
     paintUploadBox();
     paintPreviewMove();
@@ -871,16 +857,9 @@
   }
 
   function flatClips() {
-    var root = catalogRoot();
-    var layout = root && root.layout;
     var buckets = viewBuckets();
-    var order = [];
     var list = [];
-    if (layout) {
-      (layout.cabins || []).forEach(function (id) { order.push(id); });
-      ((layout.specials && layout.specials.subCabins) || []).forEach(function (id) { order.push(id); });
-    }
-    order.forEach(function (id) {
+    cabinOrder().forEach(function (id) {
       cabinClips(id, buckets).forEach(function (clip) { list.push(clip); });
     });
     return list;
@@ -1458,24 +1437,6 @@
       if (pickedMove && previewKey) moveVideo(previewKey, pickedMove.cabin, pickedMove.moduleId);
       return;
     }
-    if (event.target.closest("[data-vc-specials-back]")) {
-      event.preventDefault();
-      specialsOpen = false;
-      openGroup = "";
-      openModule = "";
-      uploadTarget = null;
-      render();
-      return;
-    }
-    if (event.target.closest("[data-vc-specials]")) {
-      event.preventDefault();
-      specialsOpen = true;
-      openGroup = "";
-      openModule = "";
-      uploadTarget = null;
-      render();
-      return;
-    }
     if (event.target.closest("#vc-upload-cancel")) {
       event.preventDefault();
       event.stopPropagation();
@@ -1897,6 +1858,7 @@
     decideCustom: decideCustom,
     flatClips: flatClips,
     cabinClips: cabinClips,
+    cabinOrder: cabinOrder,
     quickLabel: quickLabel,
     wrapIndex: wrapIndex,
     resolveTrimEnd: resolveTrimEnd,
