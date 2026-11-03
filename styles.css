@@ -6303,8 +6303,7 @@ body.vc-quick-open { overflow: hidden; }
 }
 
 .vc-move select,
-.vc-move-go,
-.vc-specials-back {
+.vc-move-go {
   width: 100%;
   min-height: 44px;
   margin-top: 4px;
@@ -6320,8 +6319,7 @@ body.vc-quick-open { overflow: hidden; }
   color: #f6eefe;
 }
 
-.vc-move-go,
-.vc-specials-back {
+.vc-move-go {
   border: 0;
   background: #ff8a00;
   color: #12051d;
@@ -6338,8 +6336,6 @@ body.vc-quick-open { overflow: hidden; }
   font-size: 0.8rem;
   font-weight: 700;
 }
-
-.vc-specials-back { margin-bottom: 8px; }
 
 .vc-card-wrap.is-leaving { opacity: 0; transition: opacity 0.18s linear; }
 

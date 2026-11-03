@@ -1,4 +1,4 @@
-/* Nexus v73: hub tabs are Training Schedules and Food Schedules. Stats sit in the header. */
+/* Nexus v74: hub tabs are Training Schedules and Food Schedules. Stats sit in the header. */
 var fs = require("fs");
 var crypto = require("crypto");
 var failed = 0;
@@ -17,13 +17,13 @@ var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var config = fs.readFileSync("data/nexusConfig.js", "utf8");
 
-if (app.indexOf('build: "v73"') === -1 || html.indexOf('content="v73"') === -1 || html.indexOf("?v=v72") !== -1) {
-  fail("cache stamp is not v73");
+if (app.indexOf('build: "v74"') === -1 || html.indexOf('content="v74"') === -1 || html.indexOf("?v=v72") !== -1) {
+  fail("cache stamp is not v74");
 }
-if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v73") !== -1; })) {
+if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v74") !== -1; })) {
   fail("a player-open rule was restamped");
 }
-else ok("cache stamp is v73");
+else ok("cache stamp is v74");
 
 var schedulesAt = html.indexOf('data-hub-tab="schedules"');
 var foodAt = html.indexOf('data-hub-tab="food"');
@@ -64,7 +64,7 @@ else ok("v71 and v72 behaviour stays");
 if (!failed) ok("food and smoothie files are unchanged");
 
 if (failed) {
-  console.error(failed + " v73 check(s) failed");
+  console.error(failed + " v74 check(s) failed");
   process.exit(1);
 }
-console.log("OK v73");
+console.log("OK v74");

@@ -11,7 +11,7 @@ const app = fs.readFileSync("app.js", "utf8");
 const food = fs.readFileSync("food.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v73"') === -1 || html.indexOf("food.js?v=v73") === -1) fail("cache stamp");
+if (html.indexOf('content="v74"') === -1 || html.indexOf("food.js?v=v74") === -1) fail("cache stamp");
 if (css.indexOf("#planner-sheet-host") === -1 || css.indexOf("safe-area-inset-bottom") === -1 || css.indexOf("100dvh") === -1) fail("sheet viewport");
 if (/^\.planner-sheet \{[^}]*position:\s*sticky/m.test(css)) fail("sheet still sticky");
 ["recipes", "plan", "today"].forEach(function (screen) {

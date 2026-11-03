@@ -1,4 +1,4 @@
-/* Nexus v73: cabin rows open a full-screen quick viewer. The schedule builder keeps its eye. */
+/* Nexus v74: cabin rows open a full-screen quick viewer. The schedule builder keeps its eye. */
 var fs = require("fs");
 var vm = require("vm");
 var crypto = require("crypto");
@@ -73,10 +73,10 @@ var want = layout.cabins.concat(layout.specials.subCabins);
 var cursor = 0;
 want.forEach(function (id) { if (ids[cursor] === id) cursor += 1; });
 if (cursor !== ids.length || ids[0] !== "face" || ids[ids.length - 1].indexOf("sp-") !== 0) fail("cabin order " + ids.join(","));
-else ok("order is Face through Feet, then Specials");
+else ok("order is Face through Feet, then Posture & Mobility through Target Weights");
 
-if (html.indexOf('content="v73"') === -1 || html.indexOf("?v=v66") !== -1) fail("cache stamp is not v73");
-else ok("cache stamp is v73");
+if (html.indexOf('content="v74"') === -1 || html.indexOf("?v=v66") !== -1) fail("cache stamp is not v74");
+else ok("cache stamp is v74");
 if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0; }) === false) {
   fail("player-open rules disappeared");
 }
@@ -92,7 +92,7 @@ if (css.split("\n").some(function (line) { return line.indexOf("body.player-open
 if (!failed) ok("food and smoothie files match v65");
 
 if (failed) {
-  console.error(failed + " v73 check(s) failed");
+  console.error(failed + " v74 check(s) failed");
   process.exit(1);
 }
-console.log("OK v73");
+console.log("OK v74");
