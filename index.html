@@ -6,10 +6,10 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v74" />
+  <meta name="relic-build" content="v75" />
   <title>Nexus</title>
-  <link rel="manifest" href="manifest.webmanifest?v=v74" />
-  <link rel="stylesheet" href="styles.css?v=v74" />
+  <link rel="manifest" href="manifest.webmanifest?v=v75" />
+  <link rel="stylesheet" href="styles.css?v=v75" />
 </head>
 <body>
   <div class="wrap">
@@ -28,7 +28,6 @@
           <button type="button" class="nav-toggle" id="btn-nav-toggle" aria-expanded="false" aria-controls="nav-drawer" aria-label="Open menu">
             <span class="nav-toggle-bars" aria-hidden="true"><span></span><span></span><span></span></span>
           </button>
-          <button type="button" class="hub-stats-pill" id="hub-stats-open" aria-haspopup="dialog" aria-controls="hub-stats" aria-expanded="false">Training Stats</button>
           <div class="brand-main">
             <p class="nexus-mark">Nexus</p>
             <h1 id="page-title">Training Schedules</h1>
@@ -70,6 +69,10 @@
             <h2 class="hub-stats-title">Training Stats</h2>
             <button type="button" class="hub-stats-x" id="hub-stats-x" aria-label="Close">×</button>
           </div>
+          <button type="button" class="hub-lock" id="hub-lock" aria-pressed="false" aria-label="Lock off">
+            <span class="hub-lock-label">Training Lock</span>
+            <span class="hub-lock-icon" aria-hidden="true">🔓</span>
+          </button>
           <article class="hub-row">
             <div class="hub-tile"><img data-src="assets/hub/upper-face.webp" alt="" width="96" height="96" loading="lazy" decoding="async" fetchpriority="low"></div>
             <div class="hub-row-copy">
@@ -280,6 +283,7 @@
         </button>
       </div>
       <div id="account-banner" class="account-banner" hidden>
+        <button type="button" class="account-pop-item" id="hub-stats-open" aria-haspopup="dialog" aria-controls="hub-stats" aria-expanded="false">Training Stats</button>
         <button type="button" class="account-banner-dismiss" id="account-banner-dismiss">Account Profile: coming soon.</button>
       </div>
       <button type="button" class="nav-row drawer-door" data-os-door="account">
@@ -359,24 +363,24 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v74"></script>
-  <script src="data/precondition.js?v=v74"></script>
-  <script src="data/upperBody.js?v=v74"></script>
-  <script src="data/citations.js?v=v74"></script>
-  <script src="data/forensic.js?v=v74"></script>
-  <script src="data/cues/cues.js?v=v74"></script>
-  <script src="data/forensicClips.js?v=v74"></script>
-  <script src="data/videoArchive.js?v=v74"></script>
-  <script src="data/nutrition/shop.js?v=v74"></script>
-  <script src="data/nutrition/schedule.js?v=v74"></script>
-  <script src="food.js?v=v74"></script>
-  <script src="data/nexusConfig.js?v=v74"></script>
-  <script src="deck.js?v=v74"></script>
-  <script src="data/videoCatalog.js?v=v74"></script>
-  <script src="tools/v64_placement.js?v=v74"></script>
-  <script src="trim.js?v=v74"></script>
-  <script src="builder.js?v=v74"></script>
-  <script src="cards.js?v=v74"></script>
-  <script src="app.js?v=v74"></script>
+  <script src="data/schedule.js?v=v75"></script>
+  <script src="data/precondition.js?v=v75"></script>
+  <script src="data/upperBody.js?v=v75"></script>
+  <script src="data/citations.js?v=v75"></script>
+  <script src="data/forensic.js?v=v75"></script>
+  <script src="data/cues/cues.js?v=v75"></script>
+  <script src="data/forensicClips.js?v=v75"></script>
+  <script src="data/videoArchive.js?v=v75"></script>
+  <script src="data/nutrition/shop.js?v=v75"></script>
+  <script src="data/nutrition/schedule.js?v=v75"></script>
+  <script src="food.js?v=v75"></script>
+  <script src="data/nexusConfig.js?v=v75"></script>
+  <script src="deck.js?v=v75"></script>
+  <script src="data/videoCatalog.js?v=v75"></script>
+  <script src="tools/v64_placement.js?v=v75"></script>
+  <script src="trim.js?v=v75"></script>
+  <script src="builder.js?v=v75"></script>
+  <script src="cards.js?v=v75"></script>
+  <script src="app.js?v=v75"></script>
 </body>
 </html>

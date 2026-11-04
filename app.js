@@ -321,15 +321,6 @@
     document.body.classList.toggle("hub-schedules", schedulesOnHub());
   }
 
-  function placeTrainingLock() {
-    var btn = $("btn-future-lock");
-    var slot = $("train-lock-slot");
-    var home = document.querySelector(".header-corner");
-    if (!btn || !home) return;
-    var parent = schedulesOnHub() && slot ? slot : home;
-    if (btn.parentNode !== parent) parent.appendChild(btn);
-  }
-
   function paintFutureLock() {
     var btn = $("btn-future-lock");
     if (!btn) return;
@@ -340,11 +331,24 @@
     btn.setAttribute("aria-label", on ? "Lock on" : "Lock off");
   }
 
+  function hubHeading() {
+    return state.hubTab === "food" ? "Food Schedules" : "Training Schedules";
+  }
+
+  function paintHeading(text) {
+    var pageTitle = $("page-title");
+    if (pageTitle) pageTitle.textContent = text;
+    document.title = text;
+  }
+
   function revealHubLock() {
-    var btn = $("btn-future-lock");
-    if (!btn) return;
-    if (schedulesOnHub()) btn.hidden = false;
-    placeTrainingLock();
+    var row = $("hub-lock");
+    if (!row) return;
+    var on = !!state.futureLock;
+    row.setAttribute("aria-pressed", on ? "true" : "false");
+    row.setAttribute("aria-label", on ? "Lock on" : "Lock off");
+    var icon = row.querySelector(".hub-lock-icon");
+    if (icon) icon.textContent = on ? "🔒" : "🔓";
   }
 
   function setFutureLock(on) {
@@ -1107,7 +1111,9 @@
     if (!modal) return;
     loadHubArt();
     paintHubStats();
+    revealHubLock();
     modal.hidden = false;
+    if (typeof setNavOpen === "function") setNavOpen(false);
     var opener = $("hub-stats-open");
     if (opener) opener.setAttribute("aria-expanded", "true");
     var closer = $("hub-stats-x");
@@ -1130,6 +1136,7 @@
     if (!root) return;
     if (state.hubTab !== "food" && state.hubTab !== "schedules") state.hubTab = "schedules";
     syncHubClass();
+    if (state.osDoor === "hub") paintHeading(hubHeading());
     root.querySelectorAll("[data-hub-tab]").forEach(function (tab) {
       var on = tab.getAttribute("data-hub-tab") === state.hubTab;
       tab.setAttribute("aria-selected", on ? "true" : "false");
@@ -1196,8 +1203,7 @@
     };
     var title = $("nav-drawer-title");
     if (title) title.textContent = titles[door];
-    var pageTitle = $("page-title");
-    if (pageTitle) pageTitle.textContent = titles[door];
+    paintHeading(door === "hub" ? hubHeading() : titles[door]);
     document.querySelectorAll("[data-os-door]").forEach(function (btn) {
       var on = btn.getAttribute("data-os-door") === door;
       btn.setAttribute("aria-pressed", on ? "true" : "false");
@@ -3009,7 +3015,14 @@
     var statsOpen = $("hub-stats-open");
     if (statsOpen) statsOpen.addEventListener("click", function (event) {
       event.preventDefault();
+      event.stopPropagation();
       openHubStats();
+    });
+    var hubLock = $("hub-lock");
+    if (hubLock) hubLock.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      setFutureLock(!state.futureLock);
     });
     var statsModal = $("hub-stats");
     if (statsModal) statsModal.addEventListener("click", function (event) {
@@ -3337,7 +3350,7 @@
   window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v74",
+    build: "v75",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };

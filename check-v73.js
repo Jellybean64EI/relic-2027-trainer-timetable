@@ -1,4 +1,4 @@
-/* Nexus v74: hub tabs are Training Schedules and Food Schedules. Stats sit in the header. */
+/* Nexus v75: hub tabs are Training Schedules and Food Schedules. Stats sit in the header. */
 var fs = require("fs");
 var crypto = require("crypto");
 var failed = 0;
@@ -17,13 +17,13 @@ var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var config = fs.readFileSync("data/nexusConfig.js", "utf8");
 
-if (app.indexOf('build: "v74"') === -1 || html.indexOf('content="v74"') === -1 || html.indexOf("?v=v72") !== -1) {
-  fail("cache stamp is not v74");
+if (app.indexOf('build: "v75"') === -1 || html.indexOf('content="v75"') === -1 || html.indexOf("?v=v72") !== -1) {
+  fail("cache stamp is not v75");
 }
-if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v74") !== -1; })) {
+if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v75") !== -1; })) {
   fail("a player-open rule was restamped");
 }
-else ok("cache stamp is v74");
+else ok("cache stamp is v75");
 
 var schedulesAt = html.indexOf('data-hub-tab="schedules"');
 var foodAt = html.indexOf('data-hub-tab="food"');
@@ -36,14 +36,15 @@ if (html.indexOf('id="hub-stats"') === -1 || html.indexOf('id="hub-stats-open"')
 }
 if (html.indexOf('id="train-lock-slot"') === -1) fail("training lock slot is missing");
 if (html.indexOf('id="hub-stats-x"') === -1) fail("stats modal close control is missing");
-else ok("hub tabs, stats pill, and lock slot");
+if (html.indexOf("hub-stats-pill") !== -1) fail("stats pill is still in the header");
+else ok("hub tabs and stats sheet");
 
 if (app.indexOf("function schedulesOnHub") === -1 || app.indexOf("relic_hub_tab") === -1) fail("hub tab memory is missing");
 if (app.indexOf('state.hubTab = "schedules"') === -1) fail("default hub tab is not schedules");
 if (css.indexOf("body.is-hub:not(.hub-schedules)") === -1 || css.indexOf("body.hub-schedules") === -1) {
   fail("schedules tab does not reveal the training page");
 }
-if (css.indexOf("grid-area: stats") === -1 || css.indexOf(".hub-stats-pill") === -1) fail("stats pill is not in the header grid");
+if (html.indexOf('id="hub-lock"') === -1) fail("stats lock row is missing");
 if (html.indexOf('data-os-door="training"') === -1 || html.indexOf('data-os-door="hub"') === -1) fail("menu doors are missing");
 else ok("schedules mount and menu doors");
 
@@ -64,7 +65,7 @@ else ok("v71 and v72 behaviour stays");
 if (!failed) ok("food and smoothie files are unchanged");
 
 if (failed) {
-  console.error(failed + " v74 check(s) failed");
+  console.error(failed + " v75 check(s) failed");
   process.exit(1);
 }
-console.log("OK v74");
+console.log("OK v75");

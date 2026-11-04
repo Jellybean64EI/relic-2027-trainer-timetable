@@ -10,10 +10,10 @@ const html = fs.readFileSync("index.html", "utf8");
 const app = fs.readFileSync("app.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v74"') === -1 || html.indexOf("app.js?v=v74") === -1) {
-  fail("index.html is not stamped v74");
+if (html.indexOf('content="v75"') === -1 || html.indexOf("app.js?v=v75") === -1) {
+  fail("index.html is not stamped v75");
 }
-if (app.indexOf('build: "v74"') === -1) fail("RelicArchitect.build is not v74");
+if (app.indexOf('build: "v75"') === -1) fail("RelicArchitect.build is not v75");
 if (html.indexOf("JOSEPH · LONDON") !== -1 || html.indexOf("corner-who") !== -1 || html.indexOf("meta-mode") !== -1) {
   fail("public corner still has the name or lock status");
 }
@@ -167,7 +167,7 @@ function expect(arch, dateKey, want, label) {
 
 const open = load("?date=2026-10-06");
 const arch = open.RelicArchitect;
-if (!arch || arch.build !== "v74" || arch.futureLock !== false) fail("default lock is not off");
+if (!arch || arch.build !== "v75" || arch.futureLock !== false) fail("default lock is not off");
 else {
   expect(arch, "2026-10-06", true, "open today");
   ["2026-10-07", "2026-12-31", "2027-01-01", "2027-10-07"].forEach(function (dateKey) {
@@ -238,8 +238,8 @@ if (arch && typeof arch.applyOsDoor === "function") {
   }
   if (arch.applyOsDoor("notes") !== false) fail("notes door did not land on the Hub");
   if (open.nodes["nav-drawer-title"].textContent !== "Main Menu Hub") fail("notes door title");
-  if (open.nodes["btn-future-lock"].hidden) fail("hub schedules hides the lock");
-  if (arch.applyOsDoor("hub") !== false || open.nodes["btn-future-lock"].hidden) fail("hub schedules hides the lock");
+  if (!open.nodes["btn-future-lock"].hidden) fail("hub shows the header lock");
+  if (arch.applyOsDoor("hub") !== false || !open.nodes["btn-future-lock"].hidden) fail("hub shows the header lock");
   if (arch.applyOsDoor("account") !== false || !open.nodes["btn-future-lock"].hidden) fail("account shows the lock");
   if (arch.applyOsDoor("training") !== true || open.nodes["btn-future-lock"].hidden) fail("training lock did not return");
 } else {
