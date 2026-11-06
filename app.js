@@ -1734,68 +1734,84 @@
     return raw || player.cabin || "—";
   }
 
+  function clipMediaKey(clip) {
+    if (clip && clip.r2Key) return String(clip.r2Key);
+    var src = clip && clip.src ? String(clip.src) : "";
+    var match = src.match(/r2\.dev\/([^?#]+)/);
+    if (!match) return "";
+    try { return decodeURIComponent(match[1]); } catch (err) { return match[1]; }
+  }
+
+  function archiveDriveId(clip) {
+    if (clip && clip.id) return String(clip.id);
+    var archive = window.RELIC_VIDEO_ARCHIVE && window.RELIC_VIDEO_ARCHIVE.cabins;
+    var cabin = archive && player.cabin && archive[player.cabin];
+    var raw = (cabin && cabin.playlist) || [];
+    var src = clip && clip.src ? String(clip.src) : "";
+    if (!src) return "";
+    var i;
+    for (i = 0; i < raw.length; i++) {
+      if (!raw[i] || !raw[i].id) continue;
+      if (resolveClipSrc(player.cabin, raw[i]) === src) return String(raw[i].id);
+    }
+    return "";
+  }
+
   function paintForensic() {
-    var cabinKey = player.cabin || "";
+    var host = $("forensic-scroll");
+    if (!host || !window.NexusCue) return;
     var clip = currentClip();
-    var entry = null;
+    var mediaKey = clipMediaKey(clip);
+    var identity = window.NexusCards && window.NexusCards.identityByKey ? window.NexusCards.identityByKey(mediaKey) : null;
+    var driveId = archiveDriveId(clip);
+    var legacy = null;
     var lib = window.RELIC_FORENSIC;
-    if (lib && typeof lib.readClip === "function") {
-      entry = lib.readClip({
+    if (lib && typeof lib.readClip === "function" && driveId) {
+      legacy = lib.readClip({
         branch: "year",
-        cabinKey: cabinKey,
-        clipId: clip && clip.id,
+        cabinKey: player.cabin || "",
+        clipId: driveId,
         title: clip && clip.title,
         phase: player.phase || "Base"
       });
-    } else if (lib && typeof lib.read === "function") {
-      entry = lib.read("year", cabinKey);
     }
-    var cabinEl = $("forensic-cabin");
-    if (cabinEl) cabinEl.textContent = cabinKey ? cabinKey.replace(/_/g, " ") : "";
-    var titleEl = $("forensic-title");
-    if (titleEl) titleEl.textContent = clipDisplayTitle(clip, entry);
-    var leadEl = $("forensic-lead");
-    var leadBody = $("forensic-lead-body");
-    if (leadEl && leadBody) {
-      var lead = entry && entry.leadRule ? entry.leadRule : "";
-      if (entry && entry.source === "clip" && !lead) {
-        leadEl.hidden = true;
-        leadBody.textContent = "";
-      } else {
-        leadEl.hidden = false;
-        leadBody.textContent = lead || "Left-Lead. 3-second ease.";
-      }
-    }
-    var doEl = $("forensic-do");
-    if (doEl) doEl.textContent = (entry && entry.doThis) ? entry.doThis : "—";
-    var avoidEl = $("forensic-avoid");
-    if (avoidEl) avoidEl.textContent = (entry && entry.avoidThis) ? entry.avoidThis : "—";
-    var breathEl = $("forensic-breath");
-    if (breathEl) {
-      var breath = entry && entry.breathing ? String(entry.breathing) : "";
-      breathEl.hidden = !breath;
-      breathEl.textContent = breath ? ("Breathing: " + breath) : "";
-    }
-    var metrics = $("forensic-metrics");
-    if (metrics) {
-      metrics.textContent = (entry && entry.metrics)
-        ? entry.metrics
-        : "Sets: — | Reps: — | Hold: — | Rest: —";
-    }
+    var manual = window.NexusCueEdit && identity ? window.NexusCueEdit.forIdentity(identity) : null;
+    var view = window.NexusCue.resolve({
+      title: clipDisplayTitle(clip, null),
+      identity: identity,
+      driveId: driveId,
+      legacy: legacy,
+      manual: manual
+    });
+    /* The schedule sheet never prints the numeric id. */
+    host.innerHTML = window.NexusCue.render(view);
   }
 
-  function setForensicOpen(open) {
+  function setCueLevel(level) {
     var panel = $("forensic-panel");
     var tab = $("forensic-tab");
     if (!panel || !tab) return;
-    var next = !!open;
-    /* Slide only. Leave player.timerId, the countdown, and the video src alone. */
-    tab.setAttribute("aria-expanded", next ? "true" : "false");
-    panel.setAttribute("aria-hidden", next ? "false" : "true");
-    if ("inert" in panel) panel.inert = !next;
+    var next = Math.max(0, Math.min(2, level | 0));
+    player.cueLevel = next;
+    var open = next > 0;
+    /* Slide and resize only. Leave playback, pause, and the video src alone. */
+    tab.setAttribute("aria-expanded", open ? "true" : "false");
+    tab.setAttribute("aria-valuenow", String(next));
+    tab.setAttribute("aria-valuemin", "0");
+    tab.setAttribute("aria-valuemax", "2");
+    panel.setAttribute("aria-hidden", open ? "false" : "true");
+    if ("inert" in panel) panel.inert = !open;
     var stage = playerStage();
-    if (stage) stage.classList.toggle("is-forensic-open", next);
-    if (next) paintForensic();
+    if (stage) {
+      stage.classList.toggle("is-forensic-open", open);
+      stage.classList.toggle("is-cue-mid", next === 1);
+      stage.classList.toggle("is-cue-full", next === 2);
+    }
+    if (open) paintForensic();
+  }
+
+  function setForensicOpen(open) {
+    setCueLevel(open ? (player.cueLevel > 0 ? player.cueLevel : 1) : 0);
   }
 
   function stopForensicEvent(event) {
@@ -2919,7 +2935,9 @@
         title: clip.title || "Clip",
         src: String(clip.src),
         cabin: clip.cabin || "",
-        stage: String(clip.stage || "").trim()
+        stage: String(clip.stage || "").trim(),
+        r2Key: clip.r2Key || "",
+        id: clip.id || ""
       });
     });
     if (!list.length) return;
@@ -3109,6 +3127,8 @@
     var forensicTab = $("forensic-tab");
     var forensicPanel = $("forensic-panel");
     var forensicDock = $("forensic-dock");
+    var forensicScroll = $("forensic-scroll");
+    if (forensicScroll) forensicScroll.tabIndex = 0;
     if (forensicDock) {
       forensicDock.addEventListener("pointerdown", stopForensicEvent);
       forensicDock.addEventListener("click", stopForensicEvent);
@@ -3136,18 +3156,29 @@
         event.stopPropagation();
         if (Math.abs(delta.dx) > Math.abs(delta.dy) && Math.abs(delta.dx) > TAP_SLOP) return;
         if (delta.dy < -28) {
-          setForensicOpen(true);
+          setCueLevel((player.cueLevel || 0) + 1);
           return;
         }
         if (delta.dy > 28) {
-          setForensicOpen(false);
+          setCueLevel((player.cueLevel || 0) - 1);
           return;
         }
-        if (Math.abs(delta.dx) < TAP_SLOP && Math.abs(delta.dy) < TAP_SLOP) setForensicOpen(true);
+        if (Math.abs(delta.dx) < TAP_SLOP && Math.abs(delta.dy) < TAP_SLOP) {
+          setCueLevel((player.cueLevel || 0) >= 2 ? 0 : (player.cueLevel || 0) + 1);
+        }
       });
       forensicTab.addEventListener("click", function (event) {
         event.preventDefault();
         event.stopPropagation();
+      });
+      forensicTab.addEventListener("keydown", function (event) {
+        if (event.key === "ArrowUp") {
+          event.preventDefault();
+          setCueLevel((player.cueLevel || 0) + 1);
+        } else if (event.key === "ArrowDown") {
+          event.preventDefault();
+          setCueLevel((player.cueLevel || 0) - 1);
+        }
       });
     }
     if (forensicPanel) {
@@ -3347,10 +3378,15 @@
     setInterval(paintLondonClock, 1000);
   }
 
-  window.playNextVideo = playNextVideo;
+    window.repaintCueSheet = function () {
+      var root = $("relic-player");
+      if (!root || root.hidden || !(player.cueLevel > 0)) return;
+      paintForensic();
+    };
+    window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v76",
+    build: "v77",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };

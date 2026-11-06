@@ -1,4 +1,4 @@
-/* Nexus v76: every video has a persistent numeric id, shown only in the cabin player. */
+/* Nexus v77: every video has a persistent numeric id, shown only in the cabin player. */
 var fs = require("fs");
 var crypto = require("crypto");
 var failed = 0;
@@ -20,9 +20,9 @@ var config = fs.readFileSync("data/nexusConfig.js", "utf8");
 var seed = JSON.parse(fs.readFileSync("data/videoIdentity.json", "utf8"));
 var rows = seed.identities || [];
 
-if (app.indexOf('build: "v76"') === -1 || html.indexOf('content="v76"') === -1 || html.indexOf("cards.js?v=v76") === -1 || html.indexOf("?v=v75") !== -1) {
-  fail("cache stamp is not v76");
-} else ok("cache stamp is v76");
+if (app.indexOf('build: "v77"') === -1 || html.indexOf('content="v77"') === -1 || html.indexOf("cards.js?v=v77") === -1 || html.indexOf("?v=v75") !== -1) {
+  fail("cache stamp is not v77");
+} else ok("cache stamp is v77");
 
 if (cards.indexOf("vc-quick-id") === -1 || cards.indexOf("function identityId") === -1) fail("cabin player id is missing");
 if (cards.indexOf('return item.cabinName + " · " + item.moduleName') === -1) fail("quick label no longer is the module line");
@@ -64,7 +64,7 @@ else ok("seed preserves 10001, 10420 and 10438");
 if (!failed) ok("food files are unchanged");
 
 if (failed) {
-  console.error(failed + " v76 check(s) failed");
+  console.error(failed + " v77 check(s) failed");
   process.exit(1);
 }
-console.log("OK v76");
+console.log("OK v77");

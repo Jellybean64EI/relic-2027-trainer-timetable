@@ -838,8 +838,12 @@
 
   var videoIds = {};
 
+  function identityByKey(key) {
+    return (key && videoIds[key]) || null;
+  }
+
   function identityId(key) {
-    var row = key && videoIds[key];
+    var row = identityByKey(key);
     if (!row || row.status === "deleted" || !row.videoId) return 0;
     return row.videoId;
   }
@@ -997,6 +1001,7 @@
     paintNav();
     paintTag();
     paintProgress();
+    if (window.NexusCueEdit) window.NexusCueEdit.paint();
   }
 
   function openQuick(key, cabinId) {
@@ -1040,7 +1045,13 @@
     showQuick(true);
   }
 
+  function leaveCueEdit() {
+    if (!window.NexusCueEdit || !window.NexusCueEdit.editing()) return true;
+    return window.NexusCueEdit.close(false);
+  }
+
   function closeQuick() {
+    if (!leaveCueEdit()) return;
     var root = document.getElementById("vc-quick");
     var video = document.getElementById("vc-quick-video");
     var ahead = document.getElementById("vc-quick-next");
@@ -1067,6 +1078,7 @@
   function stepQuick(dir) {
     if (quickDelete) return;
     if (quickMove || !quickList.length) return;
+    if (!leaveCueEdit()) return;
     quickIndex = wrapIndex(quickIndex, quickList.length, dir);
     quickMove = false;
     trimOpen = false;
@@ -1633,6 +1645,7 @@
               "</div>" +
             "</div>" : "") +
           '<video id="vc-quick-next" class="vc-quick-preload" preload="metadata" muted playsinline></video>' +
+          '<section id="vc-cue" class="vc-cue" aria-label="Cue sheet"></section>' +
           '<div class="vc-quick-nav">' +
             '<button type="button" class="vc-quick-back">Back</button>' +
             '<button type="button" class="vc-quick-move" aria-label="Move">Move</button>' +
@@ -1642,6 +1655,7 @@
           '<p id="vc-trim-toast" class="vc-trim-toast" hidden></p>' +
         "</div>";
       document.body.appendChild(quick);
+      if (window.NexusCueEdit) window.NexusCueEdit.mount();
       if (editorOn()) {
       var deleter = document.createElement("div");
       deleter.id = "vc-delete";
@@ -1871,6 +1885,10 @@
     loadStorage();
     loadPlacements();
     loadVideoIds();
+    if (window.NexusCueEdit) {
+      window.NexusCueEdit.mount();
+      window.NexusCueEdit.load();
+    }
     loadDeletedLog();
     if (window.NexusTrim) window.NexusTrim.load();
   }
@@ -1908,6 +1926,8 @@
     cabinClips: cabinClips,
     cabinOrder: cabinOrder,
     identityId: identityId,
+    identityByKey: identityByKey,
+    previewKey: function () { return previewKey; },
     quickLabel: quickLabel,
     wrapIndex: wrapIndex,
     resolveTrimEnd: resolveTrimEnd,

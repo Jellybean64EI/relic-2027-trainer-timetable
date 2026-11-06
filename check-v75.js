@@ -1,4 +1,4 @@
-/* Nexus v76: the hub header follows the open tab. Training Stats opens from the account menu. */
+/* Nexus v77: the hub header follows the open tab. Training Stats opens from the account menu. */
 var fs = require("fs");
 var crypto = require("crypto");
 var failed = 0;
@@ -17,10 +17,10 @@ var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var config = fs.readFileSync("data/nexusConfig.js", "utf8");
 
-if (app.indexOf('build: "v76"') === -1 || html.indexOf('content="v76"') === -1 || html.indexOf("?v=v74") !== -1) {
-  fail("cache stamp is not v76");
-} else ok("cache stamp is v76");
-if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v76") !== -1; })) {
+if (app.indexOf('build: "v77"') === -1 || html.indexOf('content="v77"') === -1 || html.indexOf("?v=v74") !== -1) {
+  fail("cache stamp is not v77");
+} else ok("cache stamp is v77");
+if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v77") !== -1; })) {
   fail("a player-open rule was restamped");
 }
 
@@ -56,7 +56,7 @@ else ok("tab title, lock handler, and editor flag");
 if (!failed) ok("food files are unchanged");
 
 if (failed) {
-  console.error(failed + " v76 check(s) failed");
+  console.error(failed + " v77 check(s) failed");
   process.exit(1);
 }
-console.log("OK v76");
+console.log("OK v77");
