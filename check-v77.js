@@ -135,6 +135,42 @@ var canned = Cue.resolve({
 if (canned.leads.length !== 0) fail("canned legacy lead was kept");
 else ok("canned legacy lead is not kept");
 
+var manual = Cue.resolve({
+  title: "REF Shoulder check",
+  identity: { videoId: 10001, r2Key: "Cabin/clip.mp4", status: "active", title: "REF Shoulder check" },
+  manual: { videoId: 10001, r2Key: "Cabin/clip.mp4", cue: { leads: ["Brace."], steps: ["Sit tall."], dose: { sets: "2" }, breathing: "", avoid: "Shrugging.", source: "Joe's note" } }
+});
+var manualHtml = Cue.render(manual);
+if (manual.origin !== "manual" || manualHtml.indexOf("Joe entered") === -1 || manualHtml.indexOf("Reference clip.") === -1) fail("manual cue lost its label or the reference warning");
+else ok("manual cue stays labelled and keeps the reference warning");
+if (manualHtml.indexOf("Not entered") === -1) fail("blank manual fields were filled in");
+else ok("blank manual fields say not entered");
+
+var manualMiss = Cue.resolve({
+  title: "Other",
+  identity: { videoId: 10001, r2Key: "Cabin/clip.mp4", status: "active" },
+  manual: { videoId: 10001, r2Key: "Other/clip.mp4", cue: { leads: ["Wrong video."] } }
+});
+if (manualMiss.origin === "manual") fail("manual cue followed a mismatched key");
+else ok("manual cue rejects a mismatched key");
+
+vm.runInContext(fs.readFileSync("data/cueEditor.js", "utf8"), sandbox);
+var Edit = sandbox.window.NexusCueEdit;
+if (Edit.identityError({ videoId: 10001, r2Key: "A", status: "reserved" }, 10001, "A") === "") fail("reserved id was editable");
+else ok("reserved id is not editable");
+if (Edit.identityError({ videoId: 10001, r2Key: "A", status: "active" }, 10002, "A") === "") fail("id swap was editable");
+else ok("id swap is not editable");
+if (!Edit.blank({ leads: ["", "", ""], steps: [], dose: {}, breathing: "", avoid: "", source: "" })) fail("empty cue was treated as content");
+else ok("empty cue is blank");
+
+var worker = fs.readFileSync("worker/nexus-api.js", "utf8");
+var gateAt = worker.indexOf('req.headers.get("X-Nexus-Key")');
+var routeAt = worker.indexOf('case "video-cues"');
+if (routeAt === -1 || gateAt === -1 || routeAt < gateAt) fail("cue route is outside the key gate");
+else ok("cue writes sit behind the existing key gate");
+if (html.indexOf("data/cueEditor.js") === -1) fail("cue editor is not loaded");
+else ok("cue editor is loaded");
+
 if (failed) {
   console.error(failed + " v77 check(s) failed");
   process.exit(1);

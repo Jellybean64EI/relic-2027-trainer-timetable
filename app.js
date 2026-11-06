@@ -1775,11 +1775,13 @@
         phase: player.phase || "Base"
       });
     }
+    var manual = window.NexusCueEdit && identity ? window.NexusCueEdit.forIdentity(identity) : null;
     var view = window.NexusCue.resolve({
       title: clipDisplayTitle(clip, null),
       identity: identity,
       driveId: driveId,
-      legacy: legacy
+      legacy: legacy,
+      manual: manual
     });
     /* The schedule sheet never prints the numeric id. */
     host.innerHTML = window.NexusCue.render(view);
@@ -3376,7 +3378,12 @@
     setInterval(paintLondonClock, 1000);
   }
 
-  window.playNextVideo = playNextVideo;
+    window.repaintCueSheet = function () {
+      var root = $("relic-player");
+      if (!root || root.hidden || !(player.cueLevel > 0)) return;
+      paintForensic();
+    };
+    window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
     build: "v77",

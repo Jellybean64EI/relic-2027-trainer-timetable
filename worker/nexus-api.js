@@ -1103,6 +1103,83 @@ async function handleVideoIds(req, env, action) {
   return err(405, "method not allowed");
 }
 
+// v77: Joe-entered cue notes. Writes use the same X-Nexus-Key gate as every other write.
+let cuesReady = false;
+async function ensureCueTable(db) {
+  if (cuesReady) return;
+  await db.prepare(`CREATE TABLE IF NOT EXISTS video_cues (
+    video_id INTEGER PRIMARY KEY,
+    r2_key TEXT NOT NULL,
+    body TEXT NOT NULL,
+    origin TEXT NOT NULL DEFAULT 'manual',
+    updated_at TEXT NOT NULL
+  )`).run();
+  cuesReady = true;
+}
+function clipText(value, max) {
+  return String(value == null ? "" : value).replace(/\s+/g, " ").trim().slice(0, max);
+}
+function cleanCue(input) {
+  const src = input && typeof input === "object" ? input : {};
+  const leadsIn = Array.isArray(src.leads) ? src.leads : [];
+  const dose = src.dose && typeof src.dose === "object" ? src.dose : {};
+  return {
+    leads: [0, 1, 2].map((i) => clipText(leadsIn[i], 180)),
+    steps: (Array.isArray(src.steps) ? src.steps : []).map((step) => clipText(step, 280)).filter(Boolean).slice(0, 8),
+    dose: {
+      sets: clipText(dose.sets, 40),
+      reps: clipText(dose.reps, 40),
+      hold: clipText(dose.hold, 40),
+      rest: clipText(dose.rest, 40),
+    },
+    breathing: clipText(src.breathing, 280),
+    avoid: clipText(src.avoid, 280),
+    source: clipText(src.source, 200),
+  };
+}
+function cueBlank(cue) {
+  return !cue.leads.some(Boolean) && !cue.steps.length && !cue.dose.sets && !cue.dose.reps && !cue.dose.hold && !cue.dose.rest && !cue.breathing && !cue.avoid && !cue.source;
+}
+function cueOut(row) {
+  let cue = null;
+  try { cue = JSON.parse(row.body); } catch { cue = null; }
+  if (!cue) return null;
+  return { videoId: row.video_id, r2Key: row.r2_key, origin: "manual", cue, updatedAt: row.updated_at };
+}
+async function handleVideoCues(req, env) {
+  await ensureCueTable(env.DB);
+  await ensureIdentityTable(env.DB);
+  if (req.method === "GET") {
+    const { results } = await env.DB.prepare("SELECT video_id, r2_key, body, origin, updated_at FROM video_cues ORDER BY video_id").all();
+    return json({ ok: true, cues: (results || []).map(cueOut).filter(Boolean) });
+  }
+  if (req.method !== "PUT") return err(405, "method not allowed");
+  const b = await body(req);
+  const videoId = Number(b && b.videoId);
+  const r2Key = b && b.r2Key ? String(b.r2Key) : "";
+  if (!Number.isInteger(videoId) || videoId < 10001) return err(400, "bad video id");
+  if (!r2Key || r2Key.length > 300 || r2Key.includes("..")) return err(400, "bad media key");
+  const ident = await env.DB.prepare("SELECT video_id, r2_key, status FROM video_identity WHERE video_id = ?").bind(videoId).first();
+  if (!ident) return err(404, "unknown video id");
+  if (ident.status === "reserved" || ident.status === "deleted") return err(409, "identity is " + ident.status);
+  if ((ident.r2_key || "") !== r2Key) return err(409, "media key does not match this id");
+  const cue = cleanCue(b && b.cue);
+  const existing = await env.DB.prepare("SELECT video_id FROM video_cues WHERE video_id = ?").bind(videoId).first();
+  if (cueBlank(cue)) {
+    if (existing && !(b && b.confirmClear)) return err(409, "empty cue would wipe saved notes");
+    if (existing) await env.DB.prepare("DELETE FROM video_cues WHERE video_id = ?").bind(videoId).run();
+    return json({ ok: true, cleared: true, videoId, r2Key });
+  }
+  const payload = JSON.stringify(cue);
+  const stamp = now();
+  if (existing) {
+    await env.DB.prepare("UPDATE video_cues SET r2_key = ?, body = ?, origin = 'manual', updated_at = ? WHERE video_id = ?").bind(r2Key, payload, stamp, videoId).run();
+  } else {
+    await env.DB.prepare("INSERT INTO video_cues (video_id, r2_key, body, origin, updated_at) VALUES (?, ?, ?, 'manual', ?)").bind(videoId, r2Key, payload, stamp).run();
+  }
+  return json({ ok: true, videoId, r2Key, origin: "manual", cue, updatedAt: stamp });
+}
+
 export default {
   async fetch(req, env) {
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
@@ -1140,6 +1217,7 @@ export default {
         case "custom-videos": return await handleCustomList(req, env);
         case "video-placements": return await handlePlacements(req, env, url);
         case "video-ids": return await handleVideoIds(req, env, a);
+        case "video-cues": return await handleVideoCues(req, env);
         case "video-trims": return await handleTrims(req, env, url, a);
         case "video-sync-log": return await handleSyncLog(req, env);
         case "videos": return await handleVideos(req, env, url);

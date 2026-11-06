@@ -27,6 +27,10 @@ window.NexusCue = (function () {
     return { state: "awaiting", text: "", kind: kind || "" };
   }
 
+  function blankField() {
+    return { state: "blank", text: "" };
+  }
+
   function textField(text, source) {
     var value = clean(text);
     if (!value) return awaitingField(source);
@@ -120,6 +124,33 @@ window.NexusCue = (function () {
     };
   }
 
+  function fromManual(row, identity, titleText) {
+    var cue = row.cue || {};
+    var leads = [0, 1, 2].map(function (index) { return clean((cue.leads || [])[index]); });
+    var filled = leads.filter(Boolean);
+    var steps = Array.isArray(cue.steps) ? cue.steps.map(clean).filter(Boolean) : [];
+    var dose = cue.dose || {};
+    var doseState = dose.sets || dose.reps || dose.hold || dose.rest
+      ? { state: "value", sets: dose.sets || "", reps: dose.reps || "", hold: dose.hold || "", rest: dose.rest || "" }
+      : blankField();
+    var title = clean(titleText) || clean(identity && identity.title);
+    return {
+      origin: "manual",
+      videoId: identity.videoId,
+      title: title,
+      reference: referenceKind(title),
+      dose: doseState,
+      leads: filled,
+      leadsState: filled.length === 3 ? "text" : filled.length ? "partial" : "blank",
+      steps: steps,
+      breathing: clean(cue.breathing) ? textField(cue.breathing, "manual") : blankField(),
+      avoid: clean(cue.avoid) ? textField(cue.avoid, "manual") : blankField(),
+      sources: ["Joe entered. Not footage-verified."].concat(clean(cue.source) ? [clean(cue.source)] : []),
+      progressions: [],
+      reject: ""
+    };
+  }
+
   function awaiting(title) {
     var kind = referenceKind(title);
     return {
@@ -143,6 +174,10 @@ window.NexusCue = (function () {
     var query = input || {};
     var identity = query.identity || null;
     var title = query.title || (identity && identity.title) || "";
+    var manual = query.manual;
+    if (manual && identity && !identityBlocks(identity) && Number(manual.videoId) === Number(identity.videoId) && manual.r2Key && identity.r2Key && manual.r2Key === identity.r2Key) {
+      return fromManual(manual, identity, title);
+    }
     var packed = packFor(identity);
     if (packed.row) return fromPack(packed.row, identity);
     var legacy = query.legacy;
@@ -156,21 +191,22 @@ window.NexusCue = (function () {
 
   function fieldText(field) {
     if (!field || field.state === "awaiting") return "Awaiting review";
+    if (field.state === "blank") return "Not entered";
     if (field.state === "na") return "Not applicable. " + (field.text || "");
     return field.text || "Awaiting review";
   }
 
   function doseHtml(dose) {
-    if (!dose || dose.state === "awaiting") {
-      return '<p class="cue-await">Awaiting review</p>';
+    if (!dose || dose.state === "awaiting" || dose.state === "blank") {
+      return '<p class="cue-await">' + (dose && dose.state === "blank" ? "Not entered" : "Awaiting review") + "</p>";
     }
     if (dose.state === "na") return '<p class="cue-na">' + esc(fieldText(dose)) + "</p>";
     if (dose.state === "legacy") return '<p class="cue-legacy">' + esc(dose.text) + "</p>";
     return '<dl class="cue-dose">' +
-      "<div><dt>Sets</dt><dd>" + esc(dose.sets) + "</dd></div>" +
-      "<div><dt>Reps</dt><dd>" + esc(dose.reps) + "</dd></div>" +
-      "<div><dt>Hold</dt><dd>" + esc(dose.hold) + "</dd></div>" +
-      "<div><dt>Rest</dt><dd>" + esc(dose.rest) + "</dd></div>" +
+      "<div><dt>Sets</dt><dd>" + esc(dose.sets || "Not entered") + "</dd></div>" +
+      "<div><dt>Reps</dt><dd>" + esc(dose.reps || "Not entered") + "</dd></div>" +
+      "<div><dt>Hold</dt><dd>" + esc(dose.hold || "Not entered") + "</dd></div>" +
+      "<div><dt>Rest</dt><dd>" + esc(dose.rest || "Not entered") + "</dd></div>" +
       "</dl>";
   }
 
@@ -185,7 +221,12 @@ window.NexusCue = (function () {
     if (cue.reference === "REF" || cue.reference === "EDU") {
       banner = '<p class="cue-ref">' + (cue.reference === "EDU" ? "Education clip." : "Reference clip.") + " Not a home drill.</p>";
     }
-    var leadsNote = cue.leadsState === "partial" ? '<p class="cue-await">The other lead notes are awaiting review.</p>' : "";
+    var leadsNote = cue.origin === "manual" && cue.leadsState !== "text"
+      ? '<p class="cue-await">Not entered</p>'
+      : cue.leadsState === "partial" ? '<p class="cue-await">The other lead notes are awaiting review.</p>' : "";
+    var manualNote = cue.origin === "manual"
+      ? '<p class="cue-manual">Joe entered. Not footage-verified. Editing this does not clear the clip for a schedule.</p>'
+      : "";
     var extra = "";
     if ((cue.sources && cue.sources.length) || (cue.progressions && cue.progressions.length)) {
       extra = "<details class=\"cue-more\"><summary>Sources and progressions</summary>";
@@ -193,11 +234,11 @@ window.NexusCue = (function () {
       if (cue.progressions.length) extra += "<ol>" + cue.progressions.map(function (item) { return "<li>" + esc(item) + "</li>"; }).join("") + "</ol>";
       extra += "</details>";
     }
-    return banner +
+    return manualNote + banner +
       '<h2 class="forensic-title" id="forensic-title">' + esc(cue.title || "Clip") + "</h2>" +
       '<section class="cue-block"><h3>Dose</h3>' + doseHtml(cue.dose) + "</section>" +
-      '<section class="cue-block" id="forensic-lead"><h3>3 lead notes</h3>' + listHtml(cue.leads) + leadsNote + "</section>" +
-      '<section class="cue-block" id="forensic-do"><h3>Do this</h3>' + listHtml(cue.steps) + "</section>" +
+      '<section class="cue-block" id="forensic-lead"><h3>3 lead notes</h3>' + listHtml(cue.leads, cue.origin === "manual" ? "Not entered" : "Awaiting review") + leadsNote + "</section>" +
+      '<section class="cue-block" id="forensic-do"><h3>Do this</h3>' + listHtml(cue.steps, cue.origin === "manual" ? "Not entered" : "Awaiting review") + "</section>" +
       '<section class="cue-block" id="forensic-breath"><h3>Breathing</h3><p>' + esc(fieldText(cue.breathing)) + "</p></section>" +
       '<section class="cue-block" id="forensic-avoid"><h3>Avoid</h3><p>' + esc(fieldText(cue.avoid)) + "</p></section>" +
       extra;
