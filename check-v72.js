@@ -1,4 +1,4 @@
-/* Nexus v75: no blue tap flash on the menu, and a short orange press. */
+/* Nexus v76: no blue tap flash on the menu, and a short orange press. */
 var fs = require("fs");
 var crypto = require("crypto");
 var failed = 0;
@@ -31,10 +31,10 @@ if (css.indexOf("-webkit-touch-callout: none") === -1 || css.indexOf("user-selec
   fail("long-press highlight is not suppressed");
 }
 if (css.indexOf("body.vc-quick-open .nav-toggle") === -1) fail("v71 menu slot was removed");
-if (app.indexOf('build: "v75"') === -1 || html.indexOf('content="v75"') === -1 || html.indexOf("?v=v71") !== -1) {
-  fail("cache stamp is not v75");
+if (app.indexOf('build: "v76"') === -1 || html.indexOf('content="v76"') === -1 || html.indexOf("?v=v71") !== -1) {
+  fail("cache stamp is not v76");
 }
-if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v75") !== -1; })) {
+if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v76") !== -1; })) {
   fail("a player-open rule was restamped");
 }
 else ok("tap highlight, focus ring, and stamp");
@@ -51,7 +51,7 @@ else ok("tap highlight, focus ring, and stamp");
 if (!failed) ok("food and smoothie files are unchanged");
 
 if (failed) {
-  console.error(failed + " v75 check(s) failed");
+  console.error(failed + " v76 check(s) failed");
   process.exit(1);
 }
-console.log("OK v75");
+console.log("OK v76");

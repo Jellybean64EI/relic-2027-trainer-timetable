@@ -109,14 +109,14 @@ var advance = sliceFn(app, "advance", "reconcileVisibility");
 if (!/if\s*\(\s*!manual\s*\)/.test(advance) || advance.indexOf("armClock(nextMs)") === -1) fail("skip still resets the 20:00 countdown");
 else ok("manual skip keeps the countdown");
 
-if (app.indexOf('build: "v75"') === -1) fail("RelicArchitect.build is not v75");
-else ok("build stamp is v75");
+if (app.indexOf('build: "v76"') === -1) fail("RelicArchitect.build is not v76");
+else ok("build stamp is v76");
 
-["styles.css?v=v75", "app.js?v=v75", "deck.js?v=v75", "cards.js?v=v75", "builder.js?v=v75"].forEach(function (stamp) {
+["styles.css?v=v76", "app.js?v=v76", "deck.js?v=v76", "cards.js?v=v76", "builder.js?v=v76"].forEach(function (stamp) {
   if (html.indexOf(stamp) === -1) fail("index.html is missing " + stamp);
 });
 if (html.indexOf("v62") !== -1) fail("index.html still says v62");
-else ok("cache stamp is v75");
+else ok("cache stamp is v76");
 
 var protectedPaths = [
   "data/schedule.js",

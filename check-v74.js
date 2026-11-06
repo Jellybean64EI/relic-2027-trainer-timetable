@@ -1,4 +1,4 @@
-/* Nexus v75: the five Specials sub-cabins are normal cabins after Feet. */
+/* Nexus v76: the five Specials sub-cabins are normal cabins after Feet. */
 var fs = require("fs");
 var vm = require("vm");
 var crypto = require("crypto");
@@ -37,10 +37,10 @@ var css = fs.readFileSync("styles.css", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var config = fs.readFileSync("data/nexusConfig.js", "utf8");
 
-if (app.indexOf('build: "v75"') === -1 || html.indexOf('content="v75"') === -1 || html.indexOf("cards.js?v=v75") === -1 || html.indexOf("?v=v73") !== -1) {
-  fail("cache stamp is not v75");
-} else ok("cache stamp is v75");
-if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v75") !== -1; })) {
+if (app.indexOf('build: "v76"') === -1 || html.indexOf('content="v76"') === -1 || html.indexOf("cards.js?v=v76") === -1 || html.indexOf("?v=v73") !== -1) {
+  fail("cache stamp is not v76");
+} else ok("cache stamp is v76");
+if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v76") !== -1; })) {
   fail("a player-open rule was restamped");
 }
 if (config.indexOf("videoEditor: false") === -1) fail("video editor flag is not off");
@@ -123,7 +123,7 @@ else {
 }
 
 if (failed) {
-  console.error(failed + " v75 check(s) failed");
+  console.error(failed + " v76 check(s) failed");
   process.exit(1);
 }
-console.log("OK v75");
+console.log("OK v76");

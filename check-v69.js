@@ -1,4 +1,4 @@
-/* Nexus v75: delete a video from the viewer, and show trim sync status. */
+/* Nexus v76: delete a video from the viewer, and show trim sync status. */
 var fs = require("fs");
 var vm = require("vm");
 var crypto = require("crypto");
@@ -30,8 +30,8 @@ if (trim.indexOf("function bust") === -1 || trim.indexOf('"?v="') === -1 && trim
 if (trim.indexOf("stampArchive") === -1) fail("the schedule player is not cache-busted");
 if (builder.indexOf("NexusTrim.bust") === -1) fail("schedule playback does not cache-bust");
 if (cards.indexOf("playSrc(") === -1) fail("the viewer and eye preview do not cache-bust");
-if (app.indexOf('build: "v75"') === -1 || html.indexOf('content="v75"') === -1 || html.indexOf("?v=v68") !== -1) {
-  fail("cache stamp is not v75");
+if (app.indexOf('build: "v76"') === -1 || html.indexOf('content="v76"') === -1 || html.indexOf("?v=v68") !== -1) {
+  fail("cache stamp is not v76");
 }
 if (cards.indexOf("if (!building() && !forceEye) return button") === -1 || cards.indexOf("NexusBuilder.takeCard") === -1) {
   fail("builder eye or tap-to-add changed");
@@ -80,10 +80,10 @@ api.load().then(function () {
   if (!failed) ok("food and smoothie files are unchanged");
 
   if (failed) {
-    console.error(failed + " v75 check(s) failed");
+    console.error(failed + " v76 check(s) failed");
     process.exit(1);
   }
-  console.log("OK v75");
+  console.log("OK v76");
 }).catch(function (err) {
   console.error(err);
   process.exit(1);
