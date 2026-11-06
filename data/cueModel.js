@@ -86,6 +86,20 @@ window.NexusCue = (function () {
     };
   }
 
+  function doseFromMetrics(text) {
+    var raw = clean(text);
+    if (!raw) return awaitingField();
+    var parts = { sets: "", reps: "", hold: "", rest: "" };
+    raw.split("|").forEach(function (piece) {
+      var match = /^\s*(sets|reps|hold|rest)\s*:\s*(.+)$/i.exec(piece);
+      if (match) parts[match[1].toLowerCase()] = clean(match[2]);
+    });
+    if (parts.sets && parts.reps && parts.hold && parts.rest) {
+      return { state: "value", sets: parts.sets, reps: parts.reps, hold: parts.hold, rest: parts.rest };
+    }
+    return { state: "legacy", text: raw };
+  }
+
   function fromLegacyClip(entry) {
     var lead = clean(entry.leadRule);
     var leads = lead && lead !== CANNED_LEAD ? [lead] : [];
@@ -94,7 +108,7 @@ window.NexusCue = (function () {
       videoId: 0,
       title: clean(entry.title),
       reference: referenceKind(entry.title),
-      dose: entry.metrics ? { state: "legacy", text: clean(entry.metrics) } : awaitingField(),
+      dose: doseFromMetrics(entry.metrics),
       leads: leads,
       leadsState: leads.length ? "partial" : "awaiting",
       steps: linesOf(entry.doThis),

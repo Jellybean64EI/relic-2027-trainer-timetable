@@ -1742,27 +1742,43 @@
     try { return decodeURIComponent(match[1]); } catch (err) { return match[1]; }
   }
 
+  function archiveDriveId(clip) {
+    if (clip && clip.id) return String(clip.id);
+    var archive = window.RELIC_VIDEO_ARCHIVE && window.RELIC_VIDEO_ARCHIVE.cabins;
+    var cabin = archive && player.cabin && archive[player.cabin];
+    var raw = (cabin && cabin.playlist) || [];
+    var src = clip && clip.src ? String(clip.src) : "";
+    if (!src) return "";
+    var i;
+    for (i = 0; i < raw.length; i++) {
+      if (!raw[i] || !raw[i].id) continue;
+      if (resolveClipSrc(player.cabin, raw[i]) === src) return String(raw[i].id);
+    }
+    return "";
+  }
+
   function paintForensic() {
     var host = $("forensic-scroll");
     if (!host || !window.NexusCue) return;
     var clip = currentClip();
     var mediaKey = clipMediaKey(clip);
     var identity = window.NexusCards && window.NexusCards.identityByKey ? window.NexusCards.identityByKey(mediaKey) : null;
+    var driveId = archiveDriveId(clip);
     var legacy = null;
     var lib = window.RELIC_FORENSIC;
-    if (lib && typeof lib.readClip === "function" && clip && clip.id) {
+    if (lib && typeof lib.readClip === "function" && driveId) {
       legacy = lib.readClip({
         branch: "year",
         cabinKey: player.cabin || "",
-        clipId: clip.id,
-        title: clip.title,
+        clipId: driveId,
+        title: clip && clip.title,
         phase: player.phase || "Base"
       });
     }
     var view = window.NexusCue.resolve({
       title: clipDisplayTitle(clip, null),
       identity: identity,
-      driveId: clip && clip.id,
+      driveId: driveId,
       legacy: legacy
     });
     /* The schedule sheet never prints the numeric id. */
@@ -2918,7 +2934,8 @@
         src: String(clip.src),
         cabin: clip.cabin || "",
         stage: String(clip.stage || "").trim(),
-        r2Key: clip.r2Key || ""
+        r2Key: clip.r2Key || "",
+        id: clip.id || ""
       });
     });
     if (!list.length) return;
