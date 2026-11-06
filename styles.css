@@ -6029,6 +6029,28 @@ body.is-cards #banner-coach {
 
 .vc-quick-meta { margin-top: 6px; }
 
+.vc-quick-idline {
+  display: flex;
+  flex: 1 1 100%;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.vc-quick-id {
+  flex: 0 0 auto;
+  margin: 0;
+  color: #cbb6e4;
+  font-size: 0.75rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+}
+
+.vc-quick-id[hidden] { display: none; }
+
 .vc-quick-label {
   color: #cbb6e4;
   font-size: 0.85rem;

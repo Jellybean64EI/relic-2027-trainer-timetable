@@ -651,7 +651,10 @@
     setUploadMsg("Uploading…");
     var file = pendingFile;
     var type = pendingType;
-    putVideo(file, group.id, mod.id, title + extOf(file), type, title).then(function () {
+    putVideo(file, group.id, mod.id, title + extOf(file), type, title).then(function (payload) {
+      if (payload && payload.r2Key && payload.videoId) {
+        rememberIdentity({ videoId: payload.videoId, r2Key: payload.r2Key, title: payload.title || title, cabin: group.id, module: mod.id, status: "active" });
+      }
       pendingFile = null;
       pendingType = "";
       pendingTitle = "";
@@ -660,7 +663,7 @@
       showProgress(false, 0);
       setUploadMsg("Saved.");
       paintUploadBox();
-      return Promise.all([loadCustom(), loadStorage()]);
+      return Promise.all([loadCustom(), loadStorage(), loadVideoIds()]);
     }).catch(function (err) {
       uploading = false;
       showProgress(false, 0);
@@ -686,7 +689,8 @@
     window.nexusFetch("/custom-video?key=" + encodeURIComponent(key), { method: "DELETE" }).then(function () {
       if (window.NexusBuilder && window.NexusBuilder.forget) window.NexusBuilder.forget(key);
       setUploadMsg("Deleted.");
-      return Promise.all([loadCustom(), loadStorage()]);
+      if (videoIds[key]) delete videoIds[key];
+      return Promise.all([loadCustom(), loadStorage(), loadVideoIds()]);
     }).catch(function (err) {
       setUploadMsg((err && err.message) || "Could not delete that video.", true);
       render();
@@ -765,6 +769,10 @@
         special: !!got.special,
         specialType: got.specialType || got.special_type || null
       };
+      if (videoIds[key]) {
+        videoIds[key].cabin = got.cabin || cabin;
+        videoIds[key].module = (got.modules && got.modules[0]) || moduleId;
+      }
       render();
       rebindQuick(key);
     }).catch(function (err) {
@@ -828,6 +836,32 @@
   var trimDragOrigin = null;
   var FRAME = 1 / 30;
 
+  var videoIds = {};
+
+  function identityId(key) {
+    var row = key && videoIds[key];
+    if (!row || row.status === "deleted" || !row.videoId) return 0;
+    return row.videoId;
+  }
+
+  function rememberIdentity(row) {
+    if (!row || !row.r2Key || !row.videoId) return;
+    if (row.status === "deleted") {
+      delete videoIds[row.r2Key];
+      return;
+    }
+    videoIds[row.r2Key] = row;
+  }
+
+  function loadVideoIds() {
+    if (!window.nexusFetch) return Promise.resolve();
+    return window.nexusFetch("/video-ids").then(function (payload) {
+      videoIds = {};
+      ((payload && payload.identities) || []).forEach(rememberIdentity);
+      if (document.getElementById("vc-list")) render();
+    }).catch(function () {});
+  }
+
   function clipRecord(video, group, mod, index, count) {
     return {
       key: video.key,
@@ -838,7 +872,8 @@
       moduleId: mod.id,
       moduleName: mod.name,
       indexInModule: index,
-      moduleCount: count
+      moduleCount: count,
+      videoId: identityId(video.key)
     };
   }
 
@@ -917,6 +952,16 @@
     previewModule = item.moduleId;
     root.querySelector(".vc-quick-title").textContent = item.title;
     root.querySelector(".vc-quick-label").textContent = quickLabel(item);
+    var idNode = root.querySelector(".vc-quick-id");
+    if (idNode) {
+      if (item.videoId) {
+        idNode.hidden = false;
+        idNode.textContent = "#" + item.videoId;
+      } else {
+        idNode.hidden = true;
+        idNode.textContent = "";
+      }
+    }
     var nextSrc = playSrc(item.src);
     if (!keepPlaying || video.getAttribute("src") !== nextSrc) {
       durationKnown = false;
@@ -1363,11 +1408,13 @@
     rememberDeleted(key);
     if (window.NexusTrim && window.NexusTrim.drop) window.NexusTrim.drop(key);
     if (window.NexusBuilder && window.NexusBuilder.forget) window.NexusBuilder.forget(key);
+    if (videoIds[key]) delete videoIds[key];
     closeDelete();
     pageToast("Deleted · freed " + freedLabel(payload && payload.freedBytes));
     var jobs = [];
     if (window.NexusBuilder && window.NexusBuilder.reload) jobs.push(window.NexusBuilder.reload());
     jobs.push(loadPlacements());
+    jobs.push(loadVideoIds());
     return Promise.all(jobs).then(function () {
       if (!viewerOpen) return;
       quickList = cabinClips(cabinId);
@@ -1554,7 +1601,7 @@
           "</div>" +
           '<p class="vc-quick-title"></p>' +
           '<div class="vc-quick-meta">' +
-            '<p class="vc-quick-label"></p>' +
+            '<div class="vc-quick-idline"><p class="vc-quick-label"></p><p class="vc-quick-id" hidden></p></div>' +
             (editorOn() ? '<span class="vc-trim-tag" hidden></span><span class="vc-quick-actions"><button type="button" class="vc-quick-bin" aria-label="Delete video">🗑</button><button type="button" class="vc-quick-edit">Edit</button></span>' : "") +
           "</div>" +
           '<video id="vc-quick-video" playsinline preload="metadata"></video>' +
@@ -1823,6 +1870,7 @@
     loadCustom();
     loadStorage();
     loadPlacements();
+    loadVideoIds();
     loadDeletedLog();
     if (window.NexusTrim) window.NexusTrim.load();
   }
@@ -1859,6 +1907,7 @@
     flatClips: flatClips,
     cabinClips: cabinClips,
     cabinOrder: cabinOrder,
+    identityId: identityId,
     quickLabel: quickLabel,
     wrapIndex: wrapIndex,
     resolveTrimEnd: resolveTrimEnd,
