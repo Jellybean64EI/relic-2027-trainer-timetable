@@ -942,6 +942,8 @@ tr.is-ticked td {
 
 .player-stage {
   position: relative;
+  display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
   background: transparent;
@@ -961,7 +963,7 @@ tr.is-ticked td {
 }
 
 .player-stage.is-forensic-open #relic-active-video {
-  transform: translateY(-7vh);
+  transform: none;
 }
 
 #relic-active-video::-webkit-media-controls,
@@ -1173,24 +1175,44 @@ tr.is-ticked td {
 }
 
 .forensic-dock {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
   z-index: 21;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  max-height: 68vh;
+  flex: 0 0 auto;
+  height: 44px;
+  max-height: none;
   margin: 0;
   padding: 0;
-  transform: translateY(calc(100% - 44px));
-  transition: transform 0.38s ease;
+  overflow: hidden;
+  transform: none;
+  transition: height 0.38s ease;
   pointer-events: none;
 }
 
-.player-stage.is-forensic-open .forensic-dock {
-  transform: translateY(0);
+.player-stage.is-cue-mid .forensic-dock {
+  height: 46%;
+}
+
+.player-stage.is-cue-full .forensic-dock {
+  height: min(68%, calc(100% - 24vh));
+}
+
+.player-stage > #relic-active-video,
+.player-stage > .deck-video {
+  flex: 1 1 0;
+  height: auto;
+  min-height: 24vh;
+}
+
+.player-stage.is-forensic-open #relic-active-video {
+  min-height: 24vh;
+  object-fit: contain;
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  .player-stage.is-cue-full .forensic-dock { height: 58%; }
+  .player-stage.is-forensic-open #relic-active-video { min-height: 18vh; }
 }
 
 .forensic-tab,
@@ -1250,10 +1272,14 @@ tr.is-ticked td {
   min-height: 0;
   margin: 0;
   overflow: hidden;
-  background: rgba(11, 2, 22, 0.94);
-  border-top: 1px solid rgba(255, 140, 0, 0.55);
+  background: #1b0a2a;
+  border-top: 1px solid #ff8a00;
   color: #f6eefe;
-  box-shadow: 0 -12px 28px rgba(0, 0, 0, 0.45);
+  box-shadow: none;
+}
+
+.player-stage:not(.is-forensic-open) .forensic-panel {
+  pointer-events: none;
 }
 
 .forensic-scroll {
@@ -1278,13 +1304,59 @@ tr.is-ticked td {
 .forensic-cabin:empty { display: none; }
 
 .forensic-title {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   color: #ff8c00;
-  font-size: 1.12rem;
+  font-size: 1.2rem;
   font-weight: 800;
   letter-spacing: 0.01em;
-  line-height: 1.25;
+  line-height: 1.2;
 }
+
+.cue-block { margin: 0 0 12px; }
+.cue-block h3 {
+  margin: 0 0 6px;
+  color: #ff8c00;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.cue-block p,
+.cue-block li { margin: 0 0 4px; color: #f6eefe; font-size: 0.95rem; line-height: 1.35; }
+.cue-block ol { margin: 0; padding-left: 1.2rem; }
+.cue-await,
+.cue-na { color: #cbb6e4; }
+.cue-ref {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border: 1px solid #ff8a00;
+  border-radius: 10px;
+  color: #ff8a00;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+.cue-dose {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+.cue-dose div {
+  padding: 6px 4px;
+  border-radius: 8px;
+  background: #12051d;
+  text-align: center;
+}
+.cue-dose dt {
+  color: #cbb6e4;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cue-dose dd { margin: 2px 0 0; color: #f6eefe; font-size: 0.95rem; font-weight: 800; }
+.cue-more { margin: 0 0 12px; color: #cbb6e4; }
+.cue-more summary { min-height: 44px; color: #ff8c00; font-weight: 800; cursor: pointer; }
 
 .forensic-metrics {
   margin: 0 0 12px;
@@ -1380,8 +1452,22 @@ tr.is-ticked td {
   transition: transform 0.38s ease;
 }
 
-.player-stage.is-forensic-open .player-controls {
-  transform: translate(-50%, calc(-50% - 12vh));
+.player-stage.is-cue-mid .player-controls {
+  top: 27%;
+  transform: translate(-50%, -50%);
+}
+
+.player-stage.is-cue-full .player-controls {
+  top: 16%;
+  transform: translate(-50%, -50%);
+}
+
+.player-stage.is-cue-mid .clip-label {
+  bottom: calc(46% + 8px);
+}
+
+.player-stage.is-cue-full .clip-label {
+  bottom: calc(min(68%, 100% - 24vh) + 8px);
 }
 
 .player-ctrl {

@@ -838,8 +838,12 @@
 
   var videoIds = {};
 
+  function identityByKey(key) {
+    return (key && videoIds[key]) || null;
+  }
+
   function identityId(key) {
-    var row = key && videoIds[key];
+    var row = identityByKey(key);
     if (!row || row.status === "deleted" || !row.videoId) return 0;
     return row.videoId;
   }
@@ -1908,6 +1912,7 @@
     cabinClips: cabinClips,
     cabinOrder: cabinOrder,
     identityId: identityId,
+    identityByKey: identityByKey,
     quickLabel: quickLabel,
     wrapIndex: wrapIndex,
     resolveTrimEnd: resolveTrimEnd,
