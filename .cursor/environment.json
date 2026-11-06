@@ -1,0 +1,11 @@
+{
+  "name": "Relic 2027 Trainer Timetable",
+  "install": "node check-weeks-chrono.js data/schedule.js",
+  "terminals": [
+    {
+      "name": "static-server",
+      "command": "python3 -m http.server 8000 --bind 0.0.0.0"
+    }
+  ],
+  "ports": [8000]
+}
