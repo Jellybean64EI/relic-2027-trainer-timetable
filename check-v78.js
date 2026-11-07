@@ -17,7 +17,7 @@ var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var cards = fs.readFileSync("cards.js", "utf8");
 
-if (html.indexOf('content="v79"') === -1 || app.indexOf('build: "v79"') === -1 || html.indexOf("playerChrome.js?v=v79") === -1) {
+if (html.indexOf('content="v80"') === -1 || app.indexOf('build: "v80"') === -1 || html.indexOf("playerChrome.js?v=v80") === -1) {
   fail("cache stamp is not v78");
 } else ok("cache stamp is v78");
 if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v78") !== -1; })) {
