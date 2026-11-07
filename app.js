@@ -3272,6 +3272,10 @@
     $("relic-start-gate").addEventListener("click", togglePlayPause);
     var stage = playerStage();
     if (stage && window.NexusPlay) {
+      var closeBtn = $("relic-player-close");
+      var timerDock = $("relic-timer-dock");
+      if (closeBtn) stage.appendChild(closeBtn);
+      if (timerDock) stage.appendChild(timerDock);
       var corners = document.createElement("div");
       corners.className = "px-corners";
       stage.appendChild(corners);
@@ -3424,7 +3428,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v78",
+    build: "v79",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };

@@ -1,10 +1,9 @@
 /* On-device mute and speed, remembered per permanent video id or media key. */
 window.NexusPlay = (function () {
   var STORE = "nexus-play-v78";
-  var RATES = [0.5, 1, 1.5, 2];
+  var STEPS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4];
   var cabinTokens = [];
   var scheduleTokens = [];
-  var sheetOpen = false;
 
   function keyFromSrc(src) {
     var match = String(src || "").match(/r2\.dev\/([^?#]+)/);
@@ -33,9 +32,13 @@ window.NexusPlay = (function () {
     }
   }
 
-  function normalRate(rate) {
+  function stepRate(rate) {
     var n = Number(rate);
-    return RATES.indexOf(n) === -1 ? 1 : n;
+    var i;
+    for (i = 0; i < STEPS.length; i++) {
+      if (Math.abs(STEPS[i] - n) < 0.001) return STEPS[i];
+    }
+    return null;
   }
 
   function read(tokens) {
@@ -46,10 +49,24 @@ window.NexusPlay = (function () {
         if (!found && map[token]) found = map[token];
       });
     }
-    return {
-      muted: !!(found && found.muted),
-      rate: normalRate(found && found.rate)
-    };
+    var step = found ? stepRate(found.rate) : null;
+    if (!found || step == null) {
+      return { muted: !!(found && found.muted), rate: 1, cycled: false };
+    }
+    return { muted: !!found.muted, rate: step, cycled: !!found.cycled };
+  }
+
+  function nextRate(pref) {
+    if (!pref || (!pref.cycled && pref.rate === 1)) return 0.5;
+    var i;
+    for (i = 0; i < STEPS.length; i++) {
+      if (STEPS[i] === pref.rate) return STEPS[(i + 1) % STEPS.length];
+    }
+    return 0.5;
+  }
+
+  function rateLabel(rate) {
+    return rate === 1 ? "Normal" : rate.toFixed(1) + "x";
   }
 
   function write(tokens, patch) {
@@ -58,9 +75,11 @@ window.NexusPlay = (function () {
     var map = loadMap();
     if (!map) return false;
     var current = read(list);
+    var chosen = patch.rate == null ? current.rate : stepRate(patch.rate);
     var next = {
       muted: patch.muted == null ? current.muted : !!patch.muted,
-      rate: patch.rate == null ? current.rate : normalRate(patch.rate)
+      rate: chosen == null ? 1 : chosen,
+      cycled: patch.cycled == null ? (chosen == null ? false : current.cycled) : !!patch.cycled
     };
     list.forEach(function (token) { map[token] = next; });
     try {
@@ -108,14 +127,9 @@ window.NexusPlay = (function () {
       btn.setAttribute("aria-label", on ? "Sound on" : "Sound off");
     });
     document.querySelectorAll(".px-rate").forEach(function (btn) {
-      var label = pref.rate === 1 ? "1x" : pref.rate + "x";
-      btn.textContent = label;
+      var label = rateLabel(pref.rate);
+      btn.innerHTML = '<span class="px-gauge" aria-hidden="true"></span><span class="px-speed-read">' + label + "</span>";
       btn.setAttribute("aria-label", "Playback speed " + label);
-    });
-    document.querySelectorAll(".px-sheet [data-rate]").forEach(function (btn) {
-      var on = Number(btn.getAttribute("data-rate")) === pref.rate;
-      btn.setAttribute("aria-pressed", on ? "true" : "false");
-      btn.classList.toggle("is-on", on);
     });
   }
 
@@ -141,65 +155,19 @@ window.NexusPlay = (function () {
     sync(tokens);
   }
 
-  function setRate(rate, event) {
+  function cycleRate(event) {
     if (event) {
       event.preventDefault();
       event.stopPropagation();
     }
     var tokens = activeTokens();
-    var chosen = normalRate(rate);
-    write(tokens, { rate: chosen });
+    var next = nextRate(read(tokens));
+    write(tokens, { rate: next, cycled: true });
     var video = liveVideo();
     if (video) {
-      try { video.playbackRate = chosen; } catch (err) { /* keep the saved choice */ }
+      try { video.playbackRate = next; } catch (err) { /* keep the saved choice */ }
     }
     sync(tokens);
-    closeSheet();
-  }
-
-  function ensureSheet() {
-    if (document.getElementById("px-sheet")) return;
-    var sheet = document.createElement("div");
-    sheet.id = "px-sheet";
-    sheet.className = "px-sheet";
-    sheet.hidden = true;
-    sheet.innerHTML =
-      '<div class="px-sheet-card" role="dialog" aria-modal="true" aria-label="Playback speed">' +
-        '<button type="button" class="px-sheet-x px-hit" aria-label="Close">×</button>' +
-        '<button type="button" class="px-hit" data-rate="0.5">0.5x</button>' +
-        '<button type="button" class="px-hit" data-rate="1">Normal</button>' +
-        '<button type="button" class="px-hit" data-rate="1.5">1.5x</button>' +
-        '<button type="button" class="px-hit" data-rate="2">2x</button>' +
-      "</div>";
-    document.body.appendChild(sheet);
-    sheet.addEventListener("click", function (event) {
-      event.stopPropagation();
-      if (event.target === sheet || event.target.closest(".px-sheet-x")) {
-        event.preventDefault();
-        closeSheet();
-        return;
-      }
-      var choice = event.target.closest("[data-rate]");
-      if (choice) setRate(choice.getAttribute("data-rate"), event);
-    });
-  }
-
-  function openSheet(event) {
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    ensureSheet();
-    sheetOpen = true;
-    var sheet = document.getElementById("px-sheet");
-    sheet.hidden = false;
-    sync(activeTokens());
-  }
-
-  function closeSheet() {
-    sheetOpen = false;
-    var sheet = document.getElementById("px-sheet");
-    if (sheet) sheet.hidden = true;
   }
 
   function button(className, label) {
@@ -215,8 +183,8 @@ window.NexusPlay = (function () {
     var mute = button("px-mute", "🔈 On");
     if (muteId) mute.id = muteId;
     mute.addEventListener("click", toggleMute);
-    var rate = button("px-rate", "1x");
-    rate.addEventListener("click", openSheet);
+    var rate = button("px-rate", "Normal");
+    rate.addEventListener("click", cycleRate);
     host.appendChild(mute);
     host.appendChild(rate);
   }
@@ -232,20 +200,18 @@ window.NexusPlay = (function () {
   }
 
   return {
-    RATES: RATES,
+    STEPS: STEPS,
     tokensFor: tokensFor,
     read: read,
     write: write,
     apply: apply,
+    nextRate: nextRate,
     sync: sync,
     toggleMute: toggleMute,
-    setRate: setRate,
-    openSheet: openSheet,
-    closeSheet: closeSheet,
+    cycleRate: cycleRate,
     mountPair: mountPair,
     setScheduleTokens: setScheduleTokens,
-    setCabinTokens: setCabinTokens,
-    sheetOpen: function () { return sheetOpen; }
+    setCabinTokens: setCabinTokens
   };
 })();
 

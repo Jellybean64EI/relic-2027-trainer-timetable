@@ -990,9 +990,9 @@ tr.is-ticked td {
 
 .timer-dock {
   position: absolute;
-  top: 18px;
-  right: 18px;
-  z-index: 999;
+  top: calc(8px + env(safe-area-inset-top));
+  right: calc(8px + env(safe-area-inset-right));
+  z-index: 30;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -1163,9 +1163,11 @@ tr.is-ticked td {
   transition: none;
 }
 
-.player-stage.is-hud-idle .player-hud {
+.player-stage.is-hud-idle .player-controls,
+.player-stage.is-hud-idle .clip-label {
   opacity: 0;
   visibility: hidden;
+  pointer-events: none;
 }
 
 .player-hud .player-close,
@@ -1254,10 +1256,10 @@ tr.is-ticked td {
   pointer-events: none;
 }
 
-.player-stage.is-hud-idle:not(.is-forensic-open) .forensic-tab {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
+.player-stage.is-hud-idle .forensic-tab {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .forensic-tab:focus-visible {
@@ -1409,7 +1411,7 @@ tr.is-ticked td {
   position: absolute;
   top: calc(8px + env(safe-area-inset-top));
   left: calc(8px + env(safe-area-inset-left));
-  z-index: 40;
+  z-index: 30;
   width: 44px;
   height: 44px;
   min-width: 44px;
@@ -1556,48 +1558,23 @@ tr.is-ticked td {
   font-weight: 800;
 }
 
-.px-sheet {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.45);
+.px-gauge {
+  display: inline-block;
+  width: 14px;
+  height: 8px;
+  margin-right: 4px;
+  border: 2px solid #ff8a00;
+  border-bottom: 0;
+  border-radius: 14px 14px 0 0;
+  vertical-align: 1px;
 }
 
-.px-sheet[hidden] { display: none; }
+.px-speed-read { vertical-align: middle; }
 
-.px-sheet-card {
-  width: min(480px, 100%);
-  padding: 12px 12px calc(16px + env(safe-area-inset-bottom));
-  border-radius: 16px 16px 0 0;
-  background: #150724;
-  color: #f6eefe;
-}
-
-.px-sheet-card button {
-  display: block;
-  width: 100%;
-  min-height: 48px;
-  margin-top: 8px;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  background: #1b0a2a;
-  color: #f6eefe;
-  font: inherit;
-  font-size: 1rem;
-  font-weight: 800;
-}
-
-.px-sheet-card button.is-on {
-  border-color: #ff8a00;
-  color: #ff8a00;
-}
-
-.px-sheet-x {
-  width: 44px;
-  margin-left: auto;
+.player-stage > .deck-video,
+.player-stage > #relic-active-video {
+  position: relative;
+  z-index: 1;
 }
 
 .vc-quick-stage {
