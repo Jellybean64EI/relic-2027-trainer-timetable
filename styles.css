@@ -1500,6 +1500,116 @@ tr.is-ticked td {
   background: rgba(255, 255, 255, 0.48);
 }
 
+.player-hud .player-controls {
+  top: calc(58px + env(safe-area-inset-top));
+  bottom: auto;
+  gap: 8px;
+  transform: translate(-50%, 0);
+  z-index: 9;
+}
+
+.player-stage.is-cue-mid .player-controls,
+.player-stage.is-cue-full .player-controls {
+  top: calc(58px + env(safe-area-inset-top));
+  transform: translate(-50%, 0);
+}
+
+.player-hud .player-controls .player-ctrl {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 1px solid #ff8a00;
+  border-radius: 999px;
+  background: rgba(11, 2, 22, 0.88);
+  color: #f6eefe;
+  font-size: 1rem;
+  box-shadow: none;
+}
+
+.px-corners {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 52px;
+  z-index: 23;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.player-stage.is-cue-mid .px-corners { bottom: calc(46% + 8px); }
+.player-stage.is-cue-full .px-corners { bottom: calc(min(68%, 100% - 24vh) + 8px); }
+
+.px-mute,
+.px-rate {
+  pointer-events: auto;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid #ff8a00;
+  border-radius: 999px;
+  background: rgba(11, 2, 22, 0.9);
+  color: #f6eefe;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.px-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.px-sheet[hidden] { display: none; }
+
+.px-sheet-card {
+  width: min(480px, 100%);
+  padding: 12px 12px calc(16px + env(safe-area-inset-bottom));
+  border-radius: 16px 16px 0 0;
+  background: #150724;
+  color: #f6eefe;
+}
+
+.px-sheet-card button {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 8px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: #1b0a2a;
+  color: #f6eefe;
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.px-sheet-card button.is-on {
+  border-color: #ff8a00;
+  color: #ff8a00;
+}
+
+.px-sheet-x {
+  width: 44px;
+  margin-left: auto;
+}
+
+.vc-quick-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+
+.vc-quick-stage .px-corners { bottom: 8px; }
+.vc-quick-stage #vc-quick-video { max-height: none; margin-top: 0; }
+
 @media (prefers-reduced-motion: reduce) {
   .player-hud,
   .forensic-dock,

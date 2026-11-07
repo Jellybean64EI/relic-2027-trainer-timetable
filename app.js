@@ -1719,7 +1719,7 @@
 
   function isHudChromeTarget(node) {
     if (!node || !node.closest) return false;
-    return !!node.closest(".player-close, .player-controls, .timer-dock, .start-gate, .forensic-tab, .forensic-panel, .forensic-dock");
+    return !!node.closest(".player-close, .player-controls, .timer-dock, .start-gate, .forensic-tab, .forensic-panel, .forensic-dock, .px-hit, .px-sheet, .px-corners");
   }
 
   function currentClip() {
@@ -1869,9 +1869,10 @@
   }
 
   function onStageHudPointerDown(event) {
-    if (!event || event.button > 0) return;
+    if (!event || event.button > 0 || event.isPrimary === false) return;
     var node = eventElement(event);
     if (isForensicChrome(node)) return;
+    if (node && node.closest && node.closest(".px-hit, .px-sheet, input, textarea, select, button")) return;
     if (isHudChromeTarget(node)) {
       showPlayerHud();
       return;
@@ -1913,25 +1914,31 @@
       showPlayerHud();
       return;
     }
-    if (moved) return;
+    var dx = event.clientX - startX;
+    var dy = event.clientY - startY;
+    var edge = startX < 28 || startX > window.innerWidth - 28;
     var node = eventElement(event);
+    if (!edge && Math.abs(dx) >= 56 && Math.abs(dx) > Math.abs(dy)) {
+      player.swallowSurface = true;
+      advance(dx < 0 ? 1 : -1, dx < 0 ? "next" : "prev");
+      return;
+    }
+    if (moved) return;
     if (isForensicChrome(node) || isHudChromeTarget(node)) return;
-    var stage = playerStage();
-    if (stage && stage.classList.contains("is-forensic-open")) {
-      setForensicOpen(false);
-      showPlayerHud();
-      return;
-    }
-    if (hudIsHidden()) {
-      showPlayerHud();
-      player.swallowChromeClick = true;
-      setTimeout(function () { player.swallowChromeClick = false; }, 450);
-      return;
-    }
-    hidePlayerHud(true);
+    if (node && node.closest && node.closest("input, textarea, select")) return;
+    player.swallowSurface = true;
+    togglePlayPause();
   }
 
   function onStageHudClickCapture(event) {
+    if (player.swallowSurface) {
+      player.swallowSurface = false;
+      if (!isHudChromeTarget(eventElement(event))) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+    }
     if (!player.swallowChromeClick) return;
     player.swallowChromeClick = false;
     if (!isHudChromeTarget(eventElement(event))) return;
@@ -2262,6 +2269,7 @@
         try { video.currentTime = pos; } catch (err2) { /* same-position resume */ }
       }
       if (!player.paused && !document.hidden) {
+        applyFrontPrefs(video);
         var pending = video.play();
         if (pending && typeof pending.catch === "function") pending.catch(function () {});
       }
@@ -2376,11 +2384,27 @@
     if (src) holdBuffer(deckVideos()[0], src, "auto");
   }
 
+  function currentPlayTokens() {
+    var clip = player.clips[player.index];
+    if (!window.NexusPlay || !clip) return [];
+    return window.NexusPlay.tokensFor(clip.src, clip.r2Key || clipMediaKey(clip), 0);
+  }
+
+  function applyFrontPrefs(video) {
+    if (!video || !window.NexusPlay) return;
+    var tokens = currentPlayTokens();
+    window.NexusPlay.apply(video, tokens);
+    window.NexusPlay.setScheduleTokens(tokens);
+  }
+
   function playFront(video) {
     if (!video) return;
-    video.muted = false;
-    video.defaultMuted = false;
-    video.removeAttribute("muted");
+    if (window.NexusPlay) applyFrontPrefs(video);
+    else {
+      video.muted = false;
+      video.defaultMuted = false;
+      video.removeAttribute("muted");
+    }
     video.loop = true;
     video.autoplay = true;
     video.preload = "auto";
@@ -2603,6 +2627,12 @@
     var manual = reason === "next" || reason === "prev" || reason === "media" || reason === "key";
     var now = Date.now();
     if (manual && (now - (player.lastManualAt || 0)) < ADVANCE_GAP_MS) return false;
+    if (manual && (delta | 0) < 0 && player.index <= 0) return false;
+    if (manual && (delta | 0) > 0 && player.index >= player.clips.length - 1) {
+      player.lastManualAt = now;
+      closePlayer();
+      return false;
+    }
     player.phaseState = "advancing";
     if (manual) player.lastManualAt = now;
     player.advanceCount = (player.advanceCount | 0) + 1;
@@ -2642,6 +2672,7 @@
       paintTimer();
       var video = frontVideo();
       if (video && video.paused && !player.paused && !player.unavailable) {
+        applyFrontPrefs(video);
         var pending = video.play();
         if (pending && typeof pending.catch === "function") pending.catch(function () {});
       }
@@ -2739,6 +2770,7 @@
       thawClock();
       ensureClock();
       if (video && !player.unavailable) {
+        applyFrontPrefs(video);
         var pending = video.play();
         if (pending && typeof pending.catch === "function") {
           pending.catch(function (err) {
@@ -3239,6 +3271,12 @@
     $("relic-player-close").addEventListener("click", closePlayer);
     $("relic-start-gate").addEventListener("click", togglePlayPause);
     var stage = playerStage();
+    if (stage && window.NexusPlay) {
+      var corners = document.createElement("div");
+      corners.className = "px-corners";
+      stage.appendChild(corners);
+      window.NexusPlay.mountPair(corners, "px-mute");
+    }
     if (stage) {
       stage.addEventListener("pointerdown", onStageHudPointerDown);
       stage.addEventListener("pointermove", onStageHudPointerMove);
@@ -3386,7 +3424,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v77",
+    build: "v78",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };

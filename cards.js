@@ -719,6 +719,7 @@
     video.autoplay = true;
     video.preload = "auto";
     video.src = playSrc(src);
+    if (window.NexusPlay) window.NexusPlay.apply(video, window.NexusPlay.tokensFor(video.src, key, 0));
     if (window.NexusTrim) window.NexusTrim.watch(video);
     root.hidden = false;
     document.body.classList.add("vc-preview-open");
@@ -967,6 +968,8 @@
       }
     }
     var nextSrc = playSrc(item.src);
+    var cabinTokens = window.NexusPlay ? window.NexusPlay.tokensFor(nextSrc, item.key, item.videoId) : [];
+    if (window.NexusPlay) window.NexusPlay.setCabinTokens(cabinTokens);
     if (!keepPlaying || video.getAttribute("src") !== nextSrc) {
       durationKnown = false;
       knownDuration = 0;
@@ -978,11 +981,14 @@
       video.setAttribute("playsinline", "");
       video.setAttribute("disablepictureinpicture", "");
       video.src = nextSrc;
+      if (window.NexusPlay) window.NexusPlay.apply(video, cabinTokens);
       if (window.NexusTrim) window.NexusTrim.watch(video);
       if (!trimOpen) {
         var play = video.play();
         if (play && typeof play.catch === "function") play.catch(function () {});
       }
+    } else if (window.NexusPlay) {
+      window.NexusPlay.apply(video, cabinTokens);
     }
     var following = quickList.length > 1 ? quickList[wrapIndex(quickIndex, quickList.length, 1)] : null;
     if (ahead) {
@@ -1002,6 +1008,8 @@
     paintTag();
     paintProgress();
     if (window.NexusCueEdit) window.NexusCueEdit.paint();
+    var corners = document.getElementById("vc-px-corners");
+    if (corners && window.NexusPlay) window.NexusPlay.mountPair(corners, "vc-px-mute");
   }
 
   function openQuick(key, cabinId) {
@@ -1616,7 +1624,10 @@
             '<div class="vc-quick-idline"><p class="vc-quick-label"></p><p class="vc-quick-id" hidden></p></div>' +
             (editorOn() ? '<span class="vc-trim-tag" hidden></span><span class="vc-quick-actions"><button type="button" class="vc-quick-bin" aria-label="Delete video">🗑</button><button type="button" class="vc-quick-edit">Edit</button></span>' : "") +
           "</div>" +
-          '<video id="vc-quick-video" playsinline preload="metadata"></video>' +
+          '<div class="vc-quick-stage">' +
+            '<video id="vc-quick-video" playsinline preload="metadata"></video>' +
+            '<div class="px-corners" id="vc-px-corners"></div>' +
+          "</div>" +
           '<div id="vc-quick-progress" class="vc-quick-progress">' +
             '<div class="vc-quick-progress-rail"></div>' +
             '<div class="vc-quick-progress-fill"></div>' +
@@ -1655,6 +1666,7 @@
           '<p id="vc-trim-toast" class="vc-trim-toast" hidden></p>' +
         "</div>";
       document.body.appendChild(quick);
+      if (window.NexusPlay) window.NexusPlay.mountPair(document.getElementById("vc-px-corners"), "vc-px-mute");
       if (window.NexusCueEdit) window.NexusCueEdit.mount();
       if (editorOn()) {
       var deleter = document.createElement("div");
