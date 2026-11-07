@@ -3226,32 +3226,64 @@
         dy: event.clientY - cueGesture.y
       };
     }
-    if (forensicTab) {
-      forensicTab.addEventListener("pointerdown", function (event) {
-        if (event.button > 0) return;
+    function cueDragHandle(node) {
+      if (!node || !node.closest) return false;
+      if (node.closest("#forensic-scroll, input, textarea, select, a")) return false;
+      return !!node.closest("#forensic-tab, #cue-lip");
+    }
+    function finishCueDrag(id, x, y, event) {
+      var delta = cueDelta({ pointerId: id, clientX: x, clientY: y });
+      cueGesture = null;
+      if (!delta) return;
+      if (event) {
+        if (event.cancelable) event.preventDefault();
+        event.stopPropagation();
+      }
+      if (Math.abs(delta.dx) > Math.abs(delta.dy) && Math.abs(delta.dx) > TAP_SLOP) return;
+      if (delta.dy < -28) {
+        setCueLevel((player.cueLevel || 0) + 1);
+        return;
+      }
+      if (delta.dy > 28) {
+        setCueLevel((player.cueLevel || 0) - 1);
+        return;
+      }
+      if (Math.abs(delta.dx) < TAP_SLOP && Math.abs(delta.dy) < TAP_SLOP) {
+        setCueLevel((player.cueLevel || 0) >= 2 ? 0 : (player.cueLevel || 0) + 1);
+      }
+    }
+    if (forensicDock) {
+      var cueUsedPointer = false;
+      forensicDock.addEventListener("pointerdown", function (event) {
+        if (event.button > 0 || event.isPrimary === false) return;
+        if (!cueDragHandle(event.target)) return;
+        cueUsedPointer = true;
         cueGesture = { x: event.clientX, y: event.clientY, id: event.pointerId };
-        try { forensicTab.setPointerCapture(event.pointerId); } catch (err) { /* capture is optional */ }
+        try { forensicDock.setPointerCapture(event.pointerId); } catch (err) { /* capture is optional */ }
         stopForensicEvent(event);
       });
-      forensicTab.addEventListener("pointerup", function (event) {
-        var delta = cueDelta(event);
-        cueGesture = null;
-        if (!delta) return;
-        event.preventDefault();
-        event.stopPropagation();
-        if (Math.abs(delta.dx) > Math.abs(delta.dy) && Math.abs(delta.dx) > TAP_SLOP) return;
-        if (delta.dy < -28) {
-          setCueLevel((player.cueLevel || 0) + 1);
-          return;
-        }
-        if (delta.dy > 28) {
-          setCueLevel((player.cueLevel || 0) - 1);
-          return;
-        }
-        if (Math.abs(delta.dx) < TAP_SLOP && Math.abs(delta.dy) < TAP_SLOP) {
-          setCueLevel((player.cueLevel || 0) >= 2 ? 0 : (player.cueLevel || 0) + 1);
-        }
+      forensicDock.addEventListener("pointerup", function (event) {
+        finishCueDrag(event.pointerId, event.clientX, event.clientY, event);
       });
+      forensicDock.addEventListener("pointercancel", function () { cueGesture = null; });
+      forensicDock.addEventListener("touchstart", function (event) {
+        if (cueUsedPointer || !event.changedTouches || event.changedTouches.length !== 1) return;
+        var touch = event.changedTouches[0];
+        if (!cueDragHandle(event.target)) return;
+        cueGesture = { x: touch.clientX, y: touch.clientY, id: "touch" };
+        if (event.cancelable) event.preventDefault();
+      }, { passive: false });
+      forensicDock.addEventListener("touchmove", function (event) {
+        if (cueUsedPointer || !cueGesture || cueGesture.id !== "touch") return;
+        if (event.cancelable) event.preventDefault();
+      }, { passive: false });
+      forensicDock.addEventListener("touchend", function (event) {
+        if (cueUsedPointer || !event.changedTouches || !event.changedTouches.length) return;
+        var touch = event.changedTouches[0];
+        finishCueDrag("touch", touch.clientX, touch.clientY, event);
+      }, { passive: false });
+    }
+    if (forensicTab) {
       forensicTab.addEventListener("click", function (event) {
         event.preventDefault();
         event.stopPropagation();
@@ -3480,7 +3512,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v80",
+    build: "v81",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };
