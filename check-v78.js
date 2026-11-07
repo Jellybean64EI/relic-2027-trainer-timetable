@@ -17,7 +17,7 @@ var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var cards = fs.readFileSync("cards.js", "utf8");
 
-if (html.indexOf('content="v78"') === -1 || app.indexOf('build: "v78"') === -1 || html.indexOf("playerChrome.js?v=v78") === -1) {
+if (html.indexOf('content="v79"') === -1 || app.indexOf('build: "v79"') === -1 || html.indexOf("playerChrome.js?v=v79") === -1) {
   fail("cache stamp is not v78");
 } else ok("cache stamp is v78");
 if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v78") !== -1; })) {
@@ -63,14 +63,17 @@ var idTokens = play.tokensFor("https://pub.r2.dev/Face/a.mp4", "Face/a.mp4", 100
 var other = play.tokensFor("https://pub.r2.dev/Face/b.mp4", "Face/b.mp4", 10002);
 if (idTokens[0] !== "id:10001" || idTokens.join("|").indexOf("Temporal") !== -1) fail("prefs followed a title");
 else ok("prefs use the permanent id and media key");
-play.write(idTokens, { muted: true, rate: 1.5 });
-if (!play.read(idTokens).muted || play.read(idTokens).rate !== 1.5) fail("prefs did not save");
+play.write(idTokens, { muted: true, rate: 0.7 });
+if (!play.read(idTokens).muted || play.read(idTokens).rate !== 0.7) fail("prefs did not save");
 else ok("mute and speed save per video");
+play.write(idTokens, { rate: 1.5 });
+if (play.read(idTokens).rate !== 1 || play.read(idTokens).cycled) fail("old 1.5 stayed a speed");
+else ok("old 1.5 and 2 become Normal");
 if (play.read(other).muted || play.read(other).rate !== 1) fail("another video inherited the setting");
 else ok("another video keeps the defaults");
 play.write(idTokens, { rate: 9 });
 if (play.read(idTokens).rate !== 1) fail("an unknown speed was stored");
-else ok("only the four speeds are stored");
+else ok("unsupported speed becomes Normal");
 sandbox.localStorage.setItem = function () { throw new Error("full"); };
 if (play.write(idTokens, { muted: false }) !== false || play.read(other).rate !== 1) fail("storage failure did not fall back");
 else ok("storage failure keeps the defaults");
