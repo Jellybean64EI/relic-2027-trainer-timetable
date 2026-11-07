@@ -202,6 +202,22 @@ window.NexusCueEdit = (function () {
     editing = true;
     saving = false;
     fillForm(prefill(identity, forIdentity(identity), viewFor(identity)));
+    var lock = document.getElementById("vc-cue-idlock");
+    if (lock) {
+      lock.textContent = "";
+      if (identity && identity.videoId) {
+        var idLine = document.createElement("span");
+        idLine.className = "vc-cue-id";
+        idLine.textContent = "#" + identity.videoId;
+        lock.appendChild(idLine);
+      }
+      if (identity && identity.r2Key) {
+        var keyLine = document.createElement("span");
+        keyLine.className = "vc-cue-key";
+        keyLine.textContent = identity.r2Key;
+        lock.appendChild(keyLine);
+      }
+    }
     setStatus("", "");
     paint();
     var first = document.querySelector("#vc-cue-form [name=lead1]");
@@ -266,7 +282,6 @@ window.NexusCueEdit = (function () {
       "</div>" +
       '<div id="vc-cue-read" class="vc-cue-read"></div>' +
       '<form id="vc-cue-form" class="vc-cue-form" hidden>' +
-        '<p class="cue-manual">Joe entered. Not footage-verified. Saving does not clear this clip for a schedule.</p>' +
         '<p class="vc-cue-idlock" id="vc-cue-idlock"></p>' +
         "<label>Lead 1<input name=\"lead1\" maxlength=\"180\" autocomplete=\"off\" enterkeyhint=\"next\"></label>" +
         "<label>Lead 2<input name=\"lead2\" maxlength=\"180\" autocomplete=\"off\" enterkeyhint=\"next\"></label>" +
@@ -289,9 +304,6 @@ window.NexusCueEdit = (function () {
     document.getElementById("vc-cue-edit").addEventListener("click", function (event) {
       event.preventDefault();
       open();
-      var identity = currentIdentity();
-      var lock = document.getElementById("vc-cue-idlock");
-      if (lock) lock.textContent = identity && identity.videoId ? "Video " + identity.videoId + " · " + identity.r2Key : "";
     });
     document.getElementById("vc-cue-cancel").addEventListener("click", function (event) {
       event.preventDefault();

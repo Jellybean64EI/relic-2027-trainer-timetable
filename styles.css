@@ -1182,14 +1182,15 @@ tr.is-ticked td {
   display: flex;
   flex-direction: column;
   flex: 0 0 auto;
-  height: 44px;
+  height: calc(108px + env(safe-area-inset-bottom));
   max-height: none;
   margin: 0;
-  padding: 0;
+  padding: 0 0 env(safe-area-inset-bottom);
   overflow: hidden;
   transform: none;
   transition: height 0.38s ease;
   pointer-events: none;
+  background: #12051d;
 }
 
 .player-stage.is-cue-mid .forensic-dock {
@@ -1223,12 +1224,12 @@ tr.is-ticked td {
 }
 
 .forensic-tab {
-  align-self: center;
+  align-self: stretch;
   z-index: 2;
-  width: 140px;
-  min-height: 44px;
+  width: 100%;
+  min-height: 22px;
   margin: 0;
-  padding: 18px 24px 12px;
+  padding: 8px 12px 4px;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -1242,18 +1243,56 @@ tr.is-ticked td {
   -webkit-tap-highlight-color: transparent;
   opacity: 1;
   visibility: visible;
-  transition: opacity 0.4s ease, visibility 0.4s ease;
 }
 
 .forensic-handle {
   display: block;
-  width: 72px;
-  height: 3px;
-  margin: 0 auto;
+  width: 100%;
+  height: 4px;
+  margin: 0;
   border-radius: 999px;
-  background: #ff8c00;
-  box-shadow: 0 0 10px rgba(255, 140, 0, 0.55);
+  background: #ff8a00;
+  box-shadow: none;
   pointer-events: none;
+}
+
+.cue-lip {
+  flex: 0 0 auto;
+  padding: 2px 12px 8px;
+  pointer-events: auto;
+}
+
+.cue-lip-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.cue-tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #1b0a2a;
+  color: #cbb6e4;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.cue-tag.is-on {
+  background: #ff8a00;
+  color: #12051d;
+}
+
+.cue-tag-pos { margin-left: auto; }
+
+.cue-lip-name {
+  margin: 4px 0 0;
+  color: #f6eefe;
+  font-size: 0.95rem;
+  font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .player-stage.is-hud-idle .forensic-tab {
@@ -1421,30 +1460,14 @@ tr.is-ticked td {
   line-height: 1;
 }
 
-.clip-label {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: calc(52px + env(safe-area-inset-bottom));
-  z-index: 8;
-  margin: 0;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: rgba(11, 2, 22, 0.72);
-  color: var(--text);
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-align: center;
-  pointer-events: none;
-}
+.clip-label { display: none; }
 
 .player-controls {
+  display: none;
   position: absolute;
   left: 50%;
   top: 50%;
   z-index: 7;
-  display: flex;
   align-items: center;
   justify-content: center;
   gap: 18px;
@@ -1534,7 +1557,7 @@ tr.is-ticked td {
   position: absolute;
   left: 8px;
   right: 8px;
-  bottom: 52px;
+  bottom: calc(116px + env(safe-area-inset-bottom));
   z-index: 23;
   display: flex;
   justify-content: space-between;
@@ -6359,31 +6382,50 @@ body:not(.vc-editor-on) #vc-delete {
 .vc-cue-status.is-saved { color: #ff8a00; }
 .vc-cue-add { margin: 0 0 6px; color: #ff8a00; font-weight: 800; }
 .cue-manual { margin: 0 0 8px; color: #ff8a00; font-size: 0.85rem; font-weight: 700; }
-.vc-cue-idlock { margin: 0 0 8px; color: #cbb6e4; font-size: 0.75rem; word-break: break-all; }
+.vc-cue-idlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 12px;
+  color: #cbb6e4;
+}
+
+.vc-cue-id { color: #ff8a00; font-size: 0.85rem; font-weight: 800; }
+.vc-cue-key { font-size: 0.75rem; line-height: 1.35; overflow-wrap: anywhere; }
 
 .vc-cue-form label {
-  display: block;
-  margin: 0 0 8px;
+  display: grid;
+  gap: 4px;
+  margin: 0 0 10px;
   color: #cbb6e4;
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .vc-cue-form input,
 .vc-cue-form textarea {
-  display: block;
   width: 100%;
-  margin-top: 4px;
-  padding: 10px;
-  border: 1px solid #ff8a00;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 138, 0, 0.7);
   border-radius: 10px;
   background: #150724;
   color: #f6eefe;
   font: inherit;
   font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1.35;
 }
 
-.vc-cue-dose { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.vc-cue-dose {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
 .vc-cue-actions { display: flex; gap: 8px; margin: 8px 0 12px; }
 
 .vc-quick-back,

@@ -2076,18 +2076,71 @@
     btn.setAttribute("aria-label", paused ? "Play" : "Pause");
   }
 
+  function tidyClipTitle(title) {
+    return String(title || "Clip").replace(/\.mp4$/i, "").replace(/^\d+\.\s*/, "").trim() || "Clip";
+  }
+
+  function clipPhase(clip) {
+    var stage = String((clip && clip.stage) || "");
+    if (/pre/i.test(stage)) return "pre";
+    if (/post/i.test(stage)) return "post";
+    if (/exercise|main/i.test(stage)) return "main";
+    return "";
+  }
+
+  function ensureCueLip() {
+    var dock = $("forensic-dock");
+    var tab = $("forensic-tab");
+    if (!dock || !tab || $("cue-lip")) return;
+    var lip = document.createElement("div");
+    lip.id = "cue-lip";
+    lip.className = "cue-lip";
+    lip.innerHTML = '<div class="cue-lip-tags" id="cue-lip-tags"></div><p class="cue-lip-name" id="cue-lip-name"></p>';
+    tab.insertAdjacentElement("afterend", lip);
+  }
+
+  function paintCueLip() {
+    ensureCueLip();
+    var tags = $("cue-lip-tags");
+    var name = $("cue-lip-name");
+    if (!tags || !name) return;
+    var clips = player.clips || [];
+    var clip = clips[player.index] || null;
+    var labels = { pre: "Pre", main: "Main", post: "Post" };
+    var counts = { pre: 0, main: 0, post: 0 };
+    var here = { pre: 0, main: 0, post: 0 };
+    var any = false;
+    clips.forEach(function (item, index) {
+      var key = clipPhase(item);
+      if (!key) return;
+      any = true;
+      counts[key] += 1;
+      if (index === player.index) here[key] = counts[key];
+    });
+    var current = clipPhase(clip);
+    var html = "";
+    ["pre", "main", "post"].forEach(function (key) {
+      if (!any) return;
+      var on = key === current;
+      var text = labels[key];
+      if (counts[key]) text += on ? " " + here[key] + "/" + counts[key] : " " + counts[key];
+      html += '<span class="cue-tag' + (on ? " is-on" : "") + '">' + text + "</span>";
+    });
+    if (clips.length) html = '<span class="cue-tag cue-tag-pos">' + (player.index + 1) + "/" + clips.length + "</span>" + html;
+    tags.innerHTML = html;
+    if (!clip) name.textContent = player.cabin ? player.cabin + " · " + EMPTY_MSG : "";
+    else name.textContent = tidyClipTitle(clip.title);
+  }
+
   function paintClipLabel() {
     var el = $("relic-clip-label");
-    if (!el) return;
-    if (player.empty || !player.clips.length) {
-      el.textContent = player.cabin ? player.cabin + " · " + EMPTY_MSG : "";
-      return;
+    if (el) el.textContent = "";
+    if (!player.empty && player.clips.length) {
+      var clip = player.clips[player.index];
+      var lead = (clip && clip.stage) || (clip && clip.cabin) || player.cabin || "";
+      if (el) el.setAttribute("data-stage", lead);
     }
-    var clip = player.clips[player.index];
-    var lead = (clip && clip.stage) || (clip && clip.cabin) || player.cabin || "";
-    el.textContent = lead + " · " +
-      (player.index + 1) + "/" + player.clips.length + " · " +
-      (clip && clip.title ? clip.title : "Clip");
+    paintCueLip();
     paintForensic();
   }
 
@@ -3308,9 +3361,8 @@
     document.addEventListener("click", function () {
       if (surfacePress && surfacePress.moved) surfacePress = null;
     });
-    $("btn-prev-clip").addEventListener("click", playPreviousVideo);
-    $("btn-next-clip").addEventListener("click", playNextVideo);
-    $("btn-play-pause").addEventListener("click", togglePlayPause);
+    var transport = document.querySelector("#relic-player .player-controls");
+    if (transport && transport.parentNode) transport.parentNode.removeChild(transport);
 
     var timerBadge = $("relic-set-timer");
     if (timerBadge) {
@@ -3428,7 +3480,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v79",
+    build: "v80",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };
