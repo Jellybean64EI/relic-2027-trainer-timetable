@@ -16,7 +16,7 @@ var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var editor = fs.readFileSync("data/cueEditor.js", "utf8");
 
-if (html.indexOf('content="v80"') === -1 || app.indexOf('build: "v80"') === -1) fail("cache stamp is not v80");
+if (html.indexOf('content="v81"') === -1 || app.indexOf('build: "v81"') === -1) fail("cache stamp is not v80");
 else ok("cache stamp is v80");
 if (app.indexOf("function paintCueLip") === -1 || app.indexOf('id = "cue-lip"') === -1 && app.indexOf('lip.id = "cue-lip"') === -1) {
   fail("cue lip is missing");
