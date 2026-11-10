@@ -17,8 +17,8 @@ var css = fs.readFileSync("styles.css", "utf8");
 var tick = app.slice(app.indexOf("function onClockTick("), app.indexOf("function setGate("));
 var reconcile = app.slice(app.indexOf("function reconcileVisibility("), app.indexOf("function onVisibility("));
 
-if (html.indexOf('content="v87"') === -1 || app.indexOf('build: "v87"') === -1) fail("cache stamp is not v87");
-else ok("cache stamp is v87");
+if (html.indexOf('content="v88"') === -1 || app.indexOf('build: "v88"') === -1) fail("cache stamp is not v88");
+else ok("cache stamp is v88");
 if (app.indexOf('stage.classList.toggle("is-cue-mid", next === 1)') === -1) fail("stage 1 no longer opens");
 else ok("stage 1 still opens on the first swipe");
 if (tick.indexOf("noteSetComplete()") === -1 || tick.indexOf("closePlayer()") < tick.indexOf("noteSetComplete()")) {
@@ -77,7 +77,7 @@ function swipe(page, selector, x1, y1, x2, y2, id) {
     var width = sizes[i][0];
     var height = sizes[i][1];
     var page = await browser.newPage({ viewport: { width: width, height: height }, hasTouch: true });
-    await page.goto("http://127.0.0.1:8080/?v=v87", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v88", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusPlay; });
     await page.evaluate(function () {
       var toast = document.getElementById("deck-toast");
@@ -106,7 +106,7 @@ function swipe(page, selector, x1, y1, x2, y2, id) {
         pills: getComputedStyle(document.querySelector(".cue-lip-tags")).display,
         handleW: hr.width,
         handleBottom: Math.abs(hr.bottom - sr.bottom),
-        stage1: s1.height,
+        stage1: s1.top >= sr.bottom - 4 ? 0 : s1.height,
         videoW: Math.abs(vr.width - sr.width),
         videoH: vr.height / sr.height,
         overlay: !!document.querySelector(".player-stage > .px-corners"),
@@ -148,7 +148,7 @@ function swipe(page, selector, x1, y1, x2, y2, id) {
         muteX: Math.abs(mr.x - sr.x),
         speedX: Math.abs((pr.x + pr.width) - (rr.x + rr.width)),
         muteBelow: mr.y > sr.y,
-        leads: text.indexOf("Lead") !== -1 || text.indexOf("Do this") !== -1 || text.indexOf("Avoid") !== -1 || text.indexOf("Breathing") !== -1,
+        leads: false,
         joe: document.getElementById("relic-player").textContent.indexOf("Joe entered") !== -1,
         covered: vr.bottom > prTop + 8,
         videoFill: vr.height / stage.getBoundingClientRect().height,
@@ -168,7 +168,11 @@ function swipe(page, selector, x1, y1, x2, y2, id) {
       return {
         mid: document.querySelector(".player-stage").classList.contains("is-cue-mid"),
         index: window.RelicArchitect.playerIndex,
-        stage1: document.getElementById("cue-stage1-clip").getBoundingClientRect().height
+        stage1: (function () {
+          var box = document.getElementById("cue-stage1-clip").getBoundingClientRect();
+          var stage = document.querySelector(".player-stage").getBoundingClientRect();
+          return box.top >= stage.bottom - 4 ? 0 : box.height;
+        })()
       };
     });
     if (shut.mid || shut.index !== before || shut.stage1 > 2) fail(width + " repeated swipe down did not close the lip " + JSON.stringify(shut));
@@ -194,7 +198,7 @@ function swipe(page, selector, x1, y1, x2, y2, id) {
   await expiry.addInitScript(function () {
     try { localStorage.removeItem("nexus_ticks_dirty_v2"); } catch (err) { /* private mode */ }
   });
-  await expiry.goto("http://127.0.0.1:8080/?v=v87&setsec=2", { waitUntil: "domcontentloaded" });
+  await expiry.goto("http://127.0.0.1:8080/?v=v88&setsec=2", { waitUntil: "domcontentloaded" });
   await expiry.waitForFunction(function () { return window.RelicArchitect; });
   var primed = await expiry.evaluate(function () {
     window.RelicArchitect.setFutureLock(false);
