@@ -16,8 +16,8 @@ var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var vercel = fs.readFileSync("vercel.json", "utf8");
 
-if (html.indexOf('content="v89"') === -1 || app.indexOf('build: "v89"') === -1) fail("cache stamp is not v89");
-else ok("cache stamp is v89");
+if (html.indexOf('content="v90"') === -1 || app.indexOf('build: "v90"') === -1) fail("cache stamp is not v90");
+else ok("cache stamp is v90");
 if (html.indexOf('id="nexus-build"') === -1) fail("build tag is missing");
 else ok("build tag is in the menu");
 if (html.indexOf("serviceWorker.getRegistrations") === -1 || html.indexOf("nexus-seen-build") === -1) fail("old builds are not reloaded");
@@ -97,11 +97,11 @@ async function touchPath(client, page, points, sample) {
       deviceScaleFactor: setups[s].dpr,
       mobile: true
     });
-    await page.goto("http://127.0.0.1:8080/?v=v89", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v90", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusCards && window.NexusCueEdit; });
     var build = await page.locator("#nexus-build").innerText();
-    if (build !== "v89") fail(width + " menu build tag is " + build);
-    else ok(width + " menu shows v89");
+    if (build !== "v90") fail(width + " menu build tag is " + build);
+    else ok(width + " menu shows v90");
     await page.evaluate(function (cue) {
       var archive = window.RELIC_VIDEO_ARCHIVE.cabins.Back.playlist;
       var clip = archive.filter(function (row) { return /Wall Thoracic Stretch/.test(row.title || ""); })[0];

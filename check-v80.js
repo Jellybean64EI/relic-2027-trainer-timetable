@@ -16,7 +16,7 @@ var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var editor = fs.readFileSync("data/cueEditor.js", "utf8");
 
-if (html.indexOf('content="v89"') === -1 || app.indexOf('build: "v89"') === -1) fail("cache stamp is not v80");
+if (html.indexOf('content="v90"') === -1 || app.indexOf('build: "v90"') === -1) fail("cache stamp is not v80");
 else ok("cache stamp is v80");
 if (app.indexOf("function paintCueLip") === -1 || app.indexOf('id = "cue-lip"') === -1 && app.indexOf('lip.id = "cue-lip"') === -1) {
   fail("cue lip is missing");
@@ -28,8 +28,9 @@ if (css.indexOf(".clip-label { display: none;") === -1 || css.indexOf(".player-c
 } else ok("legacy banner and transport stay hidden");
 if (editor.indexOf("Saving does not clear this clip") !== -1) fail("cabin editor still shows the disclaimer");
 else ok("cabin editor disclaimer is gone");
-if (editor.indexOf("vc-cue-id") === -1 || editor.indexOf("vc-cue-key") === -1) fail("identity lines were removed");
-else ok("identity id and media key stay on the editor");
+if (editor.indexOf("vc-cue-id") === -1) fail("the id line was removed");
+else if (editor.indexOf("keyLine.textContent = identity.r2Key") !== -1) fail("the media path is still painted");
+else ok("the id stays and the media path is not painted");
 if (editor.indexOf("lead1") === -1 || editor.indexOf("sets") === -1) fail("editor fields were removed");
 else ok("editor fields stay");
 if (app.indexOf('stage.appendChild(closeBtn)') === -1) fail("close button mount was lost");
