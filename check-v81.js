@@ -15,7 +15,7 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v83"') === -1 || app.indexOf('build: "v83"') === -1) fail("cache stamp is not v81");
+if (html.indexOf('content="v84"') === -1 || app.indexOf('build: "v84"') === -1) fail("cache stamp is not v81");
 else ok("cache stamp is v81");
 if (app.indexOf('node.closest("#forensic-tab, #cue-lip")') === -1) fail("drag ignores the cue lip");
 else ok("drag includes the cue lip");

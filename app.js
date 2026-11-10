@@ -1757,9 +1757,8 @@
     return "";
   }
 
-  function paintForensic() {
-    var host = $("forensic-scroll");
-    if (!host || !window.NexusCue) return;
+  function currentCueView() {
+    if (!window.NexusCue) return null;
     var clip = currentClip();
     var mediaKey = clipMediaKey(clip);
     var identity = window.NexusCards && window.NexusCards.identityByKey ? window.NexusCards.identityByKey(mediaKey) : null;
@@ -1776,22 +1775,81 @@
       });
     }
     var manual = window.NexusCueEdit && identity ? window.NexusCueEdit.forIdentity(identity) : null;
-    var view = window.NexusCue.resolve({
+    return window.NexusCue.resolve({
       title: clipDisplayTitle(clip, null),
       identity: identity,
       driveId: driveId,
       legacy: legacy,
       manual: manual
     });
-    /* The schedule sheet never prints the numeric id. */
-    host.innerHTML = window.NexusCue.render(view);
   }
+
+  function cueText(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function cueDoseValue(dose, key) {
+    if (!dose || dose.state === "awaiting" || dose.state === "blank") return "—";
+    if (dose.state === "na" || dose.state === "legacy") return dose.text || "—";
+    return dose[key] || "—";
+  }
+
+  function ensureCueStage1() {
+    var dock = $("forensic-dock");
+    if (!dock || $("cue-stage1")) return;
+    var clip = document.createElement("div");
+    clip.id = "cue-stage1-clip";
+    clip.className = "cue-stage1-clip";
+    var stage1 = document.createElement("div");
+    stage1.id = "cue-stage1";
+    stage1.className = "cue-stage1";
+    stage1.innerHTML = '<dl class="cue-dose" id="cue-stage1-dose"></dl>' +
+      '<div class="cue-px" id="cue-px-host">' +
+      '<span class="cue-px-label cue-px-label-mute">Mute</span>' +
+      '<span class="cue-px-label cue-px-label-speed">Playback speed</span>' +
+      "</div>";
+    clip.appendChild(stage1);
+    var panel = $("forensic-panel");
+    if (panel) dock.insertBefore(clip, panel);
+    else dock.appendChild(clip);
+    if (window.NexusPlay) window.NexusPlay.mountPair($("cue-px-host"), "px-mute");
+  }
+
+  function paintCueStage1(view) {
+    ensureCueStage1();
+    var host = $("cue-stage1-dose");
+    if (!host) return;
+    var dose = view && view.dose;
+    host.innerHTML =
+      "<div><dt>Sets</dt><dd>" + cueText(cueDoseValue(dose, "sets")) + "</dd></div>" +
+      "<div><dt>Reps</dt><dd>" + cueText(cueDoseValue(dose, "reps")) + "</dd></div>" +
+      "<div><dt>Hold</dt><dd>" + cueText(cueDoseValue(dose, "hold")) + "</dd></div>" +
+      "<div><dt>Rest</dt><dd>" + cueText(cueDoseValue(dose, "rest")) + "</dd></div>";
+  }
+
+  function paintForensic() {
+    var host = $("forensic-scroll");
+    if (!host || !window.NexusCue) return;
+    var view = currentCueView();
+    /* The schedule sheet never prints the numeric id. */
+    var html = window.NexusCue.render(view);
+    html = html.replace(/<p class="cue-manual">[\s\S]*?<\/p>/g, "");
+    html = html.replace(/Joe entered\. Not footage-verified\./g, "");
+    host.innerHTML = html;
+    paintCueStage1(view);
+  }
+
+  /* V85 hook: stage 2 is the taller scrollable sheet. V84 stops at stage 1. */
+  var CUE_STAGE_CAP = 1;
 
   function setCueLevel(level) {
     var panel = $("forensic-panel");
     var tab = $("forensic-tab");
     if (!panel || !tab) return;
-    var next = Math.max(0, Math.min(2, level | 0));
+    var next = Math.max(0, Math.min(CUE_STAGE_CAP, level | 0));
     player.cueLevel = next;
     var open = next > 0;
     /* Slide and resize only. Leave playback, pause, and the video src alone. */
@@ -2138,7 +2196,7 @@
       return;
     }
     noteSetComplete();
-    advance(1, "timer");
+    closePlayer();
   }
 
   function setGate(visible) {
@@ -2948,17 +3006,12 @@
       preloadNext();
       return;
     }
-    var durationMs = Math.max(1000, (SET_DURATION_SEC | 0) * 1000);
-    var overdue = now - player.setEndsAt;
-    var steps = Math.floor(overdue / durationMs) + 1;
-    var leftover = durationMs - (overdue % durationMs);
-    if (leftover < 1) leftover = durationMs;
     if (player.clips.length && player.index < player.clips.length - 1) {
       advance(1, "next");
       return;
     }
     noteSetComplete();
-    advance(steps, "reconcile", leftover);
+    closePlayer();
   }
 
   function onVisibility() {
@@ -3006,6 +3059,7 @@
   }
 
   function startCountdown() {
+    setCueLevel(0);
     beginClipClock();
   }
 
@@ -3444,33 +3498,52 @@
       if (!cueGesture || event.pointerId !== cueGesture.id) return null;
       return {
         dx: event.clientX - cueGesture.x,
-        dy: event.clientY - cueGesture.y
+        dy: event.clientY - cueGesture.y,
+        dt: Date.now() - cueGesture.t
       };
     }
     function cueDragHandle(node) {
       if (!node || !node.closest) return false;
       if (node.closest("#forensic-scroll, input, textarea, select, a")) return false;
-      return !!node.closest("#forensic-tab, #cue-lip");
+      if (node.closest(".px-hit, .px-mute, .px-rate")) return false;
+      return !!node.closest("#forensic-tab, #cue-lip, #cue-stage1, #forensic-dock");
+    }
+    function cueFollow(dy) {
+      var clip = $("cue-stage1-clip");
+      var stage = playerStage();
+      if (stage) stage.classList.add("is-cue-dragging");
+      if (!clip) return;
+      var shift = (player.cueLevel || 0) > 0 ? Math.max(0, dy) : Math.min(0, dy);
+      clip.style.transform = "translate3d(0," + Math.round(shift) + "px,0)";
+    }
+    function cueReleaseFollow() {
+      var clip = $("cue-stage1-clip");
+      var stage = playerStage();
+      if (stage) stage.classList.remove("is-cue-dragging");
+      if (clip) clip.style.transform = "";
     }
     function finishCueDrag(id, x, y, event) {
       var delta = cueDelta({ pointerId: id, clientX: x, clientY: y });
+      var fromTab = !!(cueGesture && cueGesture.tab);
       cueGesture = null;
+      cueReleaseFollow();
       if (!delta) return;
       if (event) {
         if (event.cancelable) event.preventDefault();
         event.stopPropagation();
       }
-      if (Math.abs(delta.dx) > Math.abs(delta.dy) && Math.abs(delta.dx) > TAP_SLOP) return;
-      if (delta.dy < -28) {
-        setCueLevel((player.cueLevel || 0) + 1);
+      var speed = delta.dy / Math.max(16, delta.dt);
+      if (Math.abs(delta.dx) > Math.abs(delta.dy) && Math.abs(delta.dx) > 24) return;
+      if (delta.dy < -28 || speed < -0.55) {
+        setCueLevel(Math.min(CUE_STAGE_CAP, (player.cueLevel || 0) + 1));
         return;
       }
-      if (delta.dy > 28) {
+      if (delta.dy > 28 || speed > 0.55) {
         setCueLevel((player.cueLevel || 0) - 1);
         return;
       }
-      if (Math.abs(delta.dx) < TAP_SLOP && Math.abs(delta.dy) < TAP_SLOP) {
-        setCueLevel((player.cueLevel || 0) >= 2 ? 0 : (player.cueLevel || 0) + 1);
+      if (fromTab && Math.abs(delta.dx) < 12 && Math.abs(delta.dy) < 12) {
+        setCueLevel((player.cueLevel || 0) > 0 ? 0 : 1);
       }
     }
     if (forensicDock) {
@@ -3479,24 +3552,43 @@
         if (event.button > 0 || event.isPrimary === false) return;
         if (!cueDragHandle(event.target)) return;
         cueUsedPointer = true;
-        cueGesture = { x: event.clientX, y: event.clientY, id: event.pointerId };
+        var node = event.target;
+        cueGesture = {
+          x: event.clientX,
+          y: event.clientY,
+          t: Date.now(),
+          id: event.pointerId,
+          tab: !!(node && node.closest && node.closest("#forensic-tab, #cue-lip"))
+        };
         try { forensicDock.setPointerCapture(event.pointerId); } catch (err) { /* capture is optional */ }
         stopForensicEvent(event);
+      });
+      forensicDock.addEventListener("pointermove", function (event) {
+        if (!cueGesture || event.pointerId !== cueGesture.id) return;
+        var dy = event.clientY - cueGesture.y;
+        if (Math.abs(dy) < 4) return;
+        if (event.cancelable) event.preventDefault();
+        cueFollow(dy);
       });
       forensicDock.addEventListener("pointerup", function (event) {
         finishCueDrag(event.pointerId, event.clientX, event.clientY, event);
       });
-      forensicDock.addEventListener("pointercancel", function () { cueGesture = null; });
+      forensicDock.addEventListener("pointercancel", function () {
+        cueGesture = null;
+        cueReleaseFollow();
+      });
       forensicDock.addEventListener("touchstart", function (event) {
         if (cueUsedPointer || !event.changedTouches || event.changedTouches.length !== 1) return;
         var touch = event.changedTouches[0];
         if (!cueDragHandle(event.target)) return;
-        cueGesture = { x: touch.clientX, y: touch.clientY, id: "touch" };
+        cueGesture = { x: touch.clientX, y: touch.clientY, t: Date.now(), id: "touch", tab: true };
         if (event.cancelable) event.preventDefault();
       }, { passive: false });
       forensicDock.addEventListener("touchmove", function (event) {
-        if (cueUsedPointer || !cueGesture || cueGesture.id !== "touch") return;
+        if (cueUsedPointer || !cueGesture || cueGesture.id !== "touch" || !event.changedTouches) return;
+        var touch = event.changedTouches[0];
         if (event.cancelable) event.preventDefault();
+        cueFollow(touch.clientY - cueGesture.y);
       }, { passive: false });
       forensicDock.addEventListener("touchend", function (event) {
         if (cueUsedPointer || !event.changedTouches || !event.changedTouches.length) return;
@@ -3582,10 +3674,7 @@
       var timerDock = $("relic-timer-dock");
       if (closeBtn) stage.appendChild(closeBtn);
       if (timerDock) stage.appendChild(timerDock);
-      var corners = document.createElement("div");
-      corners.className = "px-corners";
-      stage.appendChild(corners);
-      window.NexusPlay.mountPair(corners, "px-mute");
+      ensureCueStage1();
       var spin = document.createElement("div");
       spin.className = "px-spin";
       spin.setAttribute("aria-hidden", "true");
@@ -3761,7 +3850,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v83",
+    build: "v84",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };

@@ -15,8 +15,8 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var playAt = app.indexOf("function playFront(");
 var playBody = app.slice(playAt, playAt + 700);
-if (html.indexOf('content="v83"') === -1 || app.indexOf('build: "v83"') === -1) fail("cache stamp is not v82");
-else ok("cache stamp is v82");
+if (html.indexOf('content="v84"') === -1 || app.indexOf('build: "v84"') === -1) fail("cache stamp is not v84");
+else ok("cache stamp is v84");
 if (playBody.indexOf("stageFront(video)") > playBody.indexOf("video.play")) fail("first play still happens off the stage");
 else ok("play moves the clip onto the stage first");
 if (app.indexOf("function armPlayWatch") === -1 || app.indexOf("Tap to play") === -1) fail("watchdog or tap-to-play is missing");
@@ -50,7 +50,7 @@ function playwright() {
         "id:10001": { muted: true, rate: 0.5, cycled: true }
       }));
     });
-    await page.goto("http://127.0.0.1:8080/?v=v83", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v84", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusPlay; });
     await page.evaluate(function () {
       var orig = HTMLMediaElement.prototype.play;

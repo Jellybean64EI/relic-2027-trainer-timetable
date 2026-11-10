@@ -1182,40 +1182,37 @@ tr.is-ticked td {
   display: flex;
   flex-direction: column;
   flex: 0 0 auto;
-  height: calc(108px + env(safe-area-inset-bottom));
+  height: auto;
   max-height: none;
   margin: 0;
-  padding: 0 0 env(safe-area-inset-bottom);
-  overflow: hidden;
+  padding: 0;
+  overflow: visible;
   transform: none;
-  transition: height 0.38s ease;
   pointer-events: none;
-  background: #12051d;
+  background: transparent;
+  touch-action: none;
 }
 
-.player-stage.is-cue-mid .forensic-dock {
-  height: 46%;
-}
-
+/* V85 hook: .is-cue-full is reserved for the taller scrollable sheet. V84 never sets it. */
 .player-stage.is-cue-full .forensic-dock {
-  height: min(68%, calc(100% - 24vh));
+  background: #12051d;
 }
 
 .player-stage > #relic-active-video,
 .player-stage > .deck-video {
-  flex: 1 1 0;
-  height: auto;
-  min-height: 24vh;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  object-fit: contain;
+  object-position: center center;
+  background: #000;
 }
 
 .player-stage.is-forensic-open #relic-active-video {
-  min-height: 24vh;
+  min-height: 0;
   object-fit: contain;
-}
-
-@media (orientation: landscape) and (max-height: 520px) {
-  .player-stage.is-cue-full .forensic-dock { height: 58%; }
-  .player-stage.is-forensic-open #relic-active-video { min-height: 18vh; }
 }
 
 .forensic-tab,
@@ -1224,12 +1221,16 @@ tr.is-ticked td {
 }
 
 .forensic-tab {
-  align-self: stretch;
-  z-index: 2;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
   width: 100%;
-  min-height: 22px;
+  height: 48px;
+  min-height: 0;
   margin: 0;
-  padding: 8px 12px 4px;
+  padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -1243,31 +1244,108 @@ tr.is-ticked td {
   -webkit-tap-highlight-color: transparent;
   opacity: 1;
   visibility: visible;
+  display: flex;
+  align-items: flex-end;
+}
+
+.player-stage.is-cue-mid .forensic-tab,
+.player-stage.is-cue-full .forensic-tab {
+  position: relative;
+  height: 14px;
+  order: -1;
 }
 
 .forensic-handle {
   display: block;
   width: 100%;
-  height: 4px;
+  height: 3px;
   margin: 0;
-  border-radius: 999px;
+  border-radius: 0;
   background: #ff8a00;
   box-shadow: none;
   pointer-events: none;
 }
 
 .cue-lip {
-  flex: 0 0 auto;
-  padding: 2px 12px 8px;
-  pointer-events: auto;
+  height: 0;
+  overflow: hidden;
+  padding: 0;
+  pointer-events: none;
   touch-action: none;
 }
 
-.cue-lip-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
+.cue-stage1-clip {
+  max-height: 0;
+  overflow: hidden;
+  min-height: 0;
+  transition: max-height 0.32s ease, transform 0.32s ease;
+  pointer-events: none;
+  background: #12051d;
+}
+
+.player-stage.is-cue-mid .cue-stage1-clip,
+.player-stage.is-cue-full .cue-stage1-clip {
+  max-height: 220px;
+  pointer-events: auto;
+}
+
+.player-stage.is-cue-dragging .cue-stage1-clip {
+  transition: none;
+}
+
+.cue-stage1 {
+  overflow: hidden;
+  min-height: 0;
+  padding: 0;
+}
+
+.player-stage.is-cue-mid .cue-stage1,
+.player-stage.is-cue-full .cue-stage1 {
+  padding: 4px 10px 8px;
+}
+
+.player-stage.is-cue-mid .forensic-panel {
+  display: none;
+}
+
+.cue-px {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: auto auto;
+  gap: 4px 6px;
+  margin-top: 8px;
+  pointer-events: auto;
+}
+
+.cue-px-label {
+  color: #ff8a00;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.cue-px-label-mute { grid-column: 1; grid-row: 1; }
+.cue-px-label-speed { grid-column: 4; grid-row: 1; }
+
+.cue-px .px-mute { grid-column: 1; grid-row: 2; }
+.cue-px .px-rate { grid-column: 4; grid-row: 2; }
+
+.cue-px .px-mute,
+.cue-px .px-rate {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 12px;
+  background: #150724;
+}
+
+.player .cue-manual { display: none; }
+
+.cue-lip-tags,
+.cue-lip-name {
+  display: none;
 }
 
 .cue-tag {
@@ -1399,13 +1477,18 @@ tr.is-ticked td {
   text-align: center;
 }
 .cue-dose dt {
-  color: #cbb6e4;
-  font-size: 0.68rem;
+  color: #ff8a00;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.cue-dose dd { margin: 2px 0 0; color: #f6eefe; font-size: 0.95rem; font-weight: 800; }
+.cue-dose dd { margin: 4px 0 0; color: #fff; font-size: 1.15rem; font-weight: 800; }
+.cue-stage1 .cue-dose div {
+  padding: 10px 4px;
+  border-radius: 12px;
+  background: #0b0216;
+}
 .cue-more { margin: 0 0 12px; color: #cbb6e4; }
 .cue-more summary { min-height: 44px; color: #ff8c00; font-weight: 800; cursor: pointer; }
 
@@ -1579,15 +1662,12 @@ tr.is-ticked td {
   position: absolute;
   left: 8px;
   right: 8px;
-  bottom: calc(116px + env(safe-area-inset-bottom));
+  bottom: calc(8px + env(safe-area-inset-bottom));
   z-index: 23;
   display: flex;
   justify-content: space-between;
   pointer-events: none;
 }
-
-.player-stage.is-cue-mid .px-corners { bottom: calc(46% + 8px); }
-.player-stage.is-cue-full .px-corners { bottom: calc(min(68%, 100% - 24vh) + 8px); }
 
 .px-mute,
 .px-rate {
