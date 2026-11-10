@@ -36,6 +36,7 @@
     if (seconds >= 1 && seconds <= 1200) SET_DURATION_SEC = seconds;
   })();
   var HUD_IDLE_MS = 4000;
+  var PHASE_TAG_MS = 8000;
   var TAP_SLOP = 18;
   var PICK_GAP_MS = 320;
   var lastPickAt = 0;
@@ -2081,6 +2082,92 @@
     }
     if (player.hudTimer) clearTimeout(player.hudTimer);
     player.hudTimer = setTimeout(function () { hidePlayerHud(false); }, HUD_IDLE_MS);
+    showPhaseTag();
+  }
+
+  function catalogPhaseMap() {
+    if (player.phaseMap) return player.phaseMap;
+    var map = {};
+    var catalog = window.NEXUS_VIDEO_CATALOG;
+    if (!catalog || !catalog.groups) {
+      player.phaseMap = map;
+      return map;
+    }
+    catalog.groups.forEach(function (group) {
+      (group.modules || []).forEach(function (mod) {
+        var id = mod.id === "pre" ? "pre" : mod.id === "post" ? "post" : mod.id === "exercise" ? "main" : "";
+        if (!id) return;
+        (mod.videos || []).forEach(function (video) {
+          if (video.key) map["k:" + video.key] = id;
+          if (video.src) map["s:" + String(video.src).split("?")[0]] = id;
+          if (video.title) map["t:" + video.title] = id;
+        });
+      });
+    });
+    player.phaseMap = map;
+    return map;
+  }
+
+  function phaseKeyForClip(clip) {
+    var staged = clipPhase(clip);
+    if (staged) return staged;
+    var map = catalogPhaseMap();
+    var key = clipMediaKey(clip);
+    if (key && map["k:" + key]) return map["k:" + key];
+    var src = clip && clip.src ? String(clip.src).split("?")[0] : "";
+    if (src && map["s:" + src]) return map["s:" + src];
+    var title = tidyClipTitle(clip && clip.title);
+    if (title && map["t:" + title]) return map["t:" + title];
+    return "";
+  }
+
+  function phaseTagText() {
+    var clips = player.clips || [];
+    var labels = { pre: "Pre", main: "Main", post: "Post" };
+    var counts = { pre: 0, main: 0, post: 0 };
+    var here = { pre: 0, main: 0, post: 0 };
+    var keys = clips.map(phaseKeyForClip);
+    keys.forEach(function (key, index) {
+      if (!counts.hasOwnProperty(key)) return;
+      counts[key] += 1;
+      if (index === player.index) here[key] = counts[key];
+    });
+    var current = keys[player.index] || "";
+    if (!current || !counts[current]) return "";
+    return labels[current] + " " + here[current] + "/" + counts[current];
+  }
+
+  function ensurePhaseTag() {
+    var stage = playerStage();
+    if (!stage) return null;
+    var el = $("phase-tag");
+    if (el) return el;
+    el = document.createElement("p");
+    el.id = "phase-tag";
+    el.className = "phase-tag is-phase-idle";
+    el.setAttribute("aria-hidden", "true");
+    stage.appendChild(el);
+    return el;
+  }
+
+  function showPhaseTag() {
+    var el = ensurePhaseTag();
+    if (!el) return;
+    var text = phaseTagText();
+    el.textContent = text;
+    if (player.phaseTimer) clearTimeout(player.phaseTimer);
+    player.phaseTimer = null;
+    if (!text) {
+      el.classList.add("is-phase-idle");
+      el.setAttribute("aria-hidden", "true");
+      return;
+    }
+    el.classList.remove("is-phase-idle");
+    el.setAttribute("aria-hidden", "false");
+    player.phaseTimer = setTimeout(function () {
+      el.classList.add("is-phase-idle");
+      el.setAttribute("aria-hidden", "true");
+    }, PHASE_TAG_MS);
   }
 
   function hidePlayerHud(instant) {
@@ -2475,6 +2562,7 @@
     }
     paintCueLip();
     paintForensic();
+    showPhaseTag();
   }
 
   function stripVideoChrome(video) {
@@ -4063,7 +4151,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v88",
+    build: "v89",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };
