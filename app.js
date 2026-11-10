@@ -1836,10 +1836,10 @@
     }
     track.addEventListener("scroll", paintDots);
     track.addEventListener("pointerdown", function (event) {
+      event.stopPropagation();
       if (event.button > 0 || event.isPrimary === false) return;
       if (event.target.closest && event.target.closest(".px-hit, .px-mute, .px-rate, .cue-dot")) return;
       drag = { x: event.clientX, y: event.clientY, left: track.scrollLeft, id: event.pointerId, axis: "" };
-      event.stopPropagation();
     });
     track.addEventListener("pointermove", function (event) {
       if (!drag || event.pointerId !== drag.id) return;
@@ -1854,7 +1854,9 @@
       }
       if (drag.axis !== "x") return;
       track.scrollLeft = drag.left - dx;
+      event.stopPropagation();
       if (event.cancelable) event.preventDefault();
+      paintDots();
     });
     track.addEventListener("pointerup", function (event) {
       if (!drag || event.pointerId !== drag.id) return;
@@ -1869,6 +1871,40 @@
       paintDots();
     });
     track.addEventListener("pointercancel", function () { drag = null; });
+    var touchSlide = null;
+    track.addEventListener("touchstart", function (event) {
+      event.stopPropagation();
+      if (!event.changedTouches || event.changedTouches.length !== 1) return;
+      var touch = event.changedTouches[0];
+      if (event.target.closest && event.target.closest(".px-hit, .px-mute, .px-rate, .cue-dot")) return;
+      touchSlide = { x: touch.clientX, y: touch.clientY, left: track.scrollLeft, axis: "" };
+    }, { passive: false });
+    track.addEventListener("touchmove", function (event) {
+      event.stopPropagation();
+      if (!touchSlide || !event.changedTouches || !event.changedTouches.length) return;
+      var touch = event.changedTouches[0];
+      var dx = touch.clientX - touchSlide.x;
+      var dy = touch.clientY - touchSlide.y;
+      if (!touchSlide.axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+        touchSlide.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      }
+      if (touchSlide.axis !== "x") return;
+      track.scrollLeft = touchSlide.left - dx;
+      if (event.cancelable) event.preventDefault();
+      paintDots();
+    }, { passive: false });
+    track.addEventListener("touchend", function (event) {
+      event.stopPropagation();
+      if (touchSlide && touchSlide.axis === "x") {
+        var span = track.clientWidth || 1;
+        var index = Math.round(track.scrollLeft / span);
+        if (index < 0) index = 0;
+        if (index > 3) index = 3;
+        track.scrollTo({ left: index * span, behavior: "smooth" });
+        paintDots();
+      }
+      touchSlide = null;
+    }, { passive: false });
     var dots = $("cue-dots");
     if (dots) {
       dots.addEventListener("click", function (event) {
@@ -2083,15 +2119,20 @@
     }, instant ? 0 : 420);
   }
 
+  function cuePanelTarget(node) {
+    return !!(node && node.closest && node.closest("#forensic-dock, .forensic-dock, #forensic-tab, #cue-lip, #cue-stage1, #cue-stage2, #cue-slides, .cue-slide, .cue-dots"));
+  }
+
   function onStageHudPointerDown(event) {
     if (!event || event.button > 0 || event.isPrimary === false) return;
     var node = eventElement(event);
-    if (isForensicChrome(node)) return;
+    if (cuePanelTarget(node) || isForensicChrome(node)) return;
     if (node && node.closest && node.closest(".px-hit, .px-sheet, input, textarea, select, button")) return;
     if (isHudChromeTarget(node)) {
       showPlayerHud();
       return;
     }
+    if (!node || !node.closest || !node.closest(".deck-video")) return;
     hudGesture = {
       x: event.clientX,
       y: event.clientY,
@@ -2124,11 +2165,7 @@
     var startY = hudGesture.y;
     var moved = hudGesture.moved;
     hudGesture = null;
-    if (swipeOpensCue(startX, startY, event.clientX, event.clientY)) {
-      setForensicOpen(true);
-      showPlayerHud();
-      return;
-    }
+    if (cuePanelTarget(eventElement(event))) return;
     var dx = event.clientX - startX;
     var dy = event.clientY - startY;
     var edge = startX < 28 || startX > window.innerWidth - 28;
@@ -3644,42 +3681,71 @@
       return !!node.closest("#forensic-tab, #cue-lip, #cue-stage1, #forensic-dock");
     }
     function cueFollow(dy) {
-      var clip = $("cue-stage1-clip");
+      var dock = $("forensic-dock");
       var stage = playerStage();
+      player.cueDrag = true;
       if (stage) stage.classList.add("is-cue-dragging");
-      if (!clip) return;
-      var shift = (player.cueLevel || 0) > 0 ? Math.max(0, dy) : Math.min(0, dy);
-      clip.style.transform = "translate3d(0," + Math.round(shift) + "px,0)";
+      var limit = Math.round(window.innerHeight * 0.28);
+      var y = dy;
+      if (y < -limit) y = -limit;
+      if (y > limit) y = limit;
+      if (!dock) return;
+      dock.style.transform = "translate3d(0," + Math.round(y) + "px,0)";
+      dock.setAttribute("data-cue-shift", String(Math.round(y)));
     }
     function cueReleaseFollow() {
-      var clip = $("cue-stage1-clip");
+      var dock = $("forensic-dock");
       var stage = playerStage();
+      player.cueDrag = false;
       if (stage) stage.classList.remove("is-cue-dragging");
-      if (clip) clip.style.transform = "";
+      if (!dock) return;
+      dock.style.transform = "translate3d(0,0,0)";
+      dock.setAttribute("data-cue-shift", "0");
+      setTimeout(function () {
+        if (!player.cueDrag) dock.style.transform = "";
+      }, 260);
     }
     function finishCueDrag(id, x, y, event) {
       var delta = cueDelta({ pointerId: id, clientX: x, clientY: y });
-      var fromTab = !!(cueGesture && cueGesture.tab);
       cueGesture = null;
-      cueReleaseFollow();
+      if (event) event.stopPropagation();
+      var from = player.cueLevel || 0;
       if (!delta) return;
-      if (event) {
-        if (event.cancelable) event.preventDefault();
-        event.stopPropagation();
-      }
+      if (event && event.cancelable && (Math.abs(delta.dy) > 8 || Math.abs(delta.dx) > 8)) event.preventDefault();
       var speed = delta.dy / Math.max(16, delta.dt);
-      if (Math.abs(delta.dx) > Math.abs(delta.dy) && Math.abs(delta.dx) > 24) return;
-      if (delta.dy < -28 || speed < -0.55) {
-        setCueLevel(Math.min(CUE_STAGE_CAP, (player.cueLevel || 0) + 1));
+      var vertical = Math.abs(delta.dy) >= Math.abs(delta.dx);
+      var up = vertical && (delta.dy < -32 || speed < -0.45);
+      var down = vertical && (delta.dy > 32 || speed > 0.45);
+      var next = from;
+      if (up) next = Math.min(CUE_STAGE_CAP, from + 1);
+      else if (down) next = Math.max(0, from - 1);
+      if (next !== from && next < from) {
+        var dock = $("forensic-dock");
+        var stage = playerStage();
+        player.cueDrag = false;
+        if (stage) stage.classList.remove("is-cue-dragging");
+        if (dock) {
+          var travel = Math.max(72, Math.round(dock.getBoundingClientRect().height || 72));
+          dock.style.transform = "translate3d(0," + travel + "px,0)";
+          dock.setAttribute("data-cue-shift", String(travel));
+        }
+        player.cueSnap = (player.cueSnap || 0) + 1;
+        var token = player.cueSnap;
+        setTimeout(function () {
+          if (token !== player.cueSnap || player.cueDrag) return;
+          if (dock) dock.style.transition = "none";
+          setCueLevel(next);
+          if (dock) {
+            dock.style.transform = "";
+            dock.setAttribute("data-cue-shift", "0");
+            void dock.offsetHeight;
+            dock.style.transition = "";
+          }
+        }, 250);
         return;
       }
-      if (delta.dy > 28 || speed > 0.55) {
-        setCueLevel((player.cueLevel || 0) - 1);
-        return;
-      }
-      if (fromTab && Math.abs(delta.dx) < 12 && Math.abs(delta.dy) < 12) {
-        setCueLevel((player.cueLevel || 0) > 0 ? 0 : 1);
-      }
+      cueReleaseFollow();
+      if (next !== from) setCueLevel(next);
     }
     if (forensicDock) {
       var cueUsedPointer = false;
@@ -3687,6 +3753,7 @@
         if (event.button > 0 || event.isPrimary === false) return;
         if (!cueDragHandle(event.target)) return;
         cueUsedPointer = true;
+        player.cueSnap = (player.cueSnap || 0) + 1;
         var node = event.target;
         cueGesture = {
           x: event.clientX,
@@ -3698,21 +3765,30 @@
         try { forensicDock.setPointerCapture(event.pointerId); } catch (err) { /* capture is optional */ }
         stopForensicEvent(event);
       });
-      forensicDock.addEventListener("pointermove", function (event) {
+      function cuePointerMove(event) {
         if (!cueGesture || event.pointerId !== cueGesture.id) return;
         var dy = event.clientY - cueGesture.y;
-        if (Math.abs(dy) < 4) return;
+        var dx = event.clientX - cueGesture.x;
+        if (Math.abs(dy) < 4 && Math.abs(dx) < 4) return;
         if (event.cancelable) event.preventDefault();
         cueFollow(dy);
-      });
-      forensicDock.addEventListener("pointerup", function (event) {
+      }
+      function cuePointerUp(event) {
+        if (!cueGesture || event.pointerId !== cueGesture.id) return;
         finishCueDrag(event.pointerId, event.clientX, event.clientY, event);
-      });
+        cueUsedPointer = false;
+      }
+      forensicDock.addEventListener("pointermove", cuePointerMove);
+      document.addEventListener("pointermove", cuePointerMove);
+      forensicDock.addEventListener("pointerup", cuePointerUp);
+      document.addEventListener("pointerup", cuePointerUp);
       forensicDock.addEventListener("pointercancel", function () {
         cueGesture = null;
         cueReleaseFollow();
+        cueUsedPointer = false;
       });
       forensicDock.addEventListener("touchstart", function (event) {
+        event.stopPropagation();
         if (cueUsedPointer || !event.changedTouches || event.changedTouches.length !== 1) return;
         var touch = event.changedTouches[0];
         if (!cueDragHandle(event.target)) return;
@@ -3727,12 +3803,15 @@
         if (event.cancelable) event.preventDefault();
       }, { passive: false });
       forensicDock.addEventListener("touchmove", function (event) {
+        event.stopPropagation();
+        if (player.cueDrag && event.cancelable) event.preventDefault();
         if (cueUsedPointer || !cueGesture || cueGesture.id !== "touch" || !event.changedTouches) return;
         var touch = event.changedTouches[0];
         if (event.cancelable) event.preventDefault();
         cueFollow(touch.clientY - cueGesture.y);
       }, { passive: false });
       forensicDock.addEventListener("touchend", function (event) {
+        event.stopPropagation();
         if (cueUsedPointer || !event.changedTouches || !event.changedTouches.length) return;
         var touch = event.changedTouches[0];
         finishCueDrag("touch", touch.clientX, touch.clientY, event);
@@ -3757,6 +3836,10 @@
       forensicPanel.addEventListener("pointerdown", stopForensicEvent);
       forensicPanel.addEventListener("click", stopForensicEvent);
     }
+    document.addEventListener("touchmove", function (event) {
+      if (!player.cueDrag || !event.cancelable) return;
+      event.preventDefault();
+    }, { passive: false });
     document.addEventListener("keydown", function (event) {
       if (event.key !== "Escape") return;
       var playerRoot = $("relic-player");
@@ -3992,7 +4075,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v85",
+    build: "v86",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };

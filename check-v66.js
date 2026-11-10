@@ -75,7 +75,7 @@ want.forEach(function (id) { if (ids[cursor] === id) cursor += 1; });
 if (cursor !== ids.length || ids[0] !== "face" || ids[ids.length - 1].indexOf("sp-") !== 0) fail("cabin order " + ids.join(","));
 else ok("order is Face through Feet, then Posture & Mobility through Target Weights");
 
-if (html.indexOf('content="v85"') === -1 || html.indexOf("?v=v66") !== -1) fail("cache stamp is not v77");
+if (html.indexOf('content="v86"') === -1 || html.indexOf("?v=v66") !== -1) fail("cache stamp is not v77");
 else ok("cache stamp is v77");
 if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0; }) === false) {
   fail("player-open rules disappeared");
