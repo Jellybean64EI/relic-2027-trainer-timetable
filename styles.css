@@ -1193,9 +1193,8 @@ tr.is-ticked td {
   touch-action: none;
 }
 
-/* V85 hook: .is-cue-full is reserved for the taller scrollable sheet. V84 never sets it. */
 .player-stage.is-cue-full .forensic-dock {
-  background: #12051d;
+  background: transparent;
 }
 
 .player-stage > #relic-active-video,
@@ -1283,8 +1282,7 @@ tr.is-ticked td {
   background: #12051d;
 }
 
-.player-stage.is-cue-mid .cue-stage1-clip,
-.player-stage.is-cue-full .cue-stage1-clip {
+.player-stage.is-cue-mid .cue-stage1-clip {
   max-height: 220px;
   pointer-events: auto;
 }
@@ -1304,9 +1302,119 @@ tr.is-ticked td {
   padding: 4px 10px 8px;
 }
 
-.player-stage.is-cue-mid .forensic-panel {
+.player-stage.is-cue-mid .forensic-panel,
+.player-stage.is-cue-full .forensic-panel {
   display: none;
 }
+
+.cue-stage2-clip {
+  height: 0;
+  max-height: 0;
+  overflow: hidden;
+  background: #12051d;
+  transition: height 0.32s ease, transform 0.32s ease;
+}
+
+.player-stage.is-cue-full .cue-stage2-clip {
+  height: 60vh;
+  max-height: 65vh;
+}
+
+.player-stage.is-cue-dragging .cue-stage2-clip {
+  transition: none;
+}
+
+.cue-stage2 {
+  display: flex;
+  flex-direction: column;
+  height: 60vh;
+  min-height: 0;
+}
+
+.cue-slides {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  touch-action: pan-y;
+  scrollbar-width: none;
+}
+
+.cue-slides::-webkit-scrollbar { display: none; }
+
+.cue-slide {
+  flex: 0 0 100%;
+  min-width: 100%;
+  height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.cue-slide-body {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 14px 12px;
+  touch-action: pan-y;
+}
+
+.cue-slide-body h3 {
+  margin: 14px 0 8px;
+  color: #ff8a00;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cue-slide-body h3:first-child { margin-top: 0; }
+
+.cue-slide-body p,
+.cue-slide-body li {
+  margin: 0 0 8px;
+  color: #fff;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.cue-slide-body ol { margin: 0; padding-left: 1.2rem; }
+
+.cue-slide-body .cue-empty { color: #cbb6e4; }
+
+.cue-rules { list-style: none; margin: 0; padding: 0; }
+.cue-rules li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0 0 12px;
+}
+.cue-num {
+  flex: 0 0 auto;
+  color: #ff8a00;
+  font-weight: 800;
+}
+
+.cue-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 0 8px;
+}
+
+.cue-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #cbb6e4;
+  cursor: pointer;
+}
+
+.cue-dot.is-on { background: #ff8a00; }
 
 .cue-px {
   display: grid;

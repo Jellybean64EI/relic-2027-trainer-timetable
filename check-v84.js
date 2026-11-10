@@ -17,10 +17,10 @@ var css = fs.readFileSync("styles.css", "utf8");
 var tick = app.slice(app.indexOf("function onClockTick("), app.indexOf("function setGate("));
 var reconcile = app.slice(app.indexOf("function reconcileVisibility("), app.indexOf("function onVisibility("));
 
-if (html.indexOf('content="v84"') === -1 || app.indexOf('build: "v84"') === -1) fail("cache stamp is not v84");
-else ok("cache stamp is v84");
-if (app.indexOf("var CUE_STAGE_CAP = 1") === -1) fail("stage 2 is already built");
-else ok("a second swipe stays at stage 1");
+if (html.indexOf('content="v85"') === -1 || app.indexOf('build: "v85"') === -1) fail("cache stamp is not v85");
+else ok("cache stamp is v85");
+if (app.indexOf('stage.classList.toggle("is-cue-mid", next === 1)') === -1) fail("stage 1 no longer opens");
+else ok("stage 1 still opens on the first swipe");
 if (tick.indexOf("noteSetComplete()") === -1 || tick.indexOf("closePlayer()") < tick.indexOf("noteSetComplete()")) {
   fail("the last clip does not close after it is marked complete");
 } else if (tick.indexOf('advance(1, "timer")') !== -1) fail("the last clip still wraps");
@@ -77,7 +77,7 @@ function swipe(page, selector, x1, y1, x2, y2, id) {
     var width = sizes[i][0];
     var height = sizes[i][1];
     var page = await browser.newPage({ viewport: { width: width, height: height }, hasTouch: true });
-    await page.goto("http://127.0.0.1:8080/?v=v84", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v85", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusPlay; });
     await page.evaluate(function () {
       var toast = document.getElementById("deck-toast");
@@ -121,10 +121,8 @@ function swipe(page, selector, x1, y1, x2, y2, id) {
     } else ok(width + " closed player is full-screen video and a thin lip");
     var before = await page.evaluate(function () { return window.RelicArchitect.playerIndex; });
     var pass;
-    for (pass = 0; pass < 4; pass++) {
-      await swipe(page, "#forensic-tab", 40, 8, 40, -70, 20 + pass);
-      await page.waitForTimeout(380);
-    }
+    await swipe(page, "#forensic-tab", 40, 8, 40, -70, 20);
+    await page.waitForTimeout(380);
     var opened = await page.evaluate(function () {
       var stage = document.querySelector(".player-stage");
       var video = document.querySelector(".player-stage .deck-video.is-front");
@@ -195,7 +193,7 @@ function swipe(page, selector, x1, y1, x2, y2, id) {
   await expiry.addInitScript(function () {
     try { localStorage.removeItem("nexus_ticks_dirty_v2"); } catch (err) { /* private mode */ }
   });
-  await expiry.goto("http://127.0.0.1:8080/?v=v84&setsec=2", { waitUntil: "domcontentloaded" });
+  await expiry.goto("http://127.0.0.1:8080/?v=v85&setsec=2", { waitUntil: "domcontentloaded" });
   await expiry.waitForFunction(function () { return window.RelicArchitect; });
   var primed = await expiry.evaluate(function () {
     window.RelicArchitect.setFutureLock(false);
