@@ -1591,6 +1591,47 @@ tr.is-ticked td {
   font-weight: 800;
 }
 
+.px-spin {
+  position: absolute;
+  left: 50%;
+  top: 36%;
+  z-index: 6;
+  width: 36px;
+  height: 36px;
+  margin-left: -18px;
+  border: 3px solid rgba(255, 138, 0, 0.28);
+  border-top-color: #ff8a00;
+  border-radius: 50%;
+  display: none;
+  pointer-events: none;
+  animation: px-spin 0.8s linear infinite;
+}
+
+.player-stage.is-clip-loading .px-spin { display: block; }
+
+@keyframes px-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .px-spin { animation: none; }
+}
+
+.px-tap-play {
+  position: absolute;
+  left: 50%;
+  top: 36%;
+  z-index: 12;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #ff8a00;
+  border-radius: 999px;
+  background: rgba(11, 2, 22, 0.92);
+  color: #f6eefe;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  transform: translate(-50%, -50%);
+}
+
 .px-gauge {
   display: inline-block;
   width: 14px;
