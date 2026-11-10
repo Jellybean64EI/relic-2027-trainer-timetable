@@ -211,12 +211,6 @@ window.NexusCueEdit = (function () {
         idLine.textContent = "#" + identity.videoId;
         lock.appendChild(idLine);
       }
-      if (identity && identity.r2Key) {
-        var keyLine = document.createElement("span");
-        keyLine.className = "vc-cue-key";
-        keyLine.textContent = identity.r2Key;
-        lock.appendChild(keyLine);
-      }
     }
     setStatus("", "");
     paint();

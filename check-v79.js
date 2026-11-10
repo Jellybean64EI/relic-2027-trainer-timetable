@@ -17,7 +17,7 @@ var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var chrome = fs.readFileSync("data/playerChrome.js", "utf8");
 
-if (html.indexOf('content="v89"') === -1 || app.indexOf('build: "v89"') === -1) fail("cache stamp is not v79");
+if (html.indexOf('content="v90"') === -1 || app.indexOf('build: "v90"') === -1) fail("cache stamp is not v79");
 else ok("cache stamp is v79");
 if (css.indexOf(".player-stage.is-hud-idle .player-hud") !== -1) fail("idle still fades the whole hud");
 else ok("idle no longer fades the close button and timer");

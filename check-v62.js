@@ -109,10 +109,10 @@ var advance = sliceFn(app, "advance", "reconcileVisibility");
 if (!/if\s*\(\s*!manual\s*\)/.test(advance) || advance.indexOf("armClock(nextMs)") === -1) fail("skip still resets the 20:00 countdown");
 else ok("manual skip keeps the countdown");
 
-if (app.indexOf('build: "v89"') === -1) fail("RelicArchitect.build is not v77");
+if (app.indexOf('build: "v90"') === -1) fail("RelicArchitect.build is not v77");
 else ok("build stamp is v77");
 
-["styles.css?v=v89", "app.js?v=v89", "deck.js?v=v89", "cards.js?v=v89", "builder.js?v=v89"].forEach(function (stamp) {
+["styles.css?v=v90", "app.js?v=v90", "deck.js?v=v90", "cards.js?v=v90", "builder.js?v=v90"].forEach(function (stamp) {
   if (html.indexOf(stamp) === -1) fail("index.html is missing " + stamp);
 });
 if (html.indexOf("v62") !== -1) fail("index.html still says v62");
