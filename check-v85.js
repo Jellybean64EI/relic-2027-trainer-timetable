@@ -13,10 +13,10 @@ function ok(message) {
 
 var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
-var touchStart = app.slice(app.indexOf('addEventListener("touchstart"'), app.indexOf('addEventListener("touchmove"'));
+var touchStart = app.slice(app.indexOf('forensicDock.addEventListener("touchstart"'), app.indexOf('forensicDock.addEventListener("touchmove"'));
 
-if (html.indexOf('content="v85"') === -1 || app.indexOf('build: "v85"') === -1) fail("cache stamp is not v85");
-else ok("cache stamp is v85");
+if (html.indexOf('content="v86"') === -1 || app.indexOf('build: "v86"') === -1) fail("cache stamp is not v86");
+else ok("cache stamp is v86");
 if (app.indexOf("var CUE_STAGE_CAP = 2") === -1) fail("stage 2 does not open");
 else ok("a second swipe can open stage 2");
 if (touchStart.indexOf("tab: true") !== -1) fail("a tap inside the panel can close it");
@@ -66,7 +66,7 @@ function swipe(page, selector, x1, y1, x2, y2, id) {
     var width = sizes[i][0];
     var height = sizes[i][1];
     var page = await browser.newPage({ viewport: { width: width, height: height }, hasTouch: true });
-    await page.goto("http://127.0.0.1:8080/?v=v85", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v86", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusCueEdit && window.NexusCards; });
     await page.evaluate(function () {
       var list = window.RELIC_VIDEO_ARCHIVE.cabins.Back.playlist.slice(0, 2).map(function (clip) {
@@ -153,7 +153,7 @@ function swipe(page, selector, x1, y1, x2, y2, id) {
         joe: (document.getElementById("cue-stage1").textContent + document.getElementById("cue-stage2").textContent).indexOf("Joe entered")
       };
     });
-    if (!stage2.full || stage2.mid || stage2.ratio < 0.55 || stage2.ratio > 0.65 || stage2.covered || stage2.index !== index || stage2.joe !== -1) {
+    if (!stage2.full || stage2.mid || stage2.ratio < 0.4 || stage2.ratio > 0.46 || stage2.covered || stage2.index !== index || stage2.joe !== -1) {
       fail(width + " stage 2 size or isolation is wrong " + JSON.stringify(stage2));
     } else if (stage2.headings.join("|") !== "Do This Properly|Avoid This|3 Lead Rules|Breathing" || stage2.sets !== "4" || stage2.rules.indexOf("Reach long") === -1 || stage2.rules.indexOf("Not added yet") === -1) {
       fail(width + " stage 2 slides are wrong " + JSON.stringify(stage2));
