@@ -30,7 +30,7 @@ if (trim.indexOf("function bust") === -1 || trim.indexOf('"?v="') === -1 && trim
 if (trim.indexOf("stampArchive") === -1) fail("the schedule player is not cache-busted");
 if (builder.indexOf("NexusTrim.bust") === -1) fail("schedule playback does not cache-bust");
 if (cards.indexOf("playSrc(") === -1) fail("the viewer and eye preview do not cache-bust");
-if (app.indexOf('build: "v82"') === -1 || html.indexOf('content="v82"') === -1 || html.indexOf("?v=v68") !== -1) {
+if (app.indexOf('build: "v83"') === -1 || html.indexOf('content="v83"') === -1 || html.indexOf("?v=v68") !== -1) {
   fail("cache stamp is not v77");
 }
 if (cards.indexOf("if (!building() && !forceEye) return button") === -1 || cards.indexOf("NexusBuilder.takeCard") === -1) {

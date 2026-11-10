@@ -76,11 +76,17 @@ window.NexusPlay = (function () {
     if (!map) return false;
     var current = read(list);
     var chosen = patch.rate == null ? current.rate : stepRate(patch.rate);
+    var keptSeconds = null;
+    list.forEach(function (token) {
+      if (keptSeconds == null && map[token] && map[token].seconds >= 1) keptSeconds = map[token].seconds | 0;
+    });
     var next = {
       muted: patch.muted == null ? current.muted : !!patch.muted,
       rate: chosen == null ? 1 : chosen,
-      cycled: patch.cycled == null ? (chosen == null ? false : current.cycled) : !!patch.cycled
+      cycled: patch.cycled == null ? (chosen == null ? false : current.cycled) : !!patch.cycled,
+      seconds: patch.seconds == null ? keptSeconds : (patch.seconds | 0)
     };
+    if (!(next.seconds >= 1)) delete next.seconds;
     list.forEach(function (token) { map[token] = next; });
     try {
       localStorage.setItem(STORE, JSON.stringify(map));
@@ -131,6 +137,22 @@ window.NexusPlay = (function () {
       btn.innerHTML = '<span class="px-gauge" aria-hidden="true"></span><span class="px-speed-read">' + label + "</span>";
       btn.setAttribute("aria-label", "Playback speed " + label);
     });
+  }
+
+  function readTimer(tokens) {
+    var map = loadMap();
+    if (!map) return 0;
+    var i;
+    var row;
+    for (i = 0; i < (tokens || []).length; i++) {
+      row = map[tokens[i]];
+      if (row && row.seconds >= 1) return row.seconds | 0;
+    }
+    return 0;
+  }
+
+  function writeTimer(tokens, seconds) {
+    return write(tokens || [], { seconds: seconds | 0 });
   }
 
   function sync(tokens) {
@@ -206,6 +228,8 @@ window.NexusPlay = (function () {
     write: write,
     apply: apply,
     nextRate: nextRate,
+    readTimer: readTimer,
+    writeTimer: writeTimer,
     sync: sync,
     toggleMute: toggleMute,
     cycleRate: cycleRate,
