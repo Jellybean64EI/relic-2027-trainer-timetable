@@ -16,7 +16,7 @@ var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var chrome = fs.readFileSync("data/playerChrome.js", "utf8");
 
-if (html.indexOf('content="v83"') === -1 || app.indexOf('build: "v83"') === -1) fail("cache stamp is not v83");
+if (html.indexOf('content="v84"') === -1 || app.indexOf('build: "v84"') === -1) fail("cache stamp is not v83");
 else ok("cache stamp is v83");
 if (app.indexOf("HUD_IDLE_MS = 4000") === -1) fail("auto-hide is not 4 seconds");
 else ok("auto-hide waits 4 seconds");
@@ -67,7 +67,7 @@ function playwright() {
   var i;
   for (i = 0; i < widths.length; i++) {
     var page = await browser.newPage({ viewport: { width: widths[i], height: widths[i] === 390 ? 844 : 900 }, hasTouch: true });
-    await page.goto("http://127.0.0.1:8080/?v=v83", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v84", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusPlay; });
     var srcs = await page.evaluate(function () {
       return window.RELIC_VIDEO_ARCHIVE.cabins.Back.playlist.slice(0, 2).map(function (clip) {
@@ -156,25 +156,20 @@ function playwright() {
         var stage = document.querySelector(".player-stage");
         var close = document.getElementById("relic-player-close");
         var timer = document.getElementById("relic-timer-dock");
-        var mute = document.querySelector("#relic-player .px-mute");
-        var speed = document.querySelector("#relic-player .px-rate");
         return {
           idle: stage.classList.contains("is-chrome-idle"),
           close: getComputedStyle(close).opacity,
           closePe: getComputedStyle(close).pointerEvents,
           timer: getComputedStyle(timer).opacity,
           timerPe: getComputedStyle(timer).pointerEvents,
-          mute: getComputedStyle(mute).opacity,
-          mutePe: getComputedStyle(mute).pointerEvents,
-          speed: getComputedStyle(speed).opacity,
-          speedPe: getComputedStyle(speed).pointerEvents,
+          overlay: !!document.querySelector(".player-stage > .px-corners"),
           paused: document.querySelector(".player-stage .deck-video.is-front").paused
         };
       });
       if (!hidden.idle || hidden.close !== "0" || hidden.closePe !== "none" || hidden.timer !== "0" || hidden.timerPe !== "none") fail("close and timer did not hide after 4 seconds");
       else ok("close and timer hide after 4 seconds");
-      if (hidden.mute !== "1" || hidden.speed !== "1" || hidden.mutePe === "none" || hidden.speedPe === "none") fail("mute or speed was hidden");
-      else ok("mute and speed stay visible");
+      if (hidden.overlay) fail("mute or speed is still over the video");
+      else ok("mute and speed are not over the video");
       var revealed = await page.evaluate(function () {
         var video = document.querySelector(".player-stage .deck-video.is-front");
         var box = video.getBoundingClientRect();
@@ -221,7 +216,7 @@ function playwright() {
     await expiry.addInitScript(function () {
       try { localStorage.removeItem("nexus_ticks_dirty_v2"); } catch (err) { /* private mode */ }
     });
-    await expiry.goto("http://127.0.0.1:8080/?v=v83&setsec=2", { waitUntil: "domcontentloaded" });
+    await expiry.goto("http://127.0.0.1:8080/?v=v84&setsec=2", { waitUntil: "domcontentloaded" });
     await expiry.waitForFunction(function () { return window.RelicArchitect && window.NexusPlay; });
     var primed = await expiry.evaluate(function () {
       window.RelicArchitect.setFutureLock(false);
@@ -253,41 +248,30 @@ function playwright() {
       if (mid["2099-06-15"] || tickPuts.length) fail(widths[i] + " a mid-list expiry wrote completion");
       else ok(widths[i] + " a mid-list expiry does not write completion");
       var guard = 0;
+      var playlistLength = primed.n;
       while (guard < 12) {
-        var pos = await expiry.locator(".cue-tag-pos").innerText();
-        var at = Number(String(pos).split("/")[0]);
-        var len = Number(String(pos).split("/")[1]);
-        if (at >= len) break;
+        var at = await expiry.evaluate(function () { return window.RelicArchitect.playerIndex; });
+        if (at >= playlistLength - 1) break;
         await expiry.evaluate(function () { window.RelicArchitect.playNextVideo(); });
         await expiry.waitForTimeout(420);
         guard += 1;
       }
-      await expiry.waitForFunction(function () { return window.RelicArchitect.playerIndex === 0; }, null, { timeout: 15000 });
+      await expiry.waitForFunction(function () {
+        var root = document.getElementById("relic-player");
+        return root && root.hidden;
+      }, null, { timeout: 15000 });
       var once = await expiry.evaluate(function () {
-        return JSON.parse(localStorage.getItem("nexus_ticks_dirty_v2") || "{}");
+        var root = document.getElementById("relic-player");
+        return {
+          dirty: JSON.parse(localStorage.getItem("nexus_ticks_dirty_v2") || "{}"),
+          closed: !!(root && root.hidden),
+          open: document.body.classList.contains("player-open")
+        };
       });
       var putsAfterFirst = tickPuts.filter(function (url) { return url.indexOf("/ticks/") !== -1; }).length;
-      if (once["2099-06-15"] !== 1 || putsAfterFirst !== 1) {
-        fail(widths[i] + " the last clip did not complete exactly once (" + JSON.stringify(once) + ", puts " + putsAfterFirst + ")");
-      } else ok(widths[i] + " the last clip's expiry completes the day once");
-      guard = 0;
-      while (guard < 12) {
-        var again = await expiry.locator(".cue-tag-pos").innerText();
-        var atAgain = Number(String(again).split("/")[0]);
-        var lenAgain = Number(String(again).split("/")[1]);
-        if (atAgain >= lenAgain) break;
-        await expiry.evaluate(function () { window.RelicArchitect.playNextVideo(); });
-        await expiry.waitForTimeout(420);
-        guard += 1;
-      }
-      await expiry.waitForFunction(function () { return window.RelicArchitect.playerIndex === 0; }, null, { timeout: 15000 });
-      var twice = await expiry.evaluate(function () {
-        return JSON.parse(localStorage.getItem("nexus_ticks_dirty_v2") || "{}");
-      });
-      var putsAfterSecond = tickPuts.filter(function (url) { return url.indexOf("/ticks/") !== -1; }).length;
-      if (twice["2099-06-15"] !== 1 || putsAfterSecond !== 1) {
-        fail(widths[i] + " the last clip completed again (" + JSON.stringify(twice) + ", puts " + putsAfterSecond + ")");
-      } else ok(widths[i] + " a second last-clip expiry does not complete again");
+      if (once.dirty["2099-06-15"] !== 1 || putsAfterFirst !== 1 || !once.closed || once.open) {
+        fail(widths[i] + " the last clip did not complete once and close (" + JSON.stringify(once) + ", puts " + putsAfterFirst + ")");
+      } else ok(widths[i] + " the last clip's expiry completes the day once and closes");
     }
     await expiry.close();
   }
