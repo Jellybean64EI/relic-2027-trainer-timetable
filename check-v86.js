@@ -15,8 +15,8 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v86"') === -1 || app.indexOf('build: "v86"') === -1) fail("cache stamp is not v86");
-else ok("cache stamp is v86");
+if (html.indexOf('content="v87"') === -1 || app.indexOf('build: "v87"') === -1) fail("cache stamp is not v87");
+else ok("cache stamp is v87");
 if (app.indexOf("function cuePanelTarget") === -1 || app.indexOf('!node.closest(".deck-video")') === -1) {
   fail("video swipes are not limited to the video");
 } else ok("only a swipe that starts on the video changes clips");
@@ -101,7 +101,7 @@ async function touchPath(client, page, points, sample) {
     var page = await context.newPage();
     var client = await context.newCDPSession(page);
     await client.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
-    await page.goto("http://127.0.0.1:8080/?v=v86", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v87", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusCards && window.NexusCueEdit; });
     await page.evaluate(function () {
       var archive = window.RELIC_VIDEO_ARCHIVE.cabins.Back.playlist;

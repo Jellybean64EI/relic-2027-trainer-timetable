@@ -15,8 +15,8 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var touchStart = app.slice(app.indexOf('forensicDock.addEventListener("touchstart"'), app.indexOf('forensicDock.addEventListener("touchmove"'));
 
-if (html.indexOf('content="v86"') === -1 || app.indexOf('build: "v86"') === -1) fail("cache stamp is not v86");
-else ok("cache stamp is v86");
+if (html.indexOf('content="v87"') === -1 || app.indexOf('build: "v87"') === -1) fail("cache stamp is not v87");
+else ok("cache stamp is v87");
 if (app.indexOf("var CUE_STAGE_CAP = 2") === -1) fail("stage 2 does not open");
 else ok("a second swipe can open stage 2");
 if (touchStart.indexOf("tab: true") !== -1) fail("a tap inside the panel can close it");
@@ -66,7 +66,7 @@ function swipe(page, selector, x1, y1, x2, y2, id) {
     var width = sizes[i][0];
     var height = sizes[i][1];
     var page = await browser.newPage({ viewport: { width: width, height: height }, hasTouch: true });
-    await page.goto("http://127.0.0.1:8080/?v=v86", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v87", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusCueEdit && window.NexusCards; });
     await page.evaluate(function () {
       var list = window.RELIC_VIDEO_ARCHIVE.cabins.Back.playlist.slice(0, 2).map(function (clip) {

@@ -6,10 +6,10 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v86" />
+  <meta name="relic-build" content="v87" />
   <title>Nexus</title>
-  <link rel="manifest" href="manifest.webmanifest?v=v86" />
-  <link rel="stylesheet" href="styles.css?v=v86" />
+  <link rel="manifest" href="manifest.webmanifest?v=v87" />
+  <link rel="stylesheet" href="styles.css?v=v87" />
 </head>
 <body>
   <div class="wrap">
@@ -290,6 +290,7 @@
         <span class="nav-row-label">Account Profile</span>
       </button>
     </nav>
+    <p class="nexus-build" id="nexus-build"></p>
     </div>
   </aside>
 
@@ -363,27 +364,52 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v86"></script>
-  <script src="data/precondition.js?v=v86"></script>
-  <script src="data/upperBody.js?v=v86"></script>
-  <script src="data/citations.js?v=v86"></script>
-  <script src="data/forensic.js?v=v86"></script>
-  <script src="data/cues/cues.js?v=v86"></script>
-  <script src="data/forensicClips.js?v=v86"></script>
-  <script src="data/videoArchive.js?v=v86"></script>
-  <script src="data/nutrition/shop.js?v=v86"></script>
-  <script src="data/nutrition/schedule.js?v=v86"></script>
-  <script src="food.js?v=v86"></script>
-  <script src="data/nexusConfig.js?v=v86"></script>
-  <script src="deck.js?v=v86"></script>
-  <script src="data/videoCatalog.js?v=v86"></script>
-  <script src="tools/v64_placement.js?v=v86"></script>
-  <script src="trim.js?v=v86"></script>
-  <script src="builder.js?v=v86"></script>
-  <script src="cards.js?v=v86"></script>
-  <script src="data/cueModel.js?v=v86"></script>
-  <script src="data/cueEditor.js?v=v86"></script>
-  <script src="data/playerChrome.js?v=v86"></script>
-  <script src="app.js?v=v86"></script>
+  <script src="data/schedule.js?v=v87"></script>
+  <script src="data/precondition.js?v=v87"></script>
+  <script src="data/upperBody.js?v=v87"></script>
+  <script src="data/citations.js?v=v87"></script>
+  <script src="data/forensic.js?v=v87"></script>
+  <script src="data/cues/cues.js?v=v87"></script>
+  <script src="data/forensicClips.js?v=v87"></script>
+  <script src="data/videoArchive.js?v=v87"></script>
+  <script src="data/nutrition/shop.js?v=v87"></script>
+  <script src="data/nutrition/schedule.js?v=v87"></script>
+  <script src="food.js?v=v87"></script>
+  <script src="data/nexusConfig.js?v=v87"></script>
+  <script src="deck.js?v=v87"></script>
+  <script src="data/videoCatalog.js?v=v87"></script>
+  <script src="tools/v64_placement.js?v=v87"></script>
+  <script src="trim.js?v=v87"></script>
+  <script src="builder.js?v=v87"></script>
+  <script src="cards.js?v=v87"></script>
+  <script src="data/cueModel.js?v=v87"></script>
+  <script src="data/cueEditor.js?v=v87"></script>
+  <script src="data/playerChrome.js?v=v87"></script>
+  <script src="app.js?v=v87"></script>
+  <script>
+    (function () {
+      var meta = document.querySelector('meta[name="relic-build"]');
+      var build = meta ? meta.getAttribute("content") : "";
+      var tag = document.getElementById("nexus-build");
+      if (tag && build) tag.textContent = build;
+      try {
+        if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+          navigator.serviceWorker.getRegistrations().then(function (list) {
+            list.forEach(function (reg) { reg.unregister(); });
+          });
+        }
+      } catch (err) {}
+      try {
+        var seen = localStorage.getItem("nexus-seen-build");
+        if (build && seen && seen !== build && sessionStorage.getItem("nexus-reloaded") !== build) {
+          sessionStorage.setItem("nexus-reloaded", build);
+          localStorage.setItem("nexus-seen-build", build);
+          location.reload();
+          return;
+        }
+        if (build) localStorage.setItem("nexus-seen-build", build);
+      } catch (err2) {}
+    })();
+  </script>
 </body>
 </html>

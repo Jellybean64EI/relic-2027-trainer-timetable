@@ -83,13 +83,13 @@ must(builder, "filledSlots", "slot badge is missing");
 must(builder, '"/12 slots"', "slot badge is not out of 12");
 ok("weekly groups and one-tap placement are wired");
 
-if (app.indexOf('build: "v86"') === -1) fail("RelicArchitect.build is not v77");
+if (app.indexOf('build: "v87"') === -1) fail("RelicArchitect.build is not v77");
 else ok("build stamp is v77");
 
-["styles.css?v=v86", "app.js?v=v86", "deck.js?v=v86", "cards.js?v=v86", "builder.js?v=v86"].forEach(function (stamp) {
+["styles.css?v=v87", "app.js?v=v87", "deck.js?v=v87", "cards.js?v=v87", "builder.js?v=v87"].forEach(function (stamp) {
   if (html.indexOf(stamp) === -1) fail("index.html is missing " + stamp);
 });
-if (html.indexOf('content="v86"') === -1) fail("relic-build is not v77");
+if (html.indexOf('content="v87"') === -1) fail("relic-build is not v77");
 if (html.indexOf("v62") !== -1) fail("index.html still says v62");
 else ok("cache stamp is v77");
 
