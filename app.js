@@ -35,7 +35,7 @@
     var seconds = +match[1];
     if (seconds >= 1 && seconds <= 1200) SET_DURATION_SEC = seconds;
   })();
-  var HUD_IDLE_MS = 2000;
+  var HUD_IDLE_MS = 4000;
   var TAP_SLOP = 18;
   var PICK_GAP_MS = 320;
   var lastPickAt = 0;
@@ -1653,7 +1653,7 @@
     if (!el) return;
     var remaining = Math.max(0, player.remaining | 0);
     el.textContent = formatTimer(remaining);
-    el.setAttribute("data-seconds", String(SET_DURATION_SEC));
+    el.setAttribute("data-seconds", String(player.clipSeconds || SET_DURATION_SEC));
     el.setAttribute("data-remaining", String(remaining));
     el.setAttribute("aria-label", "Set timer " + formatTimer(remaining) + ". Open timer controls.");
     paintGateLabel();
@@ -1669,7 +1669,7 @@
   function paintModifierSelection() {
     var mods = document.querySelectorAll(".timer-mod[data-duration-min]");
     for (var i = 0; i < mods.length; i++) {
-      var selected = ((+mods[i].getAttribute("data-duration-min") * 60) === SET_DURATION_SEC);
+      var selected = ((+mods[i].getAttribute("data-duration-min") * 60) === (player.clipSeconds || SET_DURATION_SEC));
       mods[i].classList.toggle("is-selected", selected);
       mods[i].setAttribute("aria-pressed", selected ? "true" : "false");
     }
@@ -1818,13 +1818,27 @@
     if (event && event.stopPropagation) event.stopPropagation();
   }
 
+  function chromeMustStay() {
+    if (player.paused) return true;
+    var stage = playerStage();
+    if (stage && stage.classList.contains("is-clip-loading")) return true;
+    var tap = $("px-tap-play");
+    if (tap && !tap.hidden) return true;
+    var mods = $("relic-timer-mods");
+    if (mods && !mods.hidden) return true;
+    return false;
+  }
+
   function showPlayerHud() {
     var root = $("relic-player");
     if (!root || root.hidden) return;
     var stage = playerStage();
     var hud = $("relic-player-hud");
     if (hud) hud.classList.add("is-hud-instant");
-    if (stage) stage.classList.remove("is-hud-idle");
+    if (stage) {
+      stage.classList.remove("is-hud-idle");
+      stage.classList.remove("is-chrome-idle");
+    }
     if (hud) {
       hud.inert = false;
       hud.setAttribute("aria-hidden", "false");
@@ -1850,8 +1864,16 @@
         try { video.focus({ preventScroll: true }); } catch (err) { /* viewport focus is optional */ }
       }
     }
+    if (chromeMustStay()) {
+      if (stage) stage.classList.remove("is-chrome-idle");
+      player.hudTimer = setTimeout(function () { hidePlayerHud(false); }, HUD_IDLE_MS);
+      return;
+    }
     if (instant && hud) hud.classList.add("is-hud-instant");
-    if (stage) stage.classList.add("is-hud-idle");
+    if (stage) {
+      stage.classList.add("is-hud-idle");
+      stage.classList.add("is-chrome-idle");
+    }
     if (hud) {
       hud.inert = true;
       hud.setAttribute("aria-hidden", "true");
@@ -1927,7 +1949,13 @@
     if (isForensicChrome(node) || isHudChromeTarget(node)) return;
     if (node && node.closest && node.closest("input, textarea, select")) return;
     player.swallowSurface = true;
+    var stageNow = playerStage();
+    if (stageNow && stageNow.classList.contains("is-chrome-idle")) {
+      showPlayerHud();
+      return;
+    }
     togglePlayPause();
+    showPlayerHud();
   }
 
   function onStageHudClickCapture(event) {
@@ -1962,16 +1990,45 @@
     ensureClock();
   }
 
+  function clipSavedSeconds() {
+    var fallback = SET_DURATION_SEC;
+    if (!window.NexusPlay || !window.NexusPlay.readTimer) return fallback;
+    var saved = window.NexusPlay.readTimer(currentPlayTokens());
+    if (!(saved >= 1) || saved > 7200) return fallback;
+    return saved | 0;
+  }
+
+  function rememberClipSeconds(seconds) {
+    player.clipSeconds = seconds | 0;
+    if (window.NexusPlay && window.NexusPlay.writeTimer) {
+      window.NexusPlay.writeTimer(currentPlayTokens(), player.clipSeconds);
+    }
+  }
+
+  function beginClipClock() {
+    armClock(Math.max(1000, (clipSavedSeconds() | 0) * 1000));
+    player.clipSeconds = Math.round((player.pendingClockMs || (player.remaining * 1000) || SET_DURATION_SEC * 1000) / 1000);
+    paintTimer();
+  }
+
   function applyDurationOverride(minutes) {
     var mins = minutes | 0;
     if (SET_MODIFIER_MINUTES.indexOf(mins) === -1) return;
     var next = mins * 60;
-    SET_DURATION_SEC = next;
+    rememberClipSeconds(next);
     player.remaining = next;
-    if (player.armed && !player.paused) player.setEndsAt = Date.now() + (next * 1000);
+    player.pendingClockMs = next * 1000;
+    if (player.armed && !player.paused && frontIsPlaying()) {
+      player.pendingClockMs = 0;
+      player.setEndsAt = Date.now() + (next * 1000);
+      syncRemaining();
+    } else {
+      player.setEndsAt = 0;
+    }
     paintTimer();
     ensureClock();
     dismissTimerMods();
+    showPlayerHud();
   }
 
   function applyAddMoreTime(minutes) {
@@ -1983,10 +2040,13 @@
       syncRemaining();
     } else {
       player.remaining = Math.max(0, (player.remaining | 0) + (mins * 60));
+      player.pendingClockMs = (player.remaining | 0) * 1000;
     }
+    rememberClipSeconds(Math.max(1, player.remaining | 0));
     paintTimer();
     ensureClock();
     dismissTimerMods();
+    showPlayerHud();
   }
 
   function stopCountdown() {
@@ -2026,6 +2086,7 @@
     syncRemaining();
     paintTimer();
     ensureClock();
+    showPlayerHud();
   }
 
   function armClock(ms) {
@@ -2072,6 +2133,10 @@
     }
     player.remaining = 0;
     paintTimer();
+    if (player.clips.length && player.index < player.clips.length - 1) {
+      advance(1, "next");
+      return;
+    }
     noteSetComplete();
     advance(1, "timer");
   }
@@ -2851,9 +2916,11 @@
     player.unavailable = false;
     setGate(false);
     loadCurrentClip(true);
+    if (manual) beginClipClock();
     if (!manual) {
       var durationMs = Math.max(1000, (SET_DURATION_SEC | 0) * 1000);
       var nextMs = reason === "reconcile" && leftoverMs > 0 ? leftoverMs : durationMs;
+      if (reason === "timer") nextMs = Math.max(1000, (clipSavedSeconds() | 0) * 1000);
       armClock(nextMs);
     }
     player.phaseState = player.unavailable ? "playing" : "loading";
@@ -2886,6 +2953,10 @@
     var steps = Math.floor(overdue / durationMs) + 1;
     var leftover = durationMs - (overdue % durationMs);
     if (leftover < 1) leftover = durationMs;
+    if (player.clips.length && player.index < player.clips.length - 1) {
+      advance(1, "next");
+      return;
+    }
     noteSetComplete();
     advance(steps, "reconcile", leftover);
   }
@@ -2935,7 +3006,7 @@
   }
 
   function startCountdown() {
-    armClock(Math.max(1000, (SET_DURATION_SEC | 0) * 1000));
+    beginClipClock();
   }
 
   function playNextVideo() {
@@ -2994,6 +3065,7 @@
     }
     paintPlayButton();
     paintMediaSession();
+    showPlayerHud();
   }
 
   function closePlayer() {
@@ -3576,6 +3648,7 @@
     if (timerBadge) {
       timerBadge.addEventListener("click", function (event) {
         event.stopPropagation();
+        showPlayerHud();
         toggleTimerMods();
       });
     }
@@ -3688,7 +3761,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v82",
+    build: "v83",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };

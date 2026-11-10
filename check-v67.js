@@ -31,8 +31,8 @@ if (trim.indexOf("loadedmetadata") === -1 || trim.indexOf("timeupdate") === -1 |
   fail("shared helper does not apply trims or talk to the worker");
 }
 if (trim.indexOf("video.loop") === -1) fail("looping players do not restart at the trim");
-if (html.indexOf("trim.js?v=v82") === -1) fail("trim.js is not loaded");
-if (app.indexOf('build: "v82"') === -1 || html.indexOf('content="v82"') === -1 || html.indexOf("?v=v66") !== -1) {
+if (html.indexOf("trim.js?v=v83") === -1) fail("trim.js is not loaded");
+if (app.indexOf('build: "v83"') === -1 || html.indexOf('content="v83"') === -1 || html.indexOf("?v=v66") !== -1) {
   fail("cache stamp is not v77");
 }
 if (cards.indexOf("if (!building() && !forceEye) return button") === -1 || cards.indexOf("NexusBuilder.takeCard") === -1) {
