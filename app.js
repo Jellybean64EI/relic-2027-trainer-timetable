@@ -1719,7 +1719,7 @@
 
   function isHudChromeTarget(node) {
     if (!node || !node.closest) return false;
-    return !!node.closest(".player-close, .player-controls, .timer-dock, .start-gate, .forensic-tab, .forensic-panel, .forensic-dock, .px-hit, .px-sheet, .px-corners");
+    return !!node.closest(".player-close, .player-controls, .timer-dock, .start-gate, .forensic-tab, .forensic-panel, .forensic-dock, .px-hit, .px-sheet, .px-corners, .px-tap-play, .px-spin");
   }
 
   function currentClip() {
@@ -2009,10 +2009,38 @@
     player.timerId = setInterval(onClockTick, 250);
   }
 
+  function frontIsPlaying() {
+    var video = frontVideo();
+    var stage = playerStage();
+    if (!video || !stage || video.parentNode !== stage) return false;
+    if (video.paused || video.ended || video.readyState < 2) return false;
+    return true;
+  }
+
+  function releaseDeferredClock() {
+    if (!player.armed || player.paused || player.empty || player.setEndsAt) return;
+    if (!frontIsPlaying()) return;
+    var span = player.pendingClockMs || Math.max(1000, (player.remaining || SET_DURATION_SEC) * 1000);
+    player.pendingClockMs = 0;
+    player.setEndsAt = Date.now() + span;
+    syncRemaining();
+    paintTimer();
+    ensureClock();
+  }
+
   function armClock(ms) {
     var span = ms > 0 ? ms : (SET_DURATION_SEC * 1000);
-    player.setEndsAt = Date.now() + span;
     player.armed = true;
+    if (!frontIsPlaying()) {
+      player.pendingClockMs = span;
+      player.setEndsAt = 0;
+      player.remaining = Math.ceil(span / 1000);
+      paintTimer();
+      ensureClock();
+      return;
+    }
+    player.pendingClockMs = 0;
+    player.setEndsAt = Date.now() + span;
     syncRemaining();
     paintTimer();
     ensureClock();
@@ -2450,8 +2478,100 @@
     window.NexusPlay.setScheduleTokens(tokens);
   }
 
+  function showClipLoading(on) {
+    var stage = playerStage();
+    if (stage) stage.classList.toggle("is-clip-loading", !!on);
+  }
+
+  function showTapPlay(on) {
+    var btn = $("px-tap-play");
+    if (btn) btn.hidden = !on;
+    if (on) showClipLoading(false);
+  }
+
+  function clearPlayWatch() {
+    if (player.playWatch) {
+      clearTimeout(player.playWatch);
+      player.playWatch = 0;
+    }
+  }
+
+  function markClipPlaying(video) {
+    player.playMark = performance.now();
+    player.playTries = 0;
+    showClipLoading(false);
+    showTapPlay(false);
+    releaseDeferredClock();
+    if (video && video.parentNode !== playerStage()) {
+      var stage = playerStage();
+      if (stage) stageFront(video);
+    }
+  }
+
+  function shouldHeal(video) {
+    if (!video || player.paused || player.empty) return false;
+    if (performance.now() - (player.playArmedAt || 0) < 400) return false;
+    var clip = player.clips[player.index];
+    if (!clip || (video.getAttribute("src") || "") !== clip.src) return false;
+    if (!video.paused && video.readyState >= 2 && video.currentTime > 0.2) return false;
+    return true;
+  }
+
+  function healClip(video) {
+    if (!shouldHeal(video)) return;
+    if ((player.playTries | 0) >= 2) {
+      showTapPlay(true);
+      return;
+    }
+    player.playTries = (player.playTries | 0) + 1;
+    player.playArmedAt = performance.now();
+    showTapPlay(false);
+    showClipLoading(true);
+    try {
+      var stage = playerStage();
+      if (stage && video.parentNode !== stage) stageFront(video);
+      if (window.NexusPlay) applyFrontPrefs(video);
+      video.load();
+      var pending = video.play();
+      if (pending && typeof pending.catch === "function") {
+        pending.catch(function (err) {
+          if (err && err.name === "NotAllowedError") showTapPlay(true);
+        });
+      }
+    } catch (err) {
+      showTapPlay(true);
+    }
+    armPlayWatch(video);
+  }
+
+  function armPlayWatch(video) {
+    clearPlayWatch();
+    var gen = player.generation;
+    var started = performance.now();
+    player.playMark = 0;
+    player.playArmedAt = started;
+    showClipLoading(true);
+    player.playWatch = setTimeout(function () {
+      if (gen !== player.generation || !video) return;
+      var progressed = (player.playMark || 0) > started;
+      var playing = frontIsPlaying() && video.currentTime > 0.05;
+      if (progressed || playing) {
+        showClipLoading(false);
+        showTapPlay(false);
+        releaseDeferredClock();
+        return;
+      }
+      healClip(video);
+    }, 2000);
+  }
+
   function playFront(video) {
     if (!video) return;
+    var stage = playerStage();
+    if (stage && video.parentNode !== stage) stageFront(video);
+    player.playTries = 0;
+    showTapPlay(false);
+    showClipLoading(true);
     if (window.NexusPlay) applyFrontPrefs(video);
     else {
       video.muted = false;
@@ -2474,16 +2594,22 @@
         player.phaseState = "playing";
         setGate(false);
         paintPlayButton();
+        markClipPlaying(video);
         preloadNext();
       }).catch(function (err) {
         if (player.playToken !== token) return;
         if (err && err.name === "AbortError") return;
-        var blocked = err && err.name === "NotAllowedError";
-        player.paused = !!blocked;
-        setGate(!!blocked);
+        if (err && err.name === "NotAllowedError") {
+          player.playTries = 2;
+          showTapPlay(true);
+          paintPlayButton();
+          return;
+        }
+        healClip(video);
         paintPlayButton();
       });
     }
+    armPlayWatch(video);
   }
 
   function promote(video, shouldPlay) {
@@ -2580,6 +2706,7 @@
     video.addEventListener("timeupdate", function () {
       if (!live() || video !== frontVideo()) return;
       noteMediaProgress(video);
+      if (video.currentTime > 0.05) markClipPlaying(video);
     }, { signal: signal });
     video.addEventListener("loadeddata", function () {
       if (!live()) return;
@@ -2591,15 +2718,37 @@
         player.phaseState = player.paused ? "loading" : "playing";
         return;
       }
-      if (video === frontVideo()) setMediaNote(player.unavailable);
+      if (video === frontVideo()) {
+        var stageNow = playerStage();
+        if (stageNow && video.parentNode !== stageNow && bufferReady(video, src)) {
+          promote(video, !player.paused && !player.empty);
+        }
+        setMediaNote(player.unavailable);
+      }
     }, { signal: signal });
     video.addEventListener("playing", function () {
       if (!live() || video !== frontVideo()) return;
+      var stageLive = playerStage();
+      if (stageLive && video.parentNode !== stageLive) stageFront(video);
       player.phaseState = "playing";
       player.progressAt = performance.now();
       noteMediaProgress(video);
+      markClipPlaying(video);
       if (video.videoWidth) revealActiveFrame();
       preloadNext();
+    }, { signal: signal });
+    video.addEventListener("stalled", function () {
+      if (!live() || video !== frontVideo()) return;
+      if (performance.now() - (player.playArmedAt || 0) < 2000) return;
+      healClip(video);
+    }, { signal: signal });
+    video.addEventListener("emptied", function () {
+      if (!live() || video !== frontVideo()) return;
+      healClip(video);
+    }, { signal: signal });
+    video.addEventListener("error", function () {
+      if (!live() || video !== frontVideo()) return;
+      healClip(video);
     }, { signal: signal });
     video.addEventListener("canplaythrough", function () {
       if (!live() || video !== frontVideo()) return;
@@ -3365,6 +3514,33 @@
       corners.className = "px-corners";
       stage.appendChild(corners);
       window.NexusPlay.mountPair(corners, "px-mute");
+      var spin = document.createElement("div");
+      spin.className = "px-spin";
+      spin.setAttribute("aria-hidden", "true");
+      stage.appendChild(spin);
+      var tap = document.createElement("button");
+      tap.type = "button";
+      tap.id = "px-tap-play";
+      tap.className = "px-tap-play";
+      tap.textContent = "Tap to play";
+      tap.hidden = true;
+      tap.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        var video = frontVideo();
+        if (!video) return;
+        player.paused = false;
+        player.playTries = 0;
+        if (video.parentNode !== stage) stageFront(video);
+        if (window.NexusPlay) applyFrontPrefs(video);
+        showTapPlay(false);
+        showClipLoading(true);
+        var pending = video.play();
+        if (pending && typeof pending.then === "function") {
+          pending.then(function () { markClipPlaying(video); }).catch(function () { showTapPlay(true); });
+        }
+      });
+      stage.appendChild(tap);
     }
     if (stage) {
       stage.addEventListener("pointerdown", onStageHudPointerDown);
@@ -3512,7 +3688,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v81",
+    build: "v82",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };

@@ -17,7 +17,7 @@ var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var cards = fs.readFileSync("cards.js", "utf8");
 
-if (html.indexOf('content="v81"') === -1 || app.indexOf('build: "v81"') === -1 || html.indexOf("playerChrome.js?v=v81") === -1) {
+if (html.indexOf('content="v82"') === -1 || app.indexOf('build: "v82"') === -1 || html.indexOf("playerChrome.js?v=v82") === -1) {
   fail("cache stamp is not v78");
 } else ok("cache stamp is v78");
 if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v78") !== -1; })) {
@@ -33,8 +33,8 @@ else ok("manual advance does not tick the schedule");
 if (advanceBody.indexOf("player.index <= 0") === -1) fail("first clip can still wrap backward");
 else ok("first clip does not wrap backward");
 var playAt = app.indexOf("function playFront(");
-var playBody = app.slice(playAt, playAt + 500);
-if (playBody.indexOf("applyFrontPrefs") > playBody.indexOf("video.play")) fail("sound is applied after play");
+var playBody = app.slice(playAt, app.indexOf("\n  function promote("));
+if (playBody.indexOf("applyFrontPrefs") === -1 || playBody.indexOf("video.play") === -1 || playBody.indexOf("applyFrontPrefs") > playBody.indexOf("video.play")) fail("sound is applied after play");
 else ok("mute and speed are applied before play");
 if (app.indexOf("onClockTick") !== -1 && app.slice(app.indexOf("function onClockTick"), app.indexOf("function armClock")).indexOf("playbackRate") !== -1) {
   fail("the set timer follows playback speed");
