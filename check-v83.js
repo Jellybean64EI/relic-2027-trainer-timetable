@@ -22,6 +22,16 @@ if (app.indexOf("HUD_IDLE_MS = 4000") === -1) fail("auto-hide is not 4 seconds")
 else ok("auto-hide waits 4 seconds");
 if (app.indexOf("if (manual) beginClipClock();") === -1) fail("a new clip does not reset its countdown");
 else ok("each clip starts its own countdown");
+var clockTick = app.slice(app.indexOf("function onClockTick("), app.indexOf("function setGate("));
+if (clockTick.indexOf("player.index < player.clips.length - 1") === -1 || clockTick.indexOf('advance(1, "next")') === -1) {
+  fail("a mid-list expiry does not advance like a swipe");
+} else if (clockTick.indexOf("noteSetComplete()") < clockTick.indexOf('advance(1, "next")')) {
+  fail("a mid-list expiry can still mark the day complete");
+} else ok("only the last clip's expiry marks the day complete");
+var reconcile = app.slice(app.indexOf("function reconcileVisibility("), app.indexOf("function onVisibility("));
+if (reconcile.indexOf("noteSetComplete()") < reconcile.indexOf('advance(1, "next")')) {
+  fail("returning to a mid-list clip can still mark the day complete");
+} else ok("a hidden mid-list expiry does not mark the day complete");
 if (chrome.indexOf("function readTimer") === -1 || chrome.indexOf("function writeTimer") === -1) fail("timer duration is not stored with the video");
 else ok("timer duration uses the mute and speed store");
 if (css.indexOf(".player-stage.is-chrome-idle .player-close") === -1 || css.indexOf(".player-stage.is-chrome-idle .timer-dock") === -1) {
@@ -195,6 +205,91 @@ function playwright() {
       else ok("a visible tap pauses and the close button stays while paused");
     }
     await page.close();
+  }
+
+  for (i = 0; i < widths.length; i++) {
+    var expiry = await browser.newPage({ viewport: { width: widths[i], height: widths[i] === 390 ? 844 : 900 }, hasTouch: true });
+    var tickPuts = [];
+    await expiry.route("**/*", function (route) {
+      if (route.request().method() === "PUT") {
+        tickPuts.push(route.request().url());
+        route.fulfill({ status: 500, body: "" });
+        return;
+      }
+      route.continue();
+    });
+    await expiry.addInitScript(function () {
+      try { localStorage.removeItem("nexus_ticks_dirty_v2"); } catch (err) { /* private mode */ }
+    });
+    await expiry.goto("http://127.0.0.1:8080/?v=v83&setsec=2", { waitUntil: "domcontentloaded" });
+    await expiry.waitForFunction(function () { return window.RelicArchitect && window.NexusPlay; });
+    var primed = await expiry.evaluate(function () {
+      window.RelicArchitect.setFutureLock(false);
+      var cabin = window.RELIC_VIDEO_ARCHIVE.cabins.Eyes;
+      var list = (cabin && cabin.playlist) || [];
+      var second = list[1];
+      if (!second) return { n: list.length, tokens: [] };
+      var src = window.RelicArchitect.resolveClipSrc("Eyes", second);
+      var tokens = window.NexusPlay.tokensFor(src, "", 0);
+      list.forEach(function (clip, index) {
+        var clipSrc = window.RelicArchitect.resolveClipSrc("Eyes", clip);
+        var clipTokens = window.NexusPlay.tokensFor(clipSrc, "", 0);
+        if (index === 1) window.NexusPlay.writeTimer(clipTokens, 8);
+        else window.NexusPlay.write(clipTokens, { seconds: 0 });
+      });
+      localStorage.removeItem("nexus_ticks_dirty_v2");
+      window.RelicArchitect.openCabin("Eyes", "Base", "2099-06-15", 0);
+      return { n: list.length, tokens: tokens };
+    });
+    if (primed.n < 2) fail(widths[i] + " Eyes playlist is too short to test expiry");
+    else {
+      await expiry.waitForFunction(function () { return window.RelicArchitect.playerIndex === 1; }, null, { timeout: 20000 });
+      var advanced = secs(await expiry.locator("#relic-set-timer").innerText());
+      var mid = await expiry.evaluate(function () {
+        return JSON.parse(localStorage.getItem("nexus_ticks_dirty_v2") || "{}");
+      });
+      if (advanced < 6 || advanced > 8) fail(widths[i] + " auto-advance did not use the next clip's saved duration (" + advanced + ")");
+      else ok(widths[i] + " auto-advance keeps the next clip's saved duration");
+      if (mid["2099-06-15"] || tickPuts.length) fail(widths[i] + " a mid-list expiry wrote completion");
+      else ok(widths[i] + " a mid-list expiry does not write completion");
+      var guard = 0;
+      while (guard < 12) {
+        var pos = await expiry.locator(".cue-tag-pos").innerText();
+        var at = Number(String(pos).split("/")[0]);
+        var len = Number(String(pos).split("/")[1]);
+        if (at >= len) break;
+        await expiry.evaluate(function () { window.RelicArchitect.playNextVideo(); });
+        await expiry.waitForTimeout(420);
+        guard += 1;
+      }
+      await expiry.waitForFunction(function () { return window.RelicArchitect.playerIndex === 0; }, null, { timeout: 15000 });
+      var once = await expiry.evaluate(function () {
+        return JSON.parse(localStorage.getItem("nexus_ticks_dirty_v2") || "{}");
+      });
+      var putsAfterFirst = tickPuts.filter(function (url) { return url.indexOf("/ticks/") !== -1; }).length;
+      if (once["2099-06-15"] !== 1 || putsAfterFirst !== 1) {
+        fail(widths[i] + " the last clip did not complete exactly once (" + JSON.stringify(once) + ", puts " + putsAfterFirst + ")");
+      } else ok(widths[i] + " the last clip's expiry completes the day once");
+      guard = 0;
+      while (guard < 12) {
+        var again = await expiry.locator(".cue-tag-pos").innerText();
+        var atAgain = Number(String(again).split("/")[0]);
+        var lenAgain = Number(String(again).split("/")[1]);
+        if (atAgain >= lenAgain) break;
+        await expiry.evaluate(function () { window.RelicArchitect.playNextVideo(); });
+        await expiry.waitForTimeout(420);
+        guard += 1;
+      }
+      await expiry.waitForFunction(function () { return window.RelicArchitect.playerIndex === 0; }, null, { timeout: 15000 });
+      var twice = await expiry.evaluate(function () {
+        return JSON.parse(localStorage.getItem("nexus_ticks_dirty_v2") || "{}");
+      });
+      var putsAfterSecond = tickPuts.filter(function (url) { return url.indexOf("/ticks/") !== -1; }).length;
+      if (twice["2099-06-15"] !== 1 || putsAfterSecond !== 1) {
+        fail(widths[i] + " the last clip completed again (" + JSON.stringify(twice) + ", puts " + putsAfterSecond + ")");
+      } else ok(widths[i] + " a second last-clip expiry does not complete again");
+    }
+    await expiry.close();
   }
   await browser.close();
   if (failed) {

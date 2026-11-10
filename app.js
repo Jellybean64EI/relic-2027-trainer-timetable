@@ -2133,6 +2133,10 @@
     }
     player.remaining = 0;
     paintTimer();
+    if (player.clips.length && player.index < player.clips.length - 1) {
+      advance(1, "next");
+      return;
+    }
     noteSetComplete();
     advance(1, "timer");
   }
@@ -2949,6 +2953,10 @@
     var steps = Math.floor(overdue / durationMs) + 1;
     var leftover = durationMs - (overdue % durationMs);
     if (leftover < 1) leftover = durationMs;
+    if (player.clips.length && player.index < player.clips.length - 1) {
+      advance(1, "next");
+      return;
+    }
     noteSetComplete();
     advance(steps, "reconcile", leftover);
   }
