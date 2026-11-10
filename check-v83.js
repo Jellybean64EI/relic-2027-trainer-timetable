@@ -16,7 +16,7 @@ var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var chrome = fs.readFileSync("data/playerChrome.js", "utf8");
 
-if (html.indexOf('content="v88"') === -1 || app.indexOf('build: "v88"') === -1) fail("cache stamp is not v83");
+if (html.indexOf('content="v89"') === -1 || app.indexOf('build: "v89"') === -1) fail("cache stamp is not v83");
 else ok("cache stamp is v83");
 if (app.indexOf("HUD_IDLE_MS = 4000") === -1) fail("auto-hide is not 4 seconds");
 else ok("auto-hide waits 4 seconds");
@@ -67,7 +67,7 @@ function playwright() {
   var i;
   for (i = 0; i < widths.length; i++) {
     var page = await browser.newPage({ viewport: { width: widths[i], height: widths[i] === 390 ? 844 : 900 }, hasTouch: true });
-    await page.goto("http://127.0.0.1:8080/?v=v88", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v89", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusPlay; });
     var srcs = await page.evaluate(function () {
       return window.RELIC_VIDEO_ARCHIVE.cabins.Back.playlist.slice(0, 2).map(function (clip) {
@@ -216,7 +216,7 @@ function playwright() {
     await expiry.addInitScript(function () {
       try { localStorage.removeItem("nexus_ticks_dirty_v2"); } catch (err) { /* private mode */ }
     });
-    await expiry.goto("http://127.0.0.1:8080/?v=v88&setsec=2", { waitUntil: "domcontentloaded" });
+    await expiry.goto("http://127.0.0.1:8080/?v=v89&setsec=2", { waitUntil: "domcontentloaded" });
     await expiry.waitForFunction(function () { return window.RelicArchitect && window.NexusPlay; });
     var primed = await expiry.evaluate(function () {
       window.RelicArchitect.setFutureLock(false);
