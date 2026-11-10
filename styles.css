@@ -959,7 +959,18 @@ tr.is-ticked td {
   background: transparent;
   background-image: none;
   outline: none;
+  pointer-events: none;
+  touch-action: none;
   transition: transform 0.38s ease;
+}
+
+.video-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: auto;
+  touch-action: none;
+  background: transparent;
 }
 
 .player-stage.is-forensic-open #relic-active-video {
@@ -1696,7 +1707,20 @@ tr.is-ticked td {
 
 .player-close,
 .timer-dock {
+  z-index: 40;
+  transform: translateZ(0);
   transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.cue-title {
+  margin: 0 0 2px;
+  color: #f6eefe;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .player-stage.is-chrome-idle .player-close,
@@ -1710,7 +1734,7 @@ tr.is-ticked td {
   position: absolute;
   top: calc(8px + env(safe-area-inset-top));
   left: calc(8px + env(safe-area-inset-left));
-  z-index: 30;
+  z-index: 40;
   width: 44px;
   height: 44px;
   min-width: 44px;
@@ -1964,6 +1988,15 @@ body.nav-open .nav-scrim {
   box-shadow: 12px 0 32px rgba(0, 0, 0, 0.35);
   transform: translateX(-100%);
   transition: transform 0.32s ease;
+}
+
+.nexus-build {
+  margin: 18px 0 4px;
+  color: rgba(203, 182, 228, 0.4);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-align: center;
 }
 
 .nav-drawer-scroll {

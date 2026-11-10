@@ -1928,7 +1928,8 @@
     var stage1 = document.createElement("div");
     stage1.id = "cue-stage1";
     stage1.className = "cue-stage1";
-    stage1.innerHTML = '<dl class="cue-dose" id="cue-stage1-dose"></dl>' +
+    stage1.innerHTML = '<p class="cue-title" id="cue-stage1-title"></p>' +
+      '<dl class="cue-dose" id="cue-stage1-dose"></dl>' +
       '<div class="cue-px" id="cue-px-host">' +
       '<span class="cue-px-label cue-px-label-mute">Mute</span>' +
       '<span class="cue-px-label cue-px-label-speed">Playback speed</span>' +
@@ -1938,6 +1939,7 @@
     sheet.id = "cue-stage2-clip";
     sheet.className = "cue-stage2-clip";
     sheet.innerHTML = '<div id="cue-stage2" class="cue-stage2">' +
+      '<p class="cue-title" id="cue-stage2-title"></p>' +
       '<div class="cue-slides" id="cue-slides">' +
       '<section class="cue-slide"><div class="cue-slide-body"><dl class="cue-dose" id="cue-slide-dose"></dl><div id="cue-slide-px"></div></div></section>' +
       '<section class="cue-slide"><div class="cue-slide-body" id="cue-slide-do"></div></section>' +
@@ -1966,8 +1968,25 @@
     if (home && host.parentNode !== home) home.appendChild(host);
   }
 
+  function clipCatalogueName() {
+    var clip = currentClip();
+    var key = clipMediaKey(clip);
+    var identity = window.NexusCards && window.NexusCards.identityByKey && key ? window.NexusCards.identityByKey(key) : null;
+    if (identity && identity.title) return String(identity.title);
+    return tidyClipTitle(clip && clip.title);
+  }
+
+  function paintCueTitle() {
+    var name = clipCatalogueName();
+    var stageTitle = $("cue-stage1-title");
+    var sheetTitle = $("cue-stage2-title");
+    if (stageTitle) stageTitle.textContent = name;
+    if (sheetTitle) sheetTitle.textContent = name;
+  }
+
   function paintCueStage1() {
     ensureCueStage1();
+    paintCueTitle();
     var cue = editorCue();
     var html = doseCells(cue.dose);
     var host = $("cue-stage1-dose");
@@ -2132,7 +2151,7 @@
       showPlayerHud();
       return;
     }
-    if (!node || !node.closest || !node.closest(".deck-video")) return;
+    if (!node || !node.closest || (!node.closest(".deck-video") && !node.closest(".video-hit"))) return;
     hudGesture = {
       x: event.clientX,
       y: event.clientY,
@@ -3159,6 +3178,7 @@
     paintPlayButton();
     paintMediaSession();
     preloadNext();
+    showPlayerHud();
     return true;
   }
 
@@ -3899,6 +3919,10 @@
       var timerDock = $("relic-timer-dock");
       if (closeBtn) stage.appendChild(closeBtn);
       if (timerDock) stage.appendChild(timerDock);
+      var hit = document.createElement("div");
+      hit.className = "video-hit";
+      hit.setAttribute("aria-hidden", "true");
+      stage.appendChild(hit);
       ensureCueStage1();
       var spin = document.createElement("div");
       spin.className = "px-spin";
@@ -4075,7 +4099,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v86",
+    build: "v87",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };
