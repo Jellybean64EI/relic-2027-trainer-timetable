@@ -1823,149 +1823,139 @@
     return "<ol>" + list.map(function (item) { return "<li>" + cueText(item) + "</li>"; }).join("") + "</ol>";
   }
 
-  function bindCueSlides(track) {
-    if (!track || track.getAttribute("data-cue-slides") === "1") return;
-    track.setAttribute("data-cue-slides", "1");
-    var drag = null;
-    function paintDots() {
-      var dots = document.querySelectorAll("#cue-dots .cue-dot");
-      var width = track.clientWidth || 1;
-      var index = Math.round(track.scrollLeft / width);
-      var i;
-      for (i = 0; i < dots.length; i++) dots[i].classList.toggle("is-on", i === index);
-    }
-    track.addEventListener("scroll", paintDots);
-    track.addEventListener("pointerdown", function (event) {
-      event.stopPropagation();
-      if (event.button > 0 || event.isPrimary === false) return;
-      if (event.target.closest && event.target.closest(".px-hit, .px-mute, .px-rate, .cue-dot")) return;
-      drag = { x: event.clientX, y: event.clientY, left: track.scrollLeft, id: event.pointerId, axis: "" };
-    });
-    track.addEventListener("pointermove", function (event) {
-      if (!drag || event.pointerId !== drag.id) return;
-      var dx = event.clientX - drag.x;
-      var dy = event.clientY - drag.y;
-      if (!drag.axis) {
-        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-        drag.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
-        if (drag.axis === "x") {
-          try { track.setPointerCapture(event.pointerId); } catch (err) { /* capture is optional */ }
-        }
-      }
-      if (drag.axis !== "x") return;
-      track.scrollLeft = drag.left - dx;
-      event.stopPropagation();
-      if (event.cancelable) event.preventDefault();
-      paintDots();
-    });
-    track.addEventListener("pointerup", function (event) {
-      if (!drag || event.pointerId !== drag.id) return;
-      if (drag.axis === "x") {
-        var width = track.clientWidth || 1;
-        var index = Math.round(track.scrollLeft / width);
-        if (index < 0) index = 0;
-        if (index > 3) index = 3;
-        track.scrollTo({ left: index * width, behavior: "smooth" });
-      }
-      drag = null;
-      paintDots();
-    });
-    track.addEventListener("pointercancel", function () { drag = null; });
-    var touchSlide = null;
-    track.addEventListener("touchstart", function (event) {
-      event.stopPropagation();
-      if (!event.changedTouches || event.changedTouches.length !== 1) return;
-      var touch = event.changedTouches[0];
-      if (event.target.closest && event.target.closest(".px-hit, .px-mute, .px-rate, .cue-dot")) return;
-      touchSlide = { x: touch.clientX, y: touch.clientY, left: track.scrollLeft, axis: "" };
-    }, { passive: false });
-    track.addEventListener("touchmove", function (event) {
-      event.stopPropagation();
-      if (!touchSlide || !event.changedTouches || !event.changedTouches.length) return;
-      var touch = event.changedTouches[0];
-      var dx = touch.clientX - touchSlide.x;
-      var dy = touch.clientY - touchSlide.y;
-      if (!touchSlide.axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
-        touchSlide.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
-      }
-      if (touchSlide.axis !== "x") return;
-      track.scrollLeft = touchSlide.left - dx;
-      if (event.cancelable) event.preventDefault();
-      paintDots();
-    }, { passive: false });
-    track.addEventListener("touchend", function (event) {
-      event.stopPropagation();
-      if (touchSlide && touchSlide.axis === "x") {
-        var span = track.clientWidth || 1;
-        var index = Math.round(track.scrollLeft / span);
-        if (index < 0) index = 0;
-        if (index > 3) index = 3;
-        track.scrollTo({ left: index * span, behavior: "smooth" });
-        paintDots();
-      }
-      touchSlide = null;
-    }, { passive: false });
-    var dots = $("cue-dots");
-    if (dots) {
-      dots.addEventListener("click", function (event) {
-        var dot = event.target.closest ? event.target.closest("[data-cue-dot]") : null;
-        if (!dot) return;
-        event.preventDefault();
-        event.stopPropagation();
-        var index = Number(dot.getAttribute("data-cue-dot")) || 0;
-        var width = track.clientWidth || 1;
-        track.scrollTo({ left: index * width, behavior: "smooth" });
-      });
-    }
+  function sheetClosedY() {
+    var dock = $("forensic-dock");
+    var tab = $("forensic-tab");
+    if (!dock || !dock.offsetHeight) return 0;
+    var lip = tab && tab.offsetHeight ? tab.offsetHeight : 36;
+    return Math.max(0, Math.round(dock.offsetHeight - lip));
+  }
+
+  function currentSheetY() {
+    var dock = $("forensic-dock");
+    if (!dock) return 0;
+    var raw = dock.getAttribute("data-cue-shift");
+    if (raw === null || raw === "") return sheetClosedY();
+    return Number(raw) || 0;
+  }
+
+  function placeSheet(y, animate) {
+    var dock = $("forensic-dock");
+    if (!dock) return;
+    var closed = sheetClosedY();
+    if (!closed && !dock.offsetHeight) return;
+    if (y < 0) y = 0;
+    if (closed && y > closed) y = closed;
+    y = Math.round(y);
+    dock.style.transition = animate ? "transform 280ms ease-out" : "none";
+    dock.style.transform = "translate3d(0," + y + "px,0)";
+    dock.setAttribute("data-cue-shift", String(y));
+  }
+
+  function parkSheet() {
+    if (player.cueDrag || (player.cueLevel | 0) > 0) return;
+    var dock = $("forensic-dock");
+    var closed = sheetClosedY();
+    if (!dock || !closed) return;
+    if (dock.getAttribute("data-cue-shift") === String(closed)) return;
+    placeSheet(closed, false);
   }
 
   function ensureCueStage1() {
     var dock = $("forensic-dock");
     if (!dock || $("cue-stage1")) return;
-    var clip = document.createElement("div");
-    clip.id = "cue-stage1-clip";
-    clip.className = "cue-stage1-clip";
     var stage1 = document.createElement("div");
     stage1.id = "cue-stage1";
     stage1.className = "cue-stage1";
-    stage1.innerHTML = '<p class="cue-title" id="cue-stage1-title"></p>' +
+    var clip = document.createElement("div");
+    clip.id = "cue-stage1-clip";
+    clip.className = "cue-stage1-clip";
+    clip.innerHTML = '<p class="cue-title" id="cue-stage1-title"></p>' +
       '<dl class="cue-dose" id="cue-stage1-dose"></dl>' +
       '<div class="cue-px" id="cue-px-host">' +
       '<span class="cue-px-label cue-px-label-mute">Mute</span>' +
       '<span class="cue-px-label cue-px-label-speed">Playback speed</span>' +
-      "</div>";
-    clip.appendChild(stage1);
-    var sheet = document.createElement("div");
-    sheet.id = "cue-stage2-clip";
-    sheet.className = "cue-stage2-clip";
-    sheet.innerHTML = '<div id="cue-stage2" class="cue-stage2">' +
-      '<p class="cue-title" id="cue-stage2-title"></p>' +
-      '<div class="cue-slides" id="cue-slides">' +
-      '<section class="cue-slide"><div class="cue-slide-body"><dl class="cue-dose" id="cue-slide-dose"></dl><div id="cue-slide-px"></div></div></section>' +
-      '<section class="cue-slide"><div class="cue-slide-body" id="cue-slide-do"></div></section>' +
-      '<section class="cue-slide"><div class="cue-slide-body" id="cue-slide-leads"></div></section>' +
-      '<section class="cue-slide"><div class="cue-slide-body" id="cue-slide-breath"></div></section>' +
       "</div>" +
-      '<div class="cue-dots" id="cue-dots">' +
-      '<button type="button" class="cue-dot is-on" data-cue-dot="0" aria-label="Dose"></button>' +
-      '<button type="button" class="cue-dot" data-cue-dot="1" aria-label="Do this and avoid"></button>' +
-      '<button type="button" class="cue-dot" data-cue-dot="2" aria-label="3 Lead Rules"></button>' +
-      '<button type="button" class="cue-dot" data-cue-dot="3" aria-label="Breathing"></button>' +
-      "</div></div>";
+      '<section id="cue-sec-rules"></section>' +
+      '<section id="cue-sec-do"></section>' +
+      '<section id="cue-sec-avoid"></section>' +
+      '<section id="cue-sec-breath"></section>';
+    stage1.appendChild(clip);
     var panel = $("forensic-panel");
-    if (panel) dock.insertBefore(clip, panel);
-    else dock.appendChild(clip);
-    if (panel) dock.insertBefore(sheet, panel);
-    else dock.appendChild(sheet);
+    if (panel) dock.insertBefore(stage1, panel);
+    else dock.appendChild(stage1);
     if (window.NexusPlay) window.NexusPlay.mountPair($("cue-px-host"), "px-mute");
-    bindCueSlides($("cue-slides"));
+    bindCueScroll(stage1);
+    parkSheet();
+  }
+
+  function bindCueScroll(scroll) {
+    if (!scroll || scroll.getAttribute("data-cue-scroll") === "1") return;
+    scroll.setAttribute("data-cue-scroll", "1");
+    var pull = null;
+    function begin(x, y) {
+      pull = { x: x, y: y, top: scroll.scrollTop, pulling: false, shift: currentSheetY() };
+    }
+    function move(x, y, event) {
+      if (!pull) return;
+      var dx = x - pull.x;
+      var dy = y - pull.y;
+      if (!pull.pulling) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        if (scroll.scrollTop <= 0 && dy > 0 && Math.abs(dy) > Math.abs(dx)) pull.pulling = true;
+        else return;
+      }
+      if (event && event.cancelable) event.preventDefault();
+      player.cueDrag = true;
+      var stage = playerStage();
+      if (stage) stage.classList.add("is-cue-dragging");
+      placeSheet(pull.shift + dy, false);
+    }
+    function end(x, y) {
+      if (!pull) return;
+      var was = pull;
+      pull = null;
+      if (!was.pulling) return;
+      player.cueDrag = false;
+      var stage = playerStage();
+      if (stage) stage.classList.remove("is-cue-dragging");
+      var dy = y - was.y;
+      var next = dy > 28 ? 0 : (currentSheetY() > sheetClosedY() * 0.35 ? 0 : 1);
+      setCueLevel(next);
+    }
+    scroll.addEventListener("touchstart", function (event) {
+      event.stopPropagation();
+      if (!event.touches || event.touches.length !== 1) return;
+      var touch = event.touches[0];
+      if (event.target.closest && event.target.closest(".px-hit, .px-mute, .px-rate, button, a, input")) return;
+      begin(touch.clientX, touch.clientY);
+    }, { passive: true });
+    scroll.addEventListener("touchmove", function (event) {
+      event.stopPropagation();
+      if (!pull || !event.touches || !event.touches.length) return;
+      var touch = event.touches[0];
+      move(touch.clientX, touch.clientY, event);
+    }, { passive: false });
+    scroll.addEventListener("touchend", function (event) {
+      event.stopPropagation();
+      if (!pull || !event.changedTouches || !event.changedTouches.length) return;
+      var touch = event.changedTouches[0];
+      end(touch.clientX, touch.clientY);
+    }, { passive: false });
+    scroll.addEventListener("touchcancel", function () {
+      if (pull && pull.pulling) end(pull.x, pull.y);
+      pull = null;
+    });
   }
 
   function placeCueControls() {
     var host = $("cue-px-host");
-    if (!host) return;
-    var home = (player.cueLevel | 0) >= 2 ? $("cue-slide-px") : $("cue-stage1");
-    if (home && host.parentNode !== home) home.appendChild(host);
+    var home = $("cue-stage1-clip");
+    if (host && home && host.parentNode !== home) {
+      var dose = $("cue-stage1-dose");
+      if (dose && dose.nextSibling) home.insertBefore(host, dose.nextSibling);
+      else home.appendChild(host);
+    }
   }
 
   function clipCatalogueName() {
@@ -1979,26 +1969,16 @@
   function paintCueTitle() {
     var name = clipCatalogueName();
     var stageTitle = $("cue-stage1-title");
-    var sheetTitle = $("cue-stage2-title");
     if (stageTitle) stageTitle.textContent = name;
-    if (sheetTitle) sheetTitle.textContent = name;
   }
 
   function paintCueStage1() {
     ensureCueStage1();
     paintCueTitle();
     var cue = editorCue();
-    var html = doseCells(cue.dose);
     var host = $("cue-stage1-dose");
-    var slideDose = $("cue-slide-dose");
-    if (host) host.innerHTML = html;
-    if (slideDose) slideDose.innerHTML = html;
-    var steps = $("cue-slide-do");
-    if (steps) {
-      steps.innerHTML = "<h3>Do This Properly</h3>" + listOrPending(cue.steps) +
-        "<h3>Avoid This</h3>" + addedOrPending(cue.avoid);
-    }
-    var leads = $("cue-slide-leads");
+    if (host) host.innerHTML = doseCells(cue.dose);
+    var leads = $("cue-sec-rules");
     if (leads) {
       var rows = [0, 1, 2].map(function (index) {
         var text = String((cue.leads || [])[index] || "").trim();
@@ -2007,8 +1987,13 @@
       }).join("");
       leads.innerHTML = "<h3>3 Lead Rules</h3><ol class=\"cue-rules\">" + rows + "</ol>";
     }
-    var breath = $("cue-slide-breath");
+    var steps = $("cue-sec-do");
+    if (steps) steps.innerHTML = "<h3>Do This Properly</h3>" + listOrPending(cue.steps);
+    var avoid = $("cue-sec-avoid");
+    if (avoid) avoid.innerHTML = "<h3>Avoid This</h3>" + addedOrPending(cue.avoid);
+    var breath = $("cue-sec-breath");
     if (breath) breath.innerHTML = "<h3>Breathing</h3>" + addedOrPending(cue.breathing);
+    parkSheet();
     if (!player.cueRefresh) {
       player.cueRefresh = true;
       var tries = 0;
@@ -2032,7 +2017,7 @@
     paintCueStage1();
   }
 
-  var CUE_STAGE_CAP = 2;
+  var CUE_STAGE_CAP = 1;
 
   function setCueLevel(level) {
     var panel = $("forensic-panel");
@@ -2041,19 +2026,20 @@
     var next = Math.max(0, Math.min(CUE_STAGE_CAP, level | 0));
     player.cueLevel = next;
     var open = next > 0;
-    /* Slide and resize only. Leave playback, pause, and the video src alone. */
+    /* Move the sheet with a transform only. Leave playback and the video size alone. */
     tab.setAttribute("aria-expanded", open ? "true" : "false");
     tab.setAttribute("aria-valuenow", String(next));
     tab.setAttribute("aria-valuemin", "0");
-    tab.setAttribute("aria-valuemax", "2");
-    panel.setAttribute("aria-hidden", open ? "false" : "true");
-    if ("inert" in panel) panel.inert = !open;
+    tab.setAttribute("aria-valuemax", "1");
+    panel.setAttribute("aria-hidden", "true");
+    if ("inert" in panel) panel.inert = true;
     var stage = playerStage();
     if (stage) {
       stage.classList.toggle("is-forensic-open", open);
       stage.classList.toggle("is-cue-mid", next === 1);
-      stage.classList.toggle("is-cue-full", next === 2);
+      stage.classList.remove("is-cue-full");
     }
+    if (!player.cueDrag) placeSheet(open ? 0 : sheetClosedY(), true);
     placeCueControls();
     if (open) paintForensic();
   }
@@ -2139,7 +2125,7 @@
   }
 
   function cuePanelTarget(node) {
-    return !!(node && node.closest && node.closest("#forensic-dock, .forensic-dock, #forensic-tab, #cue-lip, #cue-stage1, #cue-stage2, #cue-slides, .cue-slide, .cue-dots"));
+    return !!(node && node.closest && node.closest("#forensic-dock, .forensic-dock, #forensic-tab, #cue-lip, #cue-stage1"));
   }
 
   function onStageHudPointerDown(event) {
@@ -2195,10 +2181,15 @@
       return;
     }
     if (moved) return;
+    var stageNow = playerStage();
+    if (stageNow && (player.cueLevel | 0) > 0 && node && node.closest && (node.closest(".video-hit") || node.closest(".deck-video"))) {
+      player.swallowSurface = true;
+      setCueLevel(0);
+      return;
+    }
     if (isForensicChrome(node) || isHudChromeTarget(node)) return;
     if (node && node.closest && node.closest("input, textarea, select")) return;
     player.swallowSurface = true;
-    var stageNow = playerStage();
     if (stageNow && stageNow.classList.contains("is-chrome-idle")) {
       showPlayerHud();
       return;
@@ -3697,75 +3688,45 @@
     function cueDragHandle(node) {
       if (!node || !node.closest) return false;
       if (node.closest("#forensic-scroll, input, textarea, select, a")) return false;
-      if (node.closest(".px-hit, .px-mute, .px-rate, .cue-slide, .cue-slides, .cue-dot")) return false;
-      return !!node.closest("#forensic-tab, #cue-lip, #cue-stage1, #forensic-dock");
+      if (node.closest("#cue-stage1, .px-hit, .px-mute, .px-rate")) return false;
+      return !!node.closest("#forensic-tab, #cue-lip");
     }
     function cueFollow(dy) {
-      var dock = $("forensic-dock");
+      if (!cueGesture) return;
       var stage = playerStage();
       player.cueDrag = true;
       if (stage) stage.classList.add("is-cue-dragging");
-      var limit = Math.round(window.innerHeight * 0.28);
-      var y = dy;
-      if (y < -limit) y = -limit;
-      if (y > limit) y = limit;
-      if (!dock) return;
-      dock.style.transform = "translate3d(0," + Math.round(y) + "px,0)";
-      dock.setAttribute("data-cue-shift", String(Math.round(y)));
+      placeSheet(cueGesture.shift + dy, false);
     }
     function cueReleaseFollow() {
-      var dock = $("forensic-dock");
       var stage = playerStage();
       player.cueDrag = false;
       if (stage) stage.classList.remove("is-cue-dragging");
-      if (!dock) return;
-      dock.style.transform = "translate3d(0,0,0)";
-      dock.setAttribute("data-cue-shift", "0");
-      setTimeout(function () {
-        if (!player.cueDrag) dock.style.transform = "";
-      }, 260);
+      var closed = sheetClosedY();
+      setCueLevel(currentSheetY() < closed * 0.5 ? 1 : 0);
     }
     function finishCueDrag(id, x, y, event) {
       var delta = cueDelta({ pointerId: id, clientX: x, clientY: y });
+      var fromTab = !!(cueGesture && cueGesture.tab);
       cueGesture = null;
       if (event) event.stopPropagation();
-      var from = player.cueLevel || 0;
+      var stage = playerStage();
+      player.cueDrag = false;
+      if (stage) stage.classList.remove("is-cue-dragging");
       if (!delta) return;
       if (event && event.cancelable && (Math.abs(delta.dy) > 8 || Math.abs(delta.dx) > 8)) event.preventDefault();
+      var from = player.cueLevel || 0;
       var speed = delta.dy / Math.max(16, delta.dt);
       var vertical = Math.abs(delta.dy) >= Math.abs(delta.dx);
-      var up = vertical && (delta.dy < -32 || speed < -0.45);
-      var down = vertical && (delta.dy > 32 || speed > 0.45);
+      var tap = fromTab && Math.abs(delta.dy) < 12 && Math.abs(delta.dx) < 12;
+      var up = vertical && (delta.dy < -28 || speed < -0.45);
+      var down = vertical && (delta.dy > 28 || speed > 0.45);
       var next = from;
-      if (up) next = Math.min(CUE_STAGE_CAP, from + 1);
-      else if (down) next = Math.max(0, from - 1);
-      if (next !== from && next < from) {
-        var dock = $("forensic-dock");
-        var stage = playerStage();
-        player.cueDrag = false;
-        if (stage) stage.classList.remove("is-cue-dragging");
-        if (dock) {
-          var travel = Math.max(72, Math.round(dock.getBoundingClientRect().height || 72));
-          dock.style.transform = "translate3d(0," + travel + "px,0)";
-          dock.setAttribute("data-cue-shift", String(travel));
-        }
-        player.cueSnap = (player.cueSnap || 0) + 1;
-        var token = player.cueSnap;
-        setTimeout(function () {
-          if (token !== player.cueSnap || player.cueDrag) return;
-          if (dock) dock.style.transition = "none";
-          setCueLevel(next);
-          if (dock) {
-            dock.style.transform = "";
-            dock.setAttribute("data-cue-shift", "0");
-            void dock.offsetHeight;
-            dock.style.transition = "";
-          }
-        }, 250);
-        return;
-      }
-      cueReleaseFollow();
-      if (next !== from) setCueLevel(next);
+      if (tap) next = from ? 0 : 1;
+      else if (up) next = 1;
+      else if (down) next = 0;
+      else next = currentSheetY() < sheetClosedY() * 0.5 ? 1 : 0;
+      setCueLevel(next);
     }
     if (forensicDock) {
       var cueUsedPointer = false;
@@ -3780,6 +3741,7 @@
           y: event.clientY,
           t: Date.now(),
           id: event.pointerId,
+          shift: currentSheetY(),
           tab: !!(node && node.closest && node.closest("#forensic-tab, #cue-lip"))
         };
         try { forensicDock.setPointerCapture(event.pointerId); } catch (err) { /* capture is optional */ }
@@ -3789,7 +3751,8 @@
         if (!cueGesture || event.pointerId !== cueGesture.id) return;
         var dy = event.clientY - cueGesture.y;
         var dx = event.clientX - cueGesture.x;
-        if (Math.abs(dy) < 4 && Math.abs(dx) < 4) return;
+        if (Math.abs(dy) < 1 && Math.abs(dx) < 1) return;
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dy) < 8) return;
         if (event.cancelable) event.preventDefault();
         cueFollow(dy);
       }
@@ -3818,6 +3781,7 @@
           y: touch.clientY,
           t: Date.now(),
           id: "touch",
+          shift: currentSheetY(),
           tab: !!(touchNode && touchNode.closest && touchNode.closest("#forensic-tab, #cue-lip"))
         };
         if (event.cancelable) event.preventDefault();
@@ -4099,7 +4063,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v87",
+    build: "v88",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };

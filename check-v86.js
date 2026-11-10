@@ -15,8 +15,8 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v87"') === -1 || app.indexOf('build: "v87"') === -1) fail("cache stamp is not v87");
-else ok("cache stamp is v87");
+if (html.indexOf('content="v88"') === -1 || app.indexOf('build: "v88"') === -1) fail("cache stamp is not v88");
+else ok("cache stamp is v88");
 if (app.indexOf("function cuePanelTarget") === -1 || app.indexOf('!node.closest(".deck-video")') === -1) {
   fail("video swipes are not limited to the video");
 } else ok("only a swipe that starts on the video changes clips");
@@ -24,8 +24,8 @@ if (app.indexOf("translate3d(0,") === -1 || css.indexOf("will-change: transform"
 else ok("the sheet tracks the finger with a transform");
 if (css.indexOf(".player-stage.is-cue-mid { --cue-cover: 0px; }") === -1) fail("stage 1 still shrinks the video");
 else ok("stage 1 does not reserve video space");
-if (css.indexOf("touch-action: pan-x") === -1 || css.indexOf("touch-action: none") === -1) fail("touch-action is missing");
-else ok("the slide track pans sideways and the lip does not");
+if (css.indexOf("touch-action: pan-y") === -1 || css.indexOf("touch-action: none") === -1) fail("touch-action is missing");
+else ok("the sheet scrolls vertically and the lip does not");
 if (app.indexOf("Kneel on the mat") !== -1) fail("fixture text was copied into the player");
 else ok("the thoracic cue stays in the test fixture");
 
@@ -101,7 +101,7 @@ async function touchPath(client, page, points, sample) {
     var page = await context.newPage();
     var client = await context.newCDPSession(page);
     await client.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
-    await page.goto("http://127.0.0.1:8080/?v=v87", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v88", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusCards && window.NexusCueEdit; });
     await page.evaluate(function () {
       var archive = window.RELIC_VIDEO_ARCHIVE.cabins.Back.playlist;
@@ -230,67 +230,29 @@ async function touchPath(client, page, points, sample) {
       { x: width * 0.5, y: yLip - 140 }
     ]);
     await page.waitForTimeout(400);
-    var midBox = await boxOf(page, "#forensic-tab");
+    var sheetBox = await boxOf(page, "#cue-stage1");
     await touchPath(client, page, [
-      { x: width * 0.5, y: midBox.y + 4 },
-      { x: width * 0.5, y: midBox.y - 80 },
-      { x: width * 0.5, y: midBox.y - 160 }
+      { x: sheetBox.x + sheetBox.w * 0.8, y: sheetBox.y + 28 },
+      { x: sheetBox.x + 16, y: sheetBox.y + 28 }
     ]);
-    await page.waitForTimeout(360);
-    var tall = await page.evaluate(function () {
+    await page.waitForTimeout(200);
+    var words = await page.evaluate(function () {
       var stage = document.querySelector(".player-stage");
-      var sheet = document.getElementById("cue-stage2-clip").getBoundingClientRect();
       return {
         mid: stage.classList.contains("is-cue-mid"),
         full: stage.classList.contains("is-cue-full"),
-        ratio: sheet.height / window.innerHeight
+        index: window.RelicArchitect.playerIndex,
+        kneel: document.getElementById("cue-sec-do").textContent.indexOf("Kneel on the mat") !== -1,
+        shrug: document.getElementById("cue-sec-avoid").textContent.indexOf("shrugging your shoulders") !== -1,
+        fingers: document.getElementById("cue-sec-rules").textContent.indexOf("fingertips") !== -1,
+        arch: document.getElementById("cue-sec-rules").textContent.indexOf("lower spine") !== -1,
+        breath: document.getElementById("cue-sec-breath").textContent.indexOf("Inhale gently") !== -1,
+        rules: document.getElementById("cue-sec-rules").textContent.indexOf("3 Lead Rules") !== -1
       };
     });
-    if (!tall.full || tall.mid || tall.ratio < 0.4 || tall.ratio > 0.46) fail(width + " stage 2 height is wrong " + JSON.stringify(tall));
-    else ok(width + " stage 2 uses about 43% of the screen");
-    var slideBox = await boxOf(page, "#cue-slides");
-    var step;
-    var slidesOk = true;
-    for (step = 0; step < 3; step++) {
-      var startX = slideBox.x + slideBox.w * 0.82;
-      var endX = slideBox.x + 24;
-      var y = slideBox.y + Math.min(80, slideBox.h * 0.35);
-      await touchPath(client, page, [
-        { x: startX, y: y },
-        { x: (startX + endX) / 2, y: y },
-        { x: endX, y: y }
-      ]);
-      await page.waitForTimeout(280);
-      var now = await page.evaluate(function () {
-        var track = document.getElementById("cue-slides");
-        var span = track.clientWidth || 1;
-        return {
-          slide: Math.round(track.scrollLeft / span),
-          dot: Number(document.querySelector("#cue-dots .cue-dot.is-on").getAttribute("data-cue-dot")),
-          index: window.RelicArchitect.playerIndex
-        };
-      });
-      if (now.index !== 0 || now.slide !== step + 1 || now.dot !== step + 1) slidesOk = false;
-    }
-    var words = await page.evaluate(function () {
-      return {
-        kneel: document.getElementById("cue-slide-do").textContent.indexOf("Kneel on the mat") !== -1,
-        shrug: document.getElementById("cue-slide-do").textContent.indexOf("shrugging your shoulders") !== -1,
-        fingers: document.getElementById("cue-slide-leads").textContent.indexOf("fingertips") !== -1,
-        arch: document.getElementById("cue-slide-leads").textContent.indexOf("lower spine") !== -1,
-        breath: document.getElementById("cue-slide-breath").textContent.indexOf("Inhale gently") !== -1,
-        rules: document.getElementById("cue-slide-leads").textContent.indexOf("3 Lead Rules") !== -1
-      };
-    });
-    if (!slidesOk || !words.kneel || !words.shrug || !words.fingers || !words.arch || !words.breath || !words.rules) {
-      fail(width + " slides did not follow the finger " + JSON.stringify(words));
-    } else ok(width + " panel swipes move slides 1 to 4 and keep the clip");
-    var backX = (await boxOf(page, "#cue-slides"));
-    await touchPath(client, page, [
-      { x: backX.x + 20, y: backX.y + 50 },
-      { x: backX.x + backX.w * 0.7, y: backX.y + 50 }
-    ]);
-    await page.waitForTimeout(200);
+    if (!words.mid || words.full || words.index !== 0 || !words.kneel || !words.shrug || !words.fingers || !words.arch || !words.breath || !words.rules) {
+      fail(width + " the sheet lost the editor text or the clip " + JSON.stringify(words));
+    } else ok(width + " sideways swipes keep the clip and the editor text");
     var header = await boxOf(page, "#forensic-tab");
     await touchPath(client, page, [
       { x: width * 0.5, y: header.y + 6 },
@@ -302,8 +264,8 @@ async function touchPath(client, page, points, sample) {
       var stage = document.querySelector(".player-stage");
       return { mid: stage.classList.contains("is-cue-mid"), full: stage.classList.contains("is-cue-full"), index: window.RelicArchitect.playerIndex };
     });
-    if (!backTo1.mid || backTo1.full || backTo1.index !== 0) fail(width + " stage 2 did not step down to stage 1 " + JSON.stringify(backTo1));
-    else ok(width + " stage 2 steps down to stage 1");
+    if (backTo1.mid || backTo1.full || backTo1.index !== 0) fail(width + " swipe down did not close the sheet " + JSON.stringify(backTo1));
+    else ok(width + " swipe down closes the sheet");
     var dose = await boxOf(page, "#cue-stage1");
     await touchPath(client, page, [
       { x: dose.x + 36, y: dose.y + 18 },

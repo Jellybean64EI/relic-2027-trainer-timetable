@@ -16,8 +16,8 @@ var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var vercel = fs.readFileSync("vercel.json", "utf8");
 
-if (html.indexOf('content="v87"') === -1 || app.indexOf('build: "v87"') === -1) fail("cache stamp is not v87");
-else ok("cache stamp is v87");
+if (html.indexOf('content="v88"') === -1 || app.indexOf('build: "v88"') === -1) fail("cache stamp is not v88");
+else ok("cache stamp is v88");
 if (html.indexOf('id="nexus-build"') === -1) fail("build tag is missing");
 else ok("build tag is in the menu");
 if (html.indexOf("serviceWorker.getRegistrations") === -1 || html.indexOf("nexus-seen-build") === -1) fail("old builds are not reloaded");
@@ -97,11 +97,11 @@ async function touchPath(client, page, points, sample) {
       deviceScaleFactor: setups[s].dpr,
       mobile: true
     });
-    await page.goto("http://127.0.0.1:8080/?v=v87", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v88", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusCards && window.NexusCueEdit; });
     var build = await page.locator("#nexus-build").innerText();
-    if (build !== "v87") fail(width + " menu build tag is " + build);
-    else ok(width + " menu shows v87");
+    if (build !== "v88") fail(width + " menu build tag is " + build);
+    else ok(width + " menu shows v88");
     await page.evaluate(function (cue) {
       var archive = window.RELIC_VIDEO_ARCHIVE.cabins.Back.playlist;
       var clip = archive.filter(function (row) { return /Wall Thoracic Stretch/.test(row.title || ""); })[0];
@@ -162,44 +162,27 @@ async function touchPath(client, page, points, sample) {
     });
     var same = Math.abs(stage1.video.x - before.video.x) < 2 && Math.abs(stage1.video.y - before.video.y) < 2 &&
       Math.abs(stage1.video.w - before.video.w) < 2 && Math.abs(stage1.video.h - before.video.h) < 2;
-    if (!stage1.mid || !same || stage1.ratio > 0.2 || stage1.title !== before.name || !stage1.mute || !stage1.speed) {
+    if (!stage1.mid || !same || stage1.ratio > 0.26 || stage1.ratio < 0.12 || stage1.title !== before.name || !stage1.mute || !stage1.speed) {
       fail(width + " stage 1 overlay, title, or controls are wrong " + JSON.stringify(stage1) + " expected " + before.name);
     } else ok(width + " stage 1 overlays the named clip without moving the video");
-    var tab = await page.evaluate(function () {
-      var rect = document.getElementById("forensic-tab").getBoundingClientRect();
-      return { x: rect.x + rect.width / 2, y: rect.y + 4 };
-    });
-    var tracked = await touchPath(client, page, [
-      { x: tab.x, y: tab.y },
-      { x: tab.x, y: tab.y - 40 },
-      { x: tab.x, y: tab.y - 150 }
-    ], { at: 1, read: function () { return page.evaluate(function () { return document.getElementById("forensic-dock").getAttribute("data-cue-shift"); }); } });
-    await page.waitForTimeout(400);
-    if (!(Number(tracked) < -8)) fail(width + " the sheet did not follow the upward finger (" + tracked + ")");
-    else ok(width + " the sheet follows the finger");
-    var slides = await page.evaluate(function () {
-      var rect = document.getElementById("cue-slides").getBoundingClientRect();
-      return { x: rect.x, y: rect.y, w: rect.width, h: rect.height };
+    var sheet = await page.evaluate(function () {
+      var rect = document.getElementById("cue-stage1").getBoundingClientRect();
+      return { x: rect.x, y: rect.y, w: rect.width };
     });
     await touchPath(client, page, [
-      { x: slides.x + slides.w * 0.8, y: slides.y + 60 },
-      { x: slides.x + slides.w * 0.45, y: slides.y + 60 },
-      { x: slides.x + 16, y: slides.y + 60 }
+      { x: sheet.x + sheet.w * 0.8, y: sheet.y + 24 },
+      { x: sheet.x + 12, y: sheet.y + 24 }
     ]);
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(200);
     var slid = await page.evaluate(function () {
-      var track = document.getElementById("cue-slides");
-      var span = track.clientWidth || 1;
       return {
-        slide: Math.round(track.scrollLeft / span),
-        dot: Number(document.querySelector("#cue-dots .cue-dot.is-on").getAttribute("data-cue-dot")),
         index: window.RelicArchitect.playerIndex,
-        sheetTitle: document.getElementById("cue-stage2-title").textContent
+        title: document.getElementById("cue-stage1-title").textContent
       };
     });
-    if (slid.index !== 0 || slid.slide !== 1 || slid.dot !== 1 || slid.sheetTitle !== before.name) {
-      fail(width + " a panel swipe changed the clip or missed the slide " + JSON.stringify(slid));
-    } else ok(width + " a panel swipe changes the slide and keeps the clip");
+    if (slid.index !== 0 || slid.title !== before.name) {
+      fail(width + " a sideways sheet swipe changed the clip " + JSON.stringify(slid));
+    } else ok(width + " a sideways swipe keeps the clip and the title");
     var film = await page.evaluate(function () {
       var rect = document.querySelector(".video-hit").getBoundingClientRect();
       return { x: rect.x + rect.width * 0.8, y: rect.y + 80, x2: rect.x + rect.width * 0.15 };
@@ -220,13 +203,12 @@ async function touchPath(client, page, points, sample) {
       return {
         index: window.RelicArchitect.playerIndex,
         title: document.getElementById("cue-stage1-title").textContent,
-        sheet: document.getElementById("cue-stage2-title").textContent,
         name: identity ? identity.title : "",
         timer: timer.height > 10 && style.opacity !== "0" && style.visibility !== "hidden",
         text: document.getElementById("relic-set-timer").textContent
       };
     });
-    if (after.index === 0 || after.title !== after.name || after.sheet !== after.name || !after.timer || !/^\d/.test(after.text)) {
+    if (after.index === 0 || after.title !== after.name || !after.timer || !/^\d/.test(after.text)) {
       fail(width + " the title or timer did not survive the clip change " + JSON.stringify(after));
     } else ok(width + " the title and timer stay after the clip changes");
     await context.close();

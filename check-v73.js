@@ -17,7 +17,7 @@ var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var config = fs.readFileSync("data/nexusConfig.js", "utf8");
 
-if (app.indexOf('build: "v87"') === -1 || html.indexOf('content="v87"') === -1 || html.indexOf("?v=v72") !== -1) {
+if (app.indexOf('build: "v88"') === -1 || html.indexOf('content="v88"') === -1 || html.indexOf("?v=v72") !== -1) {
   fail("cache stamp is not v77");
 }
 if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v77") !== -1; })) {
