@@ -31,7 +31,7 @@ if (css.indexOf("-webkit-touch-callout: none") === -1 || css.indexOf("user-selec
   fail("long-press highlight is not suppressed");
 }
 if (css.indexOf("body.vc-quick-open .nav-toggle") === -1) fail("v71 menu slot was removed");
-if (app.indexOf('build: "v90"') === -1 || html.indexOf('content="v90"') === -1 || html.indexOf("?v=v71") !== -1) {
+if (app.indexOf('build: "v91"') === -1 || html.indexOf('content="v91"') === -1 || html.indexOf("?v=v71") !== -1) {
   fail("cache stamp is not v77");
 }
 if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v77") !== -1; })) {
