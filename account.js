@@ -60,24 +60,30 @@ window.NexusAccount = (function () {
     return round1(cm).toFixed(1).replace(/\.0$/, "") + " cm · " + feet.ft + " ft " + feet.inch + " in";
   }
 
+  function poundsOf(kg) {
+    return Math.floor(Number(kg) / KG_PER_LB + 0.02);
+  }
+
+  function stonesOf(totalLb) {
+    var whole = Math.abs(totalLb);
+    var st = Math.floor(whole / 14);
+    return { st: st, lb: whole - (st * 14) };
+  }
+
   function formatWeight(kg) {
     var n = round1(kg);
     if (!isFinite(n)) return "";
-    var totalLb = Math.round(n / KG_PER_LB);
-    var st = Math.floor(totalLb / 14);
-    var lb = totalLb - (st * 14);
-    return n.toFixed(1) + " kg · " + st + " st " + lb + " lb";
+    var parts = stonesOf(poundsOf(n));
+    return n.toFixed(1) + " kg · " + parts.st + " st " + parts.lb + " lb";
   }
 
   function weightDelta(latest, anchor) {
     var diff = round1(latest - anchor);
-    var sign = diff > 0 ? "+" : "";
-    var kg = sign + diff.toFixed(1) + " kg";
-    var totalLb = Math.round(Math.abs(diff) / KG_PER_LB);
-    var st = Math.floor(totalLb / 14);
-    var lb = totalLb - (st * 14);
-    var imp = (diff < 0 ? "-" : "+") + st + " st " + lb + " lb";
-    if (diff === 0) imp = "0 st 0 lb";
+    var sign = diff > 0 ? "+" : diff < 0 ? "-" : "";
+    var kg = (diff > 0 ? "+" : "") + diff.toFixed(1) + " kg";
+    var pounds = poundsOf(latest) - poundsOf(anchor);
+    var parts = stonesOf(pounds);
+    var imp = diff === 0 ? "0 st 0 lb" : sign + parts.st + " st " + parts.lb + " lb";
     return kg + " · " + imp;
   }
 
@@ -180,9 +186,9 @@ window.NexusAccount = (function () {
     form.elements.startKg.value = locked ? row.startWeightKg : "";
     form.elements.startDate.value = locked ? row.startDate : todayKey();
     if (locked) {
-      var totalLb = Math.round(row.startWeightKg / KG_PER_LB);
-      form.elements.startSt.value = Math.floor(totalLb / 14);
-      form.elements.startLb.value = totalLb - (Math.floor(totalLb / 14) * 14);
+      var parts = stonesOf(poundsOf(row.startWeightKg));
+      form.elements.startSt.value = parts.st;
+      form.elements.startLb.value = parts.lb;
     } else {
       form.elements.startSt.value = "";
       form.elements.startLb.value = "";

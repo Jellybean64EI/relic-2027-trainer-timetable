@@ -261,7 +261,7 @@ async function tapId(page, client, id) {
         age: window.NexusAccount.ageOn("2000-06-22", "2026-11-12")
       };
     });
-    if (units.weight.indexOf("82.4 kg") !== 0 || units.height !== "178 cm · 5 ft 10 in" || units.week !== "2027-W01" || units.age !== 26) {
+    if (units.weight !== "82.4 kg · 12 st 13 lb" || units.height !== "178 cm · 5 ft 10 in" || units.week !== "2027-W01" || units.age !== 26) {
       fail("unit conversion is wrong " + JSON.stringify(units));
     } else ok("kg, stone, height, week, and age conversions");
     await openDoor(page, client, "porridge");
