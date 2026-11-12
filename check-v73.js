@@ -17,7 +17,7 @@ var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var config = fs.readFileSync("data/nexusConfig.js", "utf8");
 
-if (app.indexOf('build: "v90"') === -1 || html.indexOf('content="v90"') === -1 || html.indexOf("?v=v72") !== -1) {
+if (app.indexOf('build: "v91"') === -1 || html.indexOf('content="v91"') === -1 || html.indexOf("?v=v72") !== -1) {
   fail("cache stamp is not v77");
 }
 if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v77") !== -1; })) {
@@ -31,11 +31,11 @@ if (schedulesAt < 0 || foodAt < schedulesAt) fail("Training Schedules is not the
 if (html.indexOf(">Training Schedules<") === -1 || html.indexOf(">Food Schedules<") === -1) fail("hub tab labels are missing");
 if (html.indexOf('id="hub-panel-food"') === -1) fail("food schedules panel is missing");
 if (html.indexOf("hub-panel-training") !== -1) fail("stats tab panel is still in the hub");
-if (html.indexOf('id="hub-stats"') === -1 || html.indexOf('id="hub-stats-open"') === -1 || html.indexOf(">Training Stats<") === -1) {
-  fail("training stats pill or modal is missing");
+if (html.indexOf('data-os-panel="account"') === -1 || html.indexOf('id="hub-stats"') === -1 || html.indexOf(">Training Stats<") === -1) {
+  fail("training stats is not on the account page");
 }
 if (html.indexOf('id="train-lock-slot"') === -1) fail("training lock slot is missing");
-if (html.indexOf('id="hub-stats-x"') === -1) fail("stats modal close control is missing");
+if (html.indexOf('id="hub-stats-x"') !== -1 || html.indexOf('id="hub-stats-open"') !== -1) fail("stats modal is still in the page");
 if (html.indexOf("hub-stats-pill") !== -1) fail("stats pill is still in the header");
 else ok("hub tabs and stats sheet");
 

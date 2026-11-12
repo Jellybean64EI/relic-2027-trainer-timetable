@@ -108,6 +108,7 @@
   };
   state.futureLock = readFutureLock();
   state.hubTab = readHubTab();
+  state.accountView = "tiles";
 
   var player = {
     cabin: null,
@@ -1107,31 +1108,6 @@
     state.hubArtLoaded = true;
   }
 
-  function openHubStats() {
-    var modal = $("hub-stats");
-    if (!modal) return;
-    loadHubArt();
-    paintHubStats();
-    revealHubLock();
-    modal.hidden = false;
-    if (typeof setNavOpen === "function") setNavOpen(false);
-    var opener = $("hub-stats-open");
-    if (opener) opener.setAttribute("aria-expanded", "true");
-    var closer = $("hub-stats-x");
-    if (closer && closer.focus) closer.focus();
-  }
-
-  function closeHubStats() {
-    var modal = $("hub-stats");
-    if (!modal || modal.hidden) return;
-    modal.hidden = true;
-    var opener = $("hub-stats-open");
-    if (opener) {
-      opener.setAttribute("aria-expanded", "false");
-      if (opener.focus) opener.focus();
-    }
-  }
-
   function paintHub() {
     var root = $("hub-root");
     if (!root) return;
@@ -1168,25 +1144,20 @@
     warmVisibleLeads();
   }
 
-  var accountTimer = 0;
-  function dismissAccountBanner() {
-    var host = $("account-banner");
-    if (accountTimer) clearTimeout(accountTimer);
-    accountTimer = 0;
-    if (!host) return;
-    host.classList.remove("is-in");
-    host.classList.add("is-out");
-    host.hidden = true;
-  }
-
-  function showAccountBanner() {
-    var host = $("account-banner");
-    if (!host) return;
-    host.hidden = false;
-    host.classList.remove("is-out");
-    host.classList.add("is-in");
-    if (accountTimer) clearTimeout(accountTimer);
-    accountTimer = setTimeout(dismissAccountBanner, 4000);
+  function showAccountView() {
+    if (state.osDoor !== "account") state.accountView = "tiles";
+    var tiles = $("account-tiles");
+    var stats = $("hub-stats");
+    var hint = $("account-hint");
+    var onStats = state.osDoor === "account" && state.accountView === "stats";
+    if (tiles) tiles.hidden = onStats;
+    if (stats) stats.hidden = !onStats;
+    if (hint && !onStats) hint.hidden = true;
+    if (onStats) {
+      loadHubArt();
+      paintHubStats();
+      revealHubLock();
+    }
   }
 
   function paintOsDoors() {
@@ -1219,10 +1190,12 @@
       document.body.classList.toggle("is-hub", door === "hub");
       document.body.classList.toggle("is-deck", door === "food" || door === "smoothies" || door === "porridge");
       document.body.classList.toggle("is-cards", door === "cards");
+      document.body.classList.toggle("is-account", door === "account");
       syncHubClass();
     }
     if (door === "cards" && window.NexusCards && window.NexusCards.render) window.NexusCards.render();
     if (door === "hub") paintHub();
+    showAccountView();
     revealHubLock();
     if ((door === "food" || door === "smoothies" || door === "porridge") && window.NexusDeck && window.NexusDeck.renderDeck) {
       var deckName = door === "smoothies" ? "smoothie" : door === "porridge" ? "porridge" : "food";
@@ -1522,10 +1495,7 @@
       navToggleAt = Date.now();
       paintOsDoors();
     }
-    if (!next) {
-      navToggleAt = 0;
-      dismissAccountBanner();
-    }
+    if (!next) navToggleAt = 0;
     var drawer = $("nav-drawer");
     var scrim = $("nav-scrim");
     var btn = $("btn-nav-toggle");
@@ -3661,31 +3631,37 @@
         setNavOpen(false);
       });
     });
-    var statsOpen = $("hub-stats-open");
-    if (statsOpen) statsOpen.addEventListener("click", function (event) {
+    var statsTile = $("account-open-stats");
+    if (statsTile) statsTile.addEventListener("click", function (event) {
       event.preventDefault();
       event.stopPropagation();
-      openHubStats();
+      state.accountView = "stats";
+      showAccountView();
+    });
+    var statsBack = $("account-stats-back");
+    if (statsBack) statsBack.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      state.accountView = "tiles";
+      showAccountView();
+    });
+    ["account-tile-info", "account-tile-weight"].forEach(function (id) {
+      var tile = $(id);
+      if (!tile) return;
+      tile.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        var hint = $("account-hint");
+        if (!hint) return;
+        hint.hidden = false;
+        hint.textContent = "In design";
+      });
     });
     var hubLock = $("hub-lock");
     if (hubLock) hubLock.addEventListener("click", function (event) {
       event.preventDefault();
       event.stopPropagation();
       setFutureLock(!state.futureLock);
-    });
-    var statsModal = $("hub-stats");
-    if (statsModal) statsModal.addEventListener("click", function (event) {
-      if (event.target === statsModal || event.target.closest("#hub-stats-x")) {
-        event.preventDefault();
-        closeHubStats();
-      }
-    });
-    document.addEventListener("keydown", function (event) {
-      if (event.key !== "Escape") return;
-      var modal = $("hub-stats");
-      if (!modal || modal.hidden) return;
-      event.preventDefault();
-      closeHubStats();
     });
     var futureLockBtn = $("btn-future-lock");
     if (futureLockBtn) {
@@ -3726,7 +3702,10 @@
         event.stopPropagation();
         var name = doorBtn.getAttribute("data-os-door");
         if (name === "account") {
-          showAccountBanner();
+          state.osDoor = "account";
+          state.accountView = "tiles";
+          setNavOpen(false);
+          render();
           return;
         }
         if (name === "hub") {
@@ -3746,15 +3725,6 @@
         openTrainingDoor();
       });
     });
-    var accountDismiss = $("account-banner-dismiss");
-    if (accountDismiss) {
-      accountDismiss.addEventListener("click", function (event) {
-        event.preventDefault();
-        event.stopPropagation();
-        dismissAccountBanner();
-      });
-    }
-    window.addEventListener("pagehide", dismissAccountBanner);
     var forensicTab = $("forensic-tab");
     var forensicPanel = $("forensic-panel");
     var forensicDock = $("forensic-dock");
@@ -4151,7 +4121,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v90",
+    build: "v91",
     planFocusDate: planFocusDate,
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };
