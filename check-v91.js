@@ -15,8 +15,8 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v91"') === -1 || app.indexOf('build: "v91"') === -1) fail("cache stamp is not v91");
-else ok("cache stamp is v91");
+if (html.indexOf('content="v92"') === -1 || app.indexOf('build: "v92"') === -1) fail("cache stamp is not v92");
+else ok("cache stamp is v92");
 if (html.indexOf('data-os-panel="account"') === -1 || app.indexOf('account: "Account Profile"') === -1) fail("account is not a page");
 else ok("account is a page");
 if (html.indexOf("coming soon") !== -1 || html.indexOf('id="account-banner"') !== -1 || app.indexOf("showAccountBanner") !== -1) {
@@ -98,7 +98,7 @@ async function goDoor(page, client, name) {
         mobile: true
       });
     }
-    await page.goto("http://127.0.0.1:8080/?v=v91", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v92", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && document.getElementById("page-title"); });
     await page.evaluate(function () {
       var toast = document.getElementById("deck-toast");
@@ -144,7 +144,7 @@ async function goDoor(page, client, name) {
       };
     }, before);
     var tileText = landed.tiles.join(" ").toLowerCase();
-    if (landed.drawer || landed.jumped || landed.title !== "Account Profile" || landed.mark !== "Nexus" || !landed.clockShown || landed.tiles.length !== 3 || tileText.indexOf("training stats") === -1 || tileText.indexOf("account info") === -1 || tileText.indexOf("in design") === -1 || tileText.indexOf("live weight stats") === -1) {
+    if (landed.drawer || landed.jumped || landed.title !== "Account Profile" || landed.mark !== "Nexus" || !landed.clockShown || landed.tiles.length !== 3 || tileText.indexOf("in design") !== -1 || landed.tiles[0].toLowerCase().indexOf("account info") === -1 || landed.tiles[1].toLowerCase().indexOf("live weight") === -1 || landed.tiles[2].toLowerCase().indexOf("training stats") === -1) {
       fail(width + " Account Profile did not open cleanly " + JSON.stringify(landed));
     } else ok(width + " Account Profile opens with the header, clock, and three tiles");
     var clockA = landed.clock;
@@ -153,18 +153,28 @@ async function goDoor(page, client, name) {
     if (!clockA || clockA === clockB || !/\d/.test(clockB)) fail(width + " the clock is not ticking (" + clockA + " -> " + clockB + ")");
     else ok(width + " the clock ticks");
     var info = await page.evaluate(function () {
-      var node = document.getElementById("account-tile-info");
+      var node = document.getElementById("account-open-info");
       var rect = node.getBoundingClientRect();
       return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
     });
     await touch(client, page, info.x, info.y);
-    await page.waitForTimeout(100);
-    var hint = await page.evaluate(function () {
-      var node = document.getElementById("account-hint");
-      return { text: node.textContent, shown: !node.hidden, tiles: document.getElementById("account-tiles").hidden };
+    await page.waitForTimeout(200);
+    var infoView = await page.evaluate(function () {
+      var panel = document.getElementById("account-info");
+      return {
+        open: getComputedStyle(panel).display !== "none",
+        label: panel.querySelector(".account-section-label").textContent,
+        stray: document.body.innerText.indexOf("In design") !== -1
+      };
     });
-    if (!hint.shown || hint.text !== "In design" || hint.tiles) fail(width + " a locked tile did something harmful " + JSON.stringify(hint));
-    else ok(width + " a locked tile only shows In design");
+    if (!infoView.open || infoView.label !== "Account Info" || infoView.stray) fail(width + " Account Info did not open " + JSON.stringify(infoView));
+    else ok(width + " Account Info opens inside the page");
+    var infoBack = await page.evaluate(function () {
+      var rect = document.querySelector("#account-info [data-account-back]").getBoundingClientRect();
+      return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+    });
+    await touch(client, page, infoBack.x, infoBack.y);
+    await page.waitForTimeout(150);
     var tile = await page.evaluate(function () {
       var node = document.getElementById("account-open-stats");
       var rect = node.getBoundingClientRect();
@@ -189,7 +199,7 @@ async function goDoor(page, client, name) {
       }
       return {
         title: document.getElementById("page-title").textContent,
-        label: document.querySelector(".account-section-label").textContent,
+        label: document.querySelector("#hub-stats .account-section-label").textContent,
         tilesHidden: getComputedStyle(document.getElementById("account-tiles")).display === "none",
         days: snap.upper.days,
         videos: snap.upper.days * 2,

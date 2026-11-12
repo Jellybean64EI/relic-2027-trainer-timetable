@@ -6,10 +6,10 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v91" />
+  <meta name="relic-build" content="v92" />
   <title>Nexus</title>
-  <link rel="manifest" href="manifest.webmanifest?v=v91" />
-  <link rel="stylesheet" href="styles.css?v=v91" />
+  <link rel="manifest" href="manifest.webmanifest?v=v92" />
+  <link rel="stylesheet" href="styles.css?v=v92" />
 </head>
 <body>
   <div class="wrap">
@@ -65,20 +65,44 @@
       </section>
       <section id="account-root" data-os-panel="account" hidden>
         <div id="account-tiles" class="account-tiles">
-          <button type="button" class="account-tile is-active" id="account-open-stats">Training Stats</button>
-          <button type="button" class="account-tile is-locked" id="account-tile-info" aria-disabled="true">
-            <span>Account Info</span>
-            <span class="account-tag">In design</span>
-          </button>
-          <button type="button" class="account-tile is-locked" id="account-tile-weight" aria-disabled="true">
-            <span>Live Weight Stats</span>
-            <span class="account-tag">In design</span>
-          </button>
-          <p id="account-hint" class="account-hint" hidden></p>
+          <button type="button" class="account-tile" id="account-open-info">Account Info</button>
+          <button type="button" class="account-tile" id="account-open-weight">Live Weight Stats</button>
+          <button type="button" class="account-tile" id="account-open-stats">Training Stats</button>
+        </div>
+        <p id="account-error" class="account-error" hidden><span id="account-error-text"></span> <button type="button" id="account-retry">Try again</button></p>
+        <div id="account-info" class="account-panel" hidden>
+          <div class="account-stats-bar">
+            <button type="button" class="account-back" data-account-back>Back</button>
+            <p class="account-section-label">Account Info</p>
+            <button type="button" class="account-back" id="account-info-edit">Edit</button>
+          </div>
+          <div id="account-info-read"></div>
+          <form id="account-info-form" class="account-form" hidden>
+            <label>Name<input name="name" maxlength="80" autocomplete="name"></label>
+            <label>Date of birth<input name="dob" type="date"></label>
+            <p class="account-unit"><button type="button" data-height-unit="cm">cm</button><button type="button" data-height-unit="ft">ft/in</button></p>
+            <label id="account-height-cm">Height in cm<input name="heightCm" inputmode="decimal"></label>
+            <div id="account-height-ft" hidden><label>Feet<input name="heightFt" inputmode="numeric"></label><label>Inches<input name="heightIn" inputmode="numeric"></label></div>
+            <div id="account-start-fields">
+              <p class="account-unit"><button type="button" data-start-unit="kg">kg</button><button type="button" data-start-unit="st">st/lb</button></p>
+              <label id="account-start-kg">Starting weight in kg<input name="startKg" inputmode="decimal"></label>
+              <div id="account-start-st" hidden><label>Stone<input name="startSt" inputmode="numeric"></label><label>Pounds<input name="startLb" inputmode="decimal"></label></div>
+              <label>Starting weight date<input name="startDate" type="date"></label>
+            </div>
+            <p id="account-start-locked" class="account-cite-date" hidden>🔒 Locked as your anchor</p>
+            <div class="account-actions"><button type="submit">Save</button><button type="button" id="account-info-cancel">Cancel</button></div>
+          </form>
+        </div>
+        <div id="account-weight" class="account-panel" hidden>
+          <div class="account-stats-bar">
+            <button type="button" class="account-back" data-account-back>Back</button>
+            <p class="account-section-label">Live Weight Stats</p>
+          </div>
+          <div id="account-weight-body"></div>
         </div>
         <div id="hub-stats" class="hub-stats" hidden>
           <div class="account-stats-bar">
-            <button type="button" class="account-back" id="account-stats-back">Back</button>
+            <button type="button" class="account-back" id="account-stats-back" data-account-back>Back</button>
             <p class="account-section-label">Training Stats</p>
           </div>
           <button type="button" class="hub-lock" id="hub-lock" aria-pressed="false" aria-label="Lock off">
@@ -372,28 +396,29 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v91"></script>
-  <script src="data/precondition.js?v=v91"></script>
-  <script src="data/upperBody.js?v=v91"></script>
-  <script src="data/citations.js?v=v91"></script>
-  <script src="data/forensic.js?v=v91"></script>
-  <script src="data/cues/cues.js?v=v91"></script>
-  <script src="data/forensicClips.js?v=v91"></script>
-  <script src="data/videoArchive.js?v=v91"></script>
-  <script src="data/nutrition/shop.js?v=v91"></script>
-  <script src="data/nutrition/schedule.js?v=v91"></script>
-  <script src="food.js?v=v91"></script>
-  <script src="data/nexusConfig.js?v=v91"></script>
-  <script src="deck.js?v=v91"></script>
-  <script src="data/videoCatalog.js?v=v91"></script>
-  <script src="tools/v64_placement.js?v=v91"></script>
-  <script src="trim.js?v=v91"></script>
-  <script src="builder.js?v=v91"></script>
-  <script src="cards.js?v=v91"></script>
-  <script src="data/cueModel.js?v=v91"></script>
-  <script src="data/cueEditor.js?v=v91"></script>
-  <script src="data/playerChrome.js?v=v91"></script>
-  <script src="app.js?v=v91"></script>
+  <script src="data/schedule.js?v=v92"></script>
+  <script src="data/precondition.js?v=v92"></script>
+  <script src="data/upperBody.js?v=v92"></script>
+  <script src="data/citations.js?v=v92"></script>
+  <script src="data/forensic.js?v=v92"></script>
+  <script src="data/cues/cues.js?v=v92"></script>
+  <script src="data/forensicClips.js?v=v92"></script>
+  <script src="data/videoArchive.js?v=v92"></script>
+  <script src="data/nutrition/shop.js?v=v92"></script>
+  <script src="data/nutrition/schedule.js?v=v92"></script>
+  <script src="food.js?v=v92"></script>
+  <script src="data/nexusConfig.js?v=v92"></script>
+  <script src="deck.js?v=v92"></script>
+  <script src="data/videoCatalog.js?v=v92"></script>
+  <script src="tools/v64_placement.js?v=v92"></script>
+  <script src="trim.js?v=v92"></script>
+  <script src="builder.js?v=v92"></script>
+  <script src="cards.js?v=v92"></script>
+  <script src="data/cueModel.js?v=v92"></script>
+  <script src="data/cueEditor.js?v=v92"></script>
+  <script src="data/playerChrome.js?v=v92"></script>
+  <script src="account.js?v=v92"></script>
+  <script src="app.js?v=v92"></script>
   <script>
     (function () {
       var meta = document.querySelector('meta[name="relic-build"]');

@@ -1146,18 +1146,22 @@
 
   function showAccountView() {
     if (state.osDoor !== "account") state.accountView = "tiles";
+    var view = state.accountView || "tiles";
+    var on = state.osDoor === "account";
     var tiles = $("account-tiles");
     var stats = $("hub-stats");
-    var hint = $("account-hint");
-    var onStats = state.osDoor === "account" && state.accountView === "stats";
-    if (tiles) tiles.hidden = onStats;
-    if (stats) stats.hidden = !onStats;
-    if (hint && !onStats) hint.hidden = true;
-    if (onStats) {
+    var info = $("account-info");
+    var weight = $("account-weight");
+    if (tiles) tiles.hidden = !on || view !== "tiles";
+    if (info) info.hidden = !on || view !== "info";
+    if (weight) weight.hidden = !on || view !== "weight";
+    if (stats) stats.hidden = !on || view !== "stats";
+    if (on && view === "stats") {
       loadHubArt();
       paintHubStats();
       revealHubLock();
     }
+    if (on && window.NexusAccount) window.NexusAccount.refresh(view);
   }
 
   function paintOsDoors() {
@@ -3631,30 +3635,25 @@
         setNavOpen(false);
       });
     });
-    var statsTile = $("account-open-stats");
-    if (statsTile) statsTile.addEventListener("click", function (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      state.accountView = "stats";
+    function openAccount(view) {
+      state.accountView = view || "tiles";
       showAccountView();
-    });
-    var statsBack = $("account-stats-back");
-    if (statsBack) statsBack.addEventListener("click", function (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      state.accountView = "tiles";
-      showAccountView();
-    });
-    ["account-tile-info", "account-tile-weight"].forEach(function (id) {
+    }
+    window.RelicArchitectOpenAccount = openAccount;
+    ["account-open-info", "account-open-weight", "account-open-stats"].forEach(function (id) {
       var tile = $(id);
       if (!tile) return;
       tile.addEventListener("click", function (event) {
         event.preventDefault();
         event.stopPropagation();
-        var hint = $("account-hint");
-        if (!hint) return;
-        hint.hidden = false;
-        hint.textContent = "In design";
+        openAccount(id === "account-open-info" ? "info" : id === "account-open-weight" ? "weight" : "stats");
+      });
+    });
+    document.querySelectorAll("[data-account-back]").forEach(function (button) {
+      button.addEventListener("click", function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        openAccount("tiles");
       });
     });
     var hubLock = $("hub-lock");
@@ -4121,8 +4120,11 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v91",
+    build: "v92",
     planFocusDate: planFocusDate,
+    openAccount: function (view) {
+      if (window.RelicArchitectOpenAccount) window.RelicArchitectOpenAccount(view);
+    },
     hubSnapshot: function () {
       return { focus: londonParts(planFocusDate()).dateKey, upper: hubYear("upper"), full: hubYear("full") };
     },
