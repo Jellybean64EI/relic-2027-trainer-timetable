@@ -15,8 +15,8 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v91"') === -1 || app.indexOf('build: "v91"') === -1) fail("cache stamp is not v91");
-else ok("cache stamp is v91");
+if (html.indexOf('content="v92"') === -1 || app.indexOf('build: "v92"') === -1) fail("cache stamp is not v92");
+else ok("cache stamp is v92");
 if (app.indexOf("PHASE_TAG_MS = 8000") === -1 || app.indexOf('id = "phase-tag"') === -1) fail("the phase tag is missing");
 else ok("the phase tag has its own 8 second timer");
 if (css.indexOf(".phase-tag") === -1 || css.split(".phase-tag")[1].indexOf("pointer-events: none") === -1) fail("the phase tag can take touches");
@@ -137,7 +137,7 @@ async function touchPath(client, page, points) {
         mobile: true
       });
     }
-    await page.goto("http://127.0.0.1:8080/?v=v91", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v92", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect; });
     await openSchedule(page);
     var first = await readTag(page);

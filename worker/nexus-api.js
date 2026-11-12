@@ -1180,6 +1180,129 @@ async function handleVideoCues(req, env) {
   return json({ ok: true, videoId, r2Key, origin: "manual", cue, updatedAt: stamp });
 }
 
+// v92: one profile row and one weigh-in per ISO week. Writes use the same X-Nexus-Key gate.
+let accountReady = false;
+async function ensureAccountTables(db) {
+  if (accountReady) return;
+  await db.prepare(`CREATE TABLE IF NOT EXISTS account_profile (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    name TEXT,
+    dob TEXT,
+    height_cm REAL,
+    start_weight_kg REAL,
+    start_date TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`).run();
+  await db.prepare(`CREATE TABLE IF NOT EXISTS weight_log (
+    iso_week TEXT PRIMARY KEY,
+    date TEXT NOT NULL,
+    weight_kg REAL NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  )`).run();
+  accountReady = true;
+}
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_WEEK = /^\d{4}-W(0[1-9]|[1-4]\d|5[0-3])$/;
+function round1(value) {
+  return Math.round(Number(value) * 10) / 10;
+}
+function validDate(value) {
+  if (!ISO_DATE.test(String(value || ""))) return false;
+  const [y, m, d] = String(value).split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
+}
+function isoWeekOf(value) {
+  const [y, m, d] = String(value).split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  const day = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - day);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+  return date.getUTCFullYear() + "-W" + String(week).padStart(2, "0");
+}
+function profileOut(row) {
+  if (!row) return { name: null, dob: null, heightCm: null, startWeightKg: null, startDate: null, updatedAt: null };
+  return {
+    name: row.name,
+    dob: row.dob,
+    heightCm: row.height_cm == null ? null : round1(row.height_cm),
+    startWeightKg: row.start_weight_kg == null ? null : round1(row.start_weight_kg),
+    startDate: row.start_date,
+    updatedAt: row.updated_at,
+  };
+}
+function weightOut(row) {
+  return { week: row.iso_week, date: row.date, weightKg: round1(row.weight_kg), updatedAt: row.updated_at };
+}
+async function handleAccount(req, env) {
+  await ensureAccountTables(env.DB);
+  const existing = await env.DB.prepare("SELECT id, name, dob, height_cm, start_weight_kg, start_date, created_at, updated_at FROM account_profile WHERE id = 1").first();
+  if (req.method === "GET") return json({ ok: true, profile: profileOut(existing) });
+  if (req.method !== "PUT") return err(405, "method not allowed");
+  const b = await body(req) || {};
+  const next = {
+    name: b.name == null || b.name === "" ? null : String(b.name).replace(/\s+/g, " ").trim().slice(0, 80),
+    dob: b.dob == null || b.dob === "" ? null : String(b.dob),
+    heightCm: b.heightCm == null || b.heightCm === "" ? null : round1(b.heightCm),
+    startWeightKg: b.startWeightKg == null || b.startWeightKg === "" ? null : round1(b.startWeightKg),
+    startDate: b.startDate == null || b.startDate === "" ? null : String(b.startDate),
+  };
+  if (next.dob && !validDate(next.dob)) return err(400, "bad date of birth");
+  if (next.startDate && !validDate(next.startDate)) return err(400, "bad start date");
+  if (next.heightCm != null && (!Number.isFinite(next.heightCm) || next.heightCm < 50 || next.heightCm > 272)) return err(400, "bad height");
+  if (next.startWeightKg != null && (!Number.isFinite(next.startWeightKg) || next.startWeightKg < 20 || next.startWeightKg > 400)) return err(400, "bad weight");
+  if ((next.startWeightKg == null) !== (next.startDate == null) && !(existing && existing.start_weight_kg != null && next.startWeightKg == null && next.startDate == null)) {
+    return err(400, "starting weight and date are set together");
+  }
+  if (existing && existing.start_weight_kg != null) {
+    const changedWeight = next.startWeightKg != null && round1(existing.start_weight_kg) !== next.startWeightKg;
+    const changedDate = next.startDate != null && existing.start_date !== next.startDate;
+    if (changedWeight || changedDate) return err(409, "starting weight is locked");
+    next.startWeightKg = round1(existing.start_weight_kg);
+    next.startDate = existing.start_date;
+  }
+  const stamp = now();
+  if (!existing) {
+    await env.DB.prepare("INSERT INTO account_profile (id, name, dob, height_cm, start_weight_kg, start_date, created_at, updated_at) VALUES (1, ?, ?, ?, ?, ?, ?, ?)").bind(next.name, next.dob, next.heightCm, next.startWeightKg, next.startDate, stamp, stamp).run();
+  } else {
+    await env.DB.prepare("UPDATE account_profile SET name = ?, dob = ?, height_cm = ?, start_weight_kg = ?, start_date = ?, updated_at = ? WHERE id = 1").bind(next.name, next.dob, next.heightCm, next.startWeightKg, next.startDate, stamp).run();
+  }
+  return json({ ok: true, profile: { ...next, updatedAt: stamp } });
+}
+async function handleWeights(req, env, week) {
+  await ensureAccountTables(env.DB);
+  if (!week) {
+    if (req.method === "GET") {
+      const { results } = await env.DB.prepare("SELECT iso_week, date, weight_kg, created_at, updated_at FROM weight_log ORDER BY date DESC, iso_week DESC").all();
+      return json({ ok: true, weights: (results || []).map(weightOut) });
+    }
+    if (req.method !== "PUT") return err(405, "method not allowed");
+    const b = await body(req) || {};
+    const date = String(b.date || "");
+    const weightKg = round1(b.weightKg);
+    if (!validDate(date)) return err(400, "bad date");
+    if (!Number.isFinite(weightKg) || weightKg < 20 || weightKg > 400) return err(400, "bad weight");
+    const key = isoWeekOf(date);
+    const existing = await env.DB.prepare("SELECT iso_week, date, weight_kg, created_at, updated_at FROM weight_log WHERE iso_week = ?").bind(key).first();
+    const stamp = now();
+    if (existing) {
+      await env.DB.prepare("UPDATE weight_log SET date = ?, weight_kg = ?, updated_at = ? WHERE iso_week = ?").bind(date, weightKg, stamp, key).run();
+    } else {
+      await env.DB.prepare("INSERT INTO weight_log (iso_week, date, weight_kg, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").bind(key, date, weightKg, stamp, stamp).run();
+    }
+    return json({ ok: true, updated: !!existing, entry: { week: key, date, weightKg, updatedAt: stamp } });
+  }
+  if (!ISO_WEEK.test(week)) return err(400, "bad week");
+  if (req.method !== "DELETE") return err(405, "method not allowed");
+  const existing = await env.DB.prepare("SELECT iso_week FROM weight_log WHERE iso_week = ?").bind(week).first();
+  if (!existing) return err(404, "not found");
+  await env.DB.prepare("DELETE FROM weight_log WHERE iso_week = ?").bind(week).run();
+  return json({ ok: true, week });
+}
+
 export default {
   async fetch(req, env) {
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
@@ -1218,6 +1341,8 @@ export default {
         case "video-placements": return await handlePlacements(req, env, url);
         case "video-ids": return await handleVideoIds(req, env, a);
         case "video-cues": return await handleVideoCues(req, env);
+        case "account": return await handleAccount(req, env);
+        case "weights": return await handleWeights(req, env, a);
         case "video-trims": return await handleTrims(req, env, url, a);
         case "video-sync-log": return await handleSyncLog(req, env);
         case "videos": return await handleVideos(req, env, url);

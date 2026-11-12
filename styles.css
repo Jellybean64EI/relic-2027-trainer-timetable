@@ -4510,29 +4510,95 @@ body.is-food .storage-note {
   -webkit-tap-highlight-color: transparent;
 }
 
-.account-tile.is-active {
-  border-color: #ff8a00;
+.account-tile {
+  border-color: rgba(255, 138, 0, 0.7);
   color: #ff8a00;
 }
 
-.account-tag {
-  flex: 0 0 auto;
-  padding: 2px 8px;
-  border: 1px solid rgba(255, 138, 0, 0.55);
-  border-radius: 999px;
-  color: #ff8a00;
-  font-size: 0.66rem;
-  letter-spacing: 0.04em;
-  text-transform: none;
+.account-panel[hidden] { display: none; }
+
+.account-error {
+  margin: 0 8px 8px;
+  color: #ffb4b4;
+  font-size: 0.78rem;
 }
 
-.account-hint {
+.account-error[hidden] { display: none; }
+
+.account-cite {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(216, 180, 254, 0.28);
+  border-radius: 12px;
+  background: #150724;
+}
+
+.account-cite-label {
   margin: 0;
+  color: #ff8a00;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.account-cite-value {
+  margin: 4px 0 0;
+  color: #f6eefe;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.account-cite-date {
+  margin: 4px 0 0;
   color: #cbb6e4;
   font-size: 0.75rem;
 }
 
-.account-hint[hidden] { display: none; }
+.account-form label {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 10px;
+  color: #cbb6e4;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.account-form input {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 138, 0, 0.7);
+  border-radius: 10px;
+  background: #12051d;
+  color: #f6eefe;
+  font: inherit;
+  text-transform: none;
+}
+
+.account-unit { display: flex; gap: 8px; margin: 0 0 8px; }
+.account-unit button, .account-actions button, .account-form button[type="submit"], .account-week button {
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 138, 0, 0.55);
+  border-radius: 10px;
+  background: #150724;
+  color: #ff8a00;
+  font: inherit;
+  font-weight: 800;
+}
+.account-actions { display: flex; gap: 8px; }
+.account-week, .account-empty { color: #f6eefe; font-size: 0.9rem; }
+.account-week { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.account-months { width: 100%; border-collapse: collapse; margin: 8px 0 12px; color: #f6eefe; font-size: 0.82rem; }
+.account-months th { text-align: left; color: #cbb6e4; font-weight: 700; padding: 4px 0; }
+.account-chart { width: 100%; height: 120px; background: #12051d; border-radius: 12px; }
+.account-review { margin: 8px 0; padding: 10px 12px; border: 1px solid rgba(216, 180, 254, 0.28); border-radius: 12px; background: #150724; color: #f6eefe; }
+.account-review h3 { margin: 0 0 4px; color: #ff8a00; font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.account-review p { margin: 0 0 4px; }
+.account-lock { font-size: 0.9rem; }
 
 .account-stats-bar {
   display: flex;
