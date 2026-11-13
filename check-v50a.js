@@ -11,11 +11,12 @@ function assert(cond, msg) { if (!cond) fail(msg); }
 
 const html = fs.readFileSync("index.html", "utf8");
 const hub = html.slice(html.indexOf('id="hub-root"'), html.indexOf("</section>", html.indexOf('id="hub-root"')));
-assert((hub.match(/<button/g) || []).length === 4, "H2 button count");
+assert((hub.match(/<button/g) || []).length === 5, "H2 button count");
 assert((hub.match(/role="tab"/g) || []).length === 2, "H2 tabs");
 assert((hub.match(/class="hub-week"/g) || []).length === 0, "H2 weeks");
 assert(hub.indexOf('id="hub-month-label"') !== -1, "H2 month stepper");
-assert(html.indexOf(">Food Deck<") !== -1 && html.indexOf(">Smoothies Deck<") !== -1 && html.indexOf(">Porridge Deck<") !== -1, "cabin deck labels");
+assert(html.indexOf(">Build a Meal Schedule<") !== -1 && html.indexOf(">Trainer Video Library<") !== -1, "meal module and library labels");
+assert(html.indexOf(">Food Deck<") === -1 && html.indexOf(">Smoothies Deck<") === -1 && html.indexOf(">Porridge Deck<") === -1, "old deck rows are gone");
 assert((hub.match(/tabindex=/g) || []).length === 2, "H2 tabindex");
 assert(hub.indexOf("<a ") === -1, "H2 links");
 assert(hub.indexOf("<svg") === -1, "H4 svg");

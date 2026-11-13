@@ -11,7 +11,7 @@ const app = fs.readFileSync("app.js", "utf8");
 const food = fs.readFileSync("food.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v94"') === -1 || html.indexOf("food.js?v=v94") === -1) fail("cache stamp");
+if (html.indexOf('content="v95"') === -1 || html.indexOf("food.js?v=v95") === -1) fail("cache stamp");
 if (css.indexOf("#planner-sheet-host") === -1 || css.indexOf("safe-area-inset-bottom") === -1 || css.indexOf("100dvh") === -1) fail("sheet viewport");
 if (/^\.planner-sheet \{[^}]*position:\s*sticky/m.test(css)) fail("sheet still sticky");
 ["recipes", "plan", "today"].forEach(function (screen) {
@@ -20,7 +20,8 @@ if (/^\.planner-sheet \{[^}]*position:\s*sticky/m.test(css)) fail("sheet still s
 });
 if (html.indexOf('id="deck-root-food"') === -1 || html.indexOf('id="deck-root-smoothie"') === -1) fail("deck rooms");
 if (html.indexOf("Monthly Shop") !== -1 || html.indexOf('data-food-room="shop"') !== -1) fail("shop module remains");
-if (html.indexOf('data-os-door="food"') === -1 || html.indexOf('data-os-door="smoothies"') === -1) fail("cabins");
+if (html.indexOf('id="meals-root"') === -1 || html.indexOf('data-meals-tab="smoothies"') === -1) fail("cabins");
+if (html.indexOf('data-os-door="food"') !== -1 || html.indexOf('data-os-door="smoothies"') !== -1) fail("deck rows remain in the menu");
 if (html.indexOf('data-os-door="training"') === -1) fail("training cabin");
 if (html.indexOf('data-os-door="notes"') !== -1 || html.indexOf('data-cabin="notes"') !== -1) fail("notes cabin remains");
 if (html.indexOf('data-os-door="hub"') === -1 || html.indexOf('data-os-door="account"') === -1) fail("hub doors");

@@ -13,8 +13,8 @@ function ok(message) {
 
 var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
-if (html.indexOf('content="v94"') === -1 || app.indexOf('build: "v94"') === -1) fail("cache stamp is not v94");
-else ok("cache stamp is v94");
+if (html.indexOf('content="v95"') === -1 || app.indexOf('build: "v95"') === -1) fail("cache stamp is not v95");
+else ok("cache stamp is v95");
 if (html.indexOf("In design") !== -1 || app.indexOf("In design") !== -1) fail("In design is still in the page");
 else ok("In design is gone");
 
@@ -30,6 +30,12 @@ async function touch(client, page, x, y) {
 }
 
 async function openDoor(page, client, name) {
+  var has = await page.$('[data-os-door="' + name + '"]');
+  if (!has) {
+    await page.evaluate(function (door) { window.RelicArchitect.applyOsDoor(door); }, name);
+    await page.waitForTimeout(300);
+    return;
+  }
   if (!await page.evaluate(function () { return document.body.classList.contains("nav-open"); })) {
     await page.locator("#btn-nav-toggle").click();
     await page.waitForTimeout(500);
@@ -89,7 +95,7 @@ async function tapId(page, client, id) {
     var client = await context.newCDPSession(page);
     await client.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
     page.on("dialog", function (dialog) { dialog.accept(); });
-    await page.goto("http://127.0.0.1:8080/?v=v94&date=2026-11-12", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v95&date=2026-11-12", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusAccount; });
     await page.evaluate(function () {
       var toast = document.getElementById("deck-toast");
@@ -281,7 +287,7 @@ async function tapId(page, client, id) {
   }
   var later = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
   var laterPage = await later.newPage();
-  await laterPage.goto("http://127.0.0.1:8080/?v=v94&date=2027-07-01", { waitUntil: "domcontentloaded" });
+  await laterPage.goto("http://127.0.0.1:8080/?v=v95&date=2027-07-01", { waitUntil: "domcontentloaded" });
   await laterPage.waitForFunction(function () { return window.NexusAccount; });
   await laterPage.evaluate(function () {
     var real = window.nexusFetch;
@@ -304,7 +310,7 @@ async function tapId(page, client, id) {
   await later.close();
   var offline = await browser.newContext({ viewport: { width: 360, height: 740 }, hasTouch: true, isMobile: true });
   var offlinePage = await offline.newPage();
-  await offlinePage.goto("http://127.0.0.1:8080/?v=v94&date=2026-11-12", { waitUntil: "domcontentloaded" });
+  await offlinePage.goto("http://127.0.0.1:8080/?v=v95&date=2026-11-12", { waitUntil: "domcontentloaded" });
   await offlinePage.waitForFunction(function () { return window.NexusAccount; });
   await offlinePage.evaluate(function () {
     var real = window.nexusFetch;

@@ -5113,6 +5113,65 @@ body.is-deck .brand-main {
   text-align: center;
 }
 
+body.is-meals.is-deck .brand-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+body.is-meals.is-deck .brand-main {
+  flex: 1 1 auto;
+  width: auto;
+  justify-self: start;
+  text-align: left;
+}
+
+body.is-meals.is-deck .brand-main h1 {
+  font-size: 1.15rem;
+  white-space: nowrap;
+}
+
+body.is-meals .header { padding-bottom: 0; }
+
+body.is-meals .meals-tabs { margin: 0 0 4px; }
+
+.meals-module {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: calc(100% - 16px);
+  min-height: 72px;
+  margin: 4px 8px 10px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 16px;
+  background: linear-gradient(105deg, #ff8a00 0%, #c026d3 58%, #6d28d9 100%);
+  color: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.meals-module-kicker {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.meals-module-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.meals-module-sub {
+  font-size: 0.75rem;
+  font-weight: 700;
+  opacity: 0.92;
+}
+
 body.is-deck .card > .ambient-field { display: none; }
 
 body.is-deck .deck-head {

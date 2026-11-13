@@ -302,6 +302,22 @@
     return match ? normDoor(match[1]) : "";
   }
 
+  function mealsDoor(door) {
+    return door === "food" || door === "smoothies" || door === "porridge";
+  }
+
+  function readMealsTab() {
+    try {
+      var saved = localStorage.getItem("relic_meals_tab");
+      if (saved === "food" || saved === "smoothies" || saved === "porridge") return saved;
+    } catch (err) { /* private mode */ }
+    return "food";
+  }
+
+  function writeMealsTab(tab) {
+    try { localStorage.setItem("relic_meals_tab", tab); } catch (err) { /* private mode */ }
+  }
+
   function readHubTab() {
     try {
       var saved = localStorage.getItem("relic_hub_tab");
@@ -1168,31 +1184,39 @@
     var door = normDoor(state.osDoor);
     state.paintedDoor = door;
     state.osDoor = door;
+    var meals = mealsDoor(door);
     var titles = {
       training: "Training Schedules",
-      cards: "Training Video Cards",
-      food: "Food Deck",
-      smoothies: "Smoothies Deck",
-      porridge: "Porridge Deck",
+      cards: "Trainer Video Library",
+      food: "Build a Meal Schedule",
+      smoothies: "Build a Meal Schedule",
+      porridge: "Build a Meal Schedule",
       hub: "Main Menu Hub",
       account: "Account Profile"
     };
     var title = $("nav-drawer-title");
-    if (title) title.textContent = titles[door];
+    if (title) title.textContent = meals ? "Build a Meal Schedule" : titles[door];
     paintHeading(door === "hub" ? hubHeading() : titles[door]);
     document.querySelectorAll("[data-os-door]").forEach(function (btn) {
       var on = btn.getAttribute("data-os-door") === door;
       btn.setAttribute("aria-pressed", on ? "true" : "false");
     });
     document.querySelectorAll("[data-os-panel]").forEach(function (panel) {
-      panel.hidden = panel.getAttribute("data-os-panel") !== door;
+      if (panel.id === "meals-root") panel.hidden = !meals;
+      else panel.hidden = panel.getAttribute("data-os-panel") !== door;
     });
+    document.querySelectorAll("[data-meals-tab]").forEach(function (tab) {
+      var on = tab.getAttribute("data-meals-tab") === door;
+      tab.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    if (meals) writeMealsTab(door);
     paintFutureLock();
     paintModeChrome();
     paintBranchChrome();
     if (document.body) {
       document.body.classList.toggle("is-hub", door === "hub");
-      document.body.classList.toggle("is-deck", door === "food" || door === "smoothies" || door === "porridge");
+      document.body.classList.toggle("is-deck", meals);
+      document.body.classList.toggle("is-meals", meals);
       document.body.classList.toggle("is-cards", door === "cards");
       document.body.classList.toggle("is-account", door === "account");
       syncHubClass();
@@ -3712,6 +3736,18 @@
         if (selected && selected.focus) selected.focus();
       });
     });
+    var mealsOpen = $("meals-open");
+    if (mealsOpen) mealsOpen.addEventListener("click", function () {
+      state.osDoor = readMealsTab();
+      setNavOpen(false);
+      render();
+    });
+    document.querySelectorAll("[data-meals-tab]").forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        state.osDoor = tab.getAttribute("data-meals-tab") || "food";
+        render();
+      });
+    });
     document.querySelectorAll("[data-os-door]").forEach(function (doorBtn) {
       doorBtn.addEventListener("click", function (event) {
         event.preventDefault();
@@ -4100,8 +4136,10 @@
     state.navMark = readStoredMark();
     if (state.mode === "upper" && !upperSchedule()) state.mode = "full";
     if (window.NexusDeck && window.NexusDeck.boot) window.NexusDeck.boot();
-    if (trainingDeepLink()) state.osDoor = "training";
-    else if (doorOverride()) state.osDoor = doorOverride();
+    var linkedDoor = doorOverride();
+    if (mealsDoor(linkedDoor)) state.osDoor = linkedDoor;
+    else if (trainingDeepLink()) state.osDoor = "training";
+    else if (linkedDoor) state.osDoor = linkedDoor;
     else state.osDoor = "hub";
     wire();
     render();
@@ -4137,7 +4175,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v94",
+    build: "v95",
     planFocusDate: planFocusDate,
     openAccount: function (view) {
       if (window.RelicArchitectOpenAccount) window.RelicArchitectOpenAccount(view);
