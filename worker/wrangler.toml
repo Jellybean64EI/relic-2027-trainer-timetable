@@ -1,0 +1,25 @@
+# Deploy ONLY after replacing database_id with the live "nexus" D1 id
+# from `npx wrangler d1 list`. A placeholder deploy is refused by Cloudflare.
+name = "nexus-api"
+main = "nexus-api.js"
+compatibility_date = "2024-11-13"
+
+[triggers]
+crons = ["0 3 * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "nexus"
+database_id = "REPLACE_WITH_LIVE_NEXUS_D1_ID"
+
+[[r2_buckets]]
+binding = "CARDS"
+bucket_name = "nexus-cards"
+
+[[r2_buckets]]
+binding = "VIDEOS"
+bucket_name = "relic-videos"
+
+[[r2_buckets]]
+binding = "BACKUPS"
+bucket_name = "nexus-backups"

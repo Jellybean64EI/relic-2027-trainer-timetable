@@ -1,10 +1,19 @@
-// Nexus v69 API Worker (nexus-api). Bindings: DB (D1 "nexus"), CARDS (R2 "nexus-cards"), VIDEOS (R2 "relic-videos").
-// Vars/secrets: NEXUS_KEY (required for writes), PUBLIC_R2_URL (public r2.dev base for card images),
-// PUBLIC_VIDEOS_URL (public r2.dev base for relic-videos).
+// Nexus API Worker (nexus-api). Bindings: DB (D1 "nexus"), CARDS (R2 "nexus-cards"),
+// VIDEOS (R2 "relic-videos"), BACKUPS (R2 "nexus-backups").
+// Vars/secrets: NEXUS_KEY (required for app writes), PUBLIC_R2_URL, PUBLIC_VIDEOS_URL,
+// BACKUP_TOKEN (required for GET /backups and POST /restore; never ship this to the site).
+// Cron: 0 3 * * * writes backups/YYYY-MM-DD/ and keeps 30 daily folders.
+// Restore has no in-app button. From a shell, after `npx wrangler secret put BACKUP_TOKEN`:
+//   curl -s -H "X-Backup-Token: $BACKUP_TOKEN" https://nexus-api.joesearle.workers.dev/backups
+//   curl -s -X POST -H "X-Backup-Token: $BACKUP_TOKEN" \
+//     "https://nexus-api.joesearle.workers.dev/restore?date=YYYY-MM-DD"
+// POST /restore copies every table to backups/pre-restore-<stamp>/ first, then
+// replaces rows from the chosen day. It does not drop tables.
+import { exportBackup, listBackups, restoreBackup } from "./backup.js";
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-Nexus-Key",
+  "Access-Control-Allow-Headers": "Content-Type, X-Nexus-Key, X-Idempotency-Key, X-Backup-Token",
   "Access-Control-Max-Age": "86400",
 };
 const DECKS = ["FOOD", "SMOOTHIE", "PORRIDGE"];
@@ -53,6 +62,50 @@ function cleanCard(input, partial) {
   }
   if (!partial && !out.deck) throw new Error("deck is required");
   return out;
+}
+
+const IDEM = /^[A-Za-z0-9_.:-]{8,80}$/;
+let idemReady = false;
+async function ensureIdempotency(db) {
+  if (idemReady) return;
+  await db.prepare(`CREATE TABLE IF NOT EXISTS idempotency_keys (
+    key TEXT PRIMARY KEY,
+    status INTEGER NOT NULL,
+    body TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`).run();
+  idemReady = true;
+}
+async function beginIdempotent(req, env) {
+  const key = req.headers.get("X-Idempotency-Key");
+  if (!key || !IDEM.test(key)) return null;
+  await ensureIdempotency(env.DB);
+  const seen = await env.DB.prepare("SELECT status, body FROM idempotency_keys WHERE key = ?").bind(key).first();
+  if (!seen) return { key };
+  return {
+    replay: new Response(seen.body, {
+      status: Number(seen.status),
+      headers: { ...CORS, "Content-Type": "application/json; charset=utf-8", "X-Idempotent-Replay": "1" }
+    })
+  };
+}
+async function finishIdempotent(env, state, response) {
+  if (!state || !state.key || response.status >= 500) return response;
+  const text = await response.clone().text();
+  await env.DB.prepare("INSERT OR IGNORE INTO idempotency_keys (key, status, body, created_at) VALUES (?, ?, ?, ?)").bind(state.key, response.status, text, now()).run();
+  return response;
+}
+function withIdempotency(fn) {
+  return async function (req, env, ...rest) {
+    const state = await beginIdempotent(req, env);
+    if (state && state.replay) return state.replay;
+    return finishIdempotent(env, state, await fn(req, env, ...rest));
+  };
+}
+function backupDenied(req, env) {
+  const token = req.headers.get("X-Backup-Token") || "";
+  if (!env.BACKUP_TOKEN || token !== env.BACKUP_TOKEN) return err(401, "missing or wrong X-Backup-Token");
+  return null;
 }
 
 const popcount = (m) => (m & 1) + ((m >> 1) & 1);
@@ -1304,6 +1357,10 @@ async function handleWeights(req, env, week) {
 }
 
 export default {
+  async scheduled(event, env, ctx) {
+    const date = new Date().toISOString().slice(0, 10);
+    ctx.waitUntil(exportBackup(env, date));
+  },
   async fetch(req, env) {
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
     const url = new URL(req.url);
@@ -1322,16 +1379,31 @@ export default {
         try { await ensureIdentityTable(env.DB); identityCount = (await env.DB.prepare("SELECT COUNT(*) AS n FROM video_identity").first()).n; } catch (e) {}
         return json({ ok: true, service: "nexus-api", version: "v69", time: now(), counts: { ...t, custom_videos: cv, video_identity: identityCount } });
       }
+      if (root === "backups" || root === "restore") {
+        const denied = backupDenied(req, env);
+        if (denied) return denied;
+        if (root === "backups") {
+          if (req.method !== "GET") return err(405, "method not allowed");
+          return json({ ok: true, backups: await listBackups(env) });
+        }
+        if (req.method !== "POST") return err(405, "method not allowed");
+        try {
+          return json({ ok: true, ...(await restoreBackup(env, url.searchParams.get("date") || "")) });
+        } catch (restoreErr) {
+          const message = String((restoreErr && restoreErr.message) || restoreErr);
+          return err(message === "backup not found" || message === "bad backup date" ? 400 : 500, message);
+        }
+      }
       if (write) {
         if (!env.NEXUS_KEY || req.headers.get("X-Nexus-Key") !== env.NEXUS_KEY) return err(401, "missing or wrong X-Nexus-Key");
       }
       switch (root) {
-        case "ticks": return await handleTicks(req, env, "ticks", a);
-        case "ticks_2026": return await handleTicks(req, env, "ticks_2026", a);
+        case "ticks": return await withIdempotency(handleTicks)(req, env, "ticks", a);
+        case "ticks_2026": return await withIdempotency(handleTicks)(req, env, "ticks_2026", a);
         case "cards": return await handleCards(req, env, a, url);
         case "upload": return await handleUpload(req, env, url);
         case "stacks": return await handleStacks(req, env, a);
-        case "slots": return await handleSlots(req, env, a, b, url);
+        case "slots": return await withIdempotency(handleSlots)(req, env, a, b, url);
         case "training-combos": return await handleCombos(req, env, a);
         case "training-groups": return await handleGroups(req, env, a);
         case "training-plan": return await handlePlan(req, env, a, b);
@@ -1341,8 +1413,8 @@ export default {
         case "video-placements": return await handlePlacements(req, env, url);
         case "video-ids": return await handleVideoIds(req, env, a);
         case "video-cues": return await handleVideoCues(req, env);
-        case "account": return await handleAccount(req, env);
-        case "weights": return await handleWeights(req, env, a);
+        case "account": return await withIdempotency(handleAccount)(req, env);
+        case "weights": return await withIdempotency(handleWeights)(req, env, a);
         case "video-trims": return await handleTrims(req, env, url, a);
         case "video-sync-log": return await handleSyncLog(req, env);
         case "videos": return await handleVideos(req, env, url);

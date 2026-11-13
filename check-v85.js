@@ -15,8 +15,8 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var touchStart = app.slice(app.indexOf('forensicDock.addEventListener("touchstart"'), app.indexOf('forensicDock.addEventListener("touchmove"'));
 
-if (html.indexOf('content="v98"') === -1 || app.indexOf('build: "v98"') === -1) fail("cache stamp is not v98");
-else ok("cache stamp is v98");
+if (html.indexOf('content="v99"') === -1 || app.indexOf('build: "v99"') === -1) fail("cache stamp is not v99");
+else ok("cache stamp is v99");
 if (app.indexOf("var CUE_STAGE_CAP = 1") === -1 || app.indexOf("bindCueSlides") !== -1) fail("a second stage is still in the player");
 else ok("there is one sheet and no slide track");
 if (touchStart.indexOf("tab: true") !== -1) fail("a tap inside the panel can close it");
@@ -66,7 +66,7 @@ function swipe(page, selector, x1, y1, x2, y2, id) {
     var width = sizes[i][0];
     var height = sizes[i][1];
     var page = await browser.newPage({ viewport: { width: width, height: height }, hasTouch: true });
-    await page.goto("http://127.0.0.1:8080/?v=v98", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v99", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusCueEdit && window.NexusCards; });
     await page.evaluate(function () {
       var list = window.RELIC_VIDEO_ARCHIVE.cabins.Back.playlist.slice(0, 2).map(function (clip) {
