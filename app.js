@@ -4261,7 +4261,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v101",
+    build: "v102",
     planFocusDate: planFocusDate,
     openAccount: function (view) {
       if (window.RelicArchitectOpenAccount) window.RelicArchitectOpenAccount(view);

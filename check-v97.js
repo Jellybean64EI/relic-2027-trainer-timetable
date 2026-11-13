@@ -13,8 +13,8 @@ function ok(message) {
 
 var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
-if (html.indexOf('content="v101"') === -1 || app.indexOf('build: "v101"') === -1) fail("cache stamp is not v101");
-else ok("cache stamp is v101");
+if (html.indexOf('content="v102"') === -1 || app.indexOf('build: "v102"') === -1) fail("cache stamp is not v102");
+else ok("cache stamp is v102");
 if ((html.match(/data-hub-back="food"/g) || []).length !== 3) fail("meals back buttons are missing");
 else ok("each meals tab has a Back button");
 if (fs.readFileSync("cards.js", "utf8").indexOf('data-hub-back="schedules"') === -1) fail("library back button is missing");
@@ -49,7 +49,7 @@ function playwright() {
   var tabs = ["food", "smoothies", "porridge"];
   var t;
   for (t = 0; t < tabs.length; t++) {
-    await page.goto("http://127.0.0.1:8080/?v=v101&door=" + tabs[t], { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v102&door=" + tabs[t], { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect; });
     var back = await page.evaluate(function (tab) {
       var root = tab === "food" ? "deck-root-food" : tab === "smoothies" ? "deck-root-smoothie" : "deck-root-porridge";
@@ -86,7 +86,7 @@ function playwright() {
       fail(tabs[t] + " back did not open Meal Schedules " + JSON.stringify(hub));
     } else ok(tabs[t] + " Back opens the Meal Schedules hub");
   }
-  await page.goto("http://127.0.0.1:8080/?v=v101&door=cards", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v102&door=cards", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return document.querySelector("#vcards-root .page-back"); });
   var library = await page.evaluate(function () {
     var button = document.querySelector("#vcards-root .page-back");
@@ -116,7 +116,7 @@ function playwright() {
   if (training.title !== "Training Schedules" || training.tab !== "true" || training.door !== "hub" || training.stored !== "schedules") {
     fail("library back did not open Training Schedules " + JSON.stringify(training));
   } else ok("library Back opens the Training Schedules hub");
-  await page.goto("http://127.0.0.1:8080/?v=v101&door=training", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v102&door=training", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return document.getElementById("tt-body"); });
   var still = await page.evaluate(function () {
     return document.getElementById("page-title").textContent === "Training Schedules" && document.getElementById("tt-body").getClientRects().length > 0;

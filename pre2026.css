@@ -1,3 +1,20 @@
+body.is-pre2026 .schedule-mode,
+body.is-pre2026 .live-stack,
+body.is-pre2026 .mode-pair,
+body.is-pre2026 .phase-bar,
+body.is-pre2026 .month-bar,
+body.is-pre2026 .week-tabs,
+body.is-pre2026 .week-meta,
+body.is-pre2026 .schedule-switch,
+body.is-pre2026 #btn-future-lock,
+body.is-pre2026 #training-board,
+body.is-pre2026 #planner-board,
+body.is-pre2026 #banner-live,
+body.is-pre2026 #banner-coach,
+body.is-pre2026 .card > .ambient-field {
+  display: none;
+}
+
 .pre-top {
   position: relative;
   min-height: 44px;
