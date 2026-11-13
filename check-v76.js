@@ -20,7 +20,7 @@ var config = fs.readFileSync("data/nexusConfig.js", "utf8");
 var seed = JSON.parse(fs.readFileSync("data/videoIdentity.json", "utf8"));
 var rows = seed.identities || [];
 
-if (app.indexOf('build: "v93"') === -1 || html.indexOf('content="v93"') === -1 || html.indexOf("cards.js?v=v93") === -1 || html.indexOf("?v=v75") !== -1) {
+if (app.indexOf('build: "v94"') === -1 || html.indexOf('content="v94"') === -1 || html.indexOf("cards.js?v=v94") === -1 || html.indexOf("?v=v75") !== -1) {
   fail("cache stamp is not v77");
 } else ok("cache stamp is v77");
 

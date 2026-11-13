@@ -17,8 +17,8 @@ var css = fs.readFileSync("styles.css", "utf8");
 var tick = app.slice(app.indexOf("function onClockTick("), app.indexOf("function setGate("));
 var reconcile = app.slice(app.indexOf("function reconcileVisibility("), app.indexOf("function onVisibility("));
 
-if (html.indexOf('content="v93"') === -1 || app.indexOf('build: "v93"') === -1) fail("cache stamp is not v93");
-else ok("cache stamp is v93");
+if (html.indexOf('content="v94"') === -1 || app.indexOf('build: "v94"') === -1) fail("cache stamp is not v94");
+else ok("cache stamp is v94");
 if (app.indexOf('stage.classList.toggle("is-cue-mid", next === 1)') === -1) fail("stage 1 no longer opens");
 else ok("stage 1 still opens on the first swipe");
 if (tick.indexOf("noteSetComplete()") === -1 || tick.indexOf("closePlayer()") < tick.indexOf("noteSetComplete()")) {
@@ -77,7 +77,7 @@ function swipe(page, selector, x1, y1, x2, y2, id) {
     var width = sizes[i][0];
     var height = sizes[i][1];
     var page = await browser.newPage({ viewport: { width: width, height: height }, hasTouch: true });
-    await page.goto("http://127.0.0.1:8080/?v=v93", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v94", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusPlay; });
     await page.evaluate(function () {
       var toast = document.getElementById("deck-toast");
@@ -198,7 +198,7 @@ function swipe(page, selector, x1, y1, x2, y2, id) {
   await expiry.addInitScript(function () {
     try { localStorage.removeItem("nexus_ticks_dirty_v2"); } catch (err) { /* private mode */ }
   });
-  await expiry.goto("http://127.0.0.1:8080/?v=v93&setsec=2", { waitUntil: "domcontentloaded" });
+  await expiry.goto("http://127.0.0.1:8080/?v=v94&setsec=2", { waitUntil: "domcontentloaded" });
   await expiry.waitForFunction(function () { return window.RelicArchitect; });
   var primed = await expiry.evaluate(function () {
     window.RelicArchitect.setFutureLock(false);
