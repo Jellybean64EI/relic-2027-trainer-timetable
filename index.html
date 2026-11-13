@@ -6,14 +6,14 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v94" />
+  <meta name="relic-build" content="v95" />
   <title>Nexus</title>
   <link rel="icon" href="favicon.ico" sizes="48x48" />
   <link rel="icon" href="assets/nexus-icon-192.png" type="image/png" sizes="192x192" />
   <link rel="icon" href="assets/nexus-icon.png" type="image/png" sizes="512x512" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180" />
-  <link rel="manifest" href="manifest.webmanifest?v=v94" />
-  <link rel="stylesheet" href="styles.css?v=v94" />
+  <link rel="manifest" href="manifest.webmanifest?v=v95" />
+  <link rel="stylesheet" href="styles.css?v=v95" />
 </head>
 <body>
   <div class="wrap">
@@ -59,6 +59,11 @@
           <button type="button" class="hub-tab" role="tab" id="hub-tab-food" data-hub-tab="food" aria-controls="hub-panel-food" aria-selected="false" tabindex="-1">Food Schedules</button>
         </div>
         <div id="hub-panel-food" role="tabpanel" aria-labelledby="hub-tab-food" hidden>
+          <button type="button" class="meals-module" id="meals-open">
+            <span class="meals-module-kicker">Module</span>
+            <span class="meals-module-title">Build a Meal Schedule</span>
+            <span class="meals-module-sub">Food · Smoothies · Porridge cards</span>
+          </button>
           <div class="deck-step" role="group" aria-label="Month">
             <button type="button" class="deck-step-btn" id="hub-month-prev" aria-label="Previous month">‹</button>
             <p class="deck-step-label" id="hub-month-label">January 2027</p>
@@ -131,6 +136,12 @@
         </div>
       </section>
 
+      <section id="meals-root" data-os-panel="meals" hidden>
+        <div class="hub-tabs meals-tabs" role="tablist" aria-label="Meal cards">
+          <button type="button" class="hub-tab" role="tab" id="meals-tab-food" data-meals-tab="food" aria-selected="true">Food</button>
+          <button type="button" class="hub-tab" role="tab" id="meals-tab-smoothies" data-meals-tab="smoothies" aria-selected="false">Smoothies</button>
+          <button type="button" class="hub-tab" role="tab" id="meals-tab-porridge" data-meals-tab="porridge" aria-selected="false">Porridge</button>
+        </div>
       <section id="deck-root-food" data-os-panel="food" hidden>
         <div class="deck-head">
           <h2 data-deck-count>Food · 0 cards</h2>
@@ -157,6 +168,7 @@
         <div data-deck-bubble></div>
         <div data-deck-plan></div>
         <div data-deck-grid class="deck-grid"></div>
+      </section>
       </section>
 
       <section id="vcards-root" data-os-panel="cards" hidden>
@@ -311,16 +323,7 @@
           <span class="nav-row-label">Training Schedules</span>
         </button>
         <button type="button" class="nav-row drawer-door" data-os-door="cards">
-          <span class="nav-row-label">Training Video Cards</span>
-        </button>
-        <button type="button" class="nav-row drawer-door" data-os-door="food">
-          <span class="nav-row-label">Food Deck</span>
-        </button>
-        <button type="button" class="nav-row drawer-door" data-os-door="smoothies">
-          <span class="nav-row-label">Smoothies Deck</span>
-        </button>
-        <button type="button" class="nav-row drawer-door" data-os-door="porridge">
-          <span class="nav-row-label">Porridge Deck</span>
+          <span class="nav-row-label">Trainer Video Library</span>
         </button>
       </div>
       <button type="button" class="nav-row drawer-door" data-os-door="account">
@@ -401,29 +404,29 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v94"></script>
-  <script src="data/precondition.js?v=v94"></script>
-  <script src="data/upperBody.js?v=v94"></script>
-  <script src="data/citations.js?v=v94"></script>
-  <script src="data/forensic.js?v=v94"></script>
-  <script src="data/cues/cues.js?v=v94"></script>
-  <script src="data/forensicClips.js?v=v94"></script>
-  <script src="data/videoArchive.js?v=v94"></script>
-  <script src="data/nutrition/shop.js?v=v94"></script>
-  <script src="data/nutrition/schedule.js?v=v94"></script>
-  <script src="food.js?v=v94"></script>
-  <script src="data/nexusConfig.js?v=v94"></script>
-  <script src="deck.js?v=v94"></script>
-  <script src="data/videoCatalog.js?v=v94"></script>
-  <script src="tools/v64_placement.js?v=v94"></script>
-  <script src="trim.js?v=v94"></script>
-  <script src="builder.js?v=v94"></script>
-  <script src="cards.js?v=v94"></script>
-  <script src="data/cueModel.js?v=v94"></script>
-  <script src="data/cueEditor.js?v=v94"></script>
-  <script src="data/playerChrome.js?v=v94"></script>
-  <script src="account.js?v=v94"></script>
-  <script src="app.js?v=v94"></script>
+  <script src="data/schedule.js?v=v95"></script>
+  <script src="data/precondition.js?v=v95"></script>
+  <script src="data/upperBody.js?v=v95"></script>
+  <script src="data/citations.js?v=v95"></script>
+  <script src="data/forensic.js?v=v95"></script>
+  <script src="data/cues/cues.js?v=v95"></script>
+  <script src="data/forensicClips.js?v=v95"></script>
+  <script src="data/videoArchive.js?v=v95"></script>
+  <script src="data/nutrition/shop.js?v=v95"></script>
+  <script src="data/nutrition/schedule.js?v=v95"></script>
+  <script src="food.js?v=v95"></script>
+  <script src="data/nexusConfig.js?v=v95"></script>
+  <script src="deck.js?v=v95"></script>
+  <script src="data/videoCatalog.js?v=v95"></script>
+  <script src="tools/v64_placement.js?v=v95"></script>
+  <script src="trim.js?v=v95"></script>
+  <script src="builder.js?v=v95"></script>
+  <script src="cards.js?v=v95"></script>
+  <script src="data/cueModel.js?v=v95"></script>
+  <script src="data/cueEditor.js?v=v95"></script>
+  <script src="data/playerChrome.js?v=v95"></script>
+  <script src="account.js?v=v95"></script>
+  <script src="app.js?v=v95"></script>
   <script>
     (function () {
       var meta = document.querySelector('meta[name="relic-build"]');
