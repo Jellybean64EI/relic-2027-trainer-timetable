@@ -252,7 +252,18 @@
       document.body.appendChild(sheet);
     }
     weekIndex = weekFor(londonKey(new Date()));
+    var panel = document.getElementById("pre2026-root");
+    if (panel && window.MutationObserver) {
+      new MutationObserver(syncDoorClass).observe(panel, { attributes: true, attributeFilter: ["hidden"] });
+    }
+    syncDoorClass();
     load().then(render);
+  }
+
+  function syncDoorClass() {
+    var root = document.getElementById("pre2026-root");
+    if (!document.body) return;
+    document.body.classList.toggle("is-pre2026", !!(root && !root.hidden));
   }
 
   window.NexusExtraDoors = window.NexusExtraDoors || [];
@@ -260,7 +271,10 @@
     id: "pre2026",
     title: "2026 Pre Schedules",
     hideSync: true,
-    onShow: function () { load().then(render); }
+    onShow: function () {
+      syncDoorClass();
+      load().then(render);
+    }
   });
 
   if (window.NexusBuilder && window.NexusBuilder.onRowActions) {

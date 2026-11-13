@@ -15,8 +15,8 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v101"') === -1 || app.indexOf('build: "v101"') === -1) fail("cache stamp is not v101");
-else ok("cache stamp is v101");
+if (html.indexOf('content="v102"') === -1 || app.indexOf('build: "v102"') === -1) fail("cache stamp is not v102");
+else ok("cache stamp is v102");
 if (html.indexOf('data-os-panel="account"') === -1 || app.indexOf('account: "Account Profile"') === -1) fail("account is not a page");
 else ok("account is a page");
 if (html.indexOf("coming soon") !== -1 || html.indexOf('id="account-banner"') !== -1 || app.indexOf("showAccountBanner") !== -1) {
@@ -103,7 +103,7 @@ async function goDoor(page, client, name) {
         mobile: true
       });
     }
-    await page.goto("http://127.0.0.1:8080/?v=v101", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v102", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && document.getElementById("page-title"); });
     await page.evaluate(function () {
       var toast = document.getElementById("deck-toast");

@@ -17,7 +17,7 @@ var css = fs.readFileSync("styles.css", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var model = fs.readFileSync("data/cueModel.js", "utf8");
 
-if (html.indexOf('content="v101"') === -1 || app.indexOf('build: "v101"') === -1) fail("cache stamp is not v77");
+if (html.indexOf('content="v102"') === -1 || app.indexOf('build: "v102"') === -1) fail("cache stamp is not v77");
 else ok("cache stamp is v77");
 if (html.indexOf("data/cueModel.js") === -1) fail("cue model is not loaded");
 else ok("cue model is loaded");

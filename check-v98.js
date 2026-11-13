@@ -14,8 +14,8 @@ function ok(message) {
 var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
-if (html.indexOf('content="v101"') === -1 || app.indexOf('build: "v101"') === -1) fail("cache stamp is not v101");
-else ok("cache stamp is v101");
+if (html.indexOf('content="v102"') === -1 || app.indexOf('build: "v102"') === -1) fail("cache stamp is not v102");
+else ok("cache stamp is v102");
 if (html.indexOf("nav-drawer-rule") === -1 || css.indexOf(".nav-drawer-rule") === -1) fail("drawer hairline is missing");
 else ok("drawer hairline is in the page");
 
@@ -52,7 +52,7 @@ async function swipe(page, x1, y1, x2, y2) {
   var page = await context.newPage();
   var errors = [];
   page.on("console", function (msg) { if (msg.type() === "error") errors.push(msg.text()); });
-  await page.goto("http://127.0.0.1:8080/?v=v101", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v102", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return window.RelicArchitect; });
   await page.locator("#btn-nav-toggle").click();
   await page.waitForTimeout(450);

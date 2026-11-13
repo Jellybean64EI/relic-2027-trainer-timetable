@@ -14,8 +14,8 @@ function ok(message) {
 var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
-if (html.indexOf('content="v101"') === -1 || app.indexOf('build: "v101"') === -1) fail("cache stamp is not v101");
-else ok("cache stamp is v101");
+if (html.indexOf('content="v102"') === -1 || app.indexOf('build: "v102"') === -1) fail("cache stamp is not v102");
+else ok("cache stamp is v102");
 if (html.indexOf('id="meals-root"') === -1 || html.indexOf('id="meals-open"') === -1) fail("meals page is missing");
 else ok("meals page is in the markup");
 if (html.indexOf('data-os-door="food"') !== -1 || html.indexOf(">Food Deck<") !== -1) fail("food deck row remains");
@@ -51,7 +51,7 @@ function playwright() {
   var page = await context.newPage();
   var errors = [];
   page.on("console", function (msg) { if (msg.type() === "error") errors.push(msg.text()); });
-  await page.goto("http://127.0.0.1:8080/?v=v101&date=2026-11-13", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v102&date=2026-11-13", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return window.RelicArchitect; });
   await page.evaluate(function () {
     var toast = document.getElementById("deck-toast");
@@ -146,7 +146,7 @@ function playwright() {
   var stored = await page.evaluate(function () { return localStorage.getItem("relic_meals_tab"); });
   if (stored !== "porridge") fail("last meals tab was not stored (" + stored + ")");
   else ok("the last meals tab is stored");
-  await page.goto("http://127.0.0.1:8080/?v=v101&date=2026-11-13&door=smoothies", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v102&date=2026-11-13&door=smoothies", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return window.RelicArchitect; });
   var smoothie = await page.evaluate(function () {
     return {
@@ -157,21 +157,21 @@ function playwright() {
   });
   if (smoothie.title !== "Build a Meal Schedule" || !smoothie.panel || smoothie.tab !== "true") fail("door=smoothies did not open that tab " + JSON.stringify(smoothie));
   else ok("door=smoothies opens the meals page");
-  await page.goto("http://127.0.0.1:8080/?v=v101&date=2026-11-13&door=porridge", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v102&date=2026-11-13&door=porridge", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return document.getElementById("deck-root-porridge"); });
   var porridge = await page.evaluate(function () {
     return document.getElementById("deck-root-porridge").hidden === false && document.getElementById("meals-tab-porridge").getAttribute("aria-selected") === "true";
   });
   if (!porridge) fail("door=porridge did not open that tab");
   else ok("door=porridge opens the meals page");
-  await page.goto("http://127.0.0.1:8080/?v=v101&date=2026-11-13&door=food", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v102&date=2026-11-13&door=food", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return document.getElementById("deck-root-food"); });
   var foodDoor = await page.evaluate(function () {
     return document.getElementById("deck-root-food").hidden === false;
   });
   if (!foodDoor) fail("door=food did not open the meals page");
   else ok("door=food opens the meals page");
-  await page.goto("http://127.0.0.1:8080/?v=v101&date=2027-01-04", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v102&date=2027-01-04", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return document.querySelector(".tick-hit"); });
   var ticks = await page.evaluate(function () { return document.querySelectorAll(".tick-hit").length; });
   if (!ticks) fail("training ticks are missing");
