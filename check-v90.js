@@ -18,8 +18,8 @@ var identities = JSON.parse(fs.readFileSync("data/videoIdentity.json", "utf8")).
 var legacy = identities.filter(function (row) { return row.videoId === 10001; })[0];
 var uploaded = identities.filter(function (row) { return row.videoId === 10438; })[0];
 
-if (html.indexOf('content="v97"') === -1 || app.indexOf('build: "v97"') === -1) fail("cache stamp is not v97");
-else ok("cache stamp is v97");
+if (html.indexOf('content="v98"') === -1 || app.indexOf('build: "v98"') === -1) fail("cache stamp is not v98");
+else ok("cache stamp is v98");
 if (editor.indexOf("vc-cue-id") === -1) fail("the id line was removed");
 else ok("the id line is still built");
 if (editor.indexOf("keyLine.textContent = identity.r2Key") !== -1) fail("the editor still paints the storage path");
@@ -83,7 +83,7 @@ async function visibleEditor(page, row) {
     args: ["--no-sandbox"]
   });
   var page = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  await page.goto("http://127.0.0.1:8080/?v=v97", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v98", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function (keys) {
     return window.NexusCards && window.NexusCueEdit && window.NexusCards.identityByKey(keys[0]) && window.NexusCards.identityByKey(keys[1]) && document.getElementById("vc-cue-edit");
   }, [legacy.r2Key, uploaded.r2Key], { timeout: 12000 });

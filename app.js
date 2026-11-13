@@ -1560,12 +1560,14 @@
 
   var navToggleAt = 0;
   var NAV_GUARD_MS = 420;
+  var navScrollY = 0;
 
   function setNavOpen(open) {
     var next = !!open;
     var wasOpen = document.body.classList.contains("nav-open");
     if (next && !wasOpen) {
       navToggleAt = Date.now();
+      navScrollY = window.scrollY || window.pageYOffset || 0;
       paintOsDoors();
     }
     if (!next) navToggleAt = 0;
@@ -1573,7 +1575,10 @@
     var scrim = $("nav-scrim");
     var btn = $("btn-nav-toggle");
     if (document.body) document.body.classList.toggle("nav-open", next);
-    if (!next && document.body) paintModeChrome();
+    if (!next && document.body) {
+      paintModeChrome();
+      if (navScrollY) window.scrollTo(0, navScrollY);
+    }
     if (drawer) {
       drawer.setAttribute("aria-hidden", next ? "false" : "true");
       if ("inert" in drawer) drawer.inert = !next;
@@ -3690,6 +3695,38 @@
         setNavOpen(false);
       });
     }
+    var navDrawer = $("nav-drawer");
+    var drawerGesture = null;
+    var suppressDrawerClick = false;
+    function drawerGestureEnd(event) {
+      if (!drawerGesture || (event && event.pointerId != null && event.pointerId !== drawerGesture.id)) return;
+      var dx = (drawerGesture.x2 == null ? event.clientX : drawerGesture.x2) - drawerGesture.x;
+      var dy = (drawerGesture.y2 == null ? event.clientY : drawerGesture.y2) - drawerGesture.y;
+      document.removeEventListener("pointermove", drawerGestureMove);
+      document.removeEventListener("pointerup", drawerGestureEnd);
+      document.removeEventListener("pointercancel", drawerGestureEnd);
+      drawerGesture = null;
+      if (dx <= -50 && Math.abs(dx) > Math.abs(dy)) {
+        suppressDrawerClick = true;
+        setNavOpen(false);
+        setTimeout(function () { suppressDrawerClick = false; }, 400);
+      }
+    }
+    function drawerGestureMove(event) {
+      if (!drawerGesture || event.pointerId !== drawerGesture.id) return;
+      drawerGesture.x2 = event.clientX;
+      drawerGesture.y2 = event.clientY;
+    }
+    function drawerGestureStart(event) {
+      if (!document.body.classList.contains("nav-open")) return;
+      if (event.isPrimary === false) return;
+      drawerGesture = { x: event.clientX, y: event.clientY, id: event.pointerId, x2: event.clientX, y2: event.clientY };
+      document.addEventListener("pointermove", drawerGestureMove);
+      document.addEventListener("pointerup", drawerGestureEnd);
+      document.addEventListener("pointercancel", drawerGestureEnd);
+    }
+    if (navDrawer) navDrawer.addEventListener("pointerdown", drawerGestureStart);
+    if (navScrim) navScrim.addEventListener("pointerdown", drawerGestureStart);
     document.querySelectorAll("[data-set-mode]").forEach(function (opt) {
       opt.addEventListener("click", function (event) {
         event.stopPropagation();
@@ -3795,6 +3832,7 @@
       doorBtn.addEventListener("click", function (event) {
         event.preventDefault();
         event.stopPropagation();
+        if (suppressDrawerClick) return;
         var name = doorBtn.getAttribute("data-os-door");
         if (name === "account") {
           state.osDoor = "account";
@@ -4203,7 +4241,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v97",
+    build: "v98",
     planFocusDate: planFocusDate,
     openAccount: function (view) {
       if (window.RelicArchitectOpenAccount) window.RelicArchitectOpenAccount(view);
