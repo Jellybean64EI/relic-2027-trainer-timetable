@@ -34,7 +34,7 @@ if (cards.indexOf('class="vc-quick-edit"') === -1 || cards.indexOf('class="vc-qu
 if (cards.indexOf("editorOn() ?") === -1) fail("editor markup is not behind the flag");
 if (cards.indexOf('"/video-sync-log"') === -1) fail("deleted files are not hidden from the sync log");
 if (cards.indexOf("NexusTrim.watch") === -1 || cards.indexOf("playSrc(") === -1) fail("trim playback was removed");
-if (app.indexOf('build: "v98"') === -1 || html.indexOf('content="v98"') === -1 || html.indexOf("?v=v69") !== -1) {
+if (app.indexOf('build: "v99"') === -1 || html.indexOf('content="v99"') === -1 || html.indexOf("?v=v69") !== -1) {
   fail("cache stamp is not v77");
 }
 [
