@@ -125,6 +125,13 @@ button, a, input, label {
   border-color: rgba(61, 255, 122, 0.45);
 }
 
+button.net-pill {
+  appearance: none;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
 .brand-bar {
   display: flex;
   align-items: flex-start;

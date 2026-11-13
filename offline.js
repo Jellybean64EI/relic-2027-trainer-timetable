@@ -92,8 +92,31 @@
     return { ok: true, queued: true };
   }
 
+  var waitingWorker = null;
+
+  function playerBusy() {
+    return document.body && document.body.classList.contains("player-open");
+  }
+
+  function paintUpdate() {
+    var el = document.getElementById("update-pill");
+    if (!el) return;
+    if (!waitingWorker || pending > 0 || playerBusy() || !navigator.serviceWorker || !navigator.serviceWorker.controller) {
+      el.hidden = true;
+      return;
+    }
+    el.hidden = false;
+    el.textContent = "Update ready · tap to refresh";
+  }
+
+  window.nexusNoteUpdate = function (worker) {
+    waitingWorker = worker || null;
+    paintUpdate();
+  };
+
   function paint(saved) {
     var el = document.getElementById("net-pill");
+    paintUpdate();
     if (!el) return;
     if (navigator.onLine === false || pending > 0) {
       showingSaved = false;
@@ -271,6 +294,85 @@
   window.addEventListener("offline", function () { paint(false); });
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "visible") replay();
+  });
+  if (document.body && window.MutationObserver) {
+    new MutationObserver(paintUpdate).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  }
+  var updatePill = document.getElementById("update-pill");
+  if (updatePill) {
+    updatePill.addEventListener("click", function () {
+      if (!waitingWorker || pending > 0 || playerBusy()) return;
+      var reloaded = false;
+      navigator.serviceWorker.addEventListener("controllerchange", function () {
+        if (reloaded) return;
+        reloaded = true;
+        if (window.nexusReload) window.nexusReload();
+        else window.location.reload();
+      });
+      waitingWorker.postMessage({ type: "skip-waiting" });
+    });
+  }
+  if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+    navigator.serviceWorker.ready.then(function (reg) {
+      function watch(worker) {
+        if (!worker) return;
+        worker.addEventListener("statechange", function () {
+          if (worker.state === "installed" && navigator.serviceWorker.controller) {
+            window.nexusNoteUpdate(reg.waiting || worker);
+          }
+        });
+      }
+      if (reg.waiting && navigator.serviceWorker.controller) window.nexusNoteUpdate(reg.waiting);
+      watch(reg.installing);
+      reg.addEventListener("updatefound", function () { watch(reg.installing); });
+    }).catch(function () {});
+  }
+  var seenErrors = Object.create(null);
+  var errorBatch = [];
+  var errorTimer = 0;
+  var errorsSent = 0;
+  function flushErrors() {
+    errorTimer = 0;
+    if (!errorBatch.length || navigator.onLine === false) {
+      errorBatch = [];
+      return;
+    }
+    var payload = errorBatch.splice(0, 20);
+    errorsSent += payload.length;
+    var api = window.NEXUS_API || {};
+    var url = String(api.base || "").replace(/\/$/, "") + "/errors";
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ errors: payload })
+    }).catch(function () {});
+  }
+  function queueError(message, source) {
+    if (navigator.onLine === false) return;
+    var msg = String(message || "").slice(0, 300);
+    var src = String(source || "").slice(0, 200);
+    if (!msg) return;
+    var key = msg + "\n" + src;
+    if (seenErrors[key] || errorsSent + errorBatch.length >= 20) return;
+    seenErrors[key] = true;
+    var meta = document.querySelector('meta[name="relic-build"]');
+    errorBatch.push({
+      message: msg,
+      source: src,
+      page: location.pathname + location.search,
+      version: meta ? meta.getAttribute("content") : "",
+      userAgent: String(navigator.userAgent || "").slice(0, 180),
+      at: new Date().toISOString()
+    });
+    if (errorTimer) clearTimeout(errorTimer);
+    errorTimer = setTimeout(flushErrors, 300);
+  }
+  window.onerror = function (message, source, line) {
+    queueError(message, String(source || "") + ":" + (line || ""));
+  };
+  window.addEventListener("unhandledrejection", function (event) {
+    var reason = event && event.reason;
+    queueError(reason && reason.message ? reason.message : reason, "unhandledrejection");
   });
   refreshCount().then(function () { replay(); });
 })();

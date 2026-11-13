@@ -10,6 +10,8 @@
 // POST /restore copies every table to backups/pre-restore-<stamp>/ first, then
 // replaces rows from the chosen day. It does not drop tables.
 import { exportBackup, listBackups, restoreBackup } from "./backup.js";
+import { runHealthCheck, pruneHealth } from "./health.js";
+import { saveClientErrors, listClientErrors, pruneClientErrors } from "./errors.js";
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
@@ -1358,8 +1360,17 @@ async function handleWeights(req, env, week) {
 
 export default {
   async scheduled(event, env, ctx) {
-    const date = new Date().toISOString().slice(0, 10);
-    ctx.waitUntil(exportBackup(env, date));
+    if (event && event.cron === "*/15 * * * *") {
+      ctx.waitUntil(runHealthCheck(env));
+      return;
+    }
+    ctx.waitUntil((async () => {
+      const date = new Date().toISOString().slice(0, 10);
+      await exportBackup(env, date);
+      const stamp = new Date().toISOString();
+      await pruneClientErrors(env.DB, stamp);
+      await pruneHealth(env.DB, stamp);
+    })());
   },
   async fetch(req, env) {
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
@@ -1377,7 +1388,16 @@ export default {
         try { cv = await customCount(env); } catch {}
         let identityCount = null;
         try { await ensureIdentityTable(env.DB); identityCount = (await env.DB.prepare("SELECT COUNT(*) AS n FROM video_identity").first()).n; } catch (e) {}
-        return json({ ok: true, service: "nexus-api", version: "v69", time: now(), counts: { ...t, custom_videos: cv, video_identity: identityCount } });
+        return json({ ok: true, service: "nexus-api", version: "v100", time: now(), counts: { ...t, custom_videos: cv, video_identity: identityCount } });
+      }
+      if (root === "errors") {
+        if (req.method === "GET") {
+          const denied = backupDenied(req, env);
+          if (denied) return denied;
+          return json({ ok: true, errors: await listClientErrors(env.DB) });
+        }
+        if (req.method === "POST") return json({ ok: true, stored: await saveClientErrors(env.DB, await body(req)) });
+        return err(405, "method not allowed");
       }
       if (root === "backups" || root === "restore") {
         const denied = backupDenied(req, env);

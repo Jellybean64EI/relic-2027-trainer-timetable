@@ -1,45 +1,46 @@
-/* Nexus v99 app shell.
-   Cache name: nexus-v99. Videos are not cached: range responses are partial
-   206 bodies, and storing one range would later be served as a whole clip.
+/* Nexus v100 app shell.
+   Cache name: nexus-v100. A new version stays waiting until the page asks it
+   to take over. Videos are not cached: range responses are partial 206 bodies,
+   and storing one range would later be served as a whole clip.
    There are no font files in this app; type is set with system fonts. */
-var CACHE = "nexus-v99";
-var IMAGE_CACHE = "nexus-v99-images";
+var CACHE = "nexus-v100";
+var IMAGE_CACHE = "nexus-v100-images";
 var IMAGE_CAP = 40;
 var API_ORIGIN = "https://nexus-api.joesearle.workers.dev";
 var CARD_HOST = "pub-322d36bbbce14f5e82238dc08a645e26.r2.dev";
 var PRECACHE = [
   "/",
   "/index.html",
-  "/styles.css?v=v99",
-  "/manifest.webmanifest?v=v99",
+  "/styles.css?v=v100",
+  "/manifest.webmanifest?v=v100",
   "/favicon.ico",
   "/apple-touch-icon.png",
   "/assets/nexus-icon-192.png",
   "/assets/nexus-icon.png",
-  "/offline.js?v=v99",
-  "/data/schedule.js?v=v99",
-  "/data/precondition.js?v=v99",
-  "/data/upperBody.js?v=v99",
-  "/data/citations.js?v=v99",
-  "/data/forensic.js?v=v99",
-  "/data/cues/cues.js?v=v99",
-  "/data/forensicClips.js?v=v99",
-  "/data/videoArchive.js?v=v99",
-  "/data/nutrition/shop.js?v=v99",
-  "/data/nutrition/schedule.js?v=v99",
-  "/food.js?v=v99",
-  "/data/nexusConfig.js?v=v99",
-  "/deck.js?v=v99",
-  "/data/videoCatalog.js?v=v99",
-  "/tools/v64_placement.js?v=v99",
-  "/trim.js?v=v99",
-  "/builder.js?v=v99",
-  "/cards.js?v=v99",
-  "/data/cueModel.js?v=v99",
-  "/data/cueEditor.js?v=v99",
-  "/data/playerChrome.js?v=v99",
-  "/account.js?v=v99",
-  "/app.js?v=v99"
+  "/offline.js?v=v100",
+  "/data/schedule.js?v=v100",
+  "/data/precondition.js?v=v100",
+  "/data/upperBody.js?v=v100",
+  "/data/citations.js?v=v100",
+  "/data/forensic.js?v=v100",
+  "/data/cues/cues.js?v=v100",
+  "/data/forensicClips.js?v=v100",
+  "/data/videoArchive.js?v=v100",
+  "/data/nutrition/shop.js?v=v100",
+  "/data/nutrition/schedule.js?v=v100",
+  "/food.js?v=v100",
+  "/data/nexusConfig.js?v=v100",
+  "/deck.js?v=v100",
+  "/data/videoCatalog.js?v=v100",
+  "/tools/v64_placement.js?v=v100",
+  "/trim.js?v=v100",
+  "/builder.js?v=v100",
+  "/cards.js?v=v100",
+  "/data/cueModel.js?v=v100",
+  "/data/cueEditor.js?v=v100",
+  "/data/playerChrome.js?v=v100",
+  "/account.js?v=v100",
+  "/app.js?v=v100"
 ];
 var API_PREFIX = /^\/(ticks|ticks_2026|cards|stacks|slots|video-placements|video-cues|weights|account|training-combos|training-groups|training-plan|training-plan-week|custom-videos|video-ids)(\/|$)/;
 
@@ -47,7 +48,7 @@ self.addEventListener("install", function (event) {
   event.waitUntil(caches.open(CACHE).then(function (cache) {
     return cache.addAll(PRECACHE);
   }).then(function () {
-    return self.skipWaiting();
+    if (!self.registration.active) return self.skipWaiting();
   }));
 });
 
@@ -68,7 +69,12 @@ self.addEventListener("activate", function (event) {
 });
 
 self.addEventListener("message", function (event) {
-  if (!event.data || event.data.type !== "purge-old") return;
+  if (!event.data) return;
+  if (event.data.type === "skip-waiting") {
+    self.skipWaiting();
+    return;
+  }
+  if (event.data.type !== "purge-old") return;
   event.waitUntil(purgeOld().then(function () {
     if (event.source) event.source.postMessage({ type: "purged" });
   }));

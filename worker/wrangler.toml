@@ -1,16 +1,17 @@
-# Deploy ONLY after replacing database_id with the live "nexus" D1 id
-# from `npx wrangler d1 list`. A placeholder deploy is refused by Cloudflare.
+# Live worker. Do not deploy from a machine that is not logged in.
+# Secrets (wrangler secret put, never in this file): NEXUS_KEY, BACKUP_TOKEN, GITHUB_ALERT_TOKEN
+# Vars already on the worker, left untouched here: PUBLIC_R2_URL, PUBLIC_VIDEOS_URL
 name = "nexus-api"
 main = "nexus-api.js"
-compatibility_date = "2024-11-13"
+compatibility_date = "2026-10-01"
 
 [triggers]
-crons = ["0 3 * * *"]
+crons = ["0 3 * * *", "*/15 * * * *"]
 
 [[d1_databases]]
 binding = "DB"
 database_name = "nexus"
-database_id = "REPLACE_WITH_LIVE_NEXUS_D1_ID"
+database_id = "08fe83dd-d61a-4e9d-adf4-17e93b588278"
 
 [[r2_buckets]]
 binding = "CARDS"

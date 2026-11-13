@@ -13,8 +13,8 @@ function ok(message) {
 
 var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
-if (html.indexOf('content="v99"') === -1 || app.indexOf('build: "v99"') === -1) fail("cache stamp is not v99");
-else ok("cache stamp is v99");
+if (html.indexOf('content="v100"') === -1 || app.indexOf('build: "v100"') === -1) fail("cache stamp is not v100");
+else ok("cache stamp is v100");
 if (app.indexOf("function startLiveClock") === -1 || app.indexOf("TODAY <strong>") !== -1) fail("the old clock overwrite remains");
 else ok("the clock ticker replaced the 30 second overwrite");
 if (app.indexOf("function setFutureLock") === -1 || app.indexOf("function canTick") === -1 || app.indexOf("function revealHubLock") === -1) {
@@ -53,7 +53,7 @@ function playwright() {
   var page = await context.newPage();
   var errors = [];
   page.on("console", function (msg) { if (msg.type() === "error") errors.push(msg.text()); });
-  await page.goto("http://127.0.0.1:8080/?v=v99", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v100", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return window.RelicArchitect && document.getElementById("page-title").textContent; });
   await page.evaluate(function () {
     var toast = document.getElementById("deck-toast");
@@ -149,7 +149,7 @@ function playwright() {
   ];
   var i;
   for (i = 0; i < links.length; i++) {
-    await page.goto("http://127.0.0.1:8080/?v=v99" + links[i][0], { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v100" + links[i][0], { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect; });
     var got = await page.evaluate(function (ids) {
       function visible(id) {
@@ -161,7 +161,7 @@ function playwright() {
     if (got.title !== links[i][1] || !got.shown || !got.hidden) fail(links[i][0] + " landed on " + JSON.stringify(got));
     else ok(links[i][0] + " opens " + links[i][1]);
   }
-  await page.goto("http://127.0.0.1:8080/?v=v99", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v100", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return document.getElementById("meta-clock").textContent.indexOf(":") !== -1; });
   var rolled = await page.evaluate(function () {
     var Real = Date;
