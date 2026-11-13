@@ -11,7 +11,7 @@ function assert(cond, msg) { if (!cond) fail(msg); }
 
 const html = fs.readFileSync("index.html", "utf8");
 const hub = html.slice(html.indexOf('id="hub-root"'), html.indexOf("</section>", html.indexOf('id="hub-root"')));
-assert((hub.match(/<button/g) || []).length === 5, "H2 button count");
+assert((hub.match(/<button/g) || []).length === 6, "H2 button count");
 assert((hub.match(/role="tab"/g) || []).length === 2, "H2 tabs");
 assert((hub.match(/class="hub-week"/g) || []).length === 0, "H2 weeks");
 assert(hub.indexOf('id="hub-month-label"') !== -1, "H2 month stepper");

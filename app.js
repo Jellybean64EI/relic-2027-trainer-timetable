@@ -171,7 +171,7 @@
     };
   }
 
-  function paintLondonClock() {
+  function paintLondonClock(date) {
     var el = $("meta-clock");
     if (!el) return;
     var text = new Intl.DateTimeFormat("en-GB", {
@@ -180,8 +180,33 @@
       minute: "2-digit",
       second: "2-digit",
       hourCycle: "h23"
-    }).format(new Date());
+    }).format(date || new Date());
     if (el.textContent !== text) el.textContent = text;
+  }
+
+  function syncLiveClock() {
+    var now = new Date();
+    var parts = londonParts(now);
+    var previous = state.clockKey || "";
+    state.clockKey = parts.dateKey;
+    state.now = now;
+    var today = $("meta-today");
+    if (today) today.textContent = friendlyToday(parts);
+    paintLondonClock(now);
+    if (previous && previous !== parts.dateKey) {
+      state.userPicked = false;
+      render();
+    }
+  }
+
+  function startLiveClock() {
+    syncLiveClock();
+    setInterval(syncLiveClock, 1000);
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible") syncLiveClock();
+    });
+    window.addEventListener("pageshow", syncLiveClock);
+    window.addEventListener("focus", syncLiveClock);
   }
 
   var SCHEDULE_MODE_KEY = "relic_schedule_mode";
@@ -343,14 +368,13 @@
     var btn = $("btn-future-lock");
     if (!btn) return;
     var on = !!state.futureLock;
-    var training = state.osDoor === "training" || schedulesOnHub();
-    btn.hidden = !training;
+    btn.hidden = true;
     btn.setAttribute("aria-pressed", on ? "true" : "false");
     btn.setAttribute("aria-label", on ? "Lock on" : "Lock off");
   }
 
   function hubHeading() {
-    return state.hubTab === "food" ? "Food Schedules" : "Training Schedules";
+    return state.hubTab === "food" ? "Meal Schedules" : "Training Schedules";
   }
 
   function paintHeading(text) {
@@ -1137,6 +1161,10 @@
     });
     var foodPanel = $("hub-panel-food");
     if (foodPanel) foodPanel.hidden = state.hubTab !== "food";
+    var libraryCard = $("hub-open-library");
+    var mealsCard = $("meals-open");
+    if (libraryCard) libraryCard.hidden = state.hubTab !== "schedules";
+    if (mealsCard) mealsCard.hidden = state.hubTab !== "food";
     paintFutureLock();
     revealHubLock();
     paintHubStats();
@@ -1191,7 +1219,7 @@
       food: "Build a Meal Schedule",
       smoothies: "Build a Meal Schedule",
       porridge: "Build a Meal Schedule",
-      hub: "Main Menu Hub",
+      hub: "Training and Meal Schedules Hub",
       account: "Account Profile"
     };
     var title = $("nav-drawer-title");
@@ -4137,9 +4165,8 @@
     if (state.mode === "upper" && !upperSchedule()) state.mode = "full";
     if (window.NexusDeck && window.NexusDeck.boot) window.NexusDeck.boot();
     var linkedDoor = doorOverride();
-    if (mealsDoor(linkedDoor)) state.osDoor = linkedDoor;
+    if (linkedDoor) state.osDoor = linkedDoor;
     else if (trainingDeepLink()) state.osDoor = "training";
-    else if (linkedDoor) state.osDoor = linkedDoor;
     else state.osDoor = "hub";
     wire();
     render();
@@ -4150,21 +4177,7 @@
     window.addEventListener("focus", function () {
       if (tickLoadFailed) pullCompletions().then(render);
     });
-    setInterval(function () {
-      var previous = state.now && londonParts(state.now).dateKey;
-      state.now = getNow();
-      var next = londonParts(state.now).dateKey;
-      if (previous !== next) {
-        state.userPicked = false;
-        render();
-      } else {
-        var parts = londonParts(state.now);
-        var today = $("meta-today");
-        if (today) today.innerHTML = "TODAY <strong>" + parts.dateKey + "</strong> · " + parts.weekday;
-        paintLondonClock();
-      }
-    }, 30000);
-    setInterval(paintLondonClock, 1000);
+    startLiveClock();
   }
 
     window.repaintCueSheet = function () {
@@ -4175,7 +4188,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v95",
+    build: "v96",
     planFocusDate: planFocusDate,
     openAccount: function (view) {
       if (window.RelicArchitectOpenAccount) window.RelicArchitectOpenAccount(view);

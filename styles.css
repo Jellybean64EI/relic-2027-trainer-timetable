@@ -2062,7 +2062,7 @@ body.nav-open .nav-drawer {
 }
 
 #nav-cabins-label {
-  margin-top: 12px;
+  margin-top: 4px;
 }
 
 .nav-drawer-nav > [data-os-door="account"] {
@@ -4079,6 +4079,51 @@ body.is-food .storage-note {
   margin: 0 auto;
   padding: 8px 0 24px;
 }
+
+.hub-slot {
+  box-sizing: border-box;
+  height: 64px;
+  padding: 8px;
+}
+
+.hub-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+  width: 100%;
+  height: 48px;
+  margin: 0;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  color: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hub-card[hidden] { display: none; }
+
+.hub-card-library,
+.hub-card-meals {
+  background: linear-gradient(105deg, #ff8a00 0%, #e11d8a 52%, #6d28d9 100%);
+}
+
+.hub-card-title {
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.hub-card-sub {
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.1;
+  opacity: 0.92;
+}
+
+#btn-future-lock[hidden] { display: none !important; }
 
 .hub-tabs {
   display: flex;

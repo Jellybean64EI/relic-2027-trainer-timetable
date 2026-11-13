@@ -15,14 +15,14 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var deck = fs.readFileSync("deck.js", "utf8");
-if (html.indexOf('content="v95"') === -1 || app.indexOf('build: "v95"') === -1) fail("cache stamp is not v95");
-else ok("cache stamp is v95");
+if (html.indexOf('content="v96"') === -1 || app.indexOf('build: "v96"') === -1) fail("cache stamp is not v96");
+else ok("cache stamp is v96");
 if (html.indexOf('rel="icon"') === -1 || html.indexOf("assets/nexus-icon.png") === -1 || html.indexOf("apple-touch-icon.png") === -1) fail("favicon link is missing");
 else ok("favicon is linked");
 if (html.indexOf('id="hub-daily"') === -1 || deck.indexOf('body.appendChild(el("p", "hub-daily"') !== -1) fail("Brazil nuts are not pinned under the stepper");
 else ok("Brazil nuts sit under the month stepper");
-if (app.indexOf('state.osDoor === "training" || schedulesOnHub()') === -1) fail("the hub training lock is not wired");
-else ok("the hub training lock is wired");
+if (app.indexOf("btn.hidden = true") === -1) fail("the header lock is still shown on the hub");
+else ok("the header lock stays off the hub");
 if (css.indexOf(".plan-pick") === -1 || css.indexOf("width: 44px") === -1) fail("44px targets are missing");
 else ok("44px targets are in the stylesheet");
 
@@ -61,7 +61,7 @@ function playwright() {
     var url = res.url();
     if (res.status() >= 400 && (url.indexOf("favicon") !== -1 || url.indexOf("nexus-icon") !== -1)) missing.push(res.status() + " " + url);
   });
-  await page.goto("http://127.0.0.1:8080/?v=v95&date=2026-11-13", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v96&date=2026-11-13", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return window.RelicArchitect; });
   await page.evaluate(function () {
     var toast = document.getElementById("deck-toast");
@@ -105,7 +105,7 @@ function playwright() {
     var prev = document.getElementById("hub-month-prev");
     var firstDay = body.querySelector(".deck-day");
     return {
-      lock: getComputedStyle(lock).display !== "none" && lock.hidden !== true,
+      lock: lock.hidden === true || getComputedStyle(lock).display === "none",
       dailyBefore: !!(daily && firstDay && daily.compareDocumentPosition(firstDay) & Node.DOCUMENT_POSITION_FOLLOWING),
       dailyText: daily ? daily.textContent : "",
       prev: prev.disabled,
@@ -114,8 +114,8 @@ function playwright() {
       ambient: getComputedStyle(document.querySelector(".ambient-field")).display
     };
   });
-  if (!hub.lock) fail("hub training tab hides the lock");
-  else ok("hub training tab shows the lock");
+  if (!hub.lock) fail("hub training tab shows the header lock");
+  else ok("hub training tab hides the header lock");
   await page.locator("#hub-tab-food").click();
   await page.waitForTimeout(250);
   var food = await page.evaluate(function () {
@@ -194,9 +194,7 @@ function playwright() {
   else ok("an anchor-less weight page lists no empty months");
   if (account.unit < 44) fail("unit toggle is " + account.unit);
   else ok("unit toggles are " + account.unit + "px");
-  await page.locator("#btn-nav-toggle").click();
-  await page.waitForTimeout(500);
-  await page.locator('[data-os-door="cards"]').click();
+  await page.evaluate(function () { window.RelicArchitect.applyOsDoor("cards"); });
   await page.waitForTimeout(200);
   var cards = await page.evaluate(function () {
     return getComputedStyle(document.querySelector(".ambient-field")).display;

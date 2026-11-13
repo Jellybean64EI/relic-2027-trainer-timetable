@@ -9,7 +9,7 @@ function fail(msg) { fails.push(msg); console.error("FAIL", msg); }
 const html = fs.readFileSync("index.html", "utf8");
 const food = fs.readFileSync("food.js", "utf8");
 const app = fs.readFileSync("app.js", "utf8");
-if (html.indexOf('id="hub-root"') === -1 || html.indexOf(">Main Menu Hub<") === -1) fail("hub screen");
+if (html.indexOf('id="hub-root"') === -1 || html.indexOf(">Training and Meal Schedules Hub<") === -1) fail("hub screen");
 if (html.indexOf(">exus<") !== -1 || html.indexOf("hub-mark") !== -1) fail("N mark remains");
 if (html.indexOf('data-hub-mode="upper"') !== -1 || html.indexOf('data-hub-mode="full"') !== -1) fail("hub cards are still buttons");
 if (html.indexOf(">Upper Body<") === -1 || html.indexOf(">Full Body<") === -1) fail("hub card titles");

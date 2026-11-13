@@ -17,7 +17,7 @@ var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var config = fs.readFileSync("data/nexusConfig.js", "utf8");
 
-if (app.indexOf('build: "v95"') === -1 || html.indexOf('content="v95"') === -1 || html.indexOf("?v=v72") !== -1) {
+if (app.indexOf('build: "v96"') === -1 || html.indexOf('content="v96"') === -1 || html.indexOf("?v=v72") !== -1) {
   fail("cache stamp is not v77");
 }
 if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v77") !== -1; })) {
@@ -28,7 +28,7 @@ else ok("cache stamp is v77");
 var schedulesAt = html.indexOf('data-hub-tab="schedules"');
 var foodAt = html.indexOf('data-hub-tab="food"');
 if (schedulesAt < 0 || foodAt < schedulesAt) fail("Training Schedules is not the first hub tab");
-if (html.indexOf(">Training Schedules<") === -1 || html.indexOf(">Food Schedules<") === -1) fail("hub tab labels are missing");
+if (html.indexOf(">Training Schedules<") === -1 || html.indexOf(">Meal Schedules<") === -1) fail("hub tab labels are missing");
 if (html.indexOf('id="hub-panel-food"') === -1) fail("food schedules panel is missing");
 if (html.indexOf("hub-panel-training") !== -1) fail("stats tab panel is still in the hub");
 if (html.indexOf('data-os-panel="account"') === -1 || html.indexOf('id="hub-stats"') === -1 || html.indexOf(">Training Stats<") === -1) {
@@ -45,7 +45,7 @@ if (css.indexOf("body.is-hub:not(.hub-schedules)") === -1 || css.indexOf("body.h
   fail("schedules tab does not reveal the training page");
 }
 if (html.indexOf('id="hub-lock"') === -1) fail("stats lock row is missing");
-if (html.indexOf('data-os-door="training"') === -1 || html.indexOf('data-os-door="hub"') === -1) fail("menu doors are missing");
+if (html.indexOf('data-os-door="hub"') === -1) fail("menu doors are missing");
 else ok("schedules mount and menu doors");
 
 if (config.indexOf("videoEditor: false") === -1) fail("video editor flag is not off");

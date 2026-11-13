@@ -29,7 +29,7 @@ if (css.indexOf("body:not(.vc-editor-on) .vc-quick-edit") === -1 || css.indexOf(
 if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v77") !== -1; })) {
   fail("a player-open rule was restamped");
 }
-if (app.indexOf('build: "v95"') === -1 || html.indexOf('content="v95"') === -1 || html.indexOf("?v=v70") !== -1) {
+if (app.indexOf('build: "v96"') === -1 || html.indexOf('content="v96"') === -1 || html.indexOf("?v=v70") !== -1) {
   fail("cache stamp is not v77");
 }
 if (cards.indexOf("openTrim") === -1 || cards.indexOf('class="vc-quick-bin"') === -1) fail("editor code was deleted");

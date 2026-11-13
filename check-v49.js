@@ -27,11 +27,11 @@ const doorRe = /data-os-door="(training|food|smoothies|porridge|hub|account)"/g;
 let doorMatch;
 const drawer = html.slice(html.indexOf('id="nav-drawer"'), html.indexOf('id="relic-deck-park"'));
 while ((doorMatch = doorRe.exec(drawer))) doors.push(doorMatch[1]);
-if (doors.join(",") !== "hub,training,account") fail("door keys " + doors.join(","));
+if (doors.join(",") !== "hub,account") fail("door keys " + doors.join(","));
 if (drawer.split(">Nexus<").length - 1) fail("drawer repeats Nexus");
-const labels = ["Main Menu Hub", "Training Schedules", "Trainer Video Library", "Account Profile"];
-["Food Deck", "Smoothies Deck", "Porridge Deck"].forEach(function (label) {
-  if (drawer.indexOf(">" + label + "<") !== -1) fail("old deck row remains " + label);
+const labels = ["Training and Meal Schedules Hub", "Account Profile"];
+["Main Menu Hub", "Training Schedules", "Trainer Video Library", "Food Deck", "Smoothies Deck", "Porridge Deck"].forEach(function (label) {
+  if (drawer.indexOf(">" + label + "<") !== -1) fail("old menu row remains " + label);
 });
 labels.forEach(function (label) {
   if (drawer.indexOf(">" + label + "<") === -1) fail("missing label " + label);
