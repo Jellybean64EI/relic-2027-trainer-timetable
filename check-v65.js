@@ -96,7 +96,7 @@ if (!failed) ok("decideCustom stays on a real cabin");
 
 if (banned.test(cards) || banned.test(placement)) fail("tray wording is still in the card code");
 else ok("card code has no review tray");
-if (html.indexOf('content="v93"') === -1 || html.indexOf("?v=v65") !== -1) fail("cache stamp is not v77");
+if (html.indexOf('content="v94"') === -1 || html.indexOf("?v=v65") !== -1) fail("cache stamp is not v77");
 else ok("cache stamp is v77");
 
 Object.keys(FOOD).forEach(function (file) {

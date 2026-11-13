@@ -15,9 +15,9 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var deck = fs.readFileSync("deck.js", "utf8");
-if (html.indexOf('content="v93"') === -1 || app.indexOf('build: "v93"') === -1) fail("cache stamp is not v93");
-else ok("cache stamp is v93");
-if (html.indexOf('rel="icon"') === -1 || html.indexOf("favicon.svg") === -1) fail("favicon link is missing");
+if (html.indexOf('content="v94"') === -1 || app.indexOf('build: "v94"') === -1) fail("cache stamp is not v94");
+else ok("cache stamp is v94");
+if (html.indexOf('rel="icon"') === -1 || html.indexOf("assets/nexus-icon.png") === -1 || html.indexOf("apple-touch-icon.png") === -1) fail("favicon link is missing");
 else ok("favicon is linked");
 if (html.indexOf('id="hub-daily"') === -1 || deck.indexOf('body.appendChild(el("p", "hub-daily"') !== -1) fail("Brazil nuts are not pinned under the stepper");
 else ok("Brazil nuts sit under the month stepper");
@@ -61,7 +61,7 @@ function playwright() {
     var url = res.url();
     if (res.status() >= 400 && (url.indexOf("favicon") !== -1 || url.indexOf("nexus-icon") !== -1)) missing.push(res.status() + " " + url);
   });
-  await page.goto("http://127.0.0.1:8080/?v=v93&date=2026-11-13", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v94&date=2026-11-13", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return window.RelicArchitect; });
   await page.evaluate(function () {
     var toast = document.getElementById("deck-toast");
@@ -205,11 +205,25 @@ function playwright() {
   });
   if (cards !== "none") fail("video cards still show the ambient field");
   else ok("video cards hide the ambient field");
-  var icon = await page.evaluate(function () { return fetch("favicon.ico").then(function (res) { return res.status; }); });
-  var svg = await page.evaluate(function () { return fetch("favicon.svg").then(function (res) { return res.status; }); });
-  if (icon !== 200 || svg !== 200 || missing.length || consoleErrors.length) {
-    fail("console or favicon " + JSON.stringify({ icon: icon, svg: svg, missing: missing, consoleErrors: consoleErrors }));
-  } else ok("no console errors and no favicon 404");
+  var icons = await page.evaluate(function () {
+    return Promise.all(["favicon.ico", "assets/nexus-icon.png", "assets/nexus-icon-192.png", "apple-touch-icon.png"].map(function (path) {
+      return fetch(path).then(function (res) { return res.status + " " + path; });
+    }));
+  });
+  var sized = await page.evaluate(function () {
+    function load(path) {
+      return new Promise(function (resolve) {
+        var img = new Image();
+        img.onload = function () { resolve(path + " " + img.naturalWidth + "x" + img.naturalHeight); };
+        img.onerror = function () { resolve(path + " error"); };
+        img.src = path;
+      });
+    }
+    return Promise.all([load("assets/nexus-icon.png"), load("assets/nexus-icon-192.png"), load("apple-touch-icon.png")]);
+  });
+  if (icons.join(" ") !== "200 favicon.ico 200 assets/nexus-icon.png 200 assets/nexus-icon-192.png 200 apple-touch-icon.png" || sized.join(" ") !== "assets/nexus-icon.png 512x512 assets/nexus-icon-192.png 192x192 apple-touch-icon.png 180x180" || missing.length || consoleErrors.length) {
+    fail("console or favicon " + JSON.stringify({ icons: icons, sized: sized, missing: missing, consoleErrors: consoleErrors }));
+  } else ok("no console errors and the Nexus icons load");
   await browser.close();
   if (failed) {
     console.error(failed + " v93 check(s) failed");
