@@ -104,6 +104,8 @@ button, a, input, label {
   padding: 14px 12px 10px;
 }
 
+.net-pill[hidden] { display: none; }
+
 .net-pill {
   display: inline-flex;
   align-items: center;

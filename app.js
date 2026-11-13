@@ -313,8 +313,17 @@
     return dateKey <= parts.dateKey;
   }
 
+  function extraDoor(name) {
+    // pre2026-hook
+    var list = window.NexusExtraDoors || [];
+    var i;
+    for (i = 0; i < list.length; i++) if (list[i] && list[i].id === name) return list[i];
+    return null;
+  }
+
   function normDoor(v) {
     if (v === "training" || v === "cards" || v === "food" || v === "smoothies" || v === "porridge" || v === "hub" || v === "account") return v;
+    if (extraDoor(v)) return v; // pre2026-hook
     return "hub";
   }
 
@@ -323,7 +332,7 @@
   }
 
   function doorOverride() {
-    var match = /[?&]door=([a-z]+)/.exec(location.search || "");
+    var match = /[?&]door=([a-z0-9]+)/.exec(location.search || ""); // pre2026-hook
     return match ? normDoor(match[1]) : "";
   }
 
@@ -1222,6 +1231,8 @@
       hub: "Training and Meal Schedules Hub",
       account: "Account Profile"
     };
+    var extra = extraDoor(door); // pre2026-hook
+    if (extra && extra.title) titles[door] = extra.title;
     var title = $("nav-drawer-title");
     if (title) title.textContent = meals ? "Build a Meal Schedule" : titles[door];
     paintHeading(door === "hub" ? hubHeading() : titles[door]);
@@ -1249,6 +1260,9 @@
       document.body.classList.toggle("is-account", door === "account");
       syncHubClass();
     }
+    var dot = $("sync-dot"); // pre2026-hook
+    if (dot) dot.hidden = !!(extra && extra.hideSync);
+    if (extra && extra.onShow) extra.onShow();
     if (door === "cards" && window.NexusCards && window.NexusCards.render) window.NexusCards.render();
     if (door === "hub") paintHub();
     showAccountView();
@@ -3853,6 +3867,12 @@
           render();
           return;
         }
+        if (extraDoor(name)) { // pre2026-hook
+          state.osDoor = name;
+          setNavOpen(false);
+          render();
+          return;
+        }
         if (name !== "training") return;
         setNavOpen(false);
         openTrainingDoor();
@@ -4241,7 +4261,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v100",
+    build: "v101",
     planFocusDate: planFocusDate,
     openAccount: function (view) {
       if (window.RelicArchitectOpenAccount) window.RelicArchitectOpenAccount(view);

@@ -14,8 +14,8 @@ function ok(message) {
 var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var sw = fs.readFileSync("sw.js", "utf8");
-if (html.indexOf('content="v100"') === -1 || app.indexOf('build: "v100"') === -1) fail("cache stamp is not v100");
-else ok("cache stamp is v100");
+if (html.indexOf('content="v101"') === -1 || app.indexOf('build: "v101"') === -1) fail("cache stamp is not v101");
+else ok("cache stamp is v101");
 var cacheName = (sw.match(/var CACHE = "([^"]+)"/) || [])[1];
 if (!cacheName || html.indexOf('register("sw.js"') === -1) fail("the service worker is not registered");
 else ok("the service worker is registered");
@@ -190,7 +190,7 @@ function playwright() {
   var errors = [];
   page.on("console", function (msg) { if (msg.type() === "error") errors.push(msg.text()); });
   page.on("pageerror", function (err) { errors.push(String(err)); });
-  await page.goto("http://127.0.0.1:8080/?v=v100", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v101", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return window.RelicArchitect && navigator.serviceWorker.controller; }, null, { timeout: 20000 });
   await page.waitForFunction(async function (name) {
     var cache = await caches.open(name);

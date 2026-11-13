@@ -15,8 +15,8 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v100"') === -1 || app.indexOf('build: "v100"') === -1) fail("cache stamp is not v100");
-else ok("cache stamp is v100");
+if (html.indexOf('content="v101"') === -1 || app.indexOf('build: "v101"') === -1) fail("cache stamp is not v101");
+else ok("cache stamp is v101");
 if (html.indexOf('data-os-panel="account"') === -1 || app.indexOf('account: "Account Profile"') === -1) fail("account is not a page");
 else ok("account is a page");
 if (html.indexOf("coming soon") !== -1 || html.indexOf('id="account-banner"') !== -1 || app.indexOf("showAccountBanner") !== -1) {
@@ -103,7 +103,7 @@ async function goDoor(page, client, name) {
         mobile: true
       });
     }
-    await page.goto("http://127.0.0.1:8080/?v=v100", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v101", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && document.getElementById("page-title"); });
     await page.evaluate(function () {
       var toast = document.getElementById("deck-toast");
@@ -123,7 +123,7 @@ async function goDoor(page, client, name) {
     });
     if (menu.text.indexOf("Training Stats") !== -1 || menu.text.indexOf("coming soon") !== -1) {
       fail(width + " the drawer still has stats or coming soon");
-    } else if (menu.labels.join("|") !== "Training and Meal Schedules Hub" || menu.text.indexOf("Food Deck") !== -1 || menu.text.indexOf("Trainer Video Library") !== -1 || !menu.accountBeforeTag) {
+    } else if (menu.labels[0] !== "Training and Meal Schedules Hub" || menu.labels.length > 2 || (menu.labels[1] && menu.labels[1] !== "2026 Pre Schedules") || menu.text.indexOf("Food Deck") !== -1 || menu.text.indexOf("Trainer Video Library") !== -1 || !menu.accountBeforeTag) {
       fail(width + " the cabin list is wrong " + JSON.stringify(menu.labels));
     } else ok(width + " the drawer lists the cabins and Account Profile");
     var before = await page.evaluate(function () {

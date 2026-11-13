@@ -15,8 +15,8 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v100"') === -1 || app.indexOf('build: "v100"') === -1) fail("cache stamp is not v100");
-else ok("cache stamp is v100");
+if (html.indexOf('content="v101"') === -1 || app.indexOf('build: "v101"') === -1) fail("cache stamp is not v101");
+else ok("cache stamp is v101");
 if (app.indexOf("bindCueSlides") !== -1 || app.indexOf('id="cue-slides"') !== -1) fail("the slide track is still built");
 else ok("the slide track is gone");
 if (app.indexOf("var CUE_STAGE_CAP = 1") === -1) fail("the sheet still has a second stage");
@@ -117,7 +117,7 @@ function readShift(page) {
       deviceScaleFactor: setups[s].dpr,
       mobile: true
     });
-    await page.goto("http://127.0.0.1:8080/?v=v100", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v101", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusCards && window.NexusCueEdit; });
     await page.evaluate(function (cue) {
       var archive = window.RELIC_VIDEO_ARCHIVE.cabins.Back.playlist;

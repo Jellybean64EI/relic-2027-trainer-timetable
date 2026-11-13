@@ -15,8 +15,8 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var deck = fs.readFileSync("deck.js", "utf8");
-if (html.indexOf('content="v100"') === -1 || app.indexOf('build: "v100"') === -1) fail("cache stamp is not v100");
-else ok("cache stamp is v100");
+if (html.indexOf('content="v101"') === -1 || app.indexOf('build: "v101"') === -1) fail("cache stamp is not v101");
+else ok("cache stamp is v101");
 if (html.indexOf('rel="icon"') === -1 || html.indexOf("assets/nexus-icon.png") === -1 || html.indexOf("apple-touch-icon.png") === -1) fail("favicon link is missing");
 else ok("favicon is linked");
 if (html.indexOf('id="hub-daily"') === -1 || deck.indexOf('body.appendChild(el("p", "hub-daily"') !== -1) fail("Brazil nuts are not pinned under the stepper");
@@ -61,7 +61,7 @@ function playwright() {
     var url = res.url();
     if (res.status() >= 400 && (url.indexOf("favicon") !== -1 || url.indexOf("nexus-icon") !== -1)) missing.push(res.status() + " " + url);
   });
-  await page.goto("http://127.0.0.1:8080/?v=v100&date=2026-11-13", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v101&date=2026-11-13", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return window.RelicArchitect; });
   await page.evaluate(function () {
     var toast = document.getElementById("deck-toast");
