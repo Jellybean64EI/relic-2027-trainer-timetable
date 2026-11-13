@@ -3764,6 +3764,21 @@
         if (selected && selected.focus) selected.focus();
       });
     });
+    document.addEventListener("click", function (event) {
+      var back = event.target && event.target.closest ? event.target.closest("[data-hub-back]") : null;
+      if (!back) return;
+      event.preventDefault();
+      state.hubTab = back.getAttribute("data-hub-back") === "food" ? "food" : "schedules";
+      writeHubTab(state.hubTab);
+      state.osDoor = "hub";
+      setNavOpen(false);
+      try {
+        var url = new URL(window.location.href);
+        url.searchParams.set("door", "hub");
+        history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+      } catch (err) { /* keep the current address */ }
+      render();
+    });
     var mealsOpen = $("meals-open");
     if (mealsOpen) mealsOpen.addEventListener("click", function () {
       state.osDoor = readMealsTab();
@@ -4188,7 +4203,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v96",
+    build: "v97",
     planFocusDate: planFocusDate,
     openAccount: function (view) {
       if (window.RelicArchitectOpenAccount) window.RelicArchitectOpenAccount(view);
