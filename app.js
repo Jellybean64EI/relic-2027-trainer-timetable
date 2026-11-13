@@ -327,7 +327,7 @@
     var btn = $("btn-future-lock");
     if (!btn) return;
     var on = !!state.futureLock;
-    var training = state.osDoor === "training";
+    var training = state.osDoor === "training" || schedulesOnHub();
     btn.hidden = !training;
     btn.setAttribute("aria-pressed", on ? "true" : "false");
     btn.setAttribute("aria-label", on ? "Lock on" : "Lock off");
@@ -1207,6 +1207,23 @@
     }
   }
 
+  function friendlyToday(parts) {
+    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return parts.day + " " + months[parts.month - 1] + " · " + parts.weekday;
+  }
+
+  function friendlySpan(startKey, endKey) {
+    var months = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    function short(key) {
+      var bits = String(key).split("-");
+      return (+bits[2]) + " " + months[+bits[1]];
+    }
+    if (String(startKey).slice(0, 4) === String(endKey).slice(0, 4)) {
+      return short(startKey) + " – " + short(endKey) + " " + String(endKey).slice(0, 4);
+    }
+    return short(startKey) + " " + String(startKey).slice(0, 4) + " – " + short(endKey) + " " + String(endKey).slice(0, 4);
+  }
+
   function render() {
     if (!S) return;
     state.now = getNow();
@@ -1259,7 +1276,7 @@
       monthTitle + " · WEEK " + state.viewWeek + " OF 4 · " + phaseShort;
     var blurb = meta.blurb || "";
     $("month-blurb").textContent = blurb;
-    $("meta-today").innerHTML = "TODAY <strong>" + parts.dateKey + "</strong> · " + parts.weekday;
+    $("meta-today").textContent = friendlyToday(parts);
     paintLondonClock();
 
     document.querySelectorAll(".phase").forEach(function (el) {
@@ -1286,7 +1303,7 @@
 
     var metaLine = "";
     if (weekDays.length) {
-      metaLine = weekDays[0].dateKey + " → " + weekDays[weekDays.length - 1].dateKey + " · calendar order";
+      metaLine = friendlySpan(weekDays[0].dateKey, weekDays[weekDays.length - 1].dateKey);
     }
     $("week-meta").textContent = metaLine;
 
@@ -4120,7 +4137,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v92",
+    build: "v93",
     planFocusDate: planFocusDate,
     openAccount: function (view) {
       if (window.RelicArchitectOpenAccount) window.RelicArchitectOpenAccount(view);

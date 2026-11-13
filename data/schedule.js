@@ -3,7 +3,7 @@
    NiX-intelligent lock: February W3–W4 + March–December (all weeks) for Joseph's future.
    Week-of-month: days 1–7=W1, 8–14=W2, 15–21=W3, 22–end=W4
    Phase citation suffix: JAN–MAR Base | APR–JUN Hard | JUL–SEP Expert | OCT–DEC Till_Failure
-   Display citation: 1. {CabinKey}_Trainer_{Phase}
+   Display citation: {Cabin} Trainer {Phase}
    v16: Calisthenics is Q4 2027 Till Failure only (October–December).
    Q1 Base, Q2 Hard, and Q3 Expert swap those slots for Posture_Mobility, Abs_Pelvic, or Neck.
    v26: every month raises Back and Legs_Glutes. Back leads a shared day. Phase suffixes stay.
@@ -537,8 +537,11 @@ window.RELIC_SCHEDULE = (function () {
     var m = MONTH_ROTATIONS[month] || MONTH_ROTATIONS[1];
     return m[wom] || m[1];
   }
+  function citationWords(value) {
+    return String(value || "").replace(/_/g, " ").replace(/^\d+\.\s*/, "").replace(/\s+/g, " ").trim();
+  }
   function citationLabel(cabinKey, phase) {
-    return "1. " + cabinKey + "_Trainer_" + phase;
+    return (citationWords(cabinKey) + " Trainer " + citationWords(phase)).replace(/\s+/g, " ").trim();
   }
 
   function buildMonthDays(year, month) {

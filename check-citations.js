@@ -11,7 +11,7 @@ const css = fs.readFileSync("styles.css", "utf8");
 const html = fs.readFileSync("index.html", "utf8");
 if (app.indexOf("relic-pair") !== -1) fail("app.js still renders relic-pair");
 if (css.indexOf(".relic-pair") !== -1) fail("styles.css still defines .relic-pair");
-if (app.indexOf('build: "v92"') === -1 || html.indexOf('content="v92"') === -1) {
+if (app.indexOf('build: "v93"') === -1 || html.indexOf('content="v93"') === -1) {
   fail("build stamp is not v77");
 }
 
@@ -44,7 +44,7 @@ function checkDays(days, label) {
         fail(where + " empty cabin");
         return;
       }
-      const expected = "1. " + cabinKey + "_Trainer_" + phase;
+      const expected = String(cabinKey).replace(/_/g, " ") + " Trainer " + String(phase).replace(/_/g, " ");
       const labelText = S.citationLabel(cabinKey, phase);
       if (labelText !== expected) fail(where + " label " + labelText);
       const shown = index === 0 ? day.doc1 : day.doc2;
@@ -69,8 +69,8 @@ for (let month = 1; month <= 12; month++) {
 }
 
 const oct1 = P.buildMonthDays(2026, 10).find(function (day) { return day.dateKey === "2026-10-01"; });
-if (!oct1 || oct1.cabins[0] !== "Back" || oct1.doc1 !== "1. Back_Trainer_Base" || oct1.pair !== "Back + Grip") {
-  fail("2026-10-01 is not Back + Grip with 1. Back_Trainer_Base");
+if (!oct1 || oct1.cabins[0] !== "Back" || oct1.doc1 !== "Back Trainer Base" || oct1.pair !== "Back + Grip") {
+  fail("2026-10-01 is not Back + Grip with Back Trainer Base");
 }
 
 console.log("citations checked", checked);
