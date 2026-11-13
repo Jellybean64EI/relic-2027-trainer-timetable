@@ -2,6 +2,18 @@ window.FEATURES = {
   videoEditor: false
 };
 
+(function () {
+  var on = true;
+  try {
+    var parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+    var map = {};
+    parts.forEach(function (part) { map[part.type] = part.value; });
+    if ((map.year + "-" + map.month + "-" + map.day) > "2026-12-31") on = false;
+  } catch (err) { /* keep the flag on if the clock cannot be read */ }
+  window.PRE2026_ENABLED = on;
+  window.PRE2026_UNTIL = "2026-12-31";
+})();
+
 window.NEXUS_API = {
   base: "https://nexus-api.joesearle.workers.dev",
   key: "w44eimFdMAPiLHbodT5Y6aaVTWzDgyyN",

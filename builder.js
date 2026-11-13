@@ -536,12 +536,15 @@
     host.innerHTML = html;
   }
 
+  var rowActionFns = []; // pre2026-hook
+
   function scheduleRow(combo, number) {
     var asking = confirmId === combo.id;
     var html = '<article class="sched-row">';
     html += '<button type="button" class="sched-play" data-sched-play="' + esc(combo.id) + '"><span class="sched-play-name">' + esc(displayName(combo.name, number)) + "</span></button>";
     html += '<span class="sched-row-actions">';
     html += '<button type="button" class="sched-fav' + (isFav(combo.fav) ? " is-on" : "") + '" data-sched-fav="' + esc(combo.id) + '" aria-pressed="' + (isFav(combo.fav) ? "true" : "false") + '" aria-label="Favourite">⭐</button>';
+    rowActionFns.forEach(function (fn) { html += fn(combo) || ""; }); // pre2026-hook
     html += '<button type="button" data-sched-edit="' + esc(combo.id) + '">Edit</button>';
     html += '<button type="button" data-sched-delete="' + esc(combo.id) + '">Delete</button>';
     html += "</span>";
@@ -1436,6 +1439,8 @@
     organise: organise,
     notes: dayNotes,
     placement: placement,
+    playCombo: playCombo, // pre2026-hook
+    onRowActions: function (fn) { if (typeof fn === "function") rowActionFns.push(fn); }, // pre2026-hook
     picked: picked,
     takeCard: takeCard,
     building: function () { return mode === "build"; },
