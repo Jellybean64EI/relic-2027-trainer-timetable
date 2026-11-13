@@ -10,10 +10,10 @@ const html = fs.readFileSync("index.html", "utf8");
 const app = fs.readFileSync("app.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v95"') === -1 || html.indexOf("app.js?v=v95") === -1) {
+if (html.indexOf('content="v96"') === -1 || html.indexOf("app.js?v=v96") === -1) {
   fail("index.html is not stamped v77");
 }
-if (app.indexOf('build: "v95"') === -1) fail("RelicArchitect.build is not v77");
+if (app.indexOf('build: "v96"') === -1) fail("RelicArchitect.build is not v77");
 if (html.indexOf("JOSEPH · LONDON") !== -1 || html.indexOf("corner-who") !== -1 || html.indexOf("meta-mode") !== -1) {
   fail("public corner still has the name or lock status");
 }
@@ -36,7 +36,7 @@ if (html.indexOf('data-cabin="notes"') !== -1 || html.indexOf('data-os-door="not
 if (html.indexOf(">Notes &amp; Ideas<") !== -1 || html.indexOf(">Notes & Ideas<") !== -1) {
   fail("Notes label remains");
 }
-if (html.indexOf('data-os-door="hub"') === -1 || html.indexOf(">Main Menu Hub<") === -1) {
+if (html.indexOf('data-os-door="hub"') === -1 || html.indexOf(">Training and Meal Schedules Hub<") === -1) {
   fail("Hub door is missing");
 }
 if (html.indexOf('data-os-door="account"') === -1 || html.indexOf('data-os-panel="account"') === -1) {
@@ -48,17 +48,17 @@ const doorOrder = [];
 const doorRe = /data-os-door="(training|food|smoothies|porridge|hub|account)"/g;
 let doorMatch;
 while ((doorMatch = doorRe.exec(drawer))) doorOrder.push(doorMatch[1]);
-if (doorOrder.join(",") !== "hub,training,account") {
+if (doorOrder.join(",") !== "hub,account") {
   fail("drawer order " + doorOrder.join(","));
 }
-const trainAt = drawer.indexOf('data-os-door="training"');
-const cardsAt = drawer.indexOf('data-os-door="cards"');
+const hubAt = drawer.indexOf('data-os-door="hub"');
 const accountAt = drawer.indexOf('data-os-door="account"');
-if (!(trainAt >= 0 && cardsAt > trainAt && accountAt > cardsAt) || drawer.indexOf(">Trainer Video Library<") === -1) {
-  fail("video library door is not directly under Training Schedules");
+const kickerAt = drawer.indexOf(">The Cabins<");
+if (!(kickerAt >= 0 && hubAt > kickerAt && accountAt > hubAt) || drawer.indexOf(">Training and Meal Schedules Hub<") === -1) {
+  fail("hub row is not under The Cabins");
 }
-if (drawer.indexOf('data-os-door="food"') !== -1 || drawer.indexOf(">Food Deck<") !== -1) {
-  fail("food deck row is still in the menu");
+if (drawer.indexOf('data-os-door="training"') !== -1 || drawer.indexOf('data-os-door="cards"') !== -1 || drawer.indexOf(">Food Deck<") !== -1) {
+  fail("old cabin rows are still in the menu");
 }
 if (/🔒|🏋️|🛍️|🍎|🍌|os-door-icon/.test(drawer)) fail("menu still has emoji or door pills");
 if (html.indexOf("Lock future days") !== -1) fail("old lock label is still in the menu");
@@ -90,7 +90,7 @@ function panelSlice(name) {
 }
 if (panelSlice("food").indexOf("btn-future-lock") !== -1) fail("lock row is inside the food door");
 if (panelSlice("smoothies").indexOf("btn-future-lock") !== -1) fail("lock row is inside the smoothies door");
-if (html.indexOf('data-os-door="training"') === -1) fail("training door is missing");
+if (app.indexOf('v === "training"') === -1) fail("training door is missing");
 if (css.indexOf("#btn-future-lock") === -1 || css.indexOf("min-height: 44px") === -1) {
   fail("lock control is missing a 44px target");
 }
@@ -171,7 +171,7 @@ function expect(arch, dateKey, want, label) {
 
 const open = load("?date=2026-10-06");
 const arch = open.RelicArchitect;
-if (!arch || arch.build !== "v95" || arch.futureLock !== false) fail("default lock is not off");
+if (!arch || arch.build !== "v96" || arch.futureLock !== false) fail("default lock is not off");
 else {
   expect(arch, "2026-10-06", true, "open today");
   ["2026-10-07", "2026-12-31", "2027-01-01", "2027-10-07"].forEach(function (dateKey) {
@@ -223,8 +223,8 @@ beforeOn.RelicArchitect.setFutureLock(false);
 if (beforeOn.memory.relic_future_lock_override) fail("turning the lock off before 1 Jan stored an override");
 
 if (arch && typeof arch.applyOsDoor === "function") {
-  if (arch.applyOsDoor("training") !== true || open.nodes["btn-future-lock"].hidden) {
-    fail("lock hidden while Training is open");
+  if (arch.applyOsDoor("training") !== false || !open.nodes["btn-future-lock"].hidden) {
+    fail("header lock is visible on Training");
   }
   if (arch.applyOsDoor("food") !== false || !open.nodes["btn-future-lock"].hidden) {
     fail("lock still visible on Food");
@@ -234,18 +234,18 @@ if (arch && typeof arch.applyOsDoor === "function") {
   }
   const foodPanel = open.panels.filter(function (panel) { return panel.getAttribute("data-os-panel") === "food"; })[0];
   if (!foodPanel || foodPanel.hidden !== true) fail("food panel stayed open");
-  if (arch.applyOsDoor("training") !== true || open.nodes["btn-future-lock"].hidden) {
-    fail("lock did not return with Training");
+  if (arch.applyOsDoor("training") !== false || !open.nodes["btn-future-lock"].hidden) {
+    fail("header lock returned on Training");
   }
   if (open.nodes["btn-future-lock"].getAttribute("aria-label") !== "Lock off") {
     fail("aria did not stay Lock off");
   }
   if (arch.applyOsDoor("notes") !== false) fail("notes door did not land on the Hub");
-  if (open.nodes["nav-drawer-title"].textContent !== "Main Menu Hub") fail("notes door title");
-  if (open.nodes["btn-future-lock"].hidden) fail("hub training tab hides the header lock");
-  if (arch.applyOsDoor("hub") !== false || open.nodes["btn-future-lock"].hidden) fail("hub training tab hides the header lock");
+  if (open.nodes["nav-drawer-title"].textContent !== "Training and Meal Schedules Hub") fail("notes door title");
+  if (!open.nodes["btn-future-lock"].hidden) fail("hub shows the header lock");
+  if (arch.applyOsDoor("hub") !== false || !open.nodes["btn-future-lock"].hidden) fail("hub shows the header lock");
   if (arch.applyOsDoor("account") !== false || !open.nodes["btn-future-lock"].hidden) fail("account shows the lock");
-  if (arch.applyOsDoor("training") !== true || open.nodes["btn-future-lock"].hidden) fail("training lock did not return");
+  if (arch.applyOsDoor("training") !== false || !open.nodes["btn-future-lock"].hidden) fail("training shows the header lock");
 } else {
   fail("applyOsDoor missing");
 }

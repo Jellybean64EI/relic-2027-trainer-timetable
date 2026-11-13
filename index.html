@@ -6,14 +6,14 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v95" />
+  <meta name="relic-build" content="v96" />
   <title>Nexus</title>
   <link rel="icon" href="favicon.ico" sizes="48x48" />
   <link rel="icon" href="assets/nexus-icon-192.png" type="image/png" sizes="192x192" />
   <link rel="icon" href="assets/nexus-icon.png" type="image/png" sizes="512x512" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180" />
-  <link rel="manifest" href="manifest.webmanifest?v=v95" />
-  <link rel="stylesheet" href="styles.css?v=v95" />
+  <link rel="manifest" href="manifest.webmanifest?v=v96" />
+  <link rel="stylesheet" href="styles.css?v=v96" />
 </head>
 <body>
   <div class="wrap">
@@ -54,16 +54,21 @@
       <p class="banner warn" id="sync-status" hidden></p>
 
       <section id="hub-root" data-os-panel="hub" hidden>
+        <div class="hub-slot" id="hub-slot">
+          <button type="button" class="hub-card hub-card-library" id="hub-open-library" data-os-door="cards">
+            <span class="hub-card-title">Trainer Video Library</span>
+            <span class="hub-card-sub">Make schedules · Upload videos</span>
+          </button>
+          <button type="button" class="hub-card hub-card-meals" id="meals-open" hidden>
+            <span class="hub-card-title">Build a Meal Schedule</span>
+            <span class="hub-card-sub">Food · Smoothies · Porridge cards</span>
+          </button>
+        </div>
         <div class="hub-tabs" role="tablist" aria-label="Hub">
           <button type="button" class="hub-tab" role="tab" id="hub-tab-schedules" data-hub-tab="schedules" aria-controls="training-board" aria-selected="true" tabindex="0">Training Schedules</button>
-          <button type="button" class="hub-tab" role="tab" id="hub-tab-food" data-hub-tab="food" aria-controls="hub-panel-food" aria-selected="false" tabindex="-1">Food Schedules</button>
+          <button type="button" class="hub-tab" role="tab" id="hub-tab-food" data-hub-tab="food" aria-controls="hub-panel-food" aria-selected="false" tabindex="-1">Meal Schedules</button>
         </div>
         <div id="hub-panel-food" role="tabpanel" aria-labelledby="hub-tab-food" hidden>
-          <button type="button" class="meals-module" id="meals-open">
-            <span class="meals-module-kicker">Module</span>
-            <span class="meals-module-title">Build a Meal Schedule</span>
-            <span class="meals-module-sub">Food · Smoothies · Porridge cards</span>
-          </button>
           <div class="deck-step" role="group" aria-label="Month">
             <button type="button" class="deck-step-btn" id="hub-month-prev" aria-label="Previous month">‹</button>
             <p class="deck-step-label" id="hub-month-label">January 2027</p>
@@ -314,16 +319,10 @@
     <div class="nav-drawer-scroll">
     <div class="nav-drawer-head"></div>
     <nav class="nav-drawer-nav" aria-label="Primary">
-      <button type="button" class="nav-row drawer-door" data-os-door="hub">
-        <span class="nav-row-label">Main Menu Hub</span>
-      </button>
       <h3 id="nav-cabins-label" class="nav-kicker">The Cabins</h3>
       <div class="cabin-list" role="group" aria-labelledby="nav-cabins-label">
-        <button type="button" class="nav-row drawer-door" data-os-door="training">
-          <span class="nav-row-label">Training Schedules</span>
-        </button>
-        <button type="button" class="nav-row drawer-door" data-os-door="cards">
-          <span class="nav-row-label">Trainer Video Library</span>
+        <button type="button" class="nav-row drawer-door" data-os-door="hub">
+          <span class="nav-row-label">Training and Meal Schedules Hub</span>
         </button>
       </div>
       <button type="button" class="nav-row drawer-door" data-os-door="account">
@@ -404,29 +403,29 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v95"></script>
-  <script src="data/precondition.js?v=v95"></script>
-  <script src="data/upperBody.js?v=v95"></script>
-  <script src="data/citations.js?v=v95"></script>
-  <script src="data/forensic.js?v=v95"></script>
-  <script src="data/cues/cues.js?v=v95"></script>
-  <script src="data/forensicClips.js?v=v95"></script>
-  <script src="data/videoArchive.js?v=v95"></script>
-  <script src="data/nutrition/shop.js?v=v95"></script>
-  <script src="data/nutrition/schedule.js?v=v95"></script>
-  <script src="food.js?v=v95"></script>
-  <script src="data/nexusConfig.js?v=v95"></script>
-  <script src="deck.js?v=v95"></script>
-  <script src="data/videoCatalog.js?v=v95"></script>
-  <script src="tools/v64_placement.js?v=v95"></script>
-  <script src="trim.js?v=v95"></script>
-  <script src="builder.js?v=v95"></script>
-  <script src="cards.js?v=v95"></script>
-  <script src="data/cueModel.js?v=v95"></script>
-  <script src="data/cueEditor.js?v=v95"></script>
-  <script src="data/playerChrome.js?v=v95"></script>
-  <script src="account.js?v=v95"></script>
-  <script src="app.js?v=v95"></script>
+  <script src="data/schedule.js?v=v96"></script>
+  <script src="data/precondition.js?v=v96"></script>
+  <script src="data/upperBody.js?v=v96"></script>
+  <script src="data/citations.js?v=v96"></script>
+  <script src="data/forensic.js?v=v96"></script>
+  <script src="data/cues/cues.js?v=v96"></script>
+  <script src="data/forensicClips.js?v=v96"></script>
+  <script src="data/videoArchive.js?v=v96"></script>
+  <script src="data/nutrition/shop.js?v=v96"></script>
+  <script src="data/nutrition/schedule.js?v=v96"></script>
+  <script src="food.js?v=v96"></script>
+  <script src="data/nexusConfig.js?v=v96"></script>
+  <script src="deck.js?v=v96"></script>
+  <script src="data/videoCatalog.js?v=v96"></script>
+  <script src="tools/v64_placement.js?v=v96"></script>
+  <script src="trim.js?v=v96"></script>
+  <script src="builder.js?v=v96"></script>
+  <script src="cards.js?v=v96"></script>
+  <script src="data/cueModel.js?v=v96"></script>
+  <script src="data/cueEditor.js?v=v96"></script>
+  <script src="data/playerChrome.js?v=v96"></script>
+  <script src="account.js?v=v96"></script>
+  <script src="app.js?v=v96"></script>
   <script>
     (function () {
       var meta = document.querySelector('meta[name="relic-build"]');

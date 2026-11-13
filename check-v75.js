@@ -17,7 +17,7 @@ var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var config = fs.readFileSync("data/nexusConfig.js", "utf8");
 
-if (app.indexOf('build: "v95"') === -1 || html.indexOf('content="v95"') === -1 || html.indexOf("?v=v74") !== -1) {
+if (app.indexOf('build: "v96"') === -1 || html.indexOf('content="v96"') === -1 || html.indexOf("?v=v74") !== -1) {
   fail("cache stamp is not v77");
 } else ok("cache stamp is v77");
 if (css.split("\n").some(function (line) { return line.indexOf("body.player-open") === 0 && line.indexOf("v77") !== -1; })) {
@@ -25,7 +25,7 @@ if (css.split("\n").some(function (line) { return line.indexOf("body.player-open
 }
 
 if (html.indexOf("hub-stats-pill") !== -1) fail("stats pill is still in the header");
-if (html.indexOf(">Main Menu Hub<") === -1) fail("menu label Main Menu Hub is missing");
+if (html.indexOf(">Training and Meal Schedules Hub<") === -1) fail("menu label for the hub is missing");
 var account = html.slice(html.indexOf('id="account-root"'), html.indexOf('id="deck-root-food"'));
 if (account.indexOf(">Training Stats<") === -1 || account.indexOf('id="hub-lock"') === -1) fail("Training Stats is not on the account page");
 if (html.indexOf("coming soon") !== -1 || html.indexOf('id="account-banner"') !== -1) fail("the account banner is still in the page");
@@ -35,11 +35,11 @@ if (html.indexOf('id="btn-future-lock"') === -1 || html.indexOf(">Training lock<
 if (html.slice(html.indexOf('id="nav-drawer"')).indexOf("btn-future-lock") !== -1) fail("lock moved into the menu");
 else ok("header, account menu, and stats lock");
 
-if (app.indexOf("function hubHeading()") === -1 || app.indexOf('"Food Schedules"') === -1 || app.indexOf('"Training Schedules"') === -1) {
+if (app.indexOf("function hubHeading()") === -1 || app.indexOf('"Meal Schedules"') === -1 || app.indexOf('"Training Schedules"') === -1) {
   fail("hub heading does not follow the tab");
 }
 if (app.indexOf("setFutureLock(!state.futureLock)") === -1) fail("lock handler was removed");
-if (app.indexOf('var training = state.osDoor === "training"') === -1) fail("header lock visibility changed");
+if (app.indexOf("btn.hidden = true") === -1) fail("header lock is still shown");
 if (css.indexOf(".hub-lock[aria-pressed=\"true\"]") === -1 || css.indexOf(".account-tile") === -1) fail("lock or account styles missing");
 if (config.indexOf("videoEditor: false") === -1) fail("video editor flag is not off");
 else ok("tab title, lock handler, and editor flag");
