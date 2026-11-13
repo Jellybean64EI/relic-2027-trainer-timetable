@@ -1600,7 +1600,10 @@
           '<div class="vc-storage-track"><div class="vc-storage-fill" id="vc-storage-fill"></div></div>' +
           '<span id="vc-storage-label"></span>' +
         "</div>" +
-        '<button type="button" id="vc-upload-btn">Upload video</button>' +
+        '<div class="deck-add-row">' +
+          '<button type="button" id="vc-upload-btn">Upload video</button>' +
+          '<button type="button" class="page-back" data-hub-back="schedules">‹ Back</button>' +
+        '</div>' +
         '<input id="vc-file" type="file" accept="video/*" hidden>' +
         '<p id="vc-status" class="vc-upload-msg"></p>' +
         '<div id="vc-progress" class="vc-progress" hidden><div></div></div>';
