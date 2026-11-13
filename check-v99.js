@@ -14,9 +14,10 @@ function ok(message) {
 var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var sw = fs.readFileSync("sw.js", "utf8");
-if (html.indexOf('content="v99"') === -1 || app.indexOf('build: "v99"') === -1) fail("cache stamp is not v99");
-else ok("cache stamp is v99");
-if (sw.indexOf('CACHE = "nexus-v99"') === -1 || html.indexOf('register("sw.js"') === -1) fail("the service worker is not registered");
+if (html.indexOf('content="v100"') === -1 || app.indexOf('build: "v100"') === -1) fail("cache stamp is not v100");
+else ok("cache stamp is v100");
+var cacheName = (sw.match(/var CACHE = "([^"]+)"/) || [])[1];
+if (!cacheName || html.indexOf('register("sw.js"') === -1) fail("the service worker is not registered");
 else ok("the service worker is registered");
 if (sw.indexOf("range") === -1) fail("the video cache decision is not recorded");
 else ok("videos are left uncached");
@@ -189,12 +190,12 @@ function playwright() {
   var errors = [];
   page.on("console", function (msg) { if (msg.type() === "error") errors.push(msg.text()); });
   page.on("pageerror", function (err) { errors.push(String(err)); });
-  await page.goto("http://127.0.0.1:8080/?v=v99", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v100", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return window.RelicArchitect && navigator.serviceWorker.controller; }, null, { timeout: 20000 });
-  await page.waitForFunction(async function () {
-    var cache = await caches.open("nexus-v99");
+  await page.waitForFunction(async function (name) {
+    var cache = await caches.open(name);
     return !!(await cache.match("/index.html"));
-  }, null, { timeout: 20000 });
+  }, cacheName, { timeout: 20000 });
   await page.evaluate(async function () {
     var cache = await caches.open("nexus-v98");
     await cache.put("/old.html", new Response("old"));
@@ -209,10 +210,10 @@ function playwright() {
       worker.postMessage({ type: "purge-old" });
     });
   });
-  var cachesLeft = await page.evaluate(async function () {
+  var cachesLeft = await page.evaluate(async function (name) {
     var names = await caches.keys();
-    return { names: names, old: names.indexOf("nexus-v98") !== -1, current: names.indexOf("nexus-v99") !== -1 };
-  });
+    return { names: names, old: names.indexOf("nexus-v98") !== -1, current: names.indexOf(name) !== -1 };
+  }, cacheName);
   if (cachesLeft.old || !cachesLeft.current) fail("the old cache was not cleaned " + JSON.stringify(cachesLeft));
   else ok("an old cache is cleaned");
   blockWrites = true;
