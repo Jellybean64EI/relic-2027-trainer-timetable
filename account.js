@@ -251,8 +251,8 @@ window.NexusAccount = (function () {
       failed = false;
       showError("");
       paintInfo();
-    }).catch(function () {
-      showError("Couldn't load, try again");
+    }).catch(function (err) {
+      showError(err && err.status === 409 ? "Starting weight is locked" : "Couldn't save Account Info. Try again");
     });
   }
 
@@ -284,11 +284,9 @@ window.NexusAccount = (function () {
     });
     var rows = [];
     Object.keys(counts).forEach(function (key) {
-      if (key.slice(0, 4) === "2026") rows.push(key);
+      if (key.slice(0, 4) === "2026" || key.slice(0, 4) === "2027") rows.push(key);
     });
     rows.sort();
-    var m;
-    for (m = 1; m <= 12; m++) rows.push("2027-" + (m < 10 ? "0" : "") + m);
     return rows.map(function (key) {
       var avg = counts[key] ? round1(sums[key] / counts[key]) : null;
       return { key: key, label: MONTHS[(+key.slice(5)) - 1] + " " + key.slice(0, 4), avg: avg };
@@ -367,11 +365,14 @@ window.NexusAccount = (function () {
         '</span><button type="button" data-weight-delete="' + esc(row.week) + '">Delete</button></p>';
     });
     html += "</div>";
-    html += '<table class="account-months"><tbody>';
-    monthRows().forEach(function (row) {
-      html += "<tr><th>" + esc(row.label) + "</th><td>" + (row.avg == null ? "—" : esc(formatWeight(row.avg))) + "</td></tr>";
-    });
-    html += "</tbody></table>";
+    var months = monthRows();
+    if (months.length) {
+      html += '<table class="account-months"><tbody>';
+      months.forEach(function (row) {
+        html += "<tr><th>" + esc(row.label) + "</th><td>" + esc(formatWeight(row.avg)) + "</td></tr>";
+      });
+      html += "</tbody></table>";
+    }
     html += '<svg id="account-weight-chart" class="account-chart" viewBox="0 0 300 120" role="img" aria-label="Weight from the anchor through 2027"></svg>';
     html += reviewCard("Halfway", "2027-06-30");
     html += reviewCard("End of 2027", "2027-12-31");
@@ -411,7 +412,7 @@ window.NexusAccount = (function () {
         window.nexusFetch("/weights/" + encodeURIComponent(week), { method: "DELETE" }).then(function () {
           weights = weights.filter(function (row) { return row.week !== week; });
           paintWeight();
-        }).catch(function () { showError("Couldn't load, try again"); });
+        }).catch(function () { showError("Couldn't delete this weigh-in. Try again"); });
       });
     });
   }
@@ -428,7 +429,7 @@ window.NexusAccount = (function () {
       weights = weights.filter(function (row) { return row.week !== entry.week; });
       weights.push(entry);
       paintWeight();
-    }).catch(function () { showError("Couldn't load, try again"); });
+    }).catch(function () { showError("Couldn't save this weigh-in. Try again"); });
   }
 
   function paintLogUnit() {

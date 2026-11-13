@@ -7,9 +7,9 @@ const fails = [];
 function fail(msg) { fails.push(msg); }
 
 const html = fs.readFileSync("index.html", "utf8");
-if (html.indexOf('content="v92"') === -1 || html.indexOf("styles.css?v=v92") === -1 ||
-    html.indexOf("data/schedule.js?v=v92") === -1 || html.indexOf("data/precondition.js?v=v92") === -1) {
-  fail("index.html is not stamped ?v=v92");
+if (html.indexOf('content="v93"') === -1 || html.indexOf("styles.css?v=v93") === -1 ||
+    html.indexOf("data/schedule.js?v=v93") === -1 || html.indexOf("data/precondition.js?v=v93") === -1) {
+  fail("index.html is not stamped ?v=v93");
 }
 
 const ctx = { window: {} };
@@ -20,7 +20,7 @@ const S = ctx.window.RELIC_SCHEDULE;
 const P = ctx.window.RELIC_PRECONDITION;
 
 const oct1 = P.buildMonthDays(2026, 10).find(function (day) { return day.dateKey === "2026-10-01"; });
-if (!oct1 || oct1.cabins[0] !== "Back" || String(oct1.doc1).indexOf("1. Back_Trainer_") !== 0) {
+if (!oct1 || oct1.cabins[0] !== "Back" || String(oct1.doc1).indexOf("Back Trainer ") !== 0) {
   fail("2026-10-01 is not Back first");
 } else {
   console.log("2026-10-01", oct1.dayName, oct1.pair, oct1.cabins.join(" + "), oct1.doc1);

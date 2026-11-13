@@ -142,7 +142,7 @@ var hasFoot = feet && feet.modules.some(function (mod) {
 if (feet && feet.count >= 3 && hasFoot) ok("feet include the foot mobility complex");
 else fail("feet placement");
 
-if (html.indexOf('content="v92"') === -1) fail("relic-build is not v77");
+if (html.indexOf('content="v93"') === -1) fail("relic-build is not v77");
 if (html.indexOf("?v=v64") !== -1) fail("index.html still says v64");
 else ok("cache stamp is v77");
 

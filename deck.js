@@ -30,6 +30,7 @@
     stacks: {},
     upload: null,
     draft: null,
+    workshop: "",
     fileRole: "front",
     backTarget: "",
     armDate: "",
@@ -618,7 +619,6 @@
     for (var day = 1; day <= total; day++) {
       body.appendChild(dayCard(dateKey(state.month, day)));
     }
-    body.appendChild(el("p", "hub-daily", "Daily: 2 Brazil nuts"));
   }
 
   function dayPortions(key) {
@@ -647,7 +647,8 @@
     SLOT_ORDER.forEach(function (slot) {
       article.appendChild(slotBlock(key, slot));
     });
-    article.appendChild(el("p", "deck-five", "5 a day: " + formatPortions(dayPortions(key))));
+    var portions = dayPortions(key);
+    if (portions > 0) article.appendChild(el("p", "deck-five", "5 a day: " + formatPortions(portions)));
     return article;
   }
 
@@ -2235,6 +2236,7 @@
       revokeFace(state.draft, "back");
     }
     state.draft = null;
+    state.workshop = "";
   }
 
   function ensureDraft(deck) {
@@ -2246,12 +2248,20 @@
     return state.draft;
   }
 
+  function workshopOpen(which) {
+    var code = deckCode(which);
+    var slug = deckSlug(code);
+    if (state.workshop === which || state.workshop === slug || state.workshop === code) return true;
+    return !!(state.draft && state.draft.deck === code);
+  }
+
   function paintBubble(host, which) {
     var mount = host.querySelector("[data-deck-bubble]");
     if (!mount) return;
     var code = deckCode(which);
     var up = state.draft && state.draft.deck === code ? state.draft : null;
     mount.textContent = "";
+    if (!workshopOpen(which)) return;
     var bubble = el("div", "deck-bubble");
     var tiles = el("div", "deck-bubble-tiles" + (code === "SMOOTHIE" ? " is-single" : ""));
     tiles.appendChild(faceTile(which, "front", up));
@@ -2478,8 +2488,10 @@
       if (!add) return;
       var raw = add.getAttribute("data-deck-add");
       state.addDeck = raw === "smoothie" ? "smoothie" : raw === "porridge" ? "porridge" : "food";
+      state.workshop = state.addDeck;
       state.fileRole = "front";
       state.backTarget = "bubble";
+      paintAll();
       var picker = root.document.getElementById("deck-file");
       if (picker) picker.multiple = true;
     }, true);

@@ -10,10 +10,10 @@ const html = fs.readFileSync("index.html", "utf8");
 const app = fs.readFileSync("app.js", "utf8");
 const css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v92"') === -1 || html.indexOf("app.js?v=v92") === -1) {
+if (html.indexOf('content="v93"') === -1 || html.indexOf("app.js?v=v93") === -1) {
   fail("index.html is not stamped v77");
 }
-if (app.indexOf('build: "v92"') === -1) fail("RelicArchitect.build is not v77");
+if (app.indexOf('build: "v93"') === -1) fail("RelicArchitect.build is not v77");
 if (html.indexOf("JOSEPH · LONDON") !== -1 || html.indexOf("corner-who") !== -1 || html.indexOf("meta-mode") !== -1) {
   fail("public corner still has the name or lock status");
 }
@@ -168,7 +168,7 @@ function expect(arch, dateKey, want, label) {
 
 const open = load("?date=2026-10-06");
 const arch = open.RelicArchitect;
-if (!arch || arch.build !== "v92" || arch.futureLock !== false) fail("default lock is not off");
+if (!arch || arch.build !== "v93" || arch.futureLock !== false) fail("default lock is not off");
 else {
   expect(arch, "2026-10-06", true, "open today");
   ["2026-10-07", "2026-12-31", "2027-01-01", "2027-10-07"].forEach(function (dateKey) {
@@ -239,8 +239,8 @@ if (arch && typeof arch.applyOsDoor === "function") {
   }
   if (arch.applyOsDoor("notes") !== false) fail("notes door did not land on the Hub");
   if (open.nodes["nav-drawer-title"].textContent !== "Main Menu Hub") fail("notes door title");
-  if (!open.nodes["btn-future-lock"].hidden) fail("hub shows the header lock");
-  if (arch.applyOsDoor("hub") !== false || !open.nodes["btn-future-lock"].hidden) fail("hub shows the header lock");
+  if (open.nodes["btn-future-lock"].hidden) fail("hub training tab hides the header lock");
+  if (arch.applyOsDoor("hub") !== false || open.nodes["btn-future-lock"].hidden) fail("hub training tab hides the header lock");
   if (arch.applyOsDoor("account") !== false || !open.nodes["btn-future-lock"].hidden) fail("account shows the lock");
   if (arch.applyOsDoor("training") !== true || open.nodes["btn-future-lock"].hidden) fail("training lock did not return");
 } else {

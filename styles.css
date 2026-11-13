@@ -101,14 +101,14 @@ button, a, input, label {
   position: relative;
   background: transparent;
   text-align: left;
-  padding: 10px 12px 6px;
+  padding: 14px 12px 10px;
 }
 
 .brand-bar {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
 }
 
 .nav-toggle {
@@ -205,7 +205,7 @@ h1 {
 }
 
 .schedule-mode {
-  margin: 6px 0 0;
+  margin: 10px 0 0;
   color: #d8b4fe;
   font-size: 0.72rem;
   font-weight: 800;
@@ -218,7 +218,9 @@ body.is-hub .schedule-mode {
   display: none;
 }
 
-body.is-hub .card > .ambient-field {
+body.is-hub .card > .ambient-field,
+body.is-account .card > .ambient-field,
+body.is-cards .card > .ambient-field {
   display: none;
 }
 
@@ -226,9 +228,9 @@ body.is-hub .card > .ambient-field {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 1px;
+  gap: 4px;
   flex: 0 0 auto;
-  max-width: 42%;
+  max-width: 38%;
   padding-top: 1px;
   text-align: right;
 }
@@ -4191,6 +4193,13 @@ body.is-food .storage-note {
   text-align: center;
 }
 
+.hub-daily.is-pinned {
+  margin: 8px 8px 4px;
+  text-align: left;
+  font-weight: 800;
+  color: #ff8a00;
+}
+
 .hub-days {
   display: flex;
   flex-direction: column;
@@ -4589,6 +4598,7 @@ body.is-food .storage-note {
   font: inherit;
   font-weight: 800;
 }
+.account-unit button { min-height: 44px; min-width: 44px; }
 .account-actions { display: flex; gap: 8px; }
 .account-week, .account-empty { color: #f6eefe; font-size: 0.9rem; }
 .account-week { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
@@ -4754,6 +4764,11 @@ body.is-deck #banner-coach {
   line-height: 1;
 }
 
+.deck-step-btn:disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
 .deck-step-label {
   margin: 0;
   text-align: center;
@@ -4914,8 +4929,11 @@ body.is-deck #banner-coach {
 .deck-overlay-title { font-size: 18px; }
 
 .deck-x {
+  flex: 0 0 44px;
   width: 44px;
   height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 12px;
   background: var(--container);
   color: var(--text);
@@ -5168,8 +5186,10 @@ body.is-card-open { touch-action: none; }
 .deck-topbar .deck-x-fixed {
   position: static;
   flex: 0 0 auto;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
 }
 
 .deck-topbar-copy {
@@ -5773,7 +5793,7 @@ body.is-cards #banner-coach {
   justify-content: center;
   gap: 4px;
   min-height: 64px;
-  padding: 8px;
+  padding: 8px 48px 8px 8px;
   border: 0;
   border-radius: 12px;
   background: #150724;
@@ -5804,13 +5824,16 @@ body.is-cards #banner-coach {
   position: absolute;
   top: 4px;
   right: 4px;
-  width: 22px;
-  height: 22px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 10px;
   background: transparent;
   color: #cbb6e4;
   font: inherit;
+  font-size: 22px;
   line-height: 1;
 }
 
@@ -5864,9 +5887,11 @@ body.is-cards #banner-coach {
 }
 
 .plan-pick {
-  flex: 0 0 18px;
-  width: 18px;
-  height: 22px;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border: 1px solid rgba(216, 180, 254, 0.45);
   border-radius: 6px;
   background: #150724;
