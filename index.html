@@ -443,7 +443,7 @@
       var meta = document.querySelector('meta[name="relic-build"]');
       var build = meta ? meta.getAttribute("content") : "";
       var tag = document.getElementById("nexus-build");
-      if (tag && build) tag.textContent = build;
+      if (tag && build) tag.textContent = "Nexus " + build;
       try {
         if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
           navigator.serviceWorker.getRegistrations().then(function (list) {

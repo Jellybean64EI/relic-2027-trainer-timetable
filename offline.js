@@ -100,8 +100,13 @@
 
   function paintUpdate() {
     var el = document.getElementById("update-pill");
+    var ready = !!(waitingWorker && pending === 0 && !playerBusy() && navigator.serviceWorker && navigator.serviceWorker.controller);
+    var tag = document.getElementById("nexus-build");
+    var meta = document.querySelector('meta[name="relic-build"]');
+    var build = meta ? meta.getAttribute("content") : "";
+    if (tag && build) tag.textContent = "Nexus " + build + (ready ? " · update ready" : "");
     if (!el) return;
-    if (!waitingWorker || pending > 0 || playerBusy() || !navigator.serviceWorker || !navigator.serviceWorker.controller) {
+    if (!ready) {
       el.hidden = true;
       return;
     }

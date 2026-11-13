@@ -100,7 +100,7 @@ async function touchPath(client, page, points, sample) {
     await page.goto("http://127.0.0.1:8080/?v=v100", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusCards && window.NexusCueEdit; });
     var build = await page.locator("#nexus-build").innerText();
-    if (build !== "v100") fail(width + " menu build tag is " + build);
+    if (build !== "Nexus v100") fail(width + " menu build tag is " + build);
     else ok(width + " menu shows v100");
     await page.evaluate(function (cue) {
       var archive = window.RELIC_VIDEO_ARCHIVE.cabins.Back.playlist;

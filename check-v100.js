@@ -212,6 +212,15 @@ function playwright() {
   var page = await context.newPage();
   await page.goto("http://127.0.0.1:8080/?v=v100", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return window.RelicArchitect && navigator.serviceWorker.controller && window.nexusNoteUpdate; }, null, { timeout: 20000 });
+  var resting = await page.evaluate(function () {
+    var meta = document.querySelector('meta[name="relic-build"]').getAttribute("content");
+    var tag = document.getElementById("nexus-build");
+    var style = getComputedStyle(tag);
+    return { text: tag.textContent, meta: meta, size: parseFloat(style.fontSize), align: style.textAlign };
+  });
+  if (resting.text !== "Nexus " + resting.meta || resting.size > 12 || resting.align !== "center") {
+    fail("the drawer version is not the build tag " + JSON.stringify(resting));
+  } else ok("the drawer shows Nexus " + resting.meta);
   await page.evaluate(function () {
     window.onerror("Same boom", "app.js", 4);
     window.onerror("Same boom", "app.js", 4);
@@ -255,19 +264,35 @@ function playwright() {
       aboveCard: box.bottom <= card.top + 1
     };
   });
-  if (shown.hidden || shown.text !== "Update ready · tap to refresh" || !shown.belowClock || !shown.aboveCard || shown.color.indexOf("255, 140, 0") === -1) {
-    fail("the update pill is wrong " + JSON.stringify(shown));
+  var versionWhileWaiting = await page.evaluate(function () { return document.getElementById("nexus-build").textContent; });
+  if (shown.hidden || shown.text !== "Update ready · tap to refresh" || versionWhileWaiting !== "Nexus v100 · update ready" || !shown.belowClock || !shown.aboveCard || shown.color.indexOf("255, 140, 0") === -1) {
+    fail("the update pill is wrong " + JSON.stringify(shown) + " " + versionWhileWaiting);
   } else ok("the update pill sits under the clock");
   await page.screenshot({ path: "/opt/cursor/artifacts/v100-update-pill.png" });
+  await page.evaluate(function () {
+    var toast = document.getElementById("deck-toast");
+    if (toast) toast.style.display = "none";
+  });
+  await page.locator("#btn-nav-toggle").click();
+  await page.waitForTimeout(450);
+  await page.screenshot({ path: "/opt/cursor/artifacts/v100-drawer-version.png" });
+  await page.locator("#btn-nav-toggle").click();
+  await page.waitForTimeout(200);
   var hiddenWhilePlaying = await page.evaluate(async function () {
     document.body.classList.add("player-open");
     await new Promise(function (resolve) { setTimeout(resolve, 40); });
     var hidden = document.getElementById("update-pill").hidden;
+    var during = document.getElementById("nexus-build").textContent;
     document.body.classList.remove("player-open");
     await new Promise(function (resolve) { setTimeout(resolve, 40); });
-    return { hidden: hidden, back: document.getElementById("update-pill").hidden === false };
+    return {
+      hidden: hidden,
+      during: during,
+      back: document.getElementById("update-pill").hidden === false,
+      label: document.getElementById("nexus-build").textContent
+    };
   });
-  if (!hiddenWhilePlaying.hidden || !hiddenWhilePlaying.back) fail("the pill shows over a video " + JSON.stringify(hiddenWhilePlaying));
+  if (!hiddenWhilePlaying.hidden || hiddenWhilePlaying.during !== "Nexus v100" || !hiddenWhilePlaying.back || hiddenWhilePlaying.label !== "Nexus v100 · update ready") fail("the pill shows over a video " + JSON.stringify(hiddenWhilePlaying));
   else ok("the pill waits until the video closes");
   await context.setOffline(true);
   await page.evaluate(function () {
