@@ -1,4 +1,4 @@
-/* Owner session and signed video URLs. The passcode never stays in this file. */
+/* Owner session and the full-screen sign-in page. The passcode never stays in this file. */
 (function () {
   var TOKEN_KEY = "nexus-session";
   var queue = [];
@@ -17,9 +17,55 @@
     } catch (err) { /* private mode */ }
   }
 
+  function clearVideoMemory() {
+    var key;
+    for (key in cache) {
+      if (Object.prototype.hasOwnProperty.call(cache, key)) delete cache[key];
+    }
+    queue.splice(0, queue.length);
+    for (key in waiting) {
+      if (Object.prototype.hasOwnProperty.call(waiting, key)) delete waiting[key];
+    }
+    signing = null;
+  }
+
+  function signinRoot() {
+    return document.getElementById("nexus-signin");
+  }
+
+  function showSignIn() {
+    document.documentElement.classList.add("is-signed-out");
+    var root = signinRoot();
+    if (root) root.hidden = false;
+  }
+
+  function hideSignIn() {
+    document.documentElement.classList.remove("is-signed-out");
+    var root = signinRoot();
+    if (!root) return;
+    root.hidden = true;
+    root.classList.remove("is-error", "is-rate");
+    var note = document.getElementById("signin-error");
+    if (note) {
+      note.hidden = true;
+      note.textContent = "";
+    }
+    var input = document.getElementById("nexus-passcode");
+    if (input) input.value = "";
+  }
+
+  function signOut() {
+    setToken("");
+    clearVideoMemory();
+    var input = document.getElementById("nexus-passcode");
+    if (input) input.value = "";
+    showSignIn();
+    window.dispatchEvent(new Event("nexus-logout"));
+  }
+
   window.NexusAuth = {
     token: token,
-    logout: function () { setToken(""); },
+    logout: signOut,
     login: function (passcode) {
       var api = window.NEXUS_API || {};
       return fetch(String(api.base || "").replace(/\/$/, "") + "/auth/login", {
@@ -41,51 +87,67 @@
     }
   };
 
-  function prompt() {
-    var existing = document.getElementById("nexus-login");
-    if (existing) {
-      existing.hidden = false;
-      return;
+  function messageFor(err) {
+    var status = err && err.status;
+    var text = err && err.message ? err.message : "";
+    if (status === 429) return "Too many tries. Wait 15 minutes. You can try 5 times every 15 minutes.";
+    if (status === 503 || status === 404 || /X-Nexus-Key|unknown route/i.test(text)) return "Sign-in is not ready yet.";
+    return "That passcode was not accepted.";
+  }
+
+  function bindSignIn() {
+    var root = signinRoot();
+    var form = document.getElementById("nexus-signin-form");
+    if (!root || !form || form.dataset.bound) return;
+    form.dataset.bound = "1";
+    var eye = document.getElementById("toggle-eye");
+    if (eye) {
+      eye.addEventListener("click", function () {
+        var input = document.getElementById("nexus-passcode");
+        if (!input) return;
+        var show = input.type === "password";
+        input.type = show ? "text" : "password";
+        eye.setAttribute("aria-pressed", show ? "true" : "false");
+        eye.setAttribute("aria-label", show ? "Hide passcode" : "Show passcode");
+      });
     }
-    var wrap = document.createElement("div");
-    wrap.id = "nexus-login";
-    wrap.className = "pre-send";
-    wrap.innerHTML = '<form class="plan-sheet-card" id="nexus-login-form">' +
-      '<h2 class="plan-sheet-title">Nexus</h2>' +
-      '<p class="pre-status">Enter the owner passcode to save.</p>' +
-      '<input class="pre-day" id="nexus-passcode" type="password" autocomplete="current-password" aria-label="Passcode">' +
-      '<p class="pre-status" id="nexus-login-error" hidden></p>' +
-      '<button type="submit" class="sched-save">Continue</button>' +
-      '</form>';
-    document.body.appendChild(wrap);
-    wrap.querySelector("form").addEventListener("submit", function (event) {
+    form.addEventListener("submit", function (event) {
       event.preventDefault();
       var input = document.getElementById("nexus-passcode");
-      var note = document.getElementById("nexus-login-error");
-      window.NexusAuth.login(input.value).then(function () {
-        wrap.hidden = true;
-        input.value = "";
+      var note = document.getElementById("signin-error");
+      window.NexusAuth.login(input ? input.value : "").then(function () {
+        hideSignIn();
         if (window.NexusOutbox && window.NexusOutbox.replay) window.NexusOutbox.replay();
         if (window.NexusVideo && window.NexusVideo.flush) window.NexusVideo.flush();
+        window.dispatchEvent(new Event("nexus-signed-in"));
       }).catch(function (err) {
+        if (!note) return;
         note.hidden = false;
-        var text = err && err.message ? err.message : "";
-        var notReady = err && (err.status === 503 || err.status === 404 || /X-Nexus-Key|unknown route/i.test(text));
-        note.textContent = notReady ? "Sign-in is not ready yet." : "That passcode was not accepted.";
+        note.textContent = messageFor(err);
+        root.classList.toggle("is-rate", !!(err && err.status === 429));
+        root.classList.toggle("is-error", !(err && err.status === 429));
       });
     });
   }
 
   window.addEventListener("nexus-unauthorized", function () {
-    if (document.getElementById("nexus-login")) document.getElementById("nexus-login").hidden = false;
-    else prompt();
+    if (!token()) {
+      showSignIn();
+      return;
+    }
+    signOut();
   });
 
   document.addEventListener("click", function (event) {
     var button = event.target && event.target.closest && event.target.closest("#account-logout");
     if (!button) return;
-    window.NexusAuth.logout();
+    event.preventDefault();
+    signOut();
   });
+
+  if (token()) hideSignIn();
+  else showSignIn();
+  bindSignIn();
 
   function cached(key) {
     var row = cache[key];

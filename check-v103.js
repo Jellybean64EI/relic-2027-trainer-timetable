@@ -1,4 +1,4 @@
-/* Nexus v103: owner session, protected reads, signed video URLs, CORS. */
+/* Nexus v104: owner session, protected reads, signed video URLs, CORS. */
 var fs = require("fs");
 var failed = 0;
 
@@ -17,9 +17,9 @@ var sw = fs.readFileSync("sw.js", "utf8");
 var vercel = fs.readFileSync("vercel.json", "utf8");
 if (/key:\s*"/.test(config)) fail("the public write key is still in the frontend");
 else ok("the public write key is gone from the frontend");
-if (html.indexOf('content="v103"') === -1) fail("cache stamp is not v103");
-else ok("cache stamp is v103");
-if (sw.indexOf('CACHE = "nexus-v103"') === -1 || sw.indexOf('pathname.indexOf("/v/")') === -1) fail("the shell still caches signed video");
+if (html.indexOf('content="v104"') === -1) fail("cache stamp is not v104");
+else ok("cache stamp is v104");
+if (sw.indexOf('CACHE = "nexus-v104"') === -1 || sw.indexOf('pathname.indexOf("/v/")') === -1) fail("the shell still caches signed video");
 else ok("the shell does not cache signed video");
 if (vercel.indexOf("frame-ancestors 'none'") === -1 || vercel.indexOf("X-Content-Type-Options") === -1) fail("security headers are missing");
 else ok("security headers are in vercel.json");

@@ -15,8 +15,8 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v103"') === -1 || app.indexOf('build: "v103"') === -1) fail("cache stamp is not v103");
-else ok("cache stamp is v103");
+if (html.indexOf('content="v104"') === -1 || app.indexOf('build: "v104"') === -1) fail("cache stamp is not v104");
+else ok("cache stamp is v104");
 if (app.indexOf("function cuePanelTarget") === -1 || app.indexOf('!node.closest(".deck-video")') === -1) {
   fail("video swipes are not limited to the video");
 } else ok("only a swipe that starts on the video changes clips");
@@ -98,10 +98,11 @@ async function touchPath(client, page, points, sample) {
       isMobile: true,
       userAgent: "Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
     });
+    await require("./tools/regression-session").arm(context);
     var page = await context.newPage();
     var client = await context.newCDPSession(page);
     await client.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
-    await page.goto("http://127.0.0.1:8080/?v=v103", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v104", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusCards && window.NexusCueEdit; });
     await page.evaluate(function () {
       var archive = window.RELIC_VIDEO_ARCHIVE.cabins.Back.playlist;

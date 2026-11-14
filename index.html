@@ -2,21 +2,55 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <script>
+    (function () {
+      try {
+        if (!localStorage.getItem("nexus-session")) document.documentElement.classList.add("is-signed-out");
+      } catch (err) {
+        document.documentElement.classList.add("is-signed-out");
+      }
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta name="theme-color" content="#0b0216" />
-  <meta name="relic-build" content="v103" />
+  <meta name="relic-build" content="v104" />
   <title>Nexus</title>
   <link rel="icon" href="favicon.ico" sizes="48x48" />
   <link rel="icon" href="assets/nexus-icon-192.png" type="image/png" sizes="192x192" />
   <link rel="icon" href="assets/nexus-icon.png" type="image/png" sizes="512x512" />
   <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180" />
-  <link rel="manifest" href="manifest.webmanifest?v=v103" />
-  <link rel="stylesheet" href="styles.css?v=v103" />
-  <link rel="stylesheet" href="pre2026.css?v=v103" />
+  <link rel="manifest" href="manifest.webmanifest?v=v104" />
+  <link rel="stylesheet" href="styles.css?v=v104" />
+  <link rel="stylesheet" href="pre2026.css?v=v104" />
 </head>
 <body>
+  <main class="signin" id="nexus-signin" hidden>
+    <div class="signin-main">
+      <div class="icon-wrap">
+        <img src="assets/nexus-icon.png" width="108" height="108" alt="Nexus" />
+      </div>
+      <h1>Sign in</h1>
+      <p class="lede">Enter your owner passcode</p>
+      <form id="nexus-signin-form" action="#" method="post" autocomplete="on">
+        <label class="field-label" for="nexus-passcode">Passcode</label>
+        <div class="field">
+          <input id="nexus-passcode" name="passcode" type="password" autocomplete="current-password" aria-label="Passcode" />
+          <button type="button" class="eye" id="toggle-eye" aria-label="Show passcode" aria-pressed="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+        <p class="keep">Keep me signed in 30 days.</p>
+        <p class="note" id="signin-error" hidden></p>
+        <button type="submit" class="submit">Sign in</button>
+      </form>
+    </div>
+    <p class="foot">Nexus · secure</p>
+  </main>
   <div class="wrap">
     <article class="card" id="relic-card" data-month="1" data-phase="Base">
       <div class="ambient-field" aria-hidden="true">
@@ -416,32 +450,32 @@
     </div>
   </div>
 
-  <script src="data/schedule.js?v=v103"></script>
-  <script src="data/precondition.js?v=v103"></script>
-  <script src="data/upperBody.js?v=v103"></script>
-  <script src="data/citations.js?v=v103"></script>
-  <script src="data/forensic.js?v=v103"></script>
-  <script src="data/cues/cues.js?v=v103"></script>
-  <script src="data/forensicClips.js?v=v103"></script>
-  <script src="data/videoArchive.js?v=v103"></script>
-  <script src="data/nutrition/shop.js?v=v103"></script>
-  <script src="data/nutrition/schedule.js?v=v103"></script>
-  <script src="food.js?v=v103"></script>
-  <script src="data/nexusConfig.js?v=v103"></script>
-  <script src="auth.js?v=v103"></script>
-  <script src="offline.js?v=v103"></script>
-  <script src="deck.js?v=v103"></script>
-  <script src="data/videoCatalog.js?v=v103"></script>
-  <script src="tools/v64_placement.js?v=v103"></script>
-  <script src="trim.js?v=v103"></script>
-  <script src="builder.js?v=v103"></script>
-  <script src="pre2026.js?v=v103"></script>
-  <script src="cards.js?v=v103"></script>
-  <script src="data/cueModel.js?v=v103"></script>
-  <script src="data/cueEditor.js?v=v103"></script>
-  <script src="data/playerChrome.js?v=v103"></script>
-  <script src="account.js?v=v103"></script>
-  <script src="app.js?v=v103"></script>
+  <script src="data/schedule.js?v=v104"></script>
+  <script src="data/precondition.js?v=v104"></script>
+  <script src="data/upperBody.js?v=v104"></script>
+  <script src="data/citations.js?v=v104"></script>
+  <script src="data/forensic.js?v=v104"></script>
+  <script src="data/cues/cues.js?v=v104"></script>
+  <script src="data/forensicClips.js?v=v104"></script>
+  <script src="data/videoArchive.js?v=v104"></script>
+  <script src="data/nutrition/shop.js?v=v104"></script>
+  <script src="data/nutrition/schedule.js?v=v104"></script>
+  <script src="food.js?v=v104"></script>
+  <script src="data/nexusConfig.js?v=v104"></script>
+  <script src="auth.js?v=v104"></script>
+  <script src="offline.js?v=v104"></script>
+  <script src="deck.js?v=v104"></script>
+  <script src="data/videoCatalog.js?v=v104"></script>
+  <script src="tools/v64_placement.js?v=v104"></script>
+  <script src="trim.js?v=v104"></script>
+  <script src="builder.js?v=v104"></script>
+  <script src="pre2026.js?v=v104"></script>
+  <script src="cards.js?v=v104"></script>
+  <script src="data/cueModel.js?v=v104"></script>
+  <script src="data/cueEditor.js?v=v104"></script>
+  <script src="data/playerChrome.js?v=v104"></script>
+  <script src="account.js?v=v104"></script>
+  <script src="app.js?v=v104"></script>
   <script>
     (function () {
       var meta = document.querySelector('meta[name="relic-build"]');

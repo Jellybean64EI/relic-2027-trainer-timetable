@@ -15,8 +15,8 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v103"') === -1 || app.indexOf('build: "v103"') === -1) fail("cache stamp is not v103");
-else ok("cache stamp is v103");
+if (html.indexOf('content="v104"') === -1 || app.indexOf('build: "v104"') === -1) fail("cache stamp is not v104");
+else ok("cache stamp is v104");
 if (html.indexOf('data-os-panel="account"') === -1 || app.indexOf('account: "Account Profile"') === -1) fail("account is not a page");
 else ok("account is a page");
 if (html.indexOf("coming soon") !== -1 || html.indexOf('id="account-banner"') !== -1 || app.indexOf("showAccountBanner") !== -1) {
@@ -92,6 +92,7 @@ async function goDoor(page, client, name) {
       deviceScaleFactor: setups[s].dpr,
       userAgent: "Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
     });
+    await require("./tools/regression-session").arm(context);
     var page = await context.newPage();
     var client = await context.newCDPSession(page);
     await client.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
@@ -103,7 +104,7 @@ async function goDoor(page, client, name) {
         mobile: true
       });
     }
-    await page.goto("http://127.0.0.1:8080/?v=v103", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v104", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && document.getElementById("page-title"); });
     await page.evaluate(function () {
       var toast = document.getElementById("deck-toast");
