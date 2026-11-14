@@ -1,4 +1,4 @@
-/* Nexus v102: the temporary 2026 Pre Schedules cabin. */
+/* Nexus v103: the temporary 2026 Pre Schedules cabin. */
 var fs = require("fs");
 var failed = 0;
 
@@ -15,16 +15,16 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var sw = fs.readFileSync("sw.js", "utf8");
 var config = fs.readFileSync("data/nexusConfig.js", "utf8");
-if (html.indexOf('content="v102"') === -1 || app.indexOf('build: "v102"') === -1) fail("cache stamp is not v102");
-else ok("cache stamp is v102");
-if (html.indexOf("pre2026.css?v=v102") === -1 || html.indexOf("pre2026.js?v=v102") === -1) fail("the includes are missing");
+if (html.indexOf('content="v103"') === -1 || app.indexOf('build: "v103"') === -1) fail("cache stamp is not v103");
+else ok("cache stamp is v103");
+if (html.indexOf("pre2026.css?v=v103") === -1 || html.indexOf("pre2026.js?v=v103") === -1) fail("the includes are missing");
 else if (html.indexOf('data-os-door="pre2026"') !== -1 || html.indexOf('id="pre2026-root"') !== -1) fail("the cabin is hard-coded in the page");
 else ok("the cabin is included, not hard-coded");
 if (config.indexOf("PRE2026_ENABLED") === -1 || config.indexOf("2026-12-31") === -1) fail("the flag is missing");
 else ok("the flag turns off after 31 Dec 2026");
 if (app.indexOf("pre2026-hook") === -1 || fs.readFileSync("builder.js", "utf8").indexOf("pre2026-hook") === -1) fail("the hooks are missing");
 else ok("the hooks are marked");
-if (sw.indexOf('CACHE = "nexus-v102"') === -1 || sw.indexOf("/pre2026.js?v=v102") === -1 || sw.indexOf("/pre2026.css?v=v102") === -1) fail("the shell cache missed the cabin");
+if (sw.indexOf('CACHE = "nexus-v103"') === -1 || sw.indexOf("/pre2026.js?v=v103") === -1 || sw.indexOf("/pre2026.css?v=v103") === -1) fail("the shell cache missed the cabin");
 else ok("the shell cache includes the cabin");
 
 function playwright() {
@@ -59,7 +59,7 @@ function playwright() {
     return route.continue();
   });
   var page = await context.newPage();
-  await page.goto("http://127.0.0.1:8080/?v=v102", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v103", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return window.RelicArchitect && document.querySelector('[data-os-door="pre2026"]'); }, null, { timeout: 20000 });
   await page.locator("#btn-nav-toggle").click();
   await page.waitForTimeout(400);
@@ -73,7 +73,7 @@ function playwright() {
       accountAfter: !!(account && pre && pre.compareDocumentPosition(account) & Node.DOCUMENT_POSITION_FOLLOWING)
     };
   });
-  if (menu.labels.join("|") !== "Training and Meal Schedules Hub|2026 Pre Schedules" || menu.build !== "Nexus v102" || !menu.accountAfter) {
+  if (menu.labels.join("|") !== "Training and Meal Schedules Hub|2026 Pre Schedules" || menu.build !== "Nexus v103" || !menu.accountAfter) {
     fail("the drawer row is wrong " + JSON.stringify(menu));
   } else ok("the drawer lists Hub, 2026 Pre, then Account");
   ticks = [];
@@ -162,7 +162,7 @@ function playwright() {
     route.fulfill({ contentType: "text/javascript", body: configText + "\nwindow.PRE2026_ENABLED = false;\n" });
   });
   var offPage = await off.newPage();
-  await offPage.goto("http://127.0.0.1:8080/?v=v102", { waitUntil: "domcontentloaded" });
+  await offPage.goto("http://127.0.0.1:8080/?v=v103", { waitUntil: "domcontentloaded" });
   await offPage.waitForFunction(function () { return window.RelicArchitect; });
   await offPage.waitForTimeout(400);
   var gone = await offPage.evaluate(function () {

@@ -1,4 +1,4 @@
-/* Nexus v102: the 2027 board stays hidden on the 2026 Pre page. */
+/* Nexus v103: the 2027 board stays hidden on the 2026 Pre page. */
 var fs = require("fs");
 var failed = 0;
 
@@ -14,10 +14,10 @@ function ok(message) {
 var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var sw = fs.readFileSync("sw.js", "utf8");
-if (html.indexOf('content="v102"') === -1 || app.indexOf('build: "v102"') === -1) fail("cache stamp is not v102");
-else ok("cache stamp is v102");
-if (sw.indexOf('CACHE = "nexus-v102"') === -1) fail("the shell cache is not v102");
-else ok("the shell cache is v102");
+if (html.indexOf('content="v103"') === -1 || app.indexOf('build: "v103"') === -1) fail("cache stamp is not v103");
+else ok("cache stamp is v103");
+if (sw.indexOf('CACHE = "nexus-v103"') === -1) fail("the shell cache is not v103");
+else ok("the shell cache is v103");
 if (fs.readFileSync("pre2026.css", "utf8").indexOf("body.is-pre2026 #training-board") === -1) fail("the 2027 board is not hidden");
 else ok("the 2027 board is hidden in the cabin stylesheet");
 
@@ -72,7 +72,7 @@ function playwright() {
         label: document.getElementById("nexus-build").textContent
       };
     }, SELECTORS);
-    if (!hidden.root || hidden.bad.length || hidden.label !== "Nexus v102") {
+    if (!hidden.root || hidden.bad.length || hidden.label !== "Nexus v103") {
       fail(width + " the 2027 board still shows " + JSON.stringify(hidden));
     } else ok(width + " only the 2026 Pre page shows");
     await page.locator("#pre2026-root .page-back").click();

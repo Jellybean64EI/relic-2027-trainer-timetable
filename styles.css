@@ -7414,3 +7414,13 @@ body.vc-quick-open { overflow: hidden; }
   background: #12051d;
   border-radius: 12px;
 }
+
+#nexus-login {
+  align-items: center;
+  padding: 24px 16px 120px;
+  z-index: 90;
+}
+
+#nexus-login .plan-sheet-card {
+  width: min(420px, 100%);
+}

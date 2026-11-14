@@ -38,7 +38,7 @@ The Worker is nexus-api v69 and was not changed for v70. These routes still exis
 - `DELETE /videos?r2Key=`
 - `/video-object` for the cutter (not used by the page)
 
-Writes still need `X-Nexus-Key`.
+Writes need `Authorization: Bearer` from `POST /auth/login`. Until `LEGACY_KEY_ACCEPTED` is `false`, `X-Nexus-Key` still works for the nightly cutter.
 
 ## Cutter
 

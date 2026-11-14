@@ -1,6 +1,10 @@
 # Live worker. Do not deploy from a machine that is not logged in.
-# Secrets (wrangler secret put, never in this file): NEXUS_KEY, BACKUP_TOKEN, GITHUB_ALERT_TOKEN
+# Secrets (wrangler secret put, never in this file):
+#   NEXUS_KEY, BACKUP_TOKEN, GITHUB_ALERT_TOKEN, OWNER_PASSCODE, SESSION_SECRET, VIDEO_SIGNING_KEY
+# Var: LEGACY_KEY_ACCEPTED = "true" until the old key is retired, then "false"
 # Vars already on the worker, left untouched here: PUBLIC_R2_URL, PUBLIC_VIDEOS_URL
+# Rate limits use the D1 table rate_hits. The Workers ratelimit binding was not
+# confirmed on this free account, so it is not declared.
 name = "nexus-api"
 main = "nexus-api.js"
 compatibility_date = "2026-10-01"

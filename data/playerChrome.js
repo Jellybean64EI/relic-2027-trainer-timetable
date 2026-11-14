@@ -6,7 +6,7 @@ window.NexusPlay = (function () {
   var scheduleTokens = [];
 
   function keyFromSrc(src) {
-    var match = String(src || "").match(/r2\.dev\/([^?#]+)/);
+    var match = String(src || "").match(/r2\.dev\/([^?#]+)/) || String(src || "").match(/\/v\/([^?#]+)/);
     if (!match) return "";
     try { return decodeURIComponent(match[1]); } catch (err) { return match[1]; }
   }
@@ -244,6 +244,20 @@ if (typeof document !== "undefined") {
     var host = document.getElementById("vc-px-corners");
     if (host) window.NexusPlay.mountPair(host, "vc-px-mute");
   };
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mountCabinChrome);
-  else mountCabinChrome();
+  function hardenVideos() {
+    document.querySelectorAll("video").forEach(function (video) {
+      video.setAttribute("controlsList", "nodownload");
+      video.disablePictureInPicture = true;
+      video.setAttribute("disablepictureinpicture", "");
+      if (video.dataset.nexusNoMenu) return;
+      video.dataset.nexusNoMenu = "1";
+      video.addEventListener("contextmenu", function (event) { event.preventDefault(); });
+    });
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () { mountCabinChrome(); hardenVideos(); });
+  } else {
+    mountCabinChrome();
+    hardenVideos();
+  }
 }

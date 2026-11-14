@@ -189,6 +189,10 @@
           sent += 1;
           return deleteItem(item.id).then(function () { return next(index + 1); });
         }).catch(function (err) {
+          if (err && err.status === 401) {
+            window.dispatchEvent(new Event("nexus-unauthorized"));
+            return sent;
+          }
           if (err && err.status && err.status < 500 && err.status !== 408 && err.status !== 429) {
             return deleteItem(item.id).then(function () { return next(index + 1); });
           }
@@ -272,7 +276,10 @@
     if (!options.idempotencyKey && !(options.headers && options.headers["X-Idempotency-Key"])) return original(path, options);
     var api = window.NEXUS_API || {};
     var method = String(options.method || "GET").toUpperCase();
-    var headers = { "Content-Type": "application/json", "X-Nexus-Key": api.key || "" };
+    var headers = { "Content-Type": "application/json" };
+    var session = "";
+    try { session = localStorage.getItem("nexus-session") || ""; } catch (err) { session = ""; }
+    if (session) headers.Authorization = "Bearer " + session;
     headers["X-Idempotency-Key"] = options.idempotencyKey || options.headers["X-Idempotency-Key"];
     var url = String(api.base || "").replace(/\/$/, "") + path;
     return fetch(url, {
@@ -379,5 +386,6 @@
     var reason = event && event.reason;
     queueError(reason && reason.message ? reason.message : reason, "unhandledrejection");
   });
+  window.NexusOutbox = { replay: replay };
   refreshCount().then(function () { replay(); });
 })();
