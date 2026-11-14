@@ -15,8 +15,8 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var deck = fs.readFileSync("deck.js", "utf8");
-if (html.indexOf('content="v103"') === -1 || app.indexOf('build: "v103"') === -1) fail("cache stamp is not v103");
-else ok("cache stamp is v103");
+if (html.indexOf('content="v104"') === -1 || app.indexOf('build: "v104"') === -1) fail("cache stamp is not v104");
+else ok("cache stamp is v104");
 if (html.indexOf('rel="icon"') === -1 || html.indexOf("assets/nexus-icon.png") === -1 || html.indexOf("apple-touch-icon.png") === -1) fail("favicon link is missing");
 else ok("favicon is linked");
 if (html.indexOf('id="hub-daily"') === -1 || deck.indexOf('body.appendChild(el("p", "hub-daily"') !== -1) fail("Brazil nuts are not pinned under the stepper");
@@ -49,6 +49,7 @@ function playwright() {
     deviceScaleFactor: 3.5,
     userAgent: "Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
   });
+  await require("./tools/regression-session").arm(context);
   var page = await context.newPage();
   var client = await context.newCDPSession(page);
   await client.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
@@ -61,7 +62,7 @@ function playwright() {
     var url = res.url();
     if (res.status() >= 400 && (url.indexOf("favicon") !== -1 || url.indexOf("nexus-icon") !== -1)) missing.push(res.status() + " " + url);
   });
-  await page.goto("http://127.0.0.1:8080/?v=v103&date=2026-11-13", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v104&date=2026-11-13", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return window.RelicArchitect; });
   await page.evaluate(function () {
     var toast = document.getElementById("deck-toast");

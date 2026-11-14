@@ -16,7 +16,7 @@ var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var chrome = fs.readFileSync("data/playerChrome.js", "utf8");
 
-if (html.indexOf('content="v103"') === -1 || app.indexOf('build: "v103"') === -1) fail("cache stamp is not v83");
+if (html.indexOf('content="v104"') === -1 || app.indexOf('build: "v104"') === -1) fail("cache stamp is not v83");
 else ok("cache stamp is v83");
 if (app.indexOf("HUD_IDLE_MS = 4000") === -1) fail("auto-hide is not 4 seconds");
 else ok("auto-hide waits 4 seconds");
@@ -67,7 +67,8 @@ function playwright() {
   var i;
   for (i = 0; i < widths.length; i++) {
     var page = await browser.newPage({ viewport: { width: widths[i], height: widths[i] === 390 ? 844 : 900 }, hasTouch: true });
-    await page.goto("http://127.0.0.1:8080/?v=v103", { waitUntil: "domcontentloaded" });
+    await require("./tools/regression-session").arm(page);
+    await page.goto("http://127.0.0.1:8080/?v=v104", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusPlay; });
     var srcs = await page.evaluate(function () {
       return window.RELIC_VIDEO_ARCHIVE.cabins.Back.playlist.slice(0, 2).map(function (clip) {
@@ -204,6 +205,7 @@ function playwright() {
 
   for (i = 0; i < widths.length; i++) {
     var expiry = await browser.newPage({ viewport: { width: widths[i], height: widths[i] === 390 ? 844 : 900 }, hasTouch: true });
+    await require("./tools/regression-session").arm(expiry);
     var tickPuts = [];
     await expiry.route("**/*", function (route) {
       if (route.request().method() === "PUT") {
@@ -211,12 +213,12 @@ function playwright() {
         route.fulfill({ status: 500, body: "" });
         return;
       }
-      route.continue();
+      route.fallback();
     });
     await expiry.addInitScript(function () {
       try { localStorage.removeItem("nexus_ticks_dirty_v2"); } catch (err) { /* private mode */ }
     });
-    await expiry.goto("http://127.0.0.1:8080/?v=v103&setsec=2", { waitUntil: "domcontentloaded" });
+    await expiry.goto("http://127.0.0.1:8080/?v=v104&setsec=2", { waitUntil: "domcontentloaded" });
     await expiry.waitForFunction(function () { return window.RelicArchitect && window.NexusPlay; });
     var primed = await expiry.evaluate(function () {
       window.RelicArchitect.setFutureLock(false);

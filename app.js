@@ -4275,7 +4275,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v103",
+    build: "v104",
     planFocusDate: planFocusDate,
     openAccount: function (view) {
       if (window.RelicArchitectOpenAccount) window.RelicArchitectOpenAccount(view);
@@ -4330,6 +4330,26 @@
     setScheduleMode: setScheduleMode,
     MODE_LABEL: MODE_LABEL
   };
+
+  if (window.addEventListener) window.addEventListener("nexus-signed-in", function () {
+    state.osDoor = "hub";
+    state.hubTab = "schedules";
+    writeHubTab("schedules");
+    setNavOpen(false);
+    render();
+    paintOsDoors();
+  });
+
+  if (window.addEventListener) window.addEventListener("nexus-logout", function () {
+    setNavOpen(false);
+    var playerRoot = $("relic-player");
+    if (playerRoot && !playerRoot.hidden) closePlayer();
+    document.querySelectorAll("video").forEach(function (video) {
+      try { video.pause(); } catch (err) { /* already stopped */ }
+      video.removeAttribute("src");
+      try { video.load(); } catch (err2) { /* element is gone */ }
+    });
+  });
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", boot);

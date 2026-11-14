@@ -1,4 +1,4 @@
-/* Nexus v103: the 2027 board stays hidden on the 2026 Pre page. */
+/* Nexus v104: the 2027 board stays hidden on the 2026 Pre page. */
 var fs = require("fs");
 var failed = 0;
 
@@ -14,10 +14,10 @@ function ok(message) {
 var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var sw = fs.readFileSync("sw.js", "utf8");
-if (html.indexOf('content="v103"') === -1 || app.indexOf('build: "v103"') === -1) fail("cache stamp is not v103");
-else ok("cache stamp is v103");
-if (sw.indexOf('CACHE = "nexus-v103"') === -1) fail("the shell cache is not v103");
-else ok("the shell cache is v103");
+if (html.indexOf('content="v104"') === -1 || app.indexOf('build: "v104"') === -1) fail("cache stamp is not v104");
+else ok("cache stamp is v104");
+if (sw.indexOf('CACHE = "nexus-v104"') === -1) fail("the shell cache is not v104");
+else ok("the shell cache is v104");
 if (fs.readFileSync("pre2026.css", "utf8").indexOf("body.is-pre2026 #training-board") === -1) fail("the 2027 board is not hidden");
 else ok("the 2027 board is hidden in the cabin stylesheet");
 
@@ -49,6 +49,7 @@ function playwright() {
       isMobile: true,
       deviceScaleFactor: 2
     });
+    await require("./tools/regression-session").arm(context);
     var page = await context.newPage();
     await page.goto("http://127.0.0.1:8080/?door=pre2026", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () {
@@ -72,7 +73,7 @@ function playwright() {
         label: document.getElementById("nexus-build").textContent
       };
     }, SELECTORS);
-    if (!hidden.root || hidden.bad.length || hidden.label !== "Nexus v103") {
+    if (!hidden.root || hidden.bad.length || hidden.label !== "Nexus v104") {
       fail(width + " the 2027 board still shows " + JSON.stringify(hidden));
     } else ok(width + " only the 2026 Pre page shows");
     await page.locator("#pre2026-root .page-back").click();
@@ -99,6 +100,7 @@ function playwright() {
     await context.close();
   }
   var off = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  await require("./tools/regression-session").arm(off);
   var configText = fs.readFileSync("data/nexusConfig.js", "utf8");
   await off.route("**/data/nexusConfig.js*", function (route) {
     route.fulfill({ contentType: "text/javascript", body: configText + "\nwindow.PRE2026_ENABLED = false;\n" });

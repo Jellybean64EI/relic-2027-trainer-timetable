@@ -488,6 +488,16 @@ window.NexusAccount = (function () {
     });
   }
 
+  if (window.addEventListener) window.addEventListener("nexus-logout", function () {
+    profile = null;
+    weights = [];
+    loaded = false;
+    failed = false;
+    editing = false;
+    paintInfo();
+    paintWeight();
+  });
+
   return {
     refresh: refresh,
     bind: bind,

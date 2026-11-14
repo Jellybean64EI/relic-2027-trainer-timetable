@@ -15,8 +15,8 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v103"') === -1 || app.indexOf('build: "v103"') === -1) fail("cache stamp is not v103");
-else ok("cache stamp is v103");
+if (html.indexOf('content="v104"') === -1 || app.indexOf('build: "v104"') === -1) fail("cache stamp is not v104");
+else ok("cache stamp is v104");
 if (app.indexOf("bindCueSlides") !== -1 || app.indexOf('id="cue-slides"') !== -1) fail("the slide track is still built");
 else ok("the slide track is gone");
 if (app.indexOf("var CUE_STAGE_CAP = 1") === -1) fail("the sheet still has a second stage");
@@ -108,6 +108,7 @@ function readShift(page) {
       deviceScaleFactor: setups[s].dpr,
       userAgent: "Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
     });
+    await require("./tools/regression-session").arm(context);
     var page = await context.newPage();
     var client = await context.newCDPSession(page);
     await client.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
@@ -117,7 +118,7 @@ function readShift(page) {
       deviceScaleFactor: setups[s].dpr,
       mobile: true
     });
-    await page.goto("http://127.0.0.1:8080/?v=v103", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v104", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusCards && window.NexusCueEdit; });
     await page.evaluate(function (cue) {
       var archive = window.RELIC_VIDEO_ARCHIVE.cabins.Back.playlist;

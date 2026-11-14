@@ -7415,12 +7415,188 @@ body.vc-quick-open { overflow: hidden; }
   border-radius: 12px;
 }
 
-#nexus-login {
-  align-items: center;
-  padding: 24px 16px 120px;
-  z-index: 90;
+#account-logout {
+  margin-top: 8px;
 }
 
-#nexus-login .plan-sheet-card {
-  width: min(420px, 100%);
+html.is-signed-out .wrap,
+html.is-signed-out .nav-drawer,
+html.is-signed-out .nav-scrim,
+html.is-signed-out .deck-toast,
+html.is-signed-out .deck-overlay,
+html.is-signed-out #relic-player {
+  display: none !important;
 }
+
+#nexus-signin {
+  display: none;
+}
+
+html.is-signed-out #nexus-signin {
+  display: flex !important;
+}
+
+#nexus-signin {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  flex-direction: column;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 28px 24px calc(20px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(120% 70% at 50% 0%, rgba(109, 40, 217, 0.18) 0%, rgba(11, 2, 22, 0) 58%),
+    #0b0216;
+  color: var(--text);
+}
+
+#nexus-signin .signin-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-bottom: 12px;
+}
+
+#nexus-signin .icon-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 0 0 22px;
+}
+
+#nexus-signin .icon-wrap img {
+  width: 108px;
+  height: 108px;
+  border-radius: 24px;
+  display: block;
+  box-shadow: 0 0 0 1px rgba(255, 140, 0, 0.18), 0 0 28px rgba(255, 140, 0, 0.22);
+}
+
+#nexus-signin h1 {
+  margin: 0 0 8px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+#nexus-signin .lede {
+  margin: 0 0 28px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+#nexus-signin form { margin: 0; }
+
+#nexus-signin .field-label {
+  display: block;
+  margin: 0 0 8px;
+  color: var(--cite);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+#nexus-signin .field {
+  position: relative;
+  margin: 0 0 12px;
+}
+
+#nexus-signin .field input {
+  width: 100%;
+  min-height: 52px;
+  margin: 0;
+  padding: 12px 48px 12px 14px;
+  border: 1px solid rgba(216, 180, 254, 0.35);
+  border-radius: 14px;
+  background: #150724;
+  color: var(--text);
+  font: inherit;
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+  outline: none;
+}
+
+#nexus-signin .field input:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(255, 140, 0, 0.18);
+}
+
+#nexus-signin.is-error .field input,
+#nexus-signin.is-rate .field input {
+  border-color: rgba(255, 180, 180, 0.85);
+}
+
+#nexus-signin .eye {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--gold);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#nexus-signin .eye svg { display: block; width: 22px; height: 22px; }
+
+#nexus-signin .keep {
+  margin: 0 0 20px;
+  color: rgba(203, 182, 228, 0.85);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+#nexus-signin .submit {
+  width: 100%;
+  min-height: 52px;
+  margin: 0;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 14px;
+  background: #ff8c00;
+  color: #0b0216;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+#nexus-signin .note {
+  margin: 0 0 16px;
+  color: #ffb4b4;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: left;
+}
+
+#nexus-signin .note[hidden] { display: none; }
+
+#nexus-signin .foot {
+  flex: 0 0 auto;
+  margin: 0;
+  padding-top: 16px;
+  color: rgba(203, 182, 228, 0.62);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+}
+

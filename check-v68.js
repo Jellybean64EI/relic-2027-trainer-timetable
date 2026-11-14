@@ -40,7 +40,7 @@ if (cards.indexOf('Save trim "') === -1 || cards.indexOf("Reset this trim and pl
 if (cards.indexOf("Abs_Pelvic/1. Dead Bug Progression.mp4") !== -1) fail("the saved Dead Bug trim was hardcoded");
 if (trim.indexOf("if (!trim) return") === -1) fail("a player can cut a clip that has no saved trim");
 if (trim.indexOf("fastSeek") !== -1) fail("shared helper seeks with fastSeek");
-if (app.indexOf('build: "v103"') === -1 || html.indexOf('content="v103"') === -1 || html.indexOf("trim.js?v=v103") === -1 || html.indexOf("?v=v67") !== -1) {
+if (app.indexOf('build: "v104"') === -1 || html.indexOf('content="v104"') === -1 || html.indexOf("trim.js?v=v104") === -1 || html.indexOf("?v=v67") !== -1) {
   fail("cache stamp is not v77");
 }
 if (css.indexOf(".vc-quick-progress") === -1 || css.indexOf("height: 44px") === -1) fail("progress bar or trim track styling is missing");

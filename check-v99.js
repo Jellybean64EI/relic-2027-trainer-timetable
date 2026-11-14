@@ -14,8 +14,8 @@ function ok(message) {
 var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var sw = fs.readFileSync("sw.js", "utf8");
-if (html.indexOf('content="v103"') === -1 || app.indexOf('build: "v103"') === -1) fail("cache stamp is not v103");
-else ok("cache stamp is v103");
+if (html.indexOf('content="v104"') === -1 || app.indexOf('build: "v104"') === -1) fail("cache stamp is not v104");
+else ok("cache stamp is v104");
 var cacheName = (sw.match(/var CACHE = "([^"]+)"/) || [])[1];
 if (!cacheName || html.indexOf('register("sw.js"') === -1) fail("the service worker is not registered");
 else ok("the service worker is registered");
@@ -167,6 +167,7 @@ function playwright() {
     serviceWorkers: "allow",
     userAgent: "Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
   });
+  await require("./tools/regression-session").arm(context);
   var puts = [];
   var blockWrites = false;
   await context.route("https://nexus-api.joesearle.workers.dev/**", function (route) {
@@ -184,13 +185,13 @@ function playwright() {
     if (req.method() === "GET" && url.pathname === "/ticks") {
       return route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
     }
-    return route.continue();
+    return route.fallback();
   });
   var page = await context.newPage();
   var errors = [];
   page.on("console", function (msg) { if (msg.type() === "error") errors.push(msg.text()); });
   page.on("pageerror", function (err) { errors.push(String(err)); });
-  await page.goto("http://127.0.0.1:8080/?v=v103", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v104", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return window.RelicArchitect && navigator.serviceWorker.controller; }, null, { timeout: 20000 });
   await page.waitForFunction(async function (name) {
     var cache = await caches.open(name);

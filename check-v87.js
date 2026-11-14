@@ -16,8 +16,8 @@ var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 var vercel = fs.readFileSync("vercel.json", "utf8");
 
-if (html.indexOf('content="v103"') === -1 || app.indexOf('build: "v103"') === -1) fail("cache stamp is not v103");
-else ok("cache stamp is v103");
+if (html.indexOf('content="v104"') === -1 || app.indexOf('build: "v104"') === -1) fail("cache stamp is not v104");
+else ok("cache stamp is v104");
 if (html.indexOf('id="nexus-build"') === -1) fail("build tag is missing");
 else ok("build tag is in the menu");
 if (html.indexOf("serviceWorker.getRegistrations") === -1 || html.indexOf("nexus-seen-build") === -1) fail("old builds are not reloaded");
@@ -88,6 +88,7 @@ async function touchPath(client, page, points, sample) {
       deviceScaleFactor: setups[s].dpr,
       userAgent: "Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
     });
+    await require("./tools/regression-session").arm(context);
     var page = await context.newPage();
     var client = await context.newCDPSession(page);
     await client.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 5 });
@@ -97,11 +98,11 @@ async function touchPath(client, page, points, sample) {
       deviceScaleFactor: setups[s].dpr,
       mobile: true
     });
-    await page.goto("http://127.0.0.1:8080/?v=v103", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v104", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && window.NexusCards && window.NexusCueEdit; });
     var build = await page.locator("#nexus-build").innerText();
-    if (build !== "Nexus v103") fail(width + " menu build tag is " + build);
-    else ok(width + " menu shows v103");
+    if (build !== "Nexus v104") fail(width + " menu build tag is " + build);
+    else ok(width + " menu shows v104");
     await page.evaluate(function (cue) {
       var archive = window.RELIC_VIDEO_ARCHIVE.cabins.Back.playlist;
       var clip = archive.filter(function (row) { return /Wall Thoracic Stretch/.test(row.title || ""); })[0];
