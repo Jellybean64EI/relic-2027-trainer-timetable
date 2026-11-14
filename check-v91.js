@@ -15,8 +15,8 @@ var html = fs.readFileSync("index.html", "utf8");
 var app = fs.readFileSync("app.js", "utf8");
 var css = fs.readFileSync("styles.css", "utf8");
 
-if (html.indexOf('content="v102"') === -1 || app.indexOf('build: "v102"') === -1) fail("cache stamp is not v102");
-else ok("cache stamp is v102");
+if (html.indexOf('content="v103"') === -1 || app.indexOf('build: "v103"') === -1) fail("cache stamp is not v103");
+else ok("cache stamp is v103");
 if (html.indexOf('data-os-panel="account"') === -1 || app.indexOf('account: "Account Profile"') === -1) fail("account is not a page");
 else ok("account is a page");
 if (html.indexOf("coming soon") !== -1 || html.indexOf('id="account-banner"') !== -1 || app.indexOf("showAccountBanner") !== -1) {
@@ -103,7 +103,7 @@ async function goDoor(page, client, name) {
         mobile: true
       });
     }
-    await page.goto("http://127.0.0.1:8080/?v=v102", { waitUntil: "domcontentloaded" });
+    await page.goto("http://127.0.0.1:8080/?v=v103", { waitUntil: "domcontentloaded" });
     await page.waitForFunction(function () { return window.RelicArchitect && document.getElementById("page-title"); });
     await page.evaluate(function () {
       var toast = document.getElementById("deck-toast");
@@ -149,9 +149,9 @@ async function goDoor(page, client, name) {
       };
     }, before);
     var tileText = landed.tiles.join(" ").toLowerCase();
-    if (landed.drawer || landed.jumped || landed.title !== "Account Profile" || landed.mark !== "Nexus" || !landed.clockShown || landed.tiles.length !== 3 || tileText.indexOf("in design") !== -1 || landed.tiles[0].toLowerCase().indexOf("account info") === -1 || landed.tiles[1].toLowerCase().indexOf("live weight") === -1 || landed.tiles[2].toLowerCase().indexOf("training stats") === -1) {
+    if (landed.drawer || landed.jumped || landed.title !== "Account Profile" || landed.mark !== "Nexus" || !landed.clockShown || landed.tiles.length !== 4 || tileText.indexOf("in design") !== -1 || landed.tiles[0].toLowerCase().indexOf("account info") === -1 || landed.tiles[1].toLowerCase().indexOf("live weight") === -1 || landed.tiles[2].toLowerCase().indexOf("training stats") === -1 || landed.tiles[3].toLowerCase().indexOf("log out") === -1) {
       fail(width + " Account Profile did not open cleanly " + JSON.stringify(landed));
-    } else ok(width + " Account Profile opens with the header, clock, and three tiles");
+    } else ok(width + " Account Profile opens with the header, clock, three tiles, and Log out");
     var clockA = landed.clock;
     await page.waitForTimeout(1100);
     var clockB = await page.evaluate(function () { return document.getElementById("meta-clock").textContent; });

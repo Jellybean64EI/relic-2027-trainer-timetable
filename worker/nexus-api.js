@@ -1,7 +1,9 @@
 // Nexus API Worker (nexus-api). Bindings: DB (D1 "nexus"), CARDS (R2 "nexus-cards"),
 // VIDEOS (R2 "relic-videos"), BACKUPS (R2 "nexus-backups").
-// Vars/secrets: NEXUS_KEY (required for app writes), PUBLIC_R2_URL, PUBLIC_VIDEOS_URL,
-// BACKUP_TOKEN (required for GET /backups and POST /restore; never ship this to the site).
+// Secrets: OWNER_PASSCODE, SESSION_SECRET, VIDEO_SIGNING_KEY, NEXUS_KEY (legacy, while
+// LEGACY_KEY_ACCEPTED is not "false"), BACKUP_TOKEN, GITHUB_ALERT_TOKEN.
+// Vars: LEGACY_KEY_ACCEPTED, PUBLIC_R2_URL, PUBLIC_VIDEOS_URL.
+// BACKUP_TOKEN is required for GET /backups and POST /restore. Never ship it to the site.
 // Cron: 0 3 * * * writes backups/YYYY-MM-DD/ and keeps 30 daily folders.
 // Restore has no in-app button. From a shell, after `npx wrangler secret put BACKUP_TOKEN`:
 //   curl -s -H "X-Backup-Token: $BACKUP_TOKEN" https://nexus-api.joesearle.workers.dev/backups
@@ -12,16 +14,37 @@
 import { exportBackup, listBackups, restoreBackup } from "./backup.js";
 import { runHealthCheck, pruneHealth } from "./health.js";
 import { saveClientErrors, listClientErrors, pruneClientErrors } from "./errors.js";
-const CORS = {
-  "Access-Control-Allow-Origin": "*",
+import {
+  authorized, timingSame, issueToken, allowedOrigin, requestAllowed, readNeedsAuth,
+  rateAllow, clientIp, signVideo, videoSigOk, parseRange
+} from "./session.js";
+let CORS = {
   "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, X-Nexus-Key, X-Idempotency-Key, X-Backup-Token",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Idempotency-Key, X-Backup-Token, X-Nexus-Key",
   "Access-Control-Max-Age": "86400",
+  "Vary": "Origin",
+  "X-Content-Type-Options": "nosniff",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
 };
+function applyCors(req) {
+  const origin = allowedOrigin(req.headers.get("Origin") || "");
+  CORS = {
+    "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Idempotency-Key, X-Backup-Token, X-Nexus-Key",
+    "Access-Control-Max-Age": "86400",
+    "Vary": "Origin",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "X-Frame-Options": "DENY",
+    "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+  };
+  if (origin) CORS["Access-Control-Allow-Origin"] = origin;
+}
 const DECKS = ["FOOD", "SMOOTHIE", "PORRIDGE"];
 const MEALS = ["breakfast", "lunch", "dinner"];
 const MAX_IMAGE = 10 * 1024 * 1024;
-const EXT = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif", "image/avif": "avif", "image/heic": "heic", "image/heif": "heif", "image/svg+xml": "svg" };
+const EXT = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/gif": "gif", "image/avif": "avif", "image/heic": "heic", "image/heif": "heif" };
 const CARD_FIELDS = ["deck", "name", "front_key", "back_key", "veg", "fruit", "category", "favourite", "equipment"];
 const STACK_FIELDS = ["name", "slot1", "slot2", "slot3"];
 
@@ -251,6 +274,7 @@ async function handleUpload(req, env, url) {
     data = await req.arrayBuffer();
   }
   if (!type.startsWith("image/")) return err(415, "image/* only");
+  if (type === "image/svg+xml") return err(415, "svg uploads are not allowed");
   if (data.byteLength > MAX_IMAGE) return err(413, "image larger than 10 MB");
   if (data.byteLength === 0) return err(400, "empty file");
   let ext = EXT[type];
@@ -959,6 +983,14 @@ async function handleVideos(req, env, url) {
   if (head) stmts.push(env.DB.prepare("INSERT INTO video_sync_log (r2_key, action, orig_bytes, new_bytes, at) VALUES (?, 'delete', ?, 0, ?)").bind(key, freedBytes, ts));
   const res = await env.DB.batch(stmts);
   const ch = (i) => (res[i] && res[i].meta && res[i].meta.changes) || 0;
+  if (head && head.size <= MAX_OBJECT) {
+    try {
+      const stamp = new Date().toISOString().slice(0, 10);
+      const trashKey = "_trash/" + stamp + "/" + key;
+      const obj = await env.VIDEOS.get(key);
+      if (obj) await env.VIDEOS.put(trashKey, obj.body, { httpMetadata: obj.httpMetadata });
+    } catch { /* the delete still proceeds */ }
+  }
   if (head) await env.VIDEOS.delete(key);
   try { await retireIdentity(env, key); } catch (e) {}
   storageCache = null;
@@ -972,15 +1004,15 @@ async function handleVideos(req, env, url) {
 // v69: key-protected raw object access for the nightly trim cutter (download, overwrite, backup copy, purge).
 const ADMIN_PREFIXES = ["_backup/", "_test/"];
 const MAX_OBJECT = 95 * MB;
-function needKey(req, env) {
-  return !env.NEXUS_KEY || req.headers.get("X-Nexus-Key") !== env.NEXUS_KEY;
+async function needKey(req, env) {
+  return !(await authorized(req, env));
 }
 function objMeta(o) {
   return { r2Key: o.key, size: o.size, etag: o.etag, uploaded: o.uploaded ? new Date(o.uploaded).toISOString() : null,
     contentType: (o.httpMetadata && o.httpMetadata.contentType) || null, customMetadata: o.customMetadata || {} };
 }
 async function handleVideoObject(req, env, url, sub) {
-  if (needKey(req, env)) return err(401, "missing or wrong X-Nexus-Key");
+  if (await needKey(req, env)) return err(401, "sign in required");
   if (sub === "copy") {
     if (req.method !== "POST") return err(405, "method not allowed");
     const b = await body(req);
@@ -1021,6 +1053,10 @@ async function handleVideoObject(req, env, url, sub) {
     return new Response(obj.body, { headers });
   }
   if (req.method === "PUT") {
+    const existing = await env.VIDEOS.head(key);
+    if (!key.startsWith("_backup/") && !key.startsWith("_test/") && !existing) {
+      return err(403, "new video keys cannot be written here");
+    }
     const ctype = (req.headers.get("Content-Type") || "").split(";")[0].trim().toLowerCase() || "application/octet-stream";
     const len = Number(req.headers.get("Content-Length") || 0);
     if (len > MAX_OBJECT) return err(413, "object larger than 95 MB");
@@ -1358,6 +1394,35 @@ async function handleWeights(req, env, week) {
   return json({ ok: true, week });
 }
 
+async function streamSignedVideo(req, env, key) {
+  if (req.method !== "GET" && req.method !== "HEAD") return err(405, "method not allowed");
+  if (!okVideoKey(key)) return err(400, "bad video key");
+  if (!requestAllowed(req)) return err(403, "video host is not allowed");
+  const url = new URL(req.url);
+  if (!(await videoSigOk(env, key, url.searchParams.get("exp"), url.searchParams.get("sig") || ""))) {
+    return err(403, "video link expired");
+  }
+  const head = await env.VIDEOS.head(key);
+  if (!head) return err(404, "not found");
+  const range = parseRange(req.headers.get("Range"), head.size);
+  if (range && range.bad) return new Response(null, { status: 416, headers: { ...CORS, "Content-Range": "bytes */" + head.size } });
+  const obj = await env.VIDEOS.get(key, range ? { range: { offset: range.offset, length: range.length } } : undefined);
+  if (!obj) return err(404, "not found");
+  const headers = new Headers(CORS);
+  headers.set("Content-Type", (obj.httpMetadata && obj.httpMetadata.contentType) || "video/mp4");
+  headers.set("Accept-Ranges", "bytes");
+  headers.set("Cache-Control", "private, no-store");
+  headers.set("Content-Disposition", "inline");
+  headers.set("X-Content-Type-Options", "nosniff");
+  if (!range) {
+    headers.set("Content-Length", String(head.size));
+    return new Response(req.method === "HEAD" ? null : obj.body, { status: 200, headers });
+  }
+  headers.set("Content-Length", String(range.length));
+  headers.set("Content-Range", "bytes " + range.start + "-" + range.end + "/" + head.size);
+  return new Response(req.method === "HEAD" ? null : obj.body, { status: 206, headers });
+}
+
 export default {
   async scheduled(event, env, ctx) {
     if (event && event.cron === "*/15 * * * *") {
@@ -1373,12 +1438,42 @@ export default {
     })());
   },
   async fetch(req, env) {
-    if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
+    applyCors(req);
+    if (req.method === "OPTIONS") {
+      if (!allowedOrigin(req.headers.get("Origin") || "")) return new Response(null, { status: 403 });
+      return new Response(null, { status: 204, headers: CORS });
+    }
     const url = new URL(req.url);
     const parts = url.pathname.split("/").filter(Boolean).map(decodeURIComponent);
     const [root, a, b] = parts;
     const write = req.method !== "GET" && req.method !== "HEAD";
+    const ip = clientIp(req);
     try {
+      if (root === "v") {
+        return await streamSignedVideo(req, env, parts.slice(1).join("/"));
+      }
+      if (root === "auth" && a === "login") {
+        if (req.method !== "POST") return err(405, "method not allowed");
+        if (!(await rateAllow(env, ip, "login", 5, 15 * 60))) return err(429, "too many logins");
+        if (!env.OWNER_PASSCODE || !env.SESSION_SECRET) return err(503, "owner login is not configured");
+        const sent = (await body(req) || {}).passcode || "";
+        if (!(await timingSame(env.OWNER_PASSCODE, sent))) return err(401, "wrong passcode");
+        const issued = await issueToken(env);
+        return json({ ok: true, token: issued.token, exp: issued.exp });
+      }
+      if (root === "video-sign") {
+        if (req.method !== "POST") return err(405, "method not allowed");
+        if (!(await rateAllow(env, ip, "video-sign", 120, 60))) return err(429, "too many signs");
+        if (!(await authorized(req, env))) return err(401, "sign in required");
+        const keys = ((await body(req) || {}).keys || []).filter((key) => typeof key === "string" && okVideoKey(key)).slice(0, 80);
+        const base = new URL(req.url).origin;
+        const signed = [];
+        for (const key of keys) {
+          const row = await signVideo(env, key);
+          signed.push({ key, exp: row.exp, url: base + row.url });
+        }
+        return json({ ok: true, videos: signed });
+      }
       if (!root || root === "health") {
         if (write) return err(405, "method not allowed");
         await ensureGroupsTable(env.DB);
@@ -1388,7 +1483,7 @@ export default {
         try { cv = await customCount(env); } catch {}
         let identityCount = null;
         try { await ensureIdentityTable(env.DB); identityCount = (await env.DB.prepare("SELECT COUNT(*) AS n FROM video_identity").first()).n; } catch (e) {}
-        return json({ ok: true, service: "nexus-api", version: "v100", time: now(), counts: { ...t, custom_videos: cv, video_identity: identityCount } });
+        return json({ ok: true, service: "nexus-api", version: "v103", time: now(), counts: { ...t, custom_videos: cv, video_identity: identityCount } });
       }
       if (root === "errors") {
         if (req.method === "GET") {
@@ -1396,7 +1491,10 @@ export default {
           if (denied) return denied;
           return json({ ok: true, errors: await listClientErrors(env.DB) });
         }
-        if (req.method === "POST") return json({ ok: true, stored: await saveClientErrors(env.DB, await body(req)) });
+        if (req.method === "POST") {
+          if (!(await rateAllow(env, ip, "errors", 10, 60))) return err(429, "too many errors");
+          return json({ ok: true, stored: await saveClientErrors(env.DB, await body(req)) });
+        }
         return err(405, "method not allowed");
       }
       if (root === "backups" || root === "restore") {
@@ -1414,8 +1512,10 @@ export default {
           return err(message === "backup not found" || message === "bad backup date" ? 400 : 500, message);
         }
       }
+      if (!write && readNeedsAuth(root) && !(await authorized(req, env))) return err(401, "sign in required");
       if (write) {
-        if (!env.NEXUS_KEY || req.headers.get("X-Nexus-Key") !== env.NEXUS_KEY) return err(401, "missing or wrong X-Nexus-Key");
+        if (!(await rateAllow(env, ip, "write", 60, 60))) return err(429, "too many writes");
+        if (!(await authorized(req, env))) return err(401, "sign in required");
       }
       switch (root) {
         case "ticks": return await withIdempotency(handleTicks)(req, env, "ticks", a);

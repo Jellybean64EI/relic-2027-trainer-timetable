@@ -1,4 +1,4 @@
-/* Nexus v102: health cron, smoke workflow, update pill, quiet error log. */
+/* Nexus v103: health cron, smoke workflow, update pill, quiet error log. */
 var fs = require("fs");
 var failed = 0;
 
@@ -17,14 +17,14 @@ var sw = fs.readFileSync("sw.js", "utf8");
 var worker = fs.readFileSync("worker/nexus-api.js", "utf8");
 var yml = fs.readFileSync(".github/workflows/smoke.yml", "utf8");
 var smoke = require("./tools/smoke.js");
-if (html.indexOf('content="v102"') === -1 || app.indexOf('build: "v102"') === -1) fail("cache stamp is not v102");
-else ok("cache stamp is v102");
-if (sw.indexOf('CACHE = "nexus-v102"') === -1 || sw.indexOf("skip-waiting") === -1 || sw.indexOf("if (!self.registration.active)") === -1) {
+if (html.indexOf('content="v103"') === -1 || app.indexOf('build: "v103"') === -1) fail("cache stamp is not v103");
+else ok("cache stamp is v103");
+if (sw.indexOf('CACHE = "nexus-v103"') === -1 || sw.indexOf("skip-waiting") === -1 || sw.indexOf("if (!self.registration.active)") === -1) {
   fail("the update worker is not waiting");
 } else ok("a new service worker waits for a tap");
 if (html.indexOf("Update ready · tap to refresh") === -1) fail("the update pill is missing");
 else ok("the update pill is in the page");
-if (worker.indexOf('version: "v100"') === -1 || worker.indexOf('event.cron === "*/15 * * * *"') === -1) fail("the health cron is not wired");
+if (worker.indexOf('version: "v103"') === -1 || worker.indexOf('event.cron === "*/15 * * * *"') === -1) fail("the health cron is not wired");
 else ok("the health cron is wired");
 if (yml.indexOf("workflow_dispatch") === -1 || yml.indexOf("git revert --no-edit HEAD") === -1 || yml.indexOf("github.event_name == 'workflow_dispatch'") === -1 || yml.indexOf("github.event_name == 'push'") === -1) {
   fail("rollback is not manual");
@@ -109,7 +109,7 @@ function githubFetch(bucket) {
     }
     return {
       status: bucket.siteStatus,
-      text: async function () { return bucket.siteStatus === 200 ? '<meta name="relic-build" content="v102">' : "down"; },
+      text: async function () { return bucket.siteStatus === 200 ? '<meta name="relic-build" content="v103">' : "down"; },
       json: async function () { return {}; }
     };
   };
@@ -210,7 +210,7 @@ function playwright() {
     return route.fulfill({ status: 200, contentType: "application/json", body: "{\"ok\":true,\"stored\":1}" });
   });
   var page = await context.newPage();
-  await page.goto("http://127.0.0.1:8080/?v=v102", { waitUntil: "domcontentloaded" });
+  await page.goto("http://127.0.0.1:8080/?v=v103", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(function () { return window.RelicArchitect && navigator.serviceWorker.controller && window.nexusNoteUpdate; }, null, { timeout: 20000 });
   var resting = await page.evaluate(function () {
     var meta = document.querySelector('meta[name="relic-build"]').getAttribute("content");
@@ -265,7 +265,7 @@ function playwright() {
     };
   });
   var versionWhileWaiting = await page.evaluate(function () { return document.getElementById("nexus-build").textContent; });
-  if (shown.hidden || shown.text !== "Update ready · tap to refresh" || versionWhileWaiting !== "Nexus v102 · update ready" || !shown.belowClock || !shown.aboveCard || shown.color.indexOf("255, 140, 0") === -1) {
+  if (shown.hidden || shown.text !== "Update ready · tap to refresh" || versionWhileWaiting !== "Nexus v103 · update ready" || !shown.belowClock || !shown.aboveCard || shown.color.indexOf("255, 140, 0") === -1) {
     fail("the update pill is wrong " + JSON.stringify(shown) + " " + versionWhileWaiting);
   } else ok("the update pill sits under the clock");
   await page.screenshot({ path: "/opt/cursor/artifacts/v100-update-pill.png" });
@@ -292,7 +292,7 @@ function playwright() {
       label: document.getElementById("nexus-build").textContent
     };
   });
-  if (!hiddenWhilePlaying.hidden || hiddenWhilePlaying.during !== "Nexus v102" || !hiddenWhilePlaying.back || hiddenWhilePlaying.label !== "Nexus v102 · update ready") fail("the pill shows over a video " + JSON.stringify(hiddenWhilePlaying));
+  if (!hiddenWhilePlaying.hidden || hiddenWhilePlaying.during !== "Nexus v103" || !hiddenWhilePlaying.back || hiddenWhilePlaying.label !== "Nexus v103 · update ready") fail("the pill shows over a video " + JSON.stringify(hiddenWhilePlaying));
   else ok("the pill waits until the video closes");
   await context.setOffline(true);
   await page.evaluate(function () {

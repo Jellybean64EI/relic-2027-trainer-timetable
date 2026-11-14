@@ -1624,6 +1624,12 @@
 
   function storagePublicUrl(objectParts) {
     var api = window.NEXUS_API || {};
+    var plain = (objectParts || []).filter(function (part) { return !!part; }).join("/");
+    if (window.NexusVideo && window.NexusVideo.cached) {
+      var signed = window.NexusVideo.cached(plain);
+      if (signed) return signed;
+      if (window.NexusVideo.queue) window.NexusVideo.queue(plain);
+    }
     var key = (objectParts || []).filter(function (part) { return !!part; }).map(function (part) {
       return encodeURIComponent(part);
     }).join("/");
@@ -1635,7 +1641,15 @@
   function resolveClipSrc(cabinKey, clip) {
     if (!clip) return "";
     var src = clip.src ? String(clip.src).trim() : "";
-    if (src && /^https?:\/\//i.test(src) && !isBlockedMediaUrl(src)) return src;
+    if (src && /^https?:\/\//i.test(src) && !isBlockedMediaUrl(src)) {
+      var pub = src.indexOf("r2.dev/");
+      if (pub !== -1) {
+        var raw = src.slice(pub + "r2.dev/".length).split("?")[0].split("#")[0];
+        try { raw = decodeURIComponent(raw); } catch (err) { /* keep the encoded key */ }
+        if (raw) return storagePublicUrl(raw.split("/"));
+      }
+      return src;
+    }
     var path = clip.path ? String(clip.path).trim() : "";
     if (path && /^https?:\/\//i.test(path) && !isBlockedMediaUrl(path)) return path;
     if (path && !/^https?:\/\//i.test(path)) {
@@ -4261,7 +4275,7 @@
     window.playNextVideo = playNextVideo;
   window.RelicArchitect = {
     version: "2.0",
-    build: "v102",
+    build: "v103",
     planFocusDate: planFocusDate,
     openAccount: function (view) {
       if (window.RelicArchitectOpenAccount) window.RelicArchitectOpenAccount(view);

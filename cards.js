@@ -583,7 +583,9 @@
         "&name=" + encodeURIComponent(name) +
         "&title=" + encodeURIComponent(title || "");
       xhr.open("PUT", url);
-      xhr.setRequestHeader("X-Nexus-Key", api.key || "");
+      var token = "";
+      try { token = localStorage.getItem("nexus-session") || ""; } catch (err) { token = ""; }
+      if (token) xhr.setRequestHeader("Authorization", "Bearer " + token);
       xhr.setRequestHeader("Content-Type", contentType);
       xhr.upload.onprogress = function (event) {
         if (!event.lengthComputable) return;

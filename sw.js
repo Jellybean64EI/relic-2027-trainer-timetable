@@ -1,48 +1,49 @@
-/* Nexus v102 app shell.
-   Cache name: nexus-v102. A new version stays waiting until the page asks it
+/* Nexus v103 app shell.
+   Cache name: nexus-v103. A new version stays waiting until the page asks it
    to take over. Videos are not cached: range responses are partial 206 bodies,
    and storing one range would later be served as a whole clip.
    There are no font files in this app; type is set with system fonts. */
-var CACHE = "nexus-v102";
-var IMAGE_CACHE = "nexus-v102-images";
+var CACHE = "nexus-v103";
+var IMAGE_CACHE = "nexus-v103-images";
 var IMAGE_CAP = 40;
 var API_ORIGIN = "https://nexus-api.joesearle.workers.dev";
 var CARD_HOST = "pub-322d36bbbce14f5e82238dc08a645e26.r2.dev";
 var PRECACHE = [
   "/",
   "/index.html",
-  "/styles.css?v=v102",
-  "/manifest.webmanifest?v=v102",
+  "/styles.css?v=v103",
+  "/manifest.webmanifest?v=v103",
   "/favicon.ico",
   "/apple-touch-icon.png",
   "/assets/nexus-icon-192.png",
   "/assets/nexus-icon.png",
-  "/offline.js?v=v102",
-  "/data/schedule.js?v=v102",
-  "/data/precondition.js?v=v102",
-  "/data/upperBody.js?v=v102",
-  "/data/citations.js?v=v102",
-  "/data/forensic.js?v=v102",
-  "/data/cues/cues.js?v=v102",
-  "/data/forensicClips.js?v=v102",
-  "/data/videoArchive.js?v=v102",
-  "/data/nutrition/shop.js?v=v102",
-  "/data/nutrition/schedule.js?v=v102",
-  "/food.js?v=v102",
-  "/data/nexusConfig.js?v=v102",
-  "/deck.js?v=v102",
-  "/data/videoCatalog.js?v=v102",
-  "/tools/v64_placement.js?v=v102",
-  "/trim.js?v=v102",
-  "/builder.js?v=v102",
-  "/pre2026.css?v=v102",
-  "/pre2026.js?v=v102",
-  "/cards.js?v=v102",
-  "/data/cueModel.js?v=v102",
-  "/data/cueEditor.js?v=v102",
-  "/data/playerChrome.js?v=v102",
-  "/account.js?v=v102",
-  "/app.js?v=v102"
+  "/offline.js?v=v103",
+  "/data/schedule.js?v=v103",
+  "/data/precondition.js?v=v103",
+  "/data/upperBody.js?v=v103",
+  "/data/citations.js?v=v103",
+  "/data/forensic.js?v=v103",
+  "/data/cues/cues.js?v=v103",
+  "/data/forensicClips.js?v=v103",
+  "/data/videoArchive.js?v=v103",
+  "/data/nutrition/shop.js?v=v103",
+  "/data/nutrition/schedule.js?v=v103",
+  "/food.js?v=v103",
+  "/data/nexusConfig.js?v=v103",
+  "/auth.js?v=v103",
+  "/deck.js?v=v103",
+  "/data/videoCatalog.js?v=v103",
+  "/tools/v64_placement.js?v=v103",
+  "/trim.js?v=v103",
+  "/builder.js?v=v103",
+  "/pre2026.css?v=v103",
+  "/pre2026.js?v=v103",
+  "/cards.js?v=v103",
+  "/data/cueModel.js?v=v103",
+  "/data/cueEditor.js?v=v103",
+  "/data/playerChrome.js?v=v103",
+  "/account.js?v=v103",
+  "/app.js?v=v103"
 ];
 var API_PREFIX = /^\/(ticks|ticks_2026|cards|stacks|slots|video-placements|video-cues|weights|account|training-combos|training-groups|training-plan|training-plan-week|custom-videos|video-ids)(\/|$)/;
 
@@ -122,6 +123,7 @@ self.addEventListener("fetch", function (event) {
     }));
     return;
   }
+  if (url.origin === API_ORIGIN && (url.pathname.indexOf("/v/") === 0 || url.pathname.indexOf("/auth") === 0)) return;
   if (url.origin === API_ORIGIN && API_PREFIX.test(url.pathname)) {
     event.respondWith(fetch(request).then(function (response) {
       var copy = response.clone();

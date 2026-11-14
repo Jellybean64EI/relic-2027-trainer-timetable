@@ -101,6 +101,32 @@ async function browse(site) {
   return { home: home, errors: errors };
 }
 
+async function security(worker) {
+  var login = await fetch(worker + "/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Origin: "https://evil.example" },
+    body: "{}"
+  });
+  if (login.status === 404) {
+    console.log("security checks skipped: worker routes are not deployed yet");
+    return;
+  }
+  if (login.headers.get("access-control-allow-origin")) throw new Error("an unknown origin was allowed");
+  var write = await fetch(worker + "/ticks/2099-01-01", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Origin: "https://relic-2027-trainer-timetable.vercel.app" },
+    body: "{\"level\":0}"
+  });
+  if (write.status !== 401) throw new Error("a write without a session returned " + write.status);
+  var account = await fetch(worker + "/account");
+  if (account.status !== 401) throw new Error("account without a session returned " + account.status);
+  var video = await fetch(worker + "/v/Cabin/missing.mp4?exp=1&sig=bad", {
+    headers: { Referer: "https://relic-2027-trainer-timetable.vercel.app/" }
+  });
+  if (video.status !== 403 && video.status !== 404) throw new Error("a bad video link returned " + video.status);
+  console.log("OK security smoke");
+}
+
 async function main() {
   var site = process.env.SITE || "https://relic-2027-trainer-timetable.vercel.app";
   var worker = (process.env.WORKER || "https://nexus-api.joesearle.workers.dev").replace(/\/$/, "");
@@ -116,6 +142,7 @@ async function main() {
   var healthRes = await fetch(worker + "/health", { headers: { "User-Agent": "nexus-smoke" } });
   var health = await healthRes.json();
   if (!countsOk(health)) throw new Error("health counts " + JSON.stringify(health && health.counts));
+  await security(worker);
   var viewed = await browse(site);
   if (viewed.home !== "Training Schedules") throw new Error("home title " + viewed.home);
   if (viewed.errors.length) throw new Error("console errors " + viewed.errors.join(" | "));
